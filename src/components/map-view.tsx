@@ -84,3 +84,20 @@ export function MapView({ pontos, className }: { pontos: Ponto[]; className?: st
 export function rotaGoogleMaps(destino: string): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destino)}&travelmode=driving`;
 }
+
+export async function geocodificarEndereco(
+  endereco: string,
+): Promise<{ lat: number; lng: number } | null> {
+  try {
+    await loadMaps();
+    const g = (window as any).google;
+    const geocoder = new g.maps.Geocoder();
+    const res = await geocoder.geocode({ address: endereco, region: "br" });
+    const loc = res?.results?.[0]?.geometry?.location;
+    if (!loc) return null;
+    return { lat: loc.lat(), lng: loc.lng() };
+  } catch (e) {
+    console.error("Geocodificação falhou", e);
+    return null;
+  }
+}
