@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Clock, Package, Search, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
 import { useAvaliacoes, useCategorias, useProdutos } from "@/lib/catalog";
-import { useSession } from "@/lib/session";
+import { useSession, useStaffOnly } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
 import { brl, TAXA_ENTREGA } from "@/lib/format";
@@ -38,12 +38,17 @@ function Home() {
   const { data: produtos, isLoading: loadingProds } = useProdutos();
   const { data: avaliacoes } = useAvaliacoes();
   const { user } = useSession();
+  const { staffOnly, painel } = useStaffOnly();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { subtotal, totalItens } = useCart();
   const [busca, setBusca] = useState("");
   const [catAtiva, setCatAtiva] = useState<string | null>(null);
   const carregando = loadingCats || loadingProds;
+
+  useEffect(() => {
+    if (staffOnly && painel) navigate({ to: painel, replace: true });
+  }, [staffOnly, painel, navigate]);
 
   const { data: favoritos } = useQuery({
     queryKey: ["favoritos", user?.id],
@@ -86,6 +91,10 @@ function Home() {
   );
 
   const catsVisiveis = (categorias ?? []).filter((c) => !catAtiva || c.id === catAtiva);
+
+  if (staffOnly) {
+    return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
+  }
 
   return (
     <div>

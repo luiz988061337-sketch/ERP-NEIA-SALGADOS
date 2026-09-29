@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Minus, Package, Plus, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
+import { useStaffOnly } from "@/lib/session";
 import { imagemProduto, useCategorias, useProdutos } from "@/lib/catalog";
 import { brl } from "@/lib/format";
 import { COMBO_CATEGORIAS, MINIMO_COMBO, PASSO_COMBO, saborCurto } from "@/lib/combo";
@@ -34,6 +35,11 @@ function Combo() {
   const { data: produtos } = useProdutos();
   const [slug, setSlug] = useState<string | null>(null);
   const [qtds, setQtds] = useState<Record<string, number>>({});
+  const { staffOnly, painel } = useStaffOnly();
+
+  useEffect(() => {
+    if (staffOnly && painel) navigate({ to: painel, replace: true });
+  }, [staffOnly, painel, navigate]);
 
   const cat = COMBO_CATEGORIAS.find((c) => c.slug === slug) ?? null;
   const catId = categorias?.find((c) => c.slug === slug)?.id;
@@ -84,6 +90,10 @@ function Combo() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
+      {staffOnly ? (
+        <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>
+      ) : (
+      <>
       <Button variant="ghost" size="sm" asChild className="mb-2">
         <Link to="/">
           <ArrowLeft className="mr-1 size-4" /> Cardápio
@@ -226,6 +236,8 @@ function Combo() {
       <p className="mt-6 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
         Prefere os pacotes prontos? <Link to="/" className="inline-flex items-center gap-0.5 underline">Ver cardápio <ArrowRight className="size-3" /></Link>
       </p>
+      </>
+      )}
     </div>
   );
 }

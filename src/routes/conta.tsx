@@ -11,7 +11,7 @@ import { StatusBadge } from "@/components/status-steps";
 import { ProductCard } from "@/components/product-card";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dataHora } from "@/lib/format";
-import { usePerfil, useSession } from "@/lib/session";
+import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
 import { useAvaliacoes, useProdutos, type Produto } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +31,14 @@ const PONTOS_POR_REAL = 0.2; // 1 ponto a cada R$ 5
 function Conta() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
+  const { staffOnly, painel } = useStaffOnly();
   const { data: perfil } = usePerfil(user?.id);
   const queryClient = useQueryClient();
   const [aba, setAba] = useState("pedidos");
+
+  useEffect(() => {
+    if (staffOnly && painel) navigate({ to: painel, replace: true });
+  }, [staffOnly, painel, navigate]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/conta" }, replace: true });
@@ -94,6 +99,10 @@ function Conta() {
   async function removerFavorito(id: string) {
     await supabase.from("favoritos").delete().eq("produto_id", id).eq("user_id", user!.id);
     queryClient.invalidateQueries({ queryKey: ["favoritos"] });
+  }
+
+  if (staffOnly) {
+    return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
   }
 
   return (

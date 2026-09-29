@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/lib/session";
+import { useSession, useStaffOnly } from "@/lib/session";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -29,6 +29,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
   const { user } = useSession();
+  const { staffOnly, painel, rolesPronto } = useStaffOnly();
   const [carregando, setCarregando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [whatsEnviadoPara, setWhatsEnviadoPara] = useState<string | null>(null);
@@ -37,8 +38,10 @@ function AuthPage() {
   const destino = search.redirect && search.redirect.startsWith("/") ? search.redirect : "/";
 
   useEffect(() => {
-    if (user) navigate({ to: destino, replace: true });
-  }, [user, destino, navigate]);
+    if (!user || !rolesPronto) return;
+    if (staffOnly && painel && destino === "/") navigate({ to: painel, replace: true });
+    else navigate({ to: destino, replace: true });
+  }, [user, destino, navigate, staffOnly, painel, rolesPronto]);
 
   async function entrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

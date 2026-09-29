@@ -3,7 +3,7 @@ import { ShoppingBag, User, LogOut, LayoutDashboard, ChefHat, Bike, Menu } from 
 import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/neia-logo.png.asset.json";
 import { useCart } from "@/lib/cart";
-import { useRoles, useSession } from "@/lib/session";
+import { useRoles, useSession, useStaffOnly } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ export function SiteHeader() {
   const { totalItens } = useCart();
   const { user } = useSession();
   const { data: roles } = useRoles(user?.id);
+  const { staffOnly } = useStaffOnly();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -46,13 +47,17 @@ export function SiteHeader() {
         </Link>
 
         <nav className="ml-auto hidden items-center gap-1 md:flex">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/">Cardápio</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/combo">Montar combo</Link>
-          </Button>
-          {user ? (
+          {staffOnly ? null : (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/">Cardápio</Link>
+            </Button>
+          )}
+          {staffOnly ? null : (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/combo">Montar combo</Link>
+            </Button>
+          )}
+          {user && !staffOnly ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/conta">Meus pedidos</Link>
             </Button>
@@ -75,16 +80,18 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 md:ml-2">
-          <Button asChild variant="ghost" size="icon" className="relative">
-            <Link to="/carrinho" aria-label="Carrinho">
-              <ShoppingBag className="size-5" />
-              {totalItens > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
-                  {totalItens}
-                </span>
-              ) : null}
-            </Link>
-          </Button>
+          {staffOnly ? null : (
+            <Button asChild variant="ghost" size="icon" className="relative">
+              <Link to="/carrinho" aria-label="Carrinho">
+                <ShoppingBag className="size-5" />
+                {totalItens > 0 ? (
+                  <span className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                    {totalItens}
+                  </span>
+                ) : null}
+              </Link>
+            </Button>
+          )}
 
           {user ? (
             <DropdownMenu>
@@ -94,11 +101,13 @@ export function SiteHeader() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem asChild>
-                  <Link to="/conta">
-                    <User className="mr-2 size-4" /> Minha conta
-                  </Link>
-                </DropdownMenuItem>
+                {staffOnly ? null : (
+                  <DropdownMenuItem asChild>
+                    <Link to="/conta">
+                      <User className="mr-2 size-4" /> Minha conta
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 {isProducao ? (
                   <DropdownMenuItem asChild>
                     <Link to="/producao">
@@ -139,13 +148,17 @@ export function SiteHeader() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link to="/">Cardápio</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/combo">Montar combo</Link>
-              </DropdownMenuItem>
-              {user ? (
+              {staffOnly ? null : (
+                <DropdownMenuItem asChild>
+                  <Link to="/">Cardápio</Link>
+                </DropdownMenuItem>
+              )}
+              {staffOnly ? null : (
+                <DropdownMenuItem asChild>
+                  <Link to="/combo">Montar combo</Link>
+                </DropdownMenuItem>
+              )}
+              {user && !staffOnly ? (
                 <DropdownMenuItem asChild>
                   <Link to="/conta">Meus pedidos</Link>
                 </DropdownMenuItem>

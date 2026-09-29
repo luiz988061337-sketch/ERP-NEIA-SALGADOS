@@ -1,8 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { brl, TAXA_ENTREGA } from "@/lib/format";
+import { useStaffOnly } from "@/lib/session";
 
 export const Route = createFileRoute("/carrinho")({
   head: () => ({
@@ -18,6 +20,16 @@ export const Route = createFileRoute("/carrinho")({
 
 function Carrinho() {
   const { items, setQuantidade, remove, subtotal } = useCart();
+  const { staffOnly, painel } = useStaffOnly();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (staffOnly && painel) navigate({ to: painel, replace: true });
+  }, [staffOnly, painel, navigate]);
+
+  if (staffOnly) {
+    return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
+  }
 
   if (items.length === 0) {
     return (

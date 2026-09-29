@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
-import { usePerfil, useSession } from "@/lib/session";
+import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, whatsappLink, mensagemStatus } from "@/lib/format";
 import { geocodificarEndereco } from "@/components/map-view";
 
@@ -41,6 +41,7 @@ const schema = z.object({
 function Checkout() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
+  const { staffOnly, painel } = useStaffOnly();
   const { data: perfil } = usePerfil(user?.id);
   const { items, subtotal, clear } = useCart();
   const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "credito" | "debito">("pix");
@@ -60,6 +61,10 @@ function Checkout() {
   });
 
   useEffect(() => {
+    if (staffOnly && painel) navigate({ to: painel, replace: true });
+  }, [staffOnly, painel, navigate]);
+
+  useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/checkout" }, replace: true });
   }, [loading, user, navigate]);
 
@@ -72,6 +77,10 @@ function Checkout() {
   const pontosGanhos = Math.floor(total / 5);
   const pixPayload = `NEIA-SALGADOS|CHAVE:${PIX_CHAVE}|VALOR:${total.toFixed(2)}`;
   const pixQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixPayload)}`;
+
+  if (staffOnly) {
+    return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
+  }
 
   function preencherEndereco(id: string) {
     setEnderecoId(id);

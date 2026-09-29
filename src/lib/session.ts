@@ -47,3 +47,22 @@ export function usePerfil(userId: string | undefined) {
     },
   });
 }
+
+/**
+ * Funcionário sem papel de admin (produção/motoboy): usa só o painel,
+ * sem cardápio/carrinho/checkout. Admin mantém acesso total.
+ */
+export function useStaffOnly() {
+  const { user } = useSession();
+  const { data: roles } = useRoles(user?.id);
+  const isAdmin = roles?.includes("admin") ?? false;
+  const isStaff =
+    (roles?.includes("producao") || roles?.includes("motoboy")) ?? false;
+  const painel =
+    (roles?.includes("producao")
+      ? "/producao"
+      : roles?.includes("motoboy")
+        ? "/motoboy"
+        : null) as "/producao" | "/motoboy" | null;
+  return { staffOnly: isStaff && !isAdmin, painel, rolesPronto: roles !== undefined };
+}
