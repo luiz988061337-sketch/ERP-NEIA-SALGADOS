@@ -10,9 +10,9 @@ import { cn } from "@/lib/utils";
 type Props = {
   produto: Produto;
   slugCategoria: string;
-  nota?: number | null;
-  favorito?: boolean;
-  onToggleFavorito?: () => void;
+  nota?: number | null | undefined;
+  favorito?: boolean | undefined;
+  onToggleFavorito?: (() => void) | undefined;
 };
 
 export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFavorito }: Props) {

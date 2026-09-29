@@ -32,6 +32,17 @@ export const STATUS_FLOW = [
   "entregue",
 ] as const;
 
+export type OrderStatus =
+  | "recebido"
+  | "em_producao"
+  | "pronto"
+  | "aguardando_motoboy"
+  | "em_rota"
+  | "entregue"
+  | "cancelado";
+
+export type ProdStatus = "aguardando" | "produzindo" | "finalizado";
+
 export const PAGAMENTO_LABEL: Record<string, string> = {
   pix: "PIX",
   dinheiro: "Dinheiro",

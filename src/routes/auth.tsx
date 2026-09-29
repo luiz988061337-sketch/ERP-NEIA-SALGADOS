@@ -92,6 +92,25 @@ function AuthPage() {
     }
   }
 
+  async function entrarWhats(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const tel = String(form.get("whats")).replace(/\D/g, "");
+    if (tel.length < 10) {
+      toast.error("Informe um WhatsApp válido com DDD.");
+      return;
+    }
+    setCarregando(true);
+    const phone = tel.startsWith("55") ? `+${tel}` : `+55${tel}`;
+    const { error } = await supabase.auth.signInWithOtp({ phone, options: { channel: "whatsapp" as never } });
+    setCarregando(false);
+    if (error) {
+      toast.error("WhatsApp OTP indisponível. Ative o provider Phone/WhatsApp no Supabase ou entre por e-mail.");
+      return;
+    }
+    toast.success("Código enviado no seu WhatsApp!");
+  }
+
   async function recuperar() {
     const email = window.prompt("Informe o e-mail da sua conta:");
     if (!email) return;
@@ -114,9 +133,10 @@ function AuthPage() {
       />
 
       <Tabs defaultValue="entrar" className="mt-8">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="entrar">Entrar</TabsTrigger>
           <TabsTrigger value="cadastrar">Criar conta</TabsTrigger>
+          <TabsTrigger value="whats">WhatsApp</TabsTrigger>
         </TabsList>
 
         <TabsContent value="entrar">
@@ -160,6 +180,21 @@ function AuthPage() {
               Criar conta
             </Button>
             {aviso ? <p className="text-center text-xs text-muted-foreground">{aviso}</p> : null}
+          </form>
+        </TabsContent>
+
+        <TabsContent value="whats">
+          <form onSubmit={entrarWhats} className="space-y-4 rounded-xl border border-border bg-card p-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="whats">Seu WhatsApp</Label>
+              <Input id="whats" name="whats" placeholder="(11) 90000-0000" required maxLength={20} autoComplete="tel" />
+            </div>
+            <Button type="submit" className="w-full" disabled={carregando}>
+              Receber código no WhatsApp
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Você receberá um código via WhatsApp (requer provider Phone/WhatsApp ativo no Supabase). Depois confirme o código no app.
+            </p>
           </form>
         </TabsContent>
       </Tabs>

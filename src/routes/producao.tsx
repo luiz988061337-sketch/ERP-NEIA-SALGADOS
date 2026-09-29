@@ -6,7 +6,7 @@ import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-steps";
 import { supabase } from "@/integrations/supabase/client";
-import { brl, hora, mensagemStatus, whatsappLink } from "@/lib/format";
+import { brl, hora, mensagemStatus, whatsappLink, type OrderStatus, type ProdStatus } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/producao")({
@@ -48,7 +48,7 @@ function Producao() {
     },
   });
 
-  async function mudarStatus(pedido: any, status: string, producao_status: string) {
+  async function mudarStatus(pedido: any, status: OrderStatus, producao_status: ProdStatus) {
     const { error } = await supabase.from("pedidos").update({ status, producao_status }).eq("id", pedido.id);
     if (error) {
       toast.error("Não foi possível atualizar o pedido.");

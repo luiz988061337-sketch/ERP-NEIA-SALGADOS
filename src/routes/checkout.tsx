@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Copy, Loader2 } from "lucide-react";
+import { Copy, Loader2, QrCode, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,8 +22,6 @@ export const Route = createFileRoute("/checkout")({
     meta: [
       { title: "Finalizar pedido — Néia Salgados" },
       { name: "description", content: "Informe endereço e forma de pagamento para concluir seu pedido." },
-      { property: "og:title", content: "Finalizar pedido — Néia Salgados" },
-      { property: "og:description", content: "Informe endereço e forma de pagamento para concluir seu pedido." },
     ],
   }),
   component: Checkout,
@@ -33,9 +32,10 @@ const schema = z.object({
   telefone: z.string().trim().min(10, "WhatsApp inválido").max(20),
   endereco: z.string().trim().min(6, "Informe rua e número").max(200),
   bairro: z.string().trim().min(2, "Informe o bairro").max(100),
-  complemento: z.string().trim().max(100),
-  referencia: z.string().trim().max(150),
-  observacoes: z.string().trim().max(300),
+  complemento: z.string().trim().max(100).optional().default(""),
+  referencia: z.string().trim().max(150).optional().default(""),
+  observacoes: z.string().trim().max(300).optional().default(""),
+  troco: z.string().trim().max(20).optional().default(""),
 });
 
 function Checkout() {
@@ -47,6 +47,17 @@ function Checkout() {
   const [cupomTexto, setCupomTexto] = useState("");
   const [cupom, setCupom] = useState<{ codigo: string; desconto: number } | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [enderecoId, setEnderecoId] = useState<string>("");
+
+  const { data: enderecos } = useQuery({
+    queryKey: ["enderecos-checkout", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("enderecos").select("*").eq("user_id", user!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/checkout" }, replace: true });
@@ -58,27 +69,34 @@ function Checkout() {
 
   const desconto = cupom?.desconto ?? 0;
   const total = Math.max(0, subtotal + TAXA_ENTREGA - desconto);
+  const pontosGanhos = Math.floor(total / 5);
+  const pixPayload = `NEIA-SALGADOS|CHAVE:${PIX_CHAVE}|VALOR:${total.toFixed(2)}`;
+  const pixQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixPayload)}`;
+
+  function preencherEndereco(id: string) {
+    setEnderecoId(id);
+    const e = (enderecos ?? []).find((x: any) => x.id === id);
+    if (!e) return;
+    (document.getElementById("endereco") as HTMLInputElement).value = `${e.rua}, ${e.numero}`;
+    (document.getElementById("bairro") as HTMLInputElement).value = e.bairro;
+    (document.getElementById("complemento") as HTMLInputElement).value = e.complemento ?? "";
+    (document.getElementById("referencia") as HTMLInputElement).value = e.referencia ?? "";
+  }
 
   async function aplicarCupom() {
     const codigo = cupomTexto.trim().toUpperCase();
     if (!codigo) return;
-    const { data, error } = await supabase
-      .from("cupons")
-      .select("*")
-      .eq("codigo", codigo)
-      .eq("ativo", true)
-      .maybeSingle();
+    const { data, error } = await supabase.from("cupons").select("*").eq("codigo", codigo).eq("ativo", true).maybeSingle();
     if (error || !data) {
       toast.error("Cupom inválido.");
       return;
     }
-    const minimo = Number(data.valor_minimo ?? 0);
+    const minimo = Number((data as any).valor_minimo ?? (data as any).minimo ?? 0);
     if (subtotal < minimo) {
       toast.error(`Cupom válido em pedidos acima de ${brl(minimo)}.`);
       return;
     }
-    const valor =
-      data.tipo === "percentual" ? (subtotal * Number(data.valor)) / 100 : Number(data.valor);
+    const valor = (data as any).tipo === "percentual" ? (subtotal * Number((data as any).valor)) / 100 : Number((data as any).valor);
     setCupom({ codigo, desconto: Math.min(valor, subtotal) });
     toast.success(`Cupom ${codigo} aplicado!`);
   }
@@ -87,43 +105,56 @@ function Checkout() {
     e.preventDefault();
     if (!user) return;
     const form = new FormData(e.currentTarget);
-    const parsed = schema.safeParse(Object.fromEntries(form) as Record<string, string>);
+    const parsed = schema.safeParse({
+      cliente_nome: form.get("cliente_nome"),
+      telefone: form.get("telefone"),
+      endereco: form.get("endereco"),
+      bairro: form.get("bairro"),
+      complemento: form.get("complemento") ?? "",
+      referencia: form.get("referencia") ?? "",
+      observacoes: form.get("observacoes") ?? "",
+      troco: form.get("troco") ?? "",
+    });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Confira os dados do endereço.");
+      toast.error(parsed.error.issues[0]?.message ?? "Confira os dados.");
       return;
     }
     setEnviando(true);
+    const obsFinal = pagamento === "dinheiro" && parsed.data.troco
+      ? `${parsed.data.observacoes} [Troco para ${parsed.data.troco}]`.trim()
+      : parsed.data.observacoes;
 
-    const enderecoCompleto = `${parsed.data.endereco}, ${parsed.data.bairro}`;
-    const coords = await geocodificarEndereco(enderecoCompleto).catch(() => null);
+    const coords = await geocodificarEndereco(`${parsed.data.endereco}, ${parsed.data.bairro}`).catch(() => null);
 
-    const { data: pedido, error } = await supabase
-      .from("pedidos")
-      .insert({
-        user_id: user.id,
-        ...parsed.data,
-        forma_pagamento: pagamento,
-        subtotal,
-        taxa_entrega: TAXA_ENTREGA,
-        desconto,
-        total,
-        cupom: cupom?.codigo ?? null,
-        destino_lat: coords?.lat ?? null,
-        destino_lng: coords?.lng ?? null,
-      })
-      .select("id, numero, cliente_nome, telefone")
-      .single();
+    const { data: pedido, error } = await supabase.from("pedidos").insert({
+      user_id: user.id,
+      cliente_nome: parsed.data.cliente_nome,
+      telefone: parsed.data.telefone,
+      endereco: parsed.data.endereco,
+      bairro: parsed.data.bairro,
+      complemento: parsed.data.complemento ?? "",
+      referencia: parsed.data.referencia ?? "",
+      observacoes: obsFinal ?? "",
+      forma_pagamento: pagamento,
+      subtotal,
+      taxa_entrega: TAXA_ENTREGA,
+      desconto,
+      total,
+      cupom: cupom?.codigo ?? null,
+      destino_lat: coords?.lat ?? null,
+      destino_lng: coords?.lng ?? null,
+    }).select("id, numero, cliente_nome, telefone").single();
 
     if (error || !pedido) {
       setEnviando(false);
       console.error(error);
-      toast.error("Não foi possível registrar o pedido. Tente novamente.");
+      toast.error("Não foi possível registrar o pedido.");
       return;
     }
 
     const { error: erroItens } = await supabase.from("pedido_itens").insert(
       items.map((i) => ({
-        pedido_id: pedido.id,
+        pedido_id: (pedido as any).id,
         produto_id: i.id,
         nome: i.nome,
         preco_unitario: i.preco,
@@ -132,136 +163,100 @@ function Checkout() {
     );
     if (erroItens) console.error(erroItens);
 
+    // Fidelidade: 1 ponto a cada R$ 5
+    const pts = Math.floor(total / 5);
+    if (pts > 0) {
+      await supabase.from("profiles").update({ pontos: (perfil?.pontos ?? 0) + pts }).eq("id", user.id);
+    }
+
     clear();
     setEnviando(false);
-    window.open(
-      whatsappLink(pedido.telefone, mensagemStatus("recebido", pedido.cliente_nome, pedido.numero)),
-      "_blank",
-      "noopener",
-    );
-    navigate({ to: "/pedido/$id", params: { id: pedido.id } });
+    toast.success(`Pedido nº ${(pedido as any).numero} recebido! +${pts} pts fidelidade`);
+    window.open(whatsappLink((pedido as any).telefone, mensagemStatus("recebido", (pedido as any).cliente_nome, (pedido as any).numero)), "_blank", "noopener");
+    navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
   }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="font-display text-3xl">Finalizar pedido</h1>
+      {(enderecos ?? []).length > 0 && (
+        <div className="mt-3 rounded-xl border border-border bg-card p-3 text-sm">
+          <Label>Usar endereço salvo</Label>
+          <div className="mt-1 flex gap-2">
+            <select value={enderecoId} onChange={(e) => preencherEndereco(e.target.value)} className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="">Digite um novo endereço…</option>
+              {(enderecos ?? []).map((e: any) => (
+                <option key={e.id} value={e.id}>{e.rua}, {e.numero} — {e.bairro}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
-      <form onSubmit={finalizar} className="mt-6 space-y-6">
+      <form onSubmit={finalizar} className="mt-4 space-y-6">
         <section className="space-y-4 rounded-xl border border-border bg-card p-5">
           <h2 className="font-display text-xl">Entrega</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="cliente_nome">Nome</Label>
-              <Input id="cliente_nome" name="cliente_nome" defaultValue={perfil?.nome ?? ""} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="telefone">WhatsApp</Label>
-              <Input id="telefone" name="telefone" defaultValue={perfil?.telefone ?? ""} required />
-            </div>
+            <div className="space-y-1.5"><Label htmlFor="cliente_nome">Nome</Label><Input id="cliente_nome" name="cliente_nome" defaultValue={perfil?.nome ?? ""} required /></div>
+            <div className="space-y-1.5"><Label htmlFor="telefone">WhatsApp</Label><Input id="telefone" name="telefone" defaultValue={perfil?.telefone ?? ""} required /></div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="endereco">Endereço e número</Label>
-            <Input id="endereco" name="endereco" placeholder="Rua das Flores, 123" required />
-          </div>
+          <div className="space-y-1.5"><Label htmlFor="endereco">Endereço e número</Label><Input id="endereco" name="endereco" placeholder="Rua das Flores, 123" required /></div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="bairro">Bairro</Label>
-              <Input id="bairro" name="bairro" required />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="complemento">Complemento</Label>
-              <Input id="complemento" name="complemento" defaultValue="" placeholder="Apto, bloco..." />
-            </div>
+            <div className="space-y-1.5"><Label htmlFor="bairro">Bairro</Label><Input id="bairro" name="bairro" required /></div>
+            <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Apto, bloco..." /></div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="referencia">Ponto de referência</Label>
-            <Input id="referencia" name="referencia" defaultValue="" placeholder="Próximo à praça" />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="observacoes">Observações do pedido</Label>
-            <Textarea id="observacoes" name="observacoes" defaultValue="" placeholder="Sem cebola, troco para R$ 100..." />
-          </div>
+          <div className="space-y-1.5"><Label htmlFor="referencia">Ponto de referência</Label><Input id="referencia" name="referencia" placeholder="Próximo à praça" /></div>
+          <div className="space-y-1.5"><Label htmlFor="observacoes">Observações</Label><Textarea id="observacoes" name="observacoes" placeholder="Sem cebola, troco para R$ 100..." /></div>
         </section>
 
         <section className="space-y-3 rounded-xl border border-border bg-card p-5">
           <h2 className="font-display text-xl">Pagamento</h2>
           <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)}>
             {(["pix", "dinheiro", "credito", "debito"] as const).map((op) => (
-              <label
-                key={op}
-                className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm"
-              >
-                <RadioGroupItem value={op} id={op} />
-                {PAGAMENTO_LABEL[op]}
+              <label key={op} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                <RadioGroupItem value={op} id={op} />{PAGAMENTO_LABEL[op]}
               </label>
             ))}
           </RadioGroup>
-          {pagamento === "pix" ? (
-            <div className="rounded-lg bg-muted p-3 text-sm">
-              <p className="font-semibold">Chave PIX</p>
-              <div className="mt-1 flex items-center gap-2">
-                <code className="flex-1 truncate">{PIX_CHAVE}</code>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(PIX_CHAVE);
-                    toast.success("Chave PIX copiada");
-                  }}
-                >
+          {pagamento === "dinheiro" && (
+            <div className="space-y-1.5"><Label htmlFor="troco">Troco para quanto? (opcional)</Label><Input id="troco" name="troco" placeholder="Ex: R$ 100" /></div>
+          )}
+          {pagamento === "pix" && (
+            <div className="rounded-lg bg-muted p-4 text-sm">
+              <p className="flex items-center gap-1.5 font-semibold"><QrCode className="size-4" /> Pague com PIX QR Code</p>
+              <div className="mt-2 flex flex-col items-center gap-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={pixQR} alt={`QR Code PIX ${brl(total)}`} width={200} height={200} className="rounded-lg border border-border bg-white p-2" loading="lazy" />
+                <p className="text-xs text-muted-foreground">Escaneie com o app do banco • {brl(total)}</p>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="flex-1 truncate text-xs">{PIX_CHAVE}</code>
+                <Button type="button" size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(PIX_CHAVE); toast.success("Chave PIX copiada"); }}>
                   <Copy className="mr-1 size-3.5" /> Copiar
                 </Button>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Envie o comprovante pelo WhatsApp após finalizar o pedido.
-              </p>
+              <p className="mt-2 text-xs text-muted-foreground">Envie o comprovante pelo WhatsApp após finalizar.</p>
             </div>
-          ) : null}
+          )}
+          <p className="flex items-center gap-1.5 rounded-lg bg-secondary/30 p-2.5 text-xs"><Trophy className="size-4 text-primary" /> Este pedido rende <strong>{pontosGanhos} pontos</strong> no programa fidelidade.</p>
         </section>
 
         <section className="space-y-3 rounded-xl border border-border bg-card p-5">
           <h2 className="font-display text-xl">Resumo</h2>
           <div className="flex gap-2">
-            <Input
-              value={cupomTexto}
-              onChange={(e) => setCupomTexto(e.target.value)}
-              placeholder="Cupom de desconto"
-              maxLength={20}
-            />
-            <Button type="button" variant="outline" onClick={aplicarCupom}>
-              Aplicar
-            </Button>
+            <Input value={cupomTexto} onChange={(e) => setCupomTexto(e.target.value)} placeholder="Cupom (ex: NEIA10)" maxLength={20} />
+            <Button type="button" variant="outline" onClick={aplicarCupom}>Aplicar</Button>
           </div>
           <ul className="space-y-1 text-sm">
             {items.map((i) => (
-              <li key={i.id} className="flex justify-between">
-                <span className="text-muted-foreground">
-                  {i.quantidade}x {i.nome}
-                </span>
-                <span>{brl(i.preco * i.quantidade)}</span>
-              </li>
+              <li key={i.id} className="flex justify-between"><span className="text-muted-foreground">{i.quantidade}x {i.nome}</span><span>{brl(i.preco * i.quantidade)}</span></li>
             ))}
           </ul>
           <div className="space-y-1 border-t border-border pt-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>{brl(subtotal)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Entrega</span>
-              <span>{brl(TAXA_ENTREGA)}</span>
-            </div>
-            {desconto > 0 ? (
-              <div className="flex justify-between text-success">
-                <span>Desconto ({cupom?.codigo})</span>
-                <span>-{brl(desconto)}</span>
-              </div>
-            ) : null}
-            <div className="flex justify-between font-display text-lg">
-              <span>Total</span>
-              <span className="text-primary">{brl(total)}</span>
-            </div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{brl(subtotal)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span>{brl(TAXA_ENTREGA)}</span></div>
+            {desconto > 0 && <div className="flex justify-between text-success"><span>Desconto ({cupom?.codigo})</span><span>-{brl(desconto)}</span></div>}
+            <div className="flex justify-between font-display text-lg"><span>Total</span><span className="text-primary">{brl(total)}</span></div>
           </div>
         </section>
 
