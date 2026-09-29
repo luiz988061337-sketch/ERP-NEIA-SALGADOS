@@ -56,7 +56,7 @@ export const PROD_LABEL: Record<string, string> = {
   finalizado: "Finalizado",
 };
 
-export const TAXA_ENTREGA = 8;
+export const TAXA_ENTREGA = 6;
 
 export function mensagemStatus(status: string, cliente: string, numero: number): string {
   const base: Record<string, string> = {

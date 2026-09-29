@@ -33,7 +33,7 @@ function Producao() {
 
   const autorizado = roles?.includes("producao") || roles?.includes("admin");
 
-  const { data: pedidos } = useQuery({
+  const { data: pedidos, isLoading } = useQuery({
     queryKey: ["fila-producao"],
     enabled: !!autorizado,
     refetchInterval: 15000,
@@ -47,6 +47,23 @@ function Producao() {
       return data ?? [];
     },
   });
+
+  useEffect(() => {
+    if (!autorizado) return;
+    const canal = supabase
+      .channel("producao-fila")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [autorizado, queryClient]);
+
+  const aguardando = (pedidos ?? []).filter((p: any) => p.status === "recebido").length;
+  const produzindo = (pedidos ?? []).filter((p: any) => p.status === "em_producao").length;
+  const prontos = (pedidos ?? []).filter((p: any) => p.status === "pronto").length;
 
   async function mudarStatus(pedido: any, status: OrderStatus, producao_status: ProdStatus) {
     const { error } = await supabase.from("pedidos").update({ status, producao_status }).eq("id", pedido.id);
@@ -69,7 +86,23 @@ function Producao() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="font-display text-3xl">Painel de produção</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Pedidos em aberto na cozinha.</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {isLoading
+          ? "Carregando fila..."
+          : `${pedidos?.length ?? 0} na fila • ${aguardando} aguardando • ${produzindo} produzindo • ${prontos} prontos`}
+      </p>
+
+      {isLoading ? (
+        <div className="mt-6 grid gap-4 md:grid-cols-2" aria-label="Carregando fila">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="animate-pulse rounded-xl border border-border bg-card p-4">
+              <div className="h-5 w-1/3 rounded bg-muted" />
+              <div className="mt-2 h-4 w-2/3 rounded bg-muted" />
+              <div className="mt-3 h-3 w-full rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {(pedidos ?? []).map((p: any) => (

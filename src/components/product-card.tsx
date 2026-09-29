@@ -22,35 +22,33 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
   const indisponivel = !produto.disponivel || produto.estoque <= 0;
 
   return (
-    <article className="group flex overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-float)]">
-      <div className="relative w-28 shrink-0 sm:w-36">
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-float)]">
+      <div className="relative">
         <img
           src={imagemProduto(produto.imagem_url, slugCategoria)}
           alt={produto.nome}
           loading="lazy"
-          width={288}
-          height={288}
-          className={cn("h-full w-full object-cover", indisponivel && "grayscale")}
+          width={480}
+          height={360}
+          className={cn("aspect-[4/3] w-full object-cover", indisponivel && "grayscale")}
         />
         {promo ? (
-          <Badge className="absolute left-1.5 top-1.5 bg-primary text-primary-foreground">Promo</Badge>
+          <Badge className="absolute left-2 top-2 bg-primary text-primary-foreground">Promo</Badge>
+        ) : null}
+        {onToggleFavorito ? (
+          <button
+            type="button"
+            onClick={onToggleFavorito}
+            aria-label="Favoritar"
+            className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5 text-muted-foreground shadow transition-colors hover:text-primary"
+          >
+            <Heart className={cn("size-4", favorito && "fill-primary text-primary")} />
+          </button>
         ) : null}
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-3">
-        <div className="flex items-start gap-2">
-          <h3 className="font-display text-base leading-tight">{produto.nome}</h3>
-          {onToggleFavorito ? (
-            <button
-              type="button"
-              onClick={onToggleFavorito}
-              aria-label="Favoritar"
-              className="ml-auto text-muted-foreground transition-colors hover:text-primary"
-            >
-              <Heart className={cn("size-4", favorito && "fill-primary text-primary")} />
-            </button>
-          ) : null}
-        </div>
+        <h3 className="font-display text-base leading-tight">{produto.nome}</h3>
         <p className="line-clamp-2 text-xs text-muted-foreground">{produto.descricao}</p>
 
         {nota ? (

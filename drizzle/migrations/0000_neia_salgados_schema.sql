@@ -225,32 +225,45 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.pedidos;
 
 -- SEED
 INSERT INTO public.categorias (nome, slug, ordem) VALUES
- ('Salgados Fritos','salgados-fritos',1),
- ('Salgados Assados','salgados-assados',2),
- ('Salgados Congelados','salgados-congelados',3),
- ('Mini Salgados','mini-salgados',4),
- ('Kits para Festa','kits-para-festa',5),
- ('Bebidas','bebidas',6);
+ ('Mini Fritos','mini-fritos',1),
+ ('Mini Assados','mini-assados',2),
+ ('Mini Pastéis','mini-pasteis',3),
+ ('Mini Pizzas','mini-pizzas',4),
+ ('Mini Empadinhas','mini-empadinhas',5),
+ ('Mini Congelados','mini-congelados',6),
+ ('Kits para Festa','kits-para-festa',7),
+ ('Bebidas','bebidas',8);
 
 INSERT INTO public.produtos (categoria_id, nome, descricao, preco, preco_promocional)
 SELECT c.id, v.nome, v.descricao, v.preco, v.promo FROM public.categorias c
 JOIN (VALUES
- ('salgados-fritos','Coxinha de Frango','Massa crocante com recheio cremoso de frango desfiado',6.50,NULL::numeric),
- ('salgados-fritos','Bolinha de Queijo','Queijo mussarela derretido em massa dourada',6.00,4.90),
- ('salgados-fritos','Risole de Carne','Recheio suculento de carne moída temperada',6.50,NULL),
- ('salgados-fritos','Kibe Recheado','Kibe de trigo com recheio de catupiry',7.00,NULL),
- ('salgados-assados','Empada de Frango','Massa amanteigada com frango e catupiry',7.50,NULL),
- ('salgados-assados','Esfiha de Carne','Esfiha aberta tradicional assada na hora',5.50,NULL),
- ('salgados-assados','Enroladinho de Salsicha','Massa assada macia com salsicha',5.00,4.20),
- ('salgados-congelados','Coxinha Congelada 50un','Pacote com 50 coxinhas prontas para fritar',89.90,79.90),
- ('salgados-congelados','Mix Congelado 100un','100 salgados sortidos congelados',149.90,NULL),
- ('salgados-congelados','Esfiha Congelada 30un','30 esfihas de carne congeladas',69.90,NULL),
- ('mini-salgados','Mini Coxinha 25un','25 mini coxinhas fritas na hora',39.90,NULL),
- ('mini-salgados','Mini Mix 50un','50 mini salgados sortidos fritos',74.90,69.90),
- ('mini-salgados','Mini Empada 20un','20 mini empadas de frango',44.90,NULL),
- ('kits-para-festa','Kit Festa 100 Salgados','100 salgados sortidos + 1 refrigerante 2L',179.90,159.90),
- ('kits-para-festa','Kit Aniversário 200un','200 salgados sortidos + 2 refrigerantes',329.90,NULL),
- ('kits-para-festa','Kit Reunião 50un','50 salgados sortidos ideais para escritório',94.90,NULL),
+ ('mini-fritos','Mini Coxinha 25un','25 mini coxinhas de frango fritas na hora',39.90,NULL::numeric),
+ ('mini-fritos','Mini Bolinha de Queijo 25un','25 mini bolinhas de mussarela douradas',39.90,34.90),
+ ('mini-fritos','Mini Risole de Carne 25un','25 mini risoles de carne moída temperada',42.90,NULL),
+ ('mini-fritos','Mini Kibe Frito 25un','25 mini kibes de trigo crocantes',44.90,NULL),
+ ('mini-fritos','Mini Croquete 25un','25 mini croquetes de carne',42.90,NULL),
+ ('mini-assados','Mini Esfiha de Carne 20un','20 mini esfihas abertas assadas na hora',47.90,NULL),
+ ('mini-assados','Mini Enroladinho de Salsicha 20un','20 mini enroladinhos de massa macia',44.90,39.90),
+ ('mini-assados','Mini Quibe Assado 20un','20 mini quibes assados de trigo',47.90,NULL),
+ ('mini-assados','Mini Trouxinha de Frango 20un','20 mini trouxinhas de frango com catupiry',49.90,NULL),
+ ('mini-pasteis','Mini Pastel de Carne 20un','20 mini pastéis de carne moída',44.90,NULL),
+ ('mini-pasteis','Mini Pastel de Queijo 20un','20 mini pastéis de mussarela',44.90,39.90),
+ ('mini-pasteis','Mini Pastel de Frango 20un','20 mini pastéis de frango desfiado',46.90,NULL),
+ ('mini-pasteis','Mini Pastel de Pizza 20un','20 mini pastéis de presunto, queijo e tomate',46.90,NULL),
+ ('mini-pizzas','Mini Pizza de Calabresa 15un','15 mini pizzas de calabresa com mussarela',54.90,NULL),
+ ('mini-pizzas','Mini Pizza de Mussarela 15un','15 mini pizzas de mussarela e tomate',54.90,49.90),
+ ('mini-pizzas','Mini Pizza de Frango 15un','15 mini pizzas de frango com catupiry',59.90,NULL),
+ ('mini-pizzas','Mini Pizza Portuguesa 15un','15 mini pizzas de presunto, ovo e ervilha',59.90,NULL),
+ ('mini-empadinhas','Mini Empadinha de Frango 20un','20 mini empadinhas de frango',46.90,NULL),
+ ('mini-empadinhas','Mini Empadinha de Queijo 20un','20 mini empadinhas de queijo cremoso',46.90,41.90),
+ ('mini-empadinhas','Mini Empadinha de Palmito 20un','20 mini empadinhas de palmito',49.90,NULL),
+ ('mini-empadinhas','Mini Empadinha de Carne 20un','20 mini empadinhas de carne moída',48.90,NULL),
+ ('mini-congelados','Mini Coxinha Congelada 100un','100 mini coxinhas congeladas prontas para fritar',99.90,89.90),
+ ('mini-congelados','Mini Mix Congelado 100un','100 mini salgados sortidos congelados',159.90,NULL),
+ ('mini-congelados','Mini Pastel Congelado 50un','50 mini pastéis congelados sortidos',79.90,NULL),
+ ('kits-para-festa','Kit Festa 100 Mini Salgados','100 mini salgados sortidos + 1 refrigerante 2L',179.90,159.90),
+ ('kits-para-festa','Kit Aniversário 200 Mini','200 mini salgados sortidos + 2 refrigerantes',329.90,NULL),
+ ('kits-para-festa','Kit Reunião 50 Mini','50 mini salgados sortidos ideais para escritório',94.90,NULL),
  ('bebidas','Coca-Cola 2L','Refrigerante gelado 2 litros',12.00,NULL),
  ('bebidas','Guaraná 2L','Refrigerante guaraná 2 litros',10.00,NULL),
  ('bebidas','Suco Natural 500ml','Suco de laranja natural',8.00,NULL),
@@ -259,4 +272,4 @@ JOIN (VALUES
 
 INSERT INTO public.cupons (codigo, tipo, valor, minimo) VALUES
  ('NEIA10','percentual',10,50),
- ('FRETEGRATIS','valor',8,80);
+  ('FRETEGRATIS','valor',6,80);

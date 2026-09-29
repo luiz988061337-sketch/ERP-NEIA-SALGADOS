@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, MapPin, Search, ShieldCheck, Truck } from "lucide-react";
+import { Clock, Search, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
+import { toast } from "sonner";
 import hero from "@/assets/hero.jpg";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -33,14 +34,16 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { data: categorias } = useCategorias();
-  const { data: produtos } = useProdutos();
+  const { data: categorias, isLoading: loadingCats } = useCategorias();
+  const { data: produtos, isLoading: loadingProds } = useProdutos();
   const { data: avaliacoes } = useAvaliacoes();
   const { user } = useSession();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { subtotal, totalItens } = useCart();
   const [busca, setBusca] = useState("");
   const [catAtiva, setCatAtiva] = useState<string | null>(null);
+  const carregando = loadingCats || loadingProds;
 
   const { data: favoritos } = useQuery({
     queryKey: ["favoritos", user?.id],
@@ -62,7 +65,11 @@ function Home() {
   }, [avaliacoes]);
 
   async function toggleFavorito(produtoId: string) {
-    if (!user) return;
+    if (!user) {
+      toast.info("Entre na sua conta para favoritar produtos.");
+      navigate({ to: "/auth", search: { redirect: "/" } });
+      return;
+    }
     if (favoritos?.includes(produtoId)) {
       await supabase.from("favoritos").delete().eq("produto_id", produtoId).eq("user_id", user.id);
     } else {
@@ -71,8 +78,11 @@ function Home() {
     queryClient.invalidateQueries({ queryKey: ["favoritos"] });
   }
 
+  const termo = busca.trim().toLowerCase();
   const listaFiltrada = (produtos ?? []).filter((p) =>
-    busca ? p.nome.toLowerCase().includes(busca.toLowerCase()) : true,
+    termo
+      ? p.nome.toLowerCase().includes(termo) || (p.descricao ?? "").toLowerCase().includes(termo)
+      : true,
   );
 
   const catsVisiveis = (categorias ?? []).filter((c) => !catAtiva || c.id === catAtiva);
@@ -102,7 +112,7 @@ function Home() {
                   <Clock className="size-4" /> 40-60 min
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Truck className="size-4" /> Entrega {brl(TAXA_ENTREGA)}
+                  <Truck className="size-4" /> Entrega a partir de {brl(TAXA_ENTREGA)}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="size-4" /> Pagamento na entrega ou PIX
@@ -151,33 +161,58 @@ function Home() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-6 pb-28">
-        {catsVisiveis.map((cat) => {
-          const itens = listaFiltrada.filter((p) => p.categoria_id === cat.id);
-          if (itens.length === 0) return null;
-          return (
-            <section key={cat.id} className="mb-8">
-              <h2 className="mb-3 font-display text-2xl">{cat.nome}</h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {itens.map((p) => {
-                  const n = notas.get(p.id);
-                  return (
-                    <ProductCard
-                      key={p.id}
-                      produto={p}
-                      slugCategoria={cat.slug}
-                      nota={n ? n.soma / n.qtd : null}
-                      favorito={favoritos?.includes(p.id)}
-                      onToggleFavorito={user ? () => toggleFavorito(p.id) : undefined}
-                    />
-                  );
-                })}
+        {carregando ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label="Carregando cardápio">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex animate-pulse flex-col overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="aspect-[4/3] w-full bg-muted" />
+                <div className="space-y-2 p-3">
+                  <div className="h-4 w-2/3 rounded bg-muted" />
+                  <div className="h-3 w-full rounded bg-muted" />
+                  <div className="h-5 w-1/3 rounded bg-muted" />
+                </div>
               </div>
-            </section>
-          );
-        })}
+            ))}
+          </div>
+        ) : null}
+        {!carregando
+          ? catsVisiveis.map((cat) => {
+              const itens = listaFiltrada.filter((p) => p.categoria_id === cat.id);
+              if (itens.length === 0) return null;
+              return (
+                <section key={cat.id} className="mb-8">
+                  <h2 className="mb-3 font-display text-2xl">{cat.nome}</h2>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {itens.map((p) => {
+                      const n = notas.get(p.id);
+                      return (
+                        <ProductCard
+                          key={p.id}
+                          produto={p}
+                          slugCategoria={cat.slug}
+                          nota={n ? n.soma / n.qtd : null}
+                          favorito={favoritos?.includes(p.id)}
+                          onToggleFavorito={() => toggleFavorito(p.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })
+          : null}
 
-        {listaFiltrada.length === 0 ? (
-          <p className="py-16 text-center text-muted-foreground">Nenhum produto encontrado.</p>
+        {!carregando && listaFiltrada.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-muted-foreground">
+              {termo ? `Nenhum produto encontrado para “${busca.trim()}”.` : "Nenhum produto encontrado."}
+            </p>
+            {termo ? (
+              <Button variant="outline" className="mt-4" onClick={() => { setBusca(""); setCatAtiva(null); }}>
+                Limpar busca
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
@@ -186,7 +221,7 @@ function Home() {
           <Button asChild size="lg" className="w-full justify-between shadow-[var(--shadow-float)]">
             <Link to="/carrinho">
               <span className="flex items-center gap-2">
-                <MapPin className="size-4" /> Ver carrinho ({totalItens})
+                <ShoppingBag className="size-4" /> Ver carrinho ({totalItens})
               </span>
               <span>{brl(subtotal)}</span>
             </Link>

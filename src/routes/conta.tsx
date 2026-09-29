@@ -156,7 +156,7 @@ function Conta() {
               Toque no <Heart className="inline size-4" /> dos produtos no cardápio para favoritar.
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {favoritos.map((p: Produto) => (
                 <div key={p.id} className="relative">
                   <ProductCard produto={p} slugCategoria="" favorito onToggleFavorito={() => removerFavorito(p.id)} />
@@ -251,7 +251,11 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
 
   async function enviar(produtoId: string) {
     if (!userId) return;
-    const nota = notas[produtoId] ?? 5;
+    const nota = notas[produtoId] ?? 0;
+    if (nota < 1 || nota > 5) {
+      toast.error("Escolha de 1 a 5 estrelas para avaliar.");
+      return;
+    }
     const { error } = await supabase.from("avaliacoes").upsert(
       { produto_id: produtoId, user_id: userId, nota, comentario: coment[produtoId] ?? "" },
       { onConflict: "produto_id,user_id" },
@@ -279,7 +283,7 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
           <div className="mt-2 flex gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" onClick={() => setNotas((s) => ({ ...s, [p.id]: n }))} aria-label={`${n} estrelas`}>
-                <Star className={cn("size-6", (notas[p.id] ?? 5) >= n ? "fill-secondary text-secondary" : "text-muted-foreground")} />
+                <Star className={cn("size-6", (notas[p.id] ?? 0) >= n ? "fill-secondary text-secondary" : "text-muted-foreground")} />
               </button>
             ))}
           </div>

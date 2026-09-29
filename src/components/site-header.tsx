@@ -23,7 +23,7 @@ export function SiteHeader() {
 
   const isAdmin = roles?.includes("admin");
   const isProducao = roles?.includes("producao") || isAdmin;
-  const isMotoboy = roles?.includes("motoboy");
+  const isMotoboy = roles?.includes("motoboy") || isAdmin;
 
   async function sair() {
     await queryClient.cancelQueries();

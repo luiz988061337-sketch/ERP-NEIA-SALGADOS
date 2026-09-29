@@ -5,12 +5,19 @@ import fritos from "@/assets/cat-fritos.jpg";
 import assados from "@/assets/cat-assados.jpg";
 
 export const CATEGORIA_IMG: Record<string, string> = {
+  "mini-fritos": fritos,
+  "mini-assados": assados,
+  "mini-pasteis": fritos,
+  "mini-pizzas": assados,
+  "mini-empadinhas": assados,
+  "mini-congelados": hero,
+  "kits-para-festa": hero,
+  bebidas: assados,
+  // slugs legados (bancos ainda não migrados para o catálogo mini)
   "salgados-fritos": fritos,
   "salgados-assados": assados,
   "salgados-congelados": hero,
   "mini-salgados": fritos,
-  "kits-para-festa": hero,
-  bebidas: assados,
 };
 
 export function imagemProduto(imagemUrl: string | null | undefined, slug: string | undefined): string {

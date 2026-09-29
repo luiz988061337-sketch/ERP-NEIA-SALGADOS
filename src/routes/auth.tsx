@@ -31,6 +31,8 @@ function AuthPage() {
   const { user } = useSession();
   const [carregando, setCarregando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [whatsEnviadoPara, setWhatsEnviadoPara] = useState<string | null>(null);
+  const [mostrarRecuperar, setMostrarRecuperar] = useState(false);
 
   const destino = search.redirect && search.redirect.startsWith("/") ? search.redirect : "/";
 
@@ -108,12 +110,36 @@ function AuthPage() {
       toast.error("WhatsApp OTP indisponível. Ative o provider Phone/WhatsApp no Supabase ou entre por e-mail.");
       return;
     }
-    toast.success("Código enviado no seu WhatsApp!");
+    setWhatsEnviadoPara(phone);
+    toast.success("Código enviado no seu WhatsApp! Digite abaixo para entrar.");
   }
 
-  async function recuperar() {
-    const email = window.prompt("Informe o e-mail da sua conta:");
-    if (!email) return;
+  async function verificarCodigo(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!whatsEnviadoPara) return;
+    const form = new FormData(e.currentTarget);
+    const token = String(form.get("codigo") ?? "").replace(/\D/g, "");
+    if (token.length < 6) {
+      toast.error("Digite o código de 6 dígitos recebido.");
+      return;
+    }
+    setCarregando(true);
+    const { error } = await supabase.auth.verifyOtp({ phone: whatsEnviadoPara, token, type: "sms" });
+    setCarregando(false);
+    if (error) {
+      toast.error("Código inválido ou expirado. Tente novamente.");
+      return;
+    }
+    toast.success("Bem-vindo!");
+  }
+
+  async function recuperar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const email = String(new FormData(e.currentTarget).get("email-rec") ?? "").trim();
+    if (!email || !email.includes("@")) {
+      toast.error("Informe um e-mail válido para recuperar a senha.");
+      return;
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/reset-password`,
     });
@@ -152,9 +178,24 @@ function AuthPage() {
             <Button type="submit" className="w-full" disabled={carregando}>
               Entrar
             </Button>
-            <button type="button" onClick={recuperar} className="w-full text-xs text-muted-foreground underline">
+            <button
+              type="button"
+              onClick={() => setMostrarRecuperar((v) => !v)}
+              className="w-full text-xs text-muted-foreground underline"
+            >
               Esqueci minha senha
             </button>
+            {mostrarRecuperar ? (
+              <form onSubmit={recuperar} className="space-y-2 rounded-lg bg-muted p-3">
+                <Label htmlFor="email-rec">E-mail da conta</Label>
+                <div className="flex gap-2">
+                  <Input id="email-rec" name="email-rec" type="email" required placeholder="voce@email.com" className="bg-background" />
+                  <Button type="submit" variant="outline" disabled={carregando}>
+                    Enviar link
+                  </Button>
+                </div>
+              </form>
+            ) : null}
           </form>
         </TabsContent>
 
@@ -183,19 +224,40 @@ function AuthPage() {
           </form>
         </TabsContent>
 
-        <TabsContent value="whats">
+        <TabsContent value="whats" className="space-y-4">
           <form onSubmit={entrarWhats} className="space-y-4 rounded-xl border border-border bg-card p-5">
             <div className="space-y-1.5">
               <Label htmlFor="whats">Seu WhatsApp</Label>
               <Input id="whats" name="whats" placeholder="(11) 90000-0000" required maxLength={20} autoComplete="tel" />
             </div>
             <Button type="submit" className="w-full" disabled={carregando}>
-              Receber código no WhatsApp
+              {whatsEnviadoPara ? "Reenviar código" : "Receber código no WhatsApp"}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              Você receberá um código via WhatsApp (requer provider Phone/WhatsApp ativo no Supabase). Depois confirme o código no app.
+              Você receberá um código via WhatsApp (requer provider Phone/WhatsApp ativo no Supabase).
             </p>
           </form>
+          {whatsEnviadoPara ? (
+            <form onSubmit={verificarCodigo} className="space-y-4 rounded-xl border border-primary/40 bg-card p-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="codigo">Código de 6 dígitos</Label>
+                <Input
+                  id="codigo"
+                  name="codigo"
+                  inputMode="numeric"
+                  placeholder="000000"
+                  required
+                  minLength={6}
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                />
+                <p className="text-xs text-muted-foreground">Enviado para {whatsEnviadoPara}</p>
+              </div>
+              <Button type="submit" className="w-full" disabled={carregando}>
+                Confirmar e entrar
+              </Button>
+            </form>
+          ) : null}
         </TabsContent>
       </Tabs>
     </div>

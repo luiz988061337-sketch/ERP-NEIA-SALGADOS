@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Ponto = { lat: number; lng: number; label: string };
 
@@ -41,9 +41,11 @@ export function MapView({ pontos, className }: { pontos: Ponto[]; className?: st
   const ref = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setErro(null);
     loadMaps()
       .then(() => {
         if (cancelled || !ref.current || pontos.length === 0) return;
@@ -70,13 +72,27 @@ export function MapView({ pontos, className }: { pontos: Ponto[]; className?: st
           mapRef.current.setCenter(pontos[0]);
         }
       })
-      .catch((e) => console.error(e));
+      .catch((e) => {
+        console.error(e);
+        if (!cancelled) setErro(e instanceof Error ? e.message : "Mapa indisponível");
+      });
     return () => {
       cancelled = true;
     };
   }, [pontos]);
 
   if (pontos.length === 0) return null;
+
+  if (erro) {
+    return (
+      <div className={className ?? "h-64 w-full rounded-xl border border-border"}>
+        <div className="flex h-full flex-col items-center justify-center gap-1 rounded-xl bg-muted p-4 text-center">
+          <p className="text-sm font-medium">Mapa indisponível no momento</p>
+          <p className="text-xs text-muted-foreground">{erro}. Use o botão de rota para navegar.</p>
+        </div>
+      </div>
+    );
+  }
 
   return <div ref={ref} className={className ?? "h-64 w-full rounded-xl border border-border"} />;
 }

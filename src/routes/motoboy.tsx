@@ -146,11 +146,11 @@ function Motoboy() {
   async function aceitar(p: any) {
     const { error } = await supabase
       .from("pedidos")
-      .update({ motoboy_id: user!.id, aceito_em: new Date().toISOString(), status: "em_rota" })
+      .update({ motoboy_id: user!.id, aceito_em: new Date().toISOString(), status: "aguardando_motoboy" })
       .eq("id", p.id)
       .is("motoboy_id", null);
     if (error) toast.error("Entrega já foi aceita por outro motoboy.");
-    else toast.success(`Você aceitou o pedido nº ${p.numero}. Taxa ${brl(p.taxa_motoboy)}. Boa entrega!`);
+    else toast.success(`Você aceitou o pedido nº ${p.numero}. Taxa ${brl(p.taxa_motoboy)}. Toque em Iniciar para sair.`);
     refresh();
   }
 

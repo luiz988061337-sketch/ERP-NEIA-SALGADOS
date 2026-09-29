@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bike, Phone } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusSteps } from "@/components/status-steps";
 import { MapView } from "@/components/map-view";
@@ -23,9 +24,12 @@ export const Route = createFileRoute("/pedido/$id")({
 function Acompanhar() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
+  const [cancelando, setCancelando] = useState(false);
 
   const { data: pedido, isLoading } = useQuery({
     queryKey: ["pedido", id],
+    // Fallback por polling caso o Realtime esteja bloqueado por RLS/rede
+    refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await supabase.from("pedidos").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
@@ -48,13 +52,29 @@ function Acompanhar() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "pedidos", filter: `id=eq.${id}` },
-        () => queryClient.invalidateQueries({ queryKey: ["pedido", id] }),
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["pedido", id] });
+          queryClient.invalidateQueries({ queryKey: ["pedido-itens", id] });
+        },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(canal);
     };
   }, [id, queryClient]);
+
+  async function cancelar() {
+    if (!pedido || !["recebido"].includes(pedido.status)) return;
+    if (!window.confirm(`Cancelar o pedido nº ${pedido.numero}?`)) return;
+    setCancelando(true);
+    const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", pedido.id);
+    setCancelando(false);
+    if (error) toast.error("Não foi possível cancelar. Fale com a loja.");
+    else {
+      toast.success("Pedido cancelado.");
+      queryClient.invalidateQueries({ queryKey: ["pedido", id] });
+    }
+  }
 
   if (isLoading) return <p className="p-10 text-center text-muted-foreground">Carregando pedido...</p>;
   if (!pedido)
@@ -88,12 +108,18 @@ function Acompanhar() {
         <StatusSteps status={pedido.status} />
       </section>
 
-      {pedido.status === "em_rota" && pontos.length > 0 ? (
+      {pedido.status === "em_rota" ? (
         <section className="space-y-2 rounded-xl border border-border bg-card p-5">
           <h2 className="flex items-center gap-2 font-display text-xl">
             <Bike className="size-5" /> Entrega a caminho
           </h2>
-          <MapView pontos={pontos} />
+          {pontos.length > 0 ? (
+            <MapView pontos={pontos} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              O motoboy está a caminho. A localização ao vivo aparece aqui assim que o GPS for compartilhado.
+            </p>
+          )}
         </section>
       ) : null}
 
@@ -144,6 +170,11 @@ function Acompanhar() {
       <Button asChild variant="outline" className="w-full">
         <Link to="/">Voltar ao cardápio</Link>
       </Button>
+      {pedido.status === "recebido" ? (
+        <Button variant="ghost" className="w-full text-destructive" disabled={cancelando} onClick={cancelar}>
+          {cancelando ? "Cancelando..." : "Cancelar pedido"}
+        </Button>
+      ) : null}
     </div>
   );
 }
