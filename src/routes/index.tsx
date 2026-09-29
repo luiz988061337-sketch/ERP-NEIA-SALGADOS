@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Search, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, Clock, Package, Search, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { toast } from "sonner";
 import hero from "@/assets/hero.jpg";
 import { Input } from "@/components/ui/input";
@@ -161,6 +161,19 @@ function Home() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-6 pb-28">
+        <Link
+          to="/combo"
+          className="brand-gradient mb-6 flex items-center gap-3 rounded-2xl p-4 text-white shadow-[var(--shadow-card)]"
+        >
+          <span className="rounded-xl bg-white/20 p-2">
+            <Package className="size-5" />
+          </span>
+          <span className="flex-1">
+            <span className="block font-display text-lg leading-tight">Monte seu combo</span>
+            <span className="block text-xs text-white/85">Misture sabores em múltiplos de 50 por categoria</span>
+          </span>
+          <ArrowRight className="size-5" />
+        </Link>
         {carregando ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label="Carregando cardápio">
             {Array.from({ length: 8 }).map((_, i) => (

@@ -49,6 +49,9 @@ export function SiteHeader() {
           <Button asChild variant="ghost" size="sm">
             <Link to="/">Cardápio</Link>
           </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/combo">Montar combo</Link>
+          </Button>
           {user ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/conta">Meus pedidos</Link>
@@ -138,6 +141,9 @@ export function SiteHeader() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
                 <Link to="/">Cardápio</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/combo">Montar combo</Link>
               </DropdownMenuItem>
               {user ? (
                 <DropdownMenuItem asChild>

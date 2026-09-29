@@ -6,6 +6,8 @@ export type CartItem = {
   preco: number;
   imagem?: string | null;
   quantidade: number;
+  /** uuid do produto no banco; null = item montado (combo), sem vínculo. */
+  produtoId?: string | null | undefined;
 };
 
 type CartContextValue = {

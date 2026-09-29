@@ -68,7 +68,7 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
             size="sm"
             disabled={indisponivel}
             onClick={() => {
-              add({ id: produto.id, nome: produto.nome, preco, imagem: produto.imagem_url });
+              add({ id: produto.id, nome: produto.nome, preco, imagem: produto.imagem_url, produtoId: produto.id });
               toast.success(`${produto.nome} adicionado ao carrinho`);
             }}
           >

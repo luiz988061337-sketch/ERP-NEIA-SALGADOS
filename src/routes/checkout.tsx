@@ -155,7 +155,7 @@ function Checkout() {
     const { error: erroItens } = await supabase.from("pedido_itens").insert(
       items.map((i) => ({
         pedido_id: (pedido as any).id,
-        produto_id: i.id,
+        produto_id: i.produtoId === undefined ? i.id : i.produtoId,
         nome: i.nome,
         preco_unitario: i.preco,
         quantidade: i.quantidade,

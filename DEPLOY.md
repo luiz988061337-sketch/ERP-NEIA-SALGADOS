@@ -25,6 +25,7 @@ Mobile-first, cores vermelha/amarela/branca, PT-BR.
 ```
 src/routes/
   index.tsx       → cardápio digital (busca, categorias, favoritos, notas)
+  combo.tsx       → monte seu combo (mistura sabores, múltiplos de 50 por categoria)
   carrinho.tsx    → carrinho (qtd, remover, taxa, total, cupom no checkout)
   checkout.tsx    → endereço, pagamento (PIX QR/dinheiro/crédito/débito), cupom, fidelidade
   pedido.$id.tsx  → rastreamento realtime + mapa motoboy
