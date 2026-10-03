@@ -507,6 +507,8 @@ export type Database = {
           por_pessoa_padrao: number
           minimo_por_pessoa: number
           maximo_por_pessoa: number
+          zap_contato: string
+          orcamento_validade_dias: number
         }
         Insert: {
           id?: boolean
@@ -514,6 +516,8 @@ export type Database = {
           por_pessoa_padrao?: number
           minimo_por_pessoa?: number
           maximo_por_pessoa?: number
+          zap_contato?: string
+          orcamento_validade_dias?: number
         }
         Update: {
           id?: boolean
@@ -521,6 +525,8 @@ export type Database = {
           por_pessoa_padrao?: number
           minimo_por_pessoa?: number
           maximo_por_pessoa?: number
+          zap_contato?: string
+          orcamento_validade_dias?: number
         }
         Relationships: []
       }

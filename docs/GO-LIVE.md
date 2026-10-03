@@ -29,6 +29,8 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 17. `0016_calculadora_config.sql` — limites da página `/calculadora` (linha única, `id=true`).
 18. `0017_motoboys.sql` — cadastro de motoboys usado na aba Motoboys do admin.
 19. `0018_tipo_entrega.sql` — `pedidos.tipo_entrega` (`entrega` | `retirada`).
+20. `0019_orcamento_contato.sql` — `calculadora_config.zap_contato` + `orcamento_validade_dias`.
+21. `0020_storage_hero.sql` — bucket público `hero` para upload das fotos do carrossel.
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
@@ -64,7 +66,25 @@ SELECT * FROM calculadora_config;               -- deve retornar 1 linha
 SELECT count(*) AS motoboys_cadastrados FROM motoboys;
 SELECT conname FROM pg_constraint WHERE conname='pedidos_tipo_entrega_check';
 SELECT count(*) AS sem_tipo FROM pedidos WHERE tipo_entrega IS NULL;  -- esperado: 0
+SELECT zap_contato, orcamento_validade_dias FROM calculadora_config WHERE id;
+SELECT id, public FROM storage.buckets WHERE id = 'hero';
 ```
+
+## 1.1 Rodando as migrations em lote (alternativa ao passo a passo)
+
+Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
+`drizzle/migrations/`:
+
+- `PASSO-4-bootstrap-completo.sql` — `0000`→`0020` em ordem, cada arquivo em sub-transação
+  própria: o que falhar aparece como `WARNING` e o resto continua.
+- `PASSO-5a-enum.sql` — completa `app_role` (`atendente`, `financeiro`). **Precisa rodar
+  sozinho**: `ALTER TYPE ... ADD VALUE` não funciona na mesma transação que cria o enum.
+- `PASSO-5b`…`PASSO-5f` — migrations que faltaram, **uma por New query**.
+- `PASSO-5z-verificacao.sql` — o que ainda está faltando.
+- `PASSO-6-orcamento-e-fotos.sql` — `0019` + `0020` juntas.
+
+Os geradores ficam em `scripts/gerar-bootstrap.mjs` e `scripts/gerar-correcoes.mjs`
+(`node scripts/gerar-bootstrap.mjs` regenera o lote).
 
 Se `hero_carousel` existir mas estiver vazia, a home continua usando `hero.jpg` — cadastre um
 slide na aba **Hero** do admin para o carrossel aparecer.

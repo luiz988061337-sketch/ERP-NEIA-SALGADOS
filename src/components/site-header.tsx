@@ -58,6 +58,11 @@ export function SiteHeader() {
               <Link to="/combo">Montar combo</Link>
             </Button>
           )}
+          {staffOnly ? null : (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/calculadora">Orçamento</Link>
+            </Button>
+          )}
           {user && !staffOnly ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/conta">Meus pedidos</Link>
@@ -224,6 +229,11 @@ export function SiteHeader() {
               {staffOnly ? null : (
                 <DropdownMenuItem asChild>
                   <Link to="/combo">Montar combo</Link>
+                </DropdownMenuItem>
+              )}
+              {staffOnly ? null : (
+                <DropdownMenuItem asChild>
+                  <Link to="/calculadora">Orçamento</Link>
                 </DropdownMenuItem>
               )}
               {user && !staffOnly ? (

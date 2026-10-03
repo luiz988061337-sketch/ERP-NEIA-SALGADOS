@@ -239,6 +239,42 @@ function Admin() {
     },
   });
   const [novoSlide, setNovoSlide] = useState({ imagem_url: "", legenda: "", ordem: 0 });
+  const [enviandoFoto, setEnviandoFoto] = useState(false);
+
+  const BUCKET_HERO = "hero";
+
+  async function enviarFotoHero(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem acima de 5 MB. Reduza o tamanho e tente de novo.");
+      return;
+    }
+    setEnviandoFoto(true);
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const caminho = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await supabase.storage.from(BUCKET_HERO).upload(caminho, file, {
+      upsert: true,
+      contentType: file.type,
+    });
+    setEnviandoFoto(false);
+    if (error) {
+      toast.error(
+        /bucket|not found|schema/i.test(error.message)
+          ? "Bucket de imagens ausente — rode a migration 0020 no Supabase."
+          : error.message,
+      );
+      return;
+    }
+    const { data } = supabase.storage.from(BUCKET_HERO).getPublicUrl(caminho);
+    setNovoSlide((s) => ({ ...s, imagem_url: data.publicUrl }));
+    toast.success("Foto enviada. Agora clique em Adicionar slide.");
+  }
 
   async function adicionarSlide(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -565,10 +601,29 @@ function Admin() {
             <h2 className="font-display text-xl">Carrossel da capa</h2>
             <p className="text-xs text-muted-foreground">Slides aparecem na home. Sem slides, a capa padrão é usada.</p>
             <form onSubmit={adicionarSlide} className="mt-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2"><Label>URL da imagem *</Label><Input value={novoSlide.imagem_url} onChange={(e) => setNovoSlide({ ...novoSlide, imagem_url: e.target.value })} placeholder="https://…" required /></div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="hero-foto">Foto do slide *</Label>
+                <input
+                  id="hero-foto"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  disabled={enviandoFoto}
+                  onChange={enviarFotoHero}
+                  className="block w-full cursor-pointer rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-semibold"
+                />
+                <p className="text-xs text-muted-foreground">JPG, PNG ou WebP até 5 MB. Proporção horizontal fica melhor na capa.</p>
+                {enviandoFoto ? <p className="text-xs text-muted-foreground">Enviando foto…</p> : null}
+                {novoSlide.imagem_url ? (
+                  <div className="mt-1 flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={novoSlide.imagem_url} alt="Prévia" className="h-16 w-28 rounded object-cover" />
+                    <span className="text-xs text-muted-foreground">Foto anexada.</span>
+                  </div>
+                ) : null}
+              </div>
               <div className="space-y-1"><Label>Legenda</Label><Input value={novoSlide.legenda} onChange={(e) => setNovoSlide({ ...novoSlide, legenda: e.target.value })} /></div>
               <div className="space-y-1"><Label>Ordem</Label><Input type="number" value={novoSlide.ordem} onChange={(e) => setNovoSlide({ ...novoSlide, ordem: Number(e.target.value) || 0 })} /></div>
-              <div className="sm:col-span-2"><Button type="submit"><Plus className="mr-1 size-4" />Adicionar slide</Button></div>
+              <div className="sm:col-span-2"><Button type="submit" disabled={!novoSlide.imagem_url}><Plus className="mr-1 size-4" />Adicionar slide</Button></div>
             </form>
             <div className="mt-4 space-y-2">
               {(heroSlides ?? []).map((s: any) => (
@@ -592,10 +647,12 @@ function Admin() {
             <h2 className="font-display text-xl">Calculadora de salgados</h2>
             <p className="text-xs text-muted-foreground">Configurações da página /calculadora.</p>
             <form onSubmit={salvarCalcConfig} className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1"><Label>Por pessoa (padrão)</Label><Input type="number" defaultValue={calcConfig?.por_pessoa_padrao ?? 20} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), por_pessoa_padrao: Number(e.target.value) || 20 }))} /></div>
-              <div className="space-y-1"><Label>Mínimo por pessoa</Label><Input type="number" defaultValue={calcConfig?.minimo_por_pessoa ?? 15} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), minimo_por_pessoa: Number(e.target.value) || 15 }))} /></div>
-              <div className="space-y-1"><Label>Máximo por pessoa</Label><Input type="number" defaultValue={calcConfig?.maximo_por_pessoa ?? 40} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), maximo_por_pessoa: Number(e.target.value) || 40 }))} /></div>
-              <label className="flex items-center gap-2 text-sm"><Switch checked={calcEdit?.permitir_personalizado ?? calcConfig?.permitir_personalizado ?? true} onCheckedChange={(v) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), permitir_personalizado: v }))} /> Permitir quantidade personalizada</label>
+              <div className="space-y-1"><Label>Por pessoa (padrão)</Label><Input type="number" defaultValue={calcConfig?.por_pessoa_padrao ?? 20} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), por_pessoa_padrao: Number(e.target.value) || 20 }))} /></div>
+              <div className="space-y-1"><Label>Mínimo por pessoa</Label><Input type="number" defaultValue={calcConfig?.minimo_por_pessoa ?? 15} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), minimo_por_pessoa: Number(e.target.value) || 15 }))} /></div>
+              <div className="space-y-1"><Label>Máximo por pessoa</Label><Input type="number" defaultValue={calcConfig?.maximo_por_pessoa ?? 40} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), maximo_por_pessoa: Number(e.target.value) || 40 }))} /></div>
+              <div className="space-y-1"><Label>WhatsApp que recebe o orçamento</Label><Input placeholder="11999999999" defaultValue={calcConfig?.zap_contato ?? ""} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), zap_contato: e.target.value }))} /><p className="text-xs text-muted-foreground">Com DDD. Vazio = o botão de WhatsApp avisa que falta configurar.</p></div>
+              <div className="space-y-1"><Label>Validade da estimativa (dias)</Label><Input type="number" defaultValue={calcConfig?.orcamento_validade_dias ?? 3} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), orcamento_validade_dias: Number(e.target.value) || 3 }))} /></div>
+              <label className="flex items-center gap-2 text-sm"><Switch checked={calcEdit?.permitir_personalizado ?? calcConfig?.permitir_personalizado ?? true} onCheckedChange={(v) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), permitir_personalizado: v }))} /> Permitir quantidade personalizada</label>
               <div className="sm:col-span-2"><Button type="submit">Salvar configuração</Button></div>
             </form>
           </section>
