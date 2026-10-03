@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AtendenteRouteImport } from './routes/atendente'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CalculadoraRouteImport } from './routes/calculadora'
 import { Route as CampanhasRouteImport } from './routes/campanhas'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -44,6 +45,11 @@ const AtendenteRoute = AtendenteRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalculadoraRoute = CalculadoraRouteImport.update({
+  id: '/calculadora',
+  path: '/calculadora',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CampanhasRoute = CampanhasRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
+  '/calculadora': typeof CalculadoraRoute
   '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
+  '/calculadora': typeof CalculadoraRoute
   '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
+  '/calculadora': typeof CalculadoraRoute
   '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/atendente'
     | '/auth'
+    | '/calculadora'
     | '/campanhas'
     | '/carrinho'
     | '/checkout'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/atendente'
     | '/auth'
+    | '/calculadora'
     | '/campanhas'
     | '/carrinho'
     | '/checkout'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/atendente'
     | '/auth'
+    | '/calculadora'
     | '/campanhas'
     | '/carrinho'
     | '/checkout'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AtendenteRoute: typeof AtendenteRoute
   AuthRoute: typeof AuthRoute
+  CalculadoraRoute: typeof CalculadoraRoute
   CampanhasRoute: typeof CampanhasRoute
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calculadora': {
+      id: '/calculadora'
+      path: '/calculadora'
+      fullPath: '/calculadora'
+      preLoaderRoute: typeof CalculadoraRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/campanhas': {
@@ -360,6 +380,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AtendenteRoute: AtendenteRoute,
   AuthRoute: AuthRoute,
+  CalculadoraRoute: CalculadoraRoute,
   CampanhasRoute: CampanhasRoute,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,

@@ -88,6 +88,8 @@ function Acompanhar() {
       </div>
     );
 
+  const isRetirada = pedido.tipo_entrega === "retirada";
+
   const pontos = [
     pedido.destino_lat && pedido.destino_lng
       ? { lat: pedido.destino_lat, lng: pedido.destino_lng, label: "Entrega" }
@@ -111,7 +113,7 @@ function Acompanhar() {
 
       <NotasCliente pedidoId={pedido.id} />
 
-      {pedido.status === "em_rota" ? (
+      {pedido.status === "em_rota" && !isRetirada ? (
         <section className="space-y-2 rounded-xl border border-border bg-card p-5">
           <h2 className="flex items-center gap-2 font-display text-xl">
             <Bike className="size-5" /> Entrega a caminho
@@ -140,8 +142,10 @@ function Acompanhar() {
         </ul>
         <div className="border-t border-border pt-2">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Entrega</span>
-            <span>{brl(pedido.taxa_entrega)}</span>
+            <span className="text-muted-foreground">
+              {isRetirada ? "Retirada na loja" : "Entrega"}
+            </span>
+            <span>{isRetirada ? "Grátis" : brl(pedido.taxa_entrega)}</span>
           </div>
           {Number(pedido.desconto) > 0 ? (
             <div className="flex justify-between text-success">
@@ -160,10 +164,16 @@ function Acompanhar() {
       </section>
 
       <section className="rounded-xl border border-border bg-card p-5 text-sm">
-        <h2 className="font-display text-xl">Endereço</h2>
+        <h2 className="font-display text-xl">{isRetirada ? "Retirada" : "Endereço"}</h2>
         <p className="mt-1 text-muted-foreground">
-          {pedido.endereco}
-          {pedido.complemento ? `, ${pedido.complemento}` : ""} — {pedido.bairro}
+          {isRetirada ? (
+            <>Retirada na loja — confira o endereço e o horário no WhatsApp.</>
+          ) : (
+            <>
+              {pedido.endereco}
+              {pedido.complemento ? `, ${pedido.complemento}` : ""} — {pedido.bairro}
+            </>
+          )}
         </p>
         <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
           <Phone className="size-3.5" /> {pedido.telefone}

@@ -37,9 +37,9 @@ export const Route = createFileRoute("/checkout")({
 const schema = z.object({
   cliente_nome: z.string().trim().min(2, "Informe seu nome").max(100),
   telefone: z.string().trim().min(10, "WhatsApp inválido").max(20),
-  endereco: z.string().trim().min(6, "Informe rua e número").max(200),
-  bairro: z.string().trim().min(2, "Informe o bairro").max(100),
-  cidade: z.string().trim().min(2, "Informe a cidade").max(100),
+  endereco: z.string().trim().max(200).optional().default(""),
+  bairro: z.string().trim().max(100).optional().default(""),
+  cidade: z.string().trim().max(100).optional().default(""),
   complemento: z.string().trim().max(100).optional().default(""),
   referencia: z.string().trim().max(150).optional().default(""),
   observacoes: z.string().trim().max(300).optional().default(""),
@@ -57,6 +57,7 @@ function Checkout() {
   const [cupom, setCupom] = useState<{ codigo: string; desconto: number } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [enderecoId, setEnderecoId] = useState<string>("");
+  const [tipoEntrega, setTipoEntrega] = useState<"entrega" | "retirada">("entrega");
   const [quando, setQuando] = useState<"agora" | "agendar">("agora");
   const { data: settings } = useCrmSettings();
   const funilRef = useRef(false);
@@ -98,13 +99,15 @@ function Checkout() {
 
   const desconto = cupom?.desconto ?? 0;
   const { taxaEntrega, total } = calcTotals({ subtotal, taxaEntrega: TAXA_ENTREGA, desconto });
-  const pontosGanhos = calcPontos(total, {
+  const taxaEntregaFinalUI = tipoEntrega === "retirada" ? 0 : taxaEntrega;
+  const totalFinalUI = Math.max(0, subtotal - desconto) + taxaEntregaFinalUI;
+  const pontosGanhos = calcPontos(totalFinalUI, {
     ativo: settings?.fid_ativo ?? true,
     reaisPorPonto: settings?.fid_reais_por_ponto ?? 5,
     metaPontos: settings?.fid_meta_pontos ?? 200,
     recompensaValor: settings?.fid_recompensa_valor ?? 20,
   });
-  const pixPayload = `NEIA-SALGADOS|CHAVE:${PIX_CHAVE}|VALOR:${total.toFixed(2)}`;
+  const pixPayload = `NEIA-SALGADOS|CHAVE:${PIX_CHAVE}|VALOR:${totalFinalUI.toFixed(2)}`;
   const pixQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixPayload)}`;
 
   if (staffOnly) {
@@ -173,6 +176,11 @@ function Checkout() {
       toast.error("Informe um WhatsApp válido com DDD.");
       return;
     }
+    if (tipoEntrega === "entrega") {
+      if ((parsed.data.endereco ?? "").length < 6) { toast.error("Informe rua e número."); return; }
+      if ((parsed.data.bairro ?? "").length < 2) { toast.error("Informe o bairro."); return; }
+      if ((parsed.data.cidade ?? "").length < 2) { toast.error("Informe a cidade."); return; }
+    }
     let agendadoPara: string | null = null;
     let agendamentoObs = "";
     let origemCampanha = "";
@@ -217,26 +225,33 @@ function Checkout() {
         return { ...i, preco: precoReal };
       });
       const calc = calcTotals({ subtotal: subtotalValidado, taxaEntrega: TAXA_ENTREGA, desconto });
+      const isRetirada = tipoEntrega === "retirada";
+      const taxaEntregaFinal = isRetirada ? 0 : calc.taxaEntrega;
+      const totalFinal = Math.max(0, subtotalValidado - calc.desconto) + taxaEntregaFinal;
       const obsFinal = pagamento === "dinheiro" && parsed.data.troco
         ? `${parsed.data.observacoes} [Troco para ${parsed.data.troco}]`.trim()
         : parsed.data.observacoes;
 
-      const coords = await geocodificarEndereco(`${parsed.data.endereco}, ${parsed.data.bairro}, ${parsed.data.cidade}`).catch(() => null);
+      const coords = isRetirada
+        ? null
+        : await geocodificarEndereco(`${parsed.data.endereco}, ${parsed.data.bairro}, ${parsed.data.cidade}`).catch(() => null);
 
       const insertBody: Record<string, any> = {
         user_id: user.id,
         cliente_nome: parsed.data.cliente_nome,
         telefone: parsed.data.telefone,
-        endereco: `${parsed.data.endereco} — ${parsed.data.cidade}`,
-        bairro: parsed.data.bairro,
-        complemento: parsed.data.complemento ?? "",
-        referencia: parsed.data.referencia ?? "",
+        endereco: isRetirada ? "Retirada na loja" : `${parsed.data.endereco} — ${parsed.data.cidade}`,
+        bairro: isRetirada ? "-" : parsed.data.bairro,
+        cidade: isRetirada ? "-" : parsed.data.cidade,
+        complemento: isRetirada ? "" : (parsed.data.complemento ?? ""),
+        referencia: isRetirada ? "" : (parsed.data.referencia ?? ""),
+        tipo_entrega: tipoEntrega,
         observacoes: obsFinal ?? "",
         forma_pagamento: pagamento,
         subtotal: subtotalValidado,
-        taxa_entrega: calc.taxaEntrega,
+        taxa_entrega: taxaEntregaFinal,
         desconto: calc.desconto,
-        total: calc.total,
+        total: totalFinal,
         cupom: cupom?.codigo ?? null,
         destino_lat: coords?.lat ?? null,
         destino_lng: coords?.lng ?? null,
@@ -250,12 +265,20 @@ function Checkout() {
       {
         const res = await supabase.from("pedidos").insert(insertBody).select("id, numero, cliente_nome, telefone").single();
         if (res.error && String(res.error.message ?? "").includes("column")) {
-          // Banco sem migrações 0003/0004/0006 — reenvia sem campos novos
-          const { agendado_para: _a, agendamento_obs: _ao, tipo_evento: _te, campanha_origem: _co, ...legacy } = insertBody;
+          // Banco sem migrações 0003/0004/0006/0018 — reenvia sem campos novos
+          const {
+            agendado_para: _a,
+            agendamento_obs: _ao,
+            tipo_evento: _te,
+            campanha_origem: _co,
+            tipo_entrega: _te2,
+            ...legacy
+          } = insertBody;
           const retry = await supabase.from("pedidos").insert(legacy).select("id, numero, cliente_nome, telefone").single();
           if (retry.error || !retry.data) throw retry.error ?? new Error("insert falhou");
           pedido = retry.data;
           if (quando === "agendar") toast.warning("Agendamento registrado só no WhatsApp — rode as migrações no Supabase.");
+          if (tipoEntrega === "retirada") toast.warning("Tipo de entrega não salvo — rode a migration 0018 no Supabase.");
         } else {
           if (res.error || !res.data) throw res.error ?? new Error("insert falhou");
           pedido = res.data;
@@ -274,7 +297,7 @@ function Checkout() {
       if (erroItens) console.error(erroItens);
 
       // Fidelidade configurável (1 ponto a cada X reais)
-      const pts = calcPontos(calc.total, {
+      const pts = calcPontos(totalFinal, {
         ativo: settings?.fid_ativo ?? true,
         reaisPorPonto: settings?.fid_reais_por_ponto ?? 5,
         metaPontos: settings?.fid_meta_pontos ?? 200,
@@ -291,7 +314,7 @@ function Checkout() {
         ? `\n\nReceber em: ${new Date(agendadoPara).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${agendamentoObs ? ` (${agendamentoObs})` : ""}`
         : "\n\nReceber: o mais rápido possível";
       const eventoTxt = tipoEvento ? `\nTipo de evento: ${tipoEvento}` : "";
-      const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\nEntrega: ${brl(calc.taxaEntrega)}\nTotal: ${brl(calc.total)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\nEndereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}\nRef.: ${parsed.data.referencia || "-"}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
+      const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\n${isRetirada ? "Retirada na loja" : "Entrega"}: ${brl(taxaEntregaFinal)}\nTotal: ${brl(totalFinal)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\n${isRetirada ? "🏪 Retirada na loja" : `Endereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}\nRef.: ${parsed.data.referencia || "-"}`}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
       window.open(whatsappLink((pedido as any).telefone, msgWhats), "_blank", "noopener");
       navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
     } catch (err) {
@@ -327,13 +350,38 @@ function Checkout() {
             <div className="space-y-1.5"><Label htmlFor="cliente_nome">Nome *</Label><Input id="cliente_nome" name="cliente_nome" defaultValue={perfil?.nome ?? ""} required autoComplete="name" /></div>
             <div className="space-y-1.5"><Label htmlFor="telefone">WhatsApp *</Label><Input id="telefone" name="telefone" defaultValue={perfil?.telefone ?? ""} required autoComplete="tel" placeholder="(11) 90000-0000" /></div>
           </div>
-          <div className="space-y-1.5"><Label htmlFor="endereco">Endereço e número *</Label><Input id="endereco" name="endereco" placeholder="Rua das Flores, 123" required autoComplete="street-address" /></div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5"><Label htmlFor="bairro">Bairro *</Label><Input id="bairro" name="bairro" required /></div>
-            <div className="space-y-1.5"><Label htmlFor="cidade">Cidade *</Label><Input id="cidade" name="cidade" placeholder="Sua cidade" required autoComplete="address-level2" /></div>
-            <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Apto, bloco..." /></div>
+          <div className="space-y-2">
+            <Label>Como deseja receber? *</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                <input type="radio" name="tipoEntrega" checked={tipoEntrega === "entrega"} onChange={() => setTipoEntrega("entrega")} />
+                <div>
+                  <div className="font-semibold">Entrega</div>
+                  <div className="text-xs text-muted-foreground">No seu endereço (taxa {brl(TAXA_ENTREGA)})</div>
+                </div>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                <input type="radio" name="tipoEntrega" checked={tipoEntrega === "retirada"} onChange={() => setTipoEntrega("retirada")} />
+                <div>
+                  <div className="font-semibold">Retirada na loja</div>
+                  <div className="text-xs text-muted-foreground">Sem taxa de entrega</div>
+                </div>
+              </label>
+            </div>
           </div>
-          <div className="space-y-1.5"><Label htmlFor="referencia">Ponto de referência</Label><Input id="referencia" name="referencia" placeholder="Próximo à praça" /></div>
+          {tipoEntrega === "entrega" ? (
+            <>
+              <div className="space-y-1.5"><Label htmlFor="endereco">Endereço e número *</Label><Input id="endereco" name="endereco" placeholder="Rua das Flores, 123" required autoComplete="street-address" /></div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-1.5"><Label htmlFor="bairro">Bairro *</Label><Input id="bairro" name="bairro" required /></div>
+                <div className="space-y-1.5"><Label htmlFor="cidade">Cidade *</Label><Input id="cidade" name="cidade" placeholder="Sua cidade" required autoComplete="address-level2" /></div>
+                <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Apto, bloco..." /></div>
+              </div>
+              <div className="space-y-1.5"><Label htmlFor="referencia">Ponto de referência</Label><Input id="referencia" name="referencia" placeholder="Próximo à praça" /></div>
+            </>
+          ) : (
+            <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">Você retira o pedido na loja. Sem taxa de entrega.</p>
+          )}
           <div className="space-y-1.5"><Label htmlFor="observacoes">Observações</Label><Textarea id="observacoes" name="observacoes" placeholder="Ex: troco, ponto de entrega..." /></div>
         </section>
 
@@ -413,9 +461,9 @@ function Checkout() {
           </ul>
           <div className="space-y-1 border-t border-border pt-2 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Produtos</span><span>{brl(subtotal)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Entrega (1x)</span><span>{brl(taxaEntrega)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">{tipoEntrega === "retirada" ? "Retirada na loja" : "Entrega (1x)"}</span><span>{brl(taxaEntregaFinalUI)}</span></div>
             {desconto > 0 && <div className="flex justify-between text-success"><span>Desconto ({cupom?.codigo})</span><span>-{brl(desconto)}</span></div>}
-            <div className="flex justify-between font-display text-lg"><span>Total</span><span className="text-primary">{brl(total)}</span></div>
+            <div className="flex justify-between font-display text-lg"><span>Total</span><span className="text-primary">{brl(totalFinalUI)}</span></div>
           </div>
         </section>
 

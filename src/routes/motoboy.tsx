@@ -59,17 +59,20 @@ function Motoboy() {
         .in("status", ["pronto", "aguardando_motoboy"])
         .order("created_at");
       if (error) throw error;
-      if (typeof window !== "undefined" && (data ?? []).length > 0) {
+      // Pedido de retirada nao e entrega: nunca entra na fila do motoboy.
+      // Filtro no cliente para nao quebrar em bancos sem a migration 0018.
+      const entregas = (data ?? []).filter((d: any) => d.tipo_entrega !== "retirada");
+      if (typeof window !== "undefined" && entregas.length > 0) {
         // Notificação sonora/visual de nova entrega (especificação)
         // Evita spam: apenas loga no console + toast discreto controlado por sessionStorage
         const key = "neia-last-seen-delivery";
-        const ids = (data ?? []).map((d: any) => d.id).join(",");
+        const ids = entregas.map((d: any) => d.id).join(",");
         if (sessionStorage.getItem(key) && sessionStorage.getItem(key) !== ids) {
-          toast.info(`Nova entrega disponível. Taxa: ${brl((data as any[])[0]?.taxa_motoboy)}`);
+          toast.info(`Nova entrega disponível. Taxa: ${brl(entregas[0]?.taxa_motoboy)}`);
         }
         sessionStorage.setItem(key, ids);
       }
-      return data ?? [];
+      return entregas;
     },
   });
 

@@ -21,6 +21,8 @@ import {
   KeyRound,
   ScrollText,
   Wallet,
+  ImageIcon,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -192,6 +194,95 @@ function Admin() {
     },
   });
 
+  const { data: motoboysList, refetch: refetchMotoboys } = useQuery({
+    queryKey: ["admin-motoboys-lista"],
+    enabled: !!isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("motoboys").select("*").order("nome");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const [editandoMotoboy, setEditandoMotoboy] = useState<{ id?: string; nome: string; telefone: string; observacao: string } | null>(null);
+  const [salvandoMotoboy, setSalvandoMotoboy] = useState(false);
+
+  async function salvarMotoboy(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editandoMotoboy) return;
+    setSalvandoMotoboy(true);
+    const payload = { nome: editandoMotoboy.nome, telefone: editandoMotoboy.telefone, observacao: editandoMotoboy.observacao };
+    const { error } = editandoMotoboy.id
+      ? await supabase.from("motoboys").update(payload).eq("id", editandoMotoboy.id)
+      : await supabase.from("motoboys").insert(payload);
+    setSalvandoMotoboy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(editandoMotoboy.id ? "Motoboy atualizado." : "Motoboy cadastrado.");
+    setEditandoMotoboy(null);
+    void refetchMotoboys();
+  }
+
+  async function excluirMotoboy(id: string, nome: string) {
+    if (!window.confirm(`Excluir motoboy "${nome}"?`)) return;
+    const { error } = await supabase.from("motoboys").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Motoboy excluído.");
+    void refetchMotoboys();
+  }
+
+  const { data: heroSlides, refetch: refetchHero } = useQuery({
+    queryKey: ["admin-hero"],
+    enabled: !!isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("hero_carousel").select("*").order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const [novoSlide, setNovoSlide] = useState({ imagem_url: "", legenda: "", ordem: 0 });
+
+  async function adicionarSlide(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const { error } = await supabase.from("hero_carousel").insert({ ...novoSlide, ativo: true });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Slide adicionado.");
+    setNovoSlide({ imagem_url: "", legenda: "", ordem: 0 });
+    void refetchHero();
+  }
+
+  async function alternarSlideAtivo(id: string, ativo: boolean) {
+    const { error } = await supabase.from("hero_carousel").update({ ativo: !ativo }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    void refetchHero();
+  }
+
+  async function excluirSlide(id: string) {
+    if (!window.confirm("Excluir este slide?")) return;
+    const { error } = await supabase.from("hero_carousel").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    void refetchHero();
+  }
+
+  const { data: calcConfig, refetch: refetchCalc } = useQuery({
+    queryKey: ["admin-calc-config"],
+    enabled: !!isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("calculadora_config").select("*").eq("id", true).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [calcEdit, setCalcEdit] = useState<{ permitir_personalizado: boolean; por_pessoa_padrao: number; minimo_por_pessoa: number; maximo_por_pessoa: number } | null>(null);
+
+  async function salvarCalcConfig(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!calcEdit) return;
+    const { error } = await supabase.from("calculadora_config").update(calcEdit).eq("id", true);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Configuração salva.");
+    setCalcEdit(null);
+    void refetchCalc();
+  }
+
   function refreshAll() {
     for (const k of ["admin-pedidos", "admin-produtos", "admin-categorias", "admin-cupons", "admin-profiles", "admin-avaliacoes", "admin-all-roles", "admin-metas"])
       queryClient.invalidateQueries({ queryKey: [k] });
@@ -295,6 +386,8 @@ function Admin() {
           <TabsTrigger value="produtos"><Package className="mr-1 size-4" />Produtos</TabsTrigger>
           <TabsTrigger value="clientes"><Users className="mr-1 size-4" />Clientes</TabsTrigger>
           <TabsTrigger value="motoboys"><Bike className="mr-1 size-4" />Motoboys</TabsTrigger>
+<TabsTrigger value="hero"><ImageIcon className="mr-1 size-4" />Hero</TabsTrigger>
+<TabsTrigger value="calculadora"><Calculator className="mr-1 size-4" />Calculadora</TabsTrigger>
           <TabsTrigger value="cupons"><Tag className="mr-1 size-4" />Cupons</TabsTrigger>
           <TabsTrigger value="metas"><Target className="mr-1 size-4" />Metas</TabsTrigger>
           <TabsTrigger value="financeiro"><Wallet className="mr-1 size-4" />Financeiro</TabsTrigger>
@@ -359,7 +452,8 @@ function Admin() {
               {(dash.doDia ?? []).slice(0, 10).map((p: any) => (
                 <div key={p.id} className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-display">Nº {p.numero}</span>
-                  <StatusBadge status={p.status} />
+<StatusBadge status={p.status} />
+              {p.tipo_entrega === "retirada" ? <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-semibold">Retirada na loja</span> : null}
                   <span className="text-muted-foreground">{p.cliente_nome} • {hora(p.created_at)}</span>
                   <span className="ml-auto font-semibold text-primary">{brl(p.total)}</span>
                 </div>
@@ -383,6 +477,38 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="motoboys" className="mt-4 space-y-4">
+          <section className="rounded-xl border border-border bg-card p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-xl">Motoboys cadastrados</h2>
+              <Button size="sm" onClick={() => setEditandoMotoboy({ nome: "", telefone: "", observacao: "" })}>
+                <Plus className="mr-1 size-4" /> Novo motoboy
+              </Button>
+            </div>
+            {editandoMotoboy && (
+              <form onSubmit={salvarMotoboy} className="mb-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
+                <div className="space-y-1"><Label>Nome</Label><Input value={editandoMotoboy.nome} onChange={(e) => setEditandoMotoboy({ ...editandoMotoboy, nome: e.target.value })} required /></div>
+                <div className="space-y-1"><Label>Telefone (WhatsApp)</Label><Input value={editandoMotoboy.telefone} onChange={(e) => setEditandoMotoboy({ ...editandoMotoboy, telefone: e.target.value })} placeholder="(11) 90000-0000" required inputMode="tel" /></div>
+                <div className="space-y-1 sm:col-span-2"><Label>Observação</Label><Textarea value={editandoMotoboy.observacao} onChange={(e) => setEditandoMotoboy({ ...editandoMotoboy, observacao: e.target.value })} /></div>
+                <div className="flex gap-2 sm:col-span-2">
+                  <Button type="submit" disabled={salvandoMotoboy}>{salvandoMotoboy ? "Salvando…" : "Salvar"}</Button>
+                  <Button type="button" variant="outline" onClick={() => setEditandoMotoboy(null)}>Cancelar</Button>
+                </div>
+              </form>
+            )}
+            <div className="space-y-2">
+              {(motoboysList ?? []).map((m: any) => (
+                <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm">
+                  <div className="flex-1">
+                    <p className="font-semibold">{m.nome || "Sem nome"} <span className="ml-1 text-xs font-normal text-muted-foreground">{m.telefone || "—"}</span></p>
+                    {m.observacao ? <p className="text-xs text-muted-foreground">{m.observacao}</p> : null}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setEditandoMotoboy({ id: m.id, nome: m.nome, telefone: m.telefone, observacao: m.observacao })}><Pencil className="size-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => excluirMotoboy(m.id, m.nome)}><Trash2 className="size-4" /></Button>
+                </div>
+              ))}
+              {(motoboysList ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum motoboy cadastrado.</p>}
+            </div>
+          </section>
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-display text-xl">Ranking de motoboys</h2>
             <p className="text-xs text-muted-foreground">Entregas realizadas, tempo médio, ganhos e canceladas. Motoboys cadastrados: {motoboysRoles?.length ?? 0}</p>
@@ -432,6 +558,47 @@ function Admin() {
 
         <TabsContent value="logs" className="mt-4">
           <LogsAdmin profiles={profiles ?? []} />
+        </TabsContent>
+
+        <TabsContent value="hero" className="mt-4">
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="font-display text-xl">Carrossel da capa</h2>
+            <p className="text-xs text-muted-foreground">Slides aparecem na home. Sem slides, a capa padrão é usada.</p>
+            <form onSubmit={adicionarSlide} className="mt-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2"><Label>URL da imagem *</Label><Input value={novoSlide.imagem_url} onChange={(e) => setNovoSlide({ ...novoSlide, imagem_url: e.target.value })} placeholder="https://…" required /></div>
+              <div className="space-y-1"><Label>Legenda</Label><Input value={novoSlide.legenda} onChange={(e) => setNovoSlide({ ...novoSlide, legenda: e.target.value })} /></div>
+              <div className="space-y-1"><Label>Ordem</Label><Input type="number" value={novoSlide.ordem} onChange={(e) => setNovoSlide({ ...novoSlide, ordem: Number(e.target.value) || 0 })} /></div>
+              <div className="sm:col-span-2"><Button type="submit"><Plus className="mr-1 size-4" />Adicionar slide</Button></div>
+            </form>
+            <div className="mt-4 space-y-2">
+              {(heroSlides ?? []).map((s: any) => (
+                <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                  <img src={s.imagem_url} alt="" className="size-12 rounded object-cover" />
+                  <div className="flex-1">
+                    <p className="font-semibold">{s.legenda || "Sem legenda"}</p>
+                    <p className="text-xs text-muted-foreground">Ordem {s.ordem} • {s.ativo ? "Ativo" : "Inativo"}</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => alternarSlideAtivo(s.id, s.ativo)}>{s.ativo ? "Desativar" : "Ativar"}</Button>
+                  <Button size="sm" variant="ghost" onClick={() => excluirSlide(s.id)}><Trash2 className="size-4" /></Button>
+                </div>
+              ))}
+              {(heroSlides ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum slide cadastrado.</p>}
+            </div>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="calculadora" className="mt-4">
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="font-display text-xl">Calculadora de salgados</h2>
+            <p className="text-xs text-muted-foreground">Configurações da página /calculadora.</p>
+            <form onSubmit={salvarCalcConfig} className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1"><Label>Por pessoa (padrão)</Label><Input type="number" defaultValue={calcConfig?.por_pessoa_padrao ?? 20} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), por_pessoa_padrao: Number(e.target.value) || 20 }))} /></div>
+              <div className="space-y-1"><Label>Mínimo por pessoa</Label><Input type="number" defaultValue={calcConfig?.minimo_por_pessoa ?? 15} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), minimo_por_pessoa: Number(e.target.value) || 15 }))} /></div>
+              <div className="space-y-1"><Label>Máximo por pessoa</Label><Input type="number" defaultValue={calcConfig?.maximo_por_pessoa ?? 40} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), maximo_por_pessoa: Number(e.target.value) || 40 }))} /></div>
+              <label className="flex items-center gap-2 text-sm"><Switch checked={calcEdit?.permitir_personalizado ?? calcConfig?.permitir_personalizado ?? true} onCheckedChange={(v) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40 }), permitir_personalizado: v }))} /> Permitir quantidade personalizada</label>
+              <div className="sm:col-span-2"><Button type="submit">Salvar configuração</Button></div>
+            </form>
+          </section>
         </TabsContent>
 
         <TabsContent value="avaliacoes" className="mt-4">
@@ -562,7 +729,7 @@ function PedidosAdmin({ pedidos, onStatus, foco, onLimparFoco }: { pedidos: any[
           onClick={() => downloadCSV(`pedidos-${new Date().toISOString().slice(0, 10)}.csv`, lista.slice(0, 500).map((p: any) => ({
             numero: p.numero, data: p.created_at, cliente: p.cliente_nome, telefone: p.telefone,
             endereco: p.endereco, bairro: p.bairro, pagamento: p.forma_pagamento, subtotal: p.subtotal,
-            entrega: p.taxa_entrega, desconto: p.desconto, total: p.total, status: p.status, evento: p.tipo_evento,
+            entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega", taxa_entrega: p.taxa_entrega, desconto: p.desconto, total: p.total, status: p.status, evento: p.tipo_evento,
             itens: ((p.pedido_itens ?? []) as any[]).map((i) => `${i.quantidade}x ${i.nome}`).join(" | "),
           })))}
         >
@@ -604,9 +771,11 @@ function PedidosAdmin({ pedidos, onStatus, foco, onLimparFoco }: { pedidos: any[
               <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_LABEL).map(([v, l]) => (
-                    <SelectItem key={v} value={v}>{l}</SelectItem>
-                  ))}
+                  {Object.entries(STATUS_LABEL)
+                    .filter(([v]) => !(p.tipo_entrega === "retirada" && (v === "aguardando_motoboy" || v === "em_rota")))
+                    .map(([v, l]) => (
+                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <Button size="sm" variant="outline" onClick={() => window.open(whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)), "_blank")}>

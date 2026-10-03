@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Clock, Package, Search, Share2, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { toast } from "sonner";
 import hero from "@/assets/hero.jpg";
+import { HeroCarousel, useHeroCarousel } from "@/components/hero-carousel";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
@@ -45,6 +46,7 @@ function Home() {
   const [busca, setBusca] = useState("");
   const [catAtiva, setCatAtiva] = useState<string | null>(null);
   const carregando = loadingCats || loadingProds;
+  const { itens: heroItens, carregando: heroCarregando } = useHeroCarousel();
 
   useEffect(() => {
     if (staffOnly && painel) navigate({ to: painel, replace: true });
@@ -129,6 +131,9 @@ function Home() {
 
   return (
     <div>
+      {heroItens.length > 0 || heroCarregando ? (
+        <HeroCarousel itens={heroItens} carregando={heroCarregando} />
+      ) : (
       <section className="relative overflow-hidden">
         <img
           src={hero}
@@ -169,6 +174,7 @@ function Home() {
           </div>
         </div>
       </section>
+      )}
 
       <div className="sticky top-16 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-3">

@@ -25,6 +25,14 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 13. `0012_recorrencia.sql`
 14. `0013_cliques.sql`
 15. `0014_fidelidade.sql`
+16. `0015_hero_carousel.sql` — carrossel do hero (home). Sem linhas, a home cai na imagem estática `hero.jpg`.
+17. `0016_calculadora_config.sql` — limites da página `/calculadora` (linha única, `id=true`).
+18. `0017_motoboys.sql` — cadastro de motoboys usado na aba Motoboys do admin.
+19. `0018_tipo_entrega.sql` — `pedidos.tipo_entrega` (`entrega` | `retirada`).
+
+Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
+se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
+e o app do motoboy não filtra retirada) — mas grave antes de anunciar essas features.
 
 ### Verificação (rode após cada bloco e confira o retorno)
 
@@ -32,7 +40,7 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 -- Colunas novas existem?
 SELECT column_name FROM information_schema.columns
 WHERE table_schema='public' AND table_name='pedidos'
-  AND column_name IN ('cidade','agendado_para','tipo_evento','campanha_origem');
+  AND column_name IN ('cidade','agendado_para','tipo_evento','campanha_origem','tipo_entrega');
 SELECT column_name FROM information_schema.columns
 WHERE table_schema='public' AND table_name='produtos'
   AND column_name IN ('tipo_venda','estoque_minimo','custo');
@@ -47,8 +55,19 @@ WHERE t.typname='app_role';
 -- Tabelas novas existem?
 SELECT tablename FROM pg_tables WHERE schemaname='public'
   AND tablename IN ('crm_customers','crm_campaigns','orcamentos','pedidos_recorrentes',
-    'pedido_notas','campanha_cliques','metas','admin_logs','despesas','estoque_mov');
+    'pedido_notas','campanha_cliques','metas','admin_logs','despesas','estoque_mov',
+    'hero_carousel','calculadora_config','motoboys');
+
+-- 0015-0018 aplicados?
+SELECT count(*) AS hero_ativos FROM hero_carousel WHERE ativo;
+SELECT * FROM calculadora_config;               -- deve retornar 1 linha
+SELECT count(*) AS motoboys_cadastrados FROM motoboys;
+SELECT conname FROM pg_constraint WHERE conname='pedidos_tipo_entrega_check';
+SELECT count(*) AS sem_tipo FROM pedidos WHERE tipo_entrega IS NULL;  -- esperado: 0
 ```
+
+Se `hero_carousel` existir mas estiver vazia, a home continua usando `hero.jpg` — cadastre um
+slide na aba **Hero** do admin para o carrossel aparecer.
 
 ## 2. Papéis (Dashboard → Authentication → Users)
 
