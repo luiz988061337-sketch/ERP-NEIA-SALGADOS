@@ -82,17 +82,20 @@ export type DadosOrcamento = {
   subtotal: number;
   validadeDias: number;
   observacoes: string;
+  itens?: string[];
 };
 
 export function mensagemOrcamento(d: DadosOrcamento): string {
-  const linhas = [
-    `*Orçamento — ${d.categoria}*`,
-    `Pessoas: ${d.pessoas}`,
-    `Por pessoa: ${d.porPessoa}`,
-    `Quantidade: ${d.unidadesCombo} unidades`,
-    `Estimativa: ${brl(d.subtotal)} (entrega combinada na confirmação)`,
-  ];
-  if (d.tipoEvento) linhas.push(`Tipo de evento: ${d.tipoEvento}`);
+  const linhas = [`*Orçamento de salgados — ${d.categoria}*`];
+  if (d.itens?.length) {
+    linhas.push(...d.itens);
+  } else {
+    linhas.push(`Pessoas: ${d.pessoas}`);
+    linhas.push(`Por pessoa: ${d.porPessoa}`);
+    linhas.push(`Quantidade: ${d.unidadesCombo} unidades`);
+  }
+  linhas.push(`Estimativa: ${brl(d.subtotal)} (entrega ou retirada combinada na confirmação)`);
+  if (d.tipoEvento) linhas.push(`É para um evento: ${d.tipoEvento}`);
   if (d.dataEvento) {
     const data = new Date(`${d.dataEvento}T12:00:00`);
     const rotulo = Number.isNaN(+data)
@@ -102,5 +105,6 @@ export function mensagemOrcamento(d: DadosOrcamento): string {
   }
   linhas.push(`Validade da estimativa: ${d.validadeDias} dias`);
   if (d.observacoes) linhas.push(`Observações: ${d.observacoes}`);
+  linhas.push("(orçamento somente dos salgados — a loja não realiza eventos)");
   return `Olá! Vim pelo site e gostaria de um orçamento.\n\n${linhas.join("\n")}`;
 }

@@ -236,8 +236,8 @@ function Home() {
               <Calculator className="size-5" />
             </span>
             <span className="flex-1">
-              <span className="block font-display text-lg leading-tight">Orçamento para o seu evento</span>
-              <span className="block text-xs text-white/85">Diga quantas pessoas vão — calculamos a quantidade e o valor na hora</span>
+              <span className="block font-display text-lg leading-tight">Orçamento de salgados</span>
+              <span className="block text-xs text-white/85">Calculamos a quantidade e o valor — fornecemos só os salgados, sem buffet</span>
             </span>
             <ArrowRight className="size-5" />
           </Link>
