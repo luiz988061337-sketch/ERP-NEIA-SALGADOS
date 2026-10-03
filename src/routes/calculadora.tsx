@@ -231,9 +231,10 @@ function Calculadora() {
         <div className="space-y-1">
           <p className="font-semibold">Fornecemos somente os salgados — não realizamos eventos.</p>
           <p className="text-muted-foreground">
-            Não temos buffet, equipe de salgadeiro nem serviço de buffet: entregamos ou retiramos apenas os
-            salgados, prontos. O buffet, a decoração, as bebidas e o serviço ficam por conta do organizador(a)
-            do evento. O orçamento abaixo é só dos salgados.
+            Não temos buffet, equipe de salgadeiro nem serviço de buffet: fazemos{" "}
+            <strong className="text-foreground">entregas e retiradas</strong>, com os salgados sempre prontos —
+            entregues no seu endereço ou retirados na loja. O buffet, a decoração, as bebidas e o serviço
+            ficam por conta do organizador(a) do evento. O orçamento abaixo é só dos salgados.
           </p>
         </div>
       </div>
@@ -442,7 +443,7 @@ function Calculadora() {
             </div>
           )}
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Entrega ou retirada</span>
+            <span className="text-muted-foreground">Entregas e retiradas</span>
             <span>combinada na confirmação</span>
           </div>
           <div className="flex justify-between font-display text-lg">

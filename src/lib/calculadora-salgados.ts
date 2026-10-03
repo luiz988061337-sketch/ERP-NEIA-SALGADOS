@@ -94,7 +94,7 @@ export function mensagemOrcamento(d: DadosOrcamento): string {
     linhas.push(`Por pessoa: ${d.porPessoa}`);
     linhas.push(`Quantidade: ${d.unidadesCombo} unidades`);
   }
-  linhas.push(`Estimativa: ${brl(d.subtotal)} (entrega ou retirada combinada na confirmação)`);
+  linhas.push(`Estimativa: ${brl(d.subtotal)} (entregas e retiradas combinadas na confirmação)`);
   if (d.tipoEvento) linhas.push(`É para um evento: ${d.tipoEvento}`);
   if (d.dataEvento) {
     const data = new Date(`${d.dataEvento}T12:00:00`);
