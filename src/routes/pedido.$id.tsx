@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bike, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { StatusSteps } from "@/components/status-steps";
+import { PagamentoStatusBadge, StatusSteps } from "@/components/status-steps";
 import { NotasCliente } from "@/components/pedido-notas";
 import { MapView } from "@/components/map-view";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,7 +112,7 @@ function Acompanhar() {
       </div>
 
       <section className="rounded-xl border border-border bg-card p-5">
-        <StatusSteps status={pedido.status} />
+        <StatusSteps status={pedido.status} tipoEntrega={pedido.tipo_entrega} />
       </section>
 
       <NotasCliente pedidoId={pedido.id} />
@@ -164,6 +164,12 @@ function Acompanhar() {
           <p className="mt-1 text-xs text-muted-foreground">
             Pagamento: {PAGAMENTO_LABEL[pedido.forma_pagamento]}
           </p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            Situação do pagamento: <PagamentoStatusBadge status={pedido.pagamento_status} />
+          </p>
+          {pedido.pagamento_em ? (
+            <p className="mt-1 text-xs text-muted-foreground">Pago em {dataHora(pedido.pagamento_em)}</p>
+          ) : null}
         </div>
       </section>
 

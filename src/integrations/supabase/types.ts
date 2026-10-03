@@ -246,6 +246,8 @@ export type Database = {
           motoboy_lat: number | null
           motoboy_lng: number | null
           numero: number
+          pagamento_em: string | null
+          pagamento_status: string
           observacoes: string
           producao_status: Database["public"]["Enums"]["prod_status"]
           referencia: string
@@ -282,6 +284,8 @@ export type Database = {
           motoboy_lat?: number | null
           motoboy_lng?: number | null
           numero?: number
+          pagamento_em?: string | null
+          pagamento_status?: string
           observacoes?: string
           producao_status?: Database["public"]["Enums"]["prod_status"]
           referencia?: string
@@ -318,6 +322,8 @@ export type Database = {
           motoboy_lat?: number | null
           motoboy_lng?: number | null
           numero?: number
+          pagamento_em?: string | null
+          pagamento_status?: string
           observacoes?: string
           producao_status?: Database["public"]["Enums"]["prod_status"]
           referencia?: string

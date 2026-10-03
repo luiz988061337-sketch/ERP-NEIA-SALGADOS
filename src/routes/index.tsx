@@ -148,7 +148,8 @@ function Home() {
           height={912}
           className="relative size-full object-contain"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-foreground/85 via-foreground/55 to-foreground/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-foreground/80 via-foreground/35 to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-full max-w-2xl bg-gradient-to-r from-foreground/70 to-transparent sm:w-3/5" />
         <div className="absolute inset-0 flex items-center">
           <div className="mx-auto w-full max-w-6xl px-4">
             <div className="max-w-lg text-background">

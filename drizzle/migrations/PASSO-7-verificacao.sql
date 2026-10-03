@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASSO 7 - VERIFICACAO COMPLETA (gerado por scripts/gerar-verificacao.mjs)
--- Compara o banco com TUDO que o app usa: 26 tabelas / 252 colunas.
+-- Compara o banco com TUDO que o app usa: 26 tabelas / 254 colunas.
 -- Rode em UM New query.
 -- "1_O_QUE_FALTA" deve vir como TUDO OK.
 -- ============================================================================
@@ -70,6 +70,8 @@ WITH e(tabela, coluna) AS (
     ('pedidos','motoboy_lat'),
     ('pedidos','motoboy_lng'),
     ('pedidos','numero'),
+    ('pedidos','pagamento_em'),
+    ('pedidos','pagamento_status'),
     ('pedidos','observacoes'),
     ('pedidos','producao_status'),
     ('pedidos','referencia'),

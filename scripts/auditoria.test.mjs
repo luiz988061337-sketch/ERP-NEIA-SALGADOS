@@ -239,5 +239,39 @@ t("30 x 17 = 510", e30x17.unidades === 510);
 t("510 sugere 550 e informa o quanto falta", e30x17.unidadesCombo === 550 && e30x17.faltamParaCombo === 40);
 t("estimativa preserva o cálculo do cliente", e30x17.unidades === 510);
 
+// ---------- PIX: BR Code real (QR e Copia e Cola) ----------
+const pixlib = await import("@/lib/pix.ts");
+const pix = pixlib.gerarPix({ chave: "neiasalgados@pix.com.br", valor: 46 });
+t("pix gerado com chave e valor", !!pix);
+t("começa com payload format 01", pix.copiaECola.startsWith("000201"));
+t("BR Code do BCB presente", pix.copiaECola.includes("BR.GOV.BCB.PIX"));
+t("código de moeda BRL (986)", pix.copiaECola.includes("5303986"));
+t("país BR", pix.copiaECola.includes("5802BR"));
+t("valor 46.00 presente", pix.copiaECola.includes("540546.00"));
+t("chave e-mail preservada com @", pix.copiaECola.includes("0123neiasalgados@pix.com.br"));
+t("tem campo CRC 6304", pix.copiaECola.includes("6304"));
+t("CRC tem 4 hex", /6304[0-9A-F]{4}$/.test(pix.copiaECola));
+t("não manda texto solto no QR (formato antigo)", !pix.copiaECola.includes("|CHAVE:"));
+t("valor 46 confere", pix.valor === 46);
+
+function crc16Br(payload) {
+  let crc = 0xffff;
+  for (let i = 0; i < payload.length; i += 1) {
+    crc ^= payload.charCodeAt(i) << 8;
+    for (let b = 0; b < 8; b += 1) crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+const semCrc = pix.copiaECola.slice(0, -4);
+t("CRC confere com o cálculo", pix.copiaECola.endsWith(crc16Br(semCrc)));
+t("payload sem chave não gera BR Code", pixlib.gerarPix({ chave: "", valor: 46 }) === null);
+t("payload com chave inválida não gera BR Code", pixlib.gerarPix({ chave: "   ", valor: 10 }) === null);
+t("valor 0 omite o campo 54 (cliente preenche)", !pixlib.gerarPix({ chave: "neiasalgados@pix.com.br", valor: 0 }).copiaECola.includes("5406"));
+t("QR usa o BR Code como payload", pixlib.urlQrPix(pix.copiaECola).includes(encodeURIComponent(pix.copiaECola)));
+t("descrição sem acento não quebra tamanho", (() => {
+  const p = pixlib.gerarPix({ chave: "neiasalgados@pix.com.br", valor: 10, descricao: "Pedido Ação de Graças" });
+  return p.copiaECola.includes("Acao de Gracas");
+})());
+
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

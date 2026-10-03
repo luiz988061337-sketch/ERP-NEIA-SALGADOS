@@ -19,6 +19,7 @@ import { validarCupom } from "@/lib/cupons";
 import { pontosGanhos as calcPontos } from "@/lib/fidelidade";
 import { useCrmSettings } from "@/lib/crm";
 import { registrarEventoCarrinho } from "@/lib/inteligencia";
+import { gerarPix, urlQrPix } from "@/lib/pix";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
@@ -111,8 +112,12 @@ function Checkout() {
     metaPontos: settings?.fid_meta_pontos ?? 200,
     recompensaValor: settings?.fid_recompensa_valor ?? 20,
   });
-  const pixPayload = `NEIA-SALGADOS|CHAVE:${PIX_CHAVE}|VALOR:${totalFinalUI.toFixed(2)}`;
-  const pixQR = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixPayload)}`;
+  const pix = gerarPix({
+    chave: PIX_CHAVE,
+    valor: totalFinalUI,
+    descricao: "Pedido Néia Salgados",
+  });
+  const pixQR = pix ? urlQrPix(pix.copiaECola) : "";
 
   if (staffOnly) {
     return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
@@ -252,6 +257,9 @@ function Checkout() {
         tipo_entrega: tipoEntrega,
         observacoes: obsFinal ?? "",
         forma_pagamento: pagamento,
+        // Pagamento começa SEMPRE pendente. Nunca marcar como pago aqui:
+        // a loja confirma. Status do pedido e status do pagamento são separados.
+        pagamento_status: "pendente",
         subtotal: subtotalValidado,
         taxa_entrega: taxaEntregaFinal,
         desconto: calc.desconto,
@@ -269,13 +277,14 @@ function Checkout() {
       {
         const res = await supabase.from("pedidos").insert(insertBody).select("id, numero, cliente_nome, telefone").single();
         if (res.error && String(res.error.message ?? "").includes("column")) {
-          // Banco sem migrações 0003/0004/0006/0018 — reenvia sem campos novos
+          // Banco sem migrações 0003/0004/0006/0018/0022 — reenvia sem campos novos
           const {
             agendado_para: _a,
             agendamento_obs: _ao,
             tipo_evento: _te,
             campanha_origem: _co,
             tipo_entrega: _te2,
+            pagamento_status: _ps,
             ...legacy
           } = insertBody;
           const retry = await supabase.from("pedidos").insert(legacy).select("id, numero, cliente_nome, telefone").single();
@@ -448,19 +457,50 @@ function Checkout() {
           )}
           {pagamento === "pix" && (
             <div className="rounded-lg bg-muted p-4 text-sm">
-              <p className="flex items-center gap-1.5 font-semibold"><QrCode className="size-4" /> Pague com PIX QR Code</p>
-              <div className="mt-2 flex flex-col items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pixQR} alt={`QR Code PIX ${brl(total)}`} width={200} height={200} className="rounded-lg border border-border bg-white p-2" loading="lazy" />
-                <p className="text-xs text-muted-foreground">Escaneie com o app do banco • {brl(total)}</p>
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <code className="flex-1 truncate text-xs">{PIX_CHAVE}</code>
-                <Button type="button" size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(PIX_CHAVE); toast.success("Chave PIX copiada"); }}>
-                  <Copy className="mr-1 size-3.5" /> Copiar
-                </Button>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">Envie o comprovante pelo WhatsApp após finalizar.</p>
+              <p className="flex items-center gap-1.5 font-semibold"><QrCode className="size-4" /> Pague com PIX</p>
+              {pix ? (
+                <>
+                  <div className="mt-2 flex flex-col items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={pixQR} alt={`QR Code PIX de ${brl(totalFinalUI)}`} width={220} height={220} className="rounded-lg border border-border bg-white p-2" loading="lazy" />
+                    <p className="text-xs font-semibold">{brl(totalFinalUI)}</p>
+                    <p className="text-center text-xs text-muted-foreground">
+                      Abra o app do banco, escolha Pix &gt; Ler QR Code e aponte a câmera.
+                    </p>
+                  </div>
+                  <div className="mt-3 space-y-1.5">
+                    <Label htmlFor="pix-copia">Pix Copia e Cola</Label>
+                    <Textarea id="pix-copia" readOnly rows={3} value={pix.copiaECola} className="break-all font-mono text-[11px]" />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(pix.copiaECola);
+                          toast.success("Pix Copia e Cola copiado — cole em Pix &gt; Pagar com código.");
+                        } catch {
+                          toast.error("Não consegui copiar. Selecione o texto acima e copie na mão.");
+                        }
+                      }}
+                    >
+                      <Copy className="mr-1 size-3.5" /> Copiar Pix Copia e Cola
+                    </Button>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Chave:</span>
+                    <code className="min-w-0 flex-1 truncate text-xs">{PIX_CHAVE}</code>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    O pagamento é conferido pela loja. Envie o comprovante pelo WhatsApp depois de finalizar.
+                  </p>
+                </>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  O Pix ainda não está configurado. Escolha outra forma de pagamento ou fale com a loja.
+                </p>
+              )}
             </div>
           )}
           <p className="flex items-center gap-1.5 rounded-lg bg-secondary/30 p-2.5 text-xs"><Trophy className="size-4 text-primary" /> Este pedido rende <strong>{pontosGanhos} pontos</strong> no programa fidelidade.</p>

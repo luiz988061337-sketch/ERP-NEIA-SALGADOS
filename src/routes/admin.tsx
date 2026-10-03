@@ -25,6 +25,21 @@ import {
   ImageIcon,
   Calculator,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,13 +54,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { StatusBadge } from "@/components/status-steps";
+import { PagamentoStatusBadge, StatusBadge } from "@/components/status-steps";
 import { geocodificarEndereco, MapView } from "@/components/map-view";
 import { NotasAdmin } from "@/components/pedido-notas";
 import { CentralOperacao } from "@/components/central-operacao";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
-import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, STATUS_EXIBICAO, STATUS_LABEL, whatsappLink, type OrderStatus } from "@/lib/format";
+import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, PAGAMENTO_STATUS_LABEL, STATUS_EXIBICAO, STATUS_LABEL, whatsappLink, type OrderStatus } from "@/lib/format";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
@@ -519,7 +534,16 @@ function Admin() {
     }
     const recorrentes = [...cliMap.values()].filter((c) => c.qtd >= 2).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
 
-    return { doDia, doMes, fatDia, fatMes, ticket, maisVendidos, recorrentes, totalPedidos: lista.length };
+    const fatPorDia = useMemo(() => {
+      const map = new Map<string, number>();
+      for (const p of doMes) {
+        const dia = new Date(p.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        map.set(dia, (map.get(dia) ?? 0) + Number(p.total));
+      }
+      return [...map.entries()].map(([dia, total]) => ({ dia, total }));
+    }, [doMes]);
+
+    return { doDia, doMes, fatDia, fatMes, ticket, maisVendidos, recorrentes, totalPedidos: lista.length, fatPorDia };
   }, [pedidos]);
 
   const rankingMotoboys = useMemo(() => {
@@ -559,6 +583,30 @@ function Admin() {
       void logAdmin("pedido_status", `#${p.numero} → ${status}`);
       window.open(whatsappLink(p.telefone, mensagemStatus(status, p.cliente_nome, p.numero)), "_blank", "noopener");
     }
+    queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
+  }
+
+  /**
+   * Pagamento é separado do pedido. Só a loja confirma — o cliente nunca
+   * marca o próprio pagamento como pago.
+   */
+  async function mudarPagamento(p: any, pagamentoStatus: string) {
+    const agora = new Date().toISOString();
+    const patch =
+      pagamentoStatus === "pago"
+        ? { pagamento_status: pagamentoStatus, pagamento_em: agora }
+        : { pagamento_status: pagamentoStatus, pagamento_em: null };
+    const { error } = await supabase.from("pedidos").update(patch).eq("id", p.id);
+    if (error) {
+      toast.error(
+        /column|does not exist/i.test(error.message)
+          ? "Rode a migration 0022 no Supabase para controlar o pagamento."
+          : "Não foi possível atualizar o pagamento.",
+      );
+      return;
+    }
+    toast.success(`Pagamento do pedido nº ${p.numero}: ${PAGAMENTO_STATUS_LABEL[pagamentoStatus] ?? pagamentoStatus}`);
+    void logAdmin("pagamento_status", `#${p.numero} → ${pagamentoStatus}`);
     queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
   }
 
@@ -618,29 +666,70 @@ function Admin() {
           <div className="grid gap-4 md:grid-cols-2">
             <section className="rounded-xl border border-border bg-card p-5">
               <h2 className="flex items-center gap-2 font-display text-xl"><BarChart3 className="size-5" /> Mais vendidos</h2>
-              <ul className="mt-3 space-y-2 text-sm">
-                {dash.maisVendidos.map((m) => (
-                  <li key={m.nome} className="flex justify-between gap-2">
-                    <span>{m.nome} <span className="text-muted-foreground">×{m.qtd}</span></span>
-                    <span className="font-semibold">{brl(m.total)}</span>
-                  </li>
-                ))}
-                {dash.maisVendidos.length === 0 && <li className="text-muted-foreground">Sem vendas ainda.</li>}
-              </ul>
+              {dash.maisVendidos.length > 0 ? (
+                <div className="mt-3 h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dash.maisVendidos} layout="vertical" margin={{ left: 10, right: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tickFormatter={(v) => brl(v)} />
+                      <YAxis type="category" dataKey="nome" width={120} tick={{ fontSize: 12 }} />
+                      <Tooltip formatter={(v: number) => brl(v)} />
+                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Total" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">Sem vendas ainda.</p>
+              )}
             </section>
             <section className="rounded-xl border border-border bg-card p-5">
               <h2 className="flex items-center gap-2 font-display text-xl"><Crown className="size-5" /> Clientes recorrentes</h2>
-              <ul className="mt-3 space-y-2 text-sm">
-                {dash.recorrentes.map((c) => (
-                  <li key={c.tel} className="flex justify-between gap-2">
-                    <span>{c.nome} <span className="text-muted-foreground">({c.qtd} pedidos)</span></span>
-                    <span className="font-semibold">{brl(c.total)}</span>
-                  </li>
-                ))}
-                {dash.recorrentes.length === 0 && <li className="text-muted-foreground">Nenhum recorrente ainda.</li>}
-              </ul>
+              {dash.recorrentes.length > 0 ? (
+                <div className="mt-3 h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={dash.recorrentes}
+                        dataKey="total"
+                        nameKey="nome"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label={({ nome, qtd }) => `${nome} (${qtd})`}
+                      >
+                        {dash.recorrentes.map((_, i) => (
+                          <Cell key={i} fill={`hsl(${(i * 60) + 20} 70% 50%)`} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => brl(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">Nenhum recorrente ainda.</p>
+              )}
             </section>
           </div>
+
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="font-display text-xl">Faturamento do mês</h2>
+            {dash.fatPorDia.length > 0 ? (
+              <div className="mt-3 h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={dash.fatPorDia} margin={{ left: 10, right: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="dia" tick={{ fontSize: 12 }} />
+                    <YAxis tickFormatter={(v) => brl(v)} />
+                    <Tooltip formatter={(v: number) => brl(v)} />
+                    <Legend />
+                    <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} name="Faturamento" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">Sem faturamento no mês.</p>
+            )}
+          </section>
 
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-display text-xl">Pedidos de hoje</h2>
@@ -650,6 +739,7 @@ function Admin() {
                   <span className="font-display">Nº {p.numero}</span>
 <StatusBadge status={p.status} />
               {p.tipo_entrega === "retirada" ? <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-semibold">Retirada na loja</span> : null}
+              <PagamentoStatusBadge status={p.pagamento_status} />
                   <span className="text-muted-foreground">{p.cliente_nome} • {hora(p.created_at)}</span>
                   <span className="ml-auto font-semibold text-primary">{brl(p.total)}</span>
                 </div>
@@ -660,7 +750,7 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-4">
-          <PedidosAdmin pedidos={pedidos ?? []} onStatus={mudarStatusPedido} foco={pedidoFoco} onLimparFoco={() => setPedidoFoco("")} />
+          <PedidosAdmin pedidos={pedidos ?? []} onStatus={mudarStatusPedido} onPagamento={mudarPagamento} foco={pedidoFoco} onLimparFoco={() => setPedidoFoco("")} />
         </TabsContent>
 
         <TabsContent value="produtos" className="mt-4 space-y-6">
@@ -1044,7 +1134,7 @@ function BuscaGlobal({ termo, onTermo, pedidos, produtos, profiles, onIrPedido, 
   );
 }
 
-function PedidosAdmin({ pedidos, onStatus, foco, onLimparFoco }: { pedidos: any[]; onStatus: (p: any, s: OrderStatus) => void; foco?: string; onLimparFoco?: () => void }) {
+function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { pedidos: any[]; onStatus: (p: any, s: OrderStatus) => void; onPagamento?: (p: any, s: string) => void; foco?: string; onLimparFoco?: () => void }) {
   const [filtro, setFiltro] = useState("todos");
   const [fEvento, setFEvento] = useState("todos");
   const [soAgendados, setSoAgendados] = useState(false);
@@ -1137,6 +1227,16 @@ function PedidosAdmin({ pedidos, onStatus, foco, onLimparFoco }: { pedidos: any[
                     ))}
                 </SelectContent>
               </Select>
+              {onPagamento ? (
+                <Select value={p.pagamento_status ?? "pendente"} onValueChange={(s) => onPagamento(p, s)}>
+                  <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(PAGAMENTO_STATUS_LABEL).map(([v, l]) => (
+                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
               <Button size="sm" variant="outline" onClick={() => window.open(whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)), "_blank")}>
                 <MessageCircle className="mr-1 size-3.5" /> WhatsApp
               </Button>

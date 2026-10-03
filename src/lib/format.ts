@@ -43,6 +43,34 @@ export const STATUS_FLOW = [
   "entregue",
 ] as const;
 
+/** Retirada não passa por motoboy: some com as etapas de rota. */
+export const STATUS_FLOW_RETIRADA = ["recebido", "em_producao", "pronto", "entregue"] as const;
+
+export type TipoEntrega = "entrega" | "retirada";
+
+export function statusFlow(tipoEntrega?: string | null): readonly string[] {
+  return tipoEntrega === "retirada" ? STATUS_FLOW_RETIRADA : STATUS_FLOW;
+}
+
+/** Rótulo do status já considerando retirada (evita "Saiu para entrega" na retirada). */
+export function statusLabel(status: string, tipoEntrega?: string | null): string {
+  if (tipoEntrega === "retirada") {
+    if (status === "pronto") return "Pronto para retirada";
+    if (status === "entregue") return "Retirado na loja";
+  }
+  return STATUS_LABEL[status] ?? status;
+}
+
+/** Pagamento é outro conceito: nunca casar com o status do pedido. */
+export const PAGAMENTO_STATUS_LABEL: Record<string, string> = {
+  pendente: "Aguardando pagamento",
+  pago: "Pago",
+  falhou: "Pagamento não aprovado",
+  reembolsado: "Reembolsado",
+};
+
+export const PAGAMENTO_STATUS_FLOW = ["pendente", "pago"] as const;
+
 export type OrderStatus =
   | "recebido"
   | "em_producao"
