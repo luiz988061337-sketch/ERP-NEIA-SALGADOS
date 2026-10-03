@@ -12,7 +12,7 @@ import { brl, TAXA_ENTREGA } from "@/lib/format";
 import { calcTotals, MINIMO_COMBO, PASSO_COMBO } from "@/lib/totals";
 import { useStaffOnly } from "@/lib/session";
 import { useCrmSettings } from "@/lib/crm";
-import { useProdutos, precoFinal } from "@/lib/catalog";
+import { useCategorias, useProdutos, precoFinal, tipoVendaProduto } from "@/lib/catalog";
 import { sugestoesPorCoocorrencia, useTodosItens } from "@/lib/inteligencia";
 
 export const Route = createFileRoute("/carrinho")({
@@ -36,6 +36,7 @@ function Carrinho() {
   const sugAtivas = settings?.sugestoes_ativas ?? true;
   const { data: todosItens } = useTodosItens(sugAtivas && items.length > 0);
   const { data: produtos } = useProdutos();
+const { data: categorias } = useCategorias();
   const { data: cupons } = useQuery({
     queryKey: ["cupons-ativos-carrinho"],
     queryFn: async () => {
@@ -55,6 +56,11 @@ function Carrinho() {
       .filter((p): p is NonNullable<typeof p> => !!p && p.disponivel && p.estoque > 0)
       .slice(0, 3);
   }, [sugAtivas, items, todosItens, produtos]);
+
+  const slugCategoria = useMemo(
+    () => new Map((categorias ?? []).map((c) => [c.id, c.slug])),
+    [categorias],
+  );
 
   const proximaPromo = useMemo(() => {
     const candidatas = (cupons ?? [])
@@ -190,7 +196,19 @@ function Carrinho() {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    add({ id: p.id, nome: p.nome, preco: precoFinal(p), imagem: p.imagem_url, produtoId: p.id });
+                    add(
+                      {
+                        id: p.id,
+                        nome: p.nome,
+                        preco: precoFinal(p),
+                        imagem: p.imagem_url,
+                        produtoId: p.id,
+                        combo: tipoVendaProduto(p, slugCategoria.get(p.categoria_id) ?? "") === "combo_50",
+                      },
+                      tipoVendaProduto(p, slugCategoria.get(p.categoria_id) ?? "") === "combo_50"
+                        ? MINIMO_COMBO
+                        : 1,
+                    );
                     toast.success(`${p.nome} adicionado.`);
                   }}
                 >

@@ -43,3 +43,17 @@ export function quantoFaltaCombo(qtd: number): number {
 export function isComboItem(i: { id: string; combo?: boolean | null | undefined }): boolean {
   return i.combo === true || i.id.startsWith("combo-");
 }
+
+/**
+ * Arredonda para cima até um múltiplo de 50 (mínimo 50).
+ * Regra comercial: combo só em 50, 100, 150...
+ * Usada na ENTRADA do carrinho (catálogo, Montar Combo, Repetir pedido,
+ * Pedido rápido) para nunca entrar 1, 60 ou 77 num combo.
+ */
+export function ajustarParaCombo(qtd: number): number {
+  const n = Math.floor(Number(qtd) || 0);
+  if (n <= 0) return 0;
+  if (n < MINIMO_COMBO) return MINIMO_COMBO;
+  const resto = n % PASSO_COMBO;
+  return resto === 0 ? n : n + (PASSO_COMBO - resto);
+}

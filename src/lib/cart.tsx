@@ -14,21 +14,8 @@ export type CartItem = {
 };
 
 /** Detecta linha de combo — regra centralizada em totals.ts. */
-export { isComboItem } from "./totals";
-import { isComboItem, MINIMO_COMBO, PASSO_COMBO } from "./totals";
-
-/**
- * Arredonda para cima até um múltiplo de 50 (mínimo 50).
- * Regra comercial: combo só em 50, 100, 150...applied em todas as entradas
- * do carrinho — catálogo, Montar Combo, Repetir pedido e Pedido rápido.
- */
-export function ajustarParaCombo(qtd: number): number {
-  const n = Math.floor(Number(qtd) || 0);
-  if (n <= 0) return 0;
-  if (n < MINIMO_COMBO) return MINIMO_COMBO;
-  const resto = n % PASSO_COMBO;
-  return resto === 0 ? n : n + (PASSO_COMBO - resto);
-}
+export { isComboItem, ajustarParaCombo } from "./totals";
+import { isComboItem, MINIMO_COMBO, PASSO_COMBO, ajustarParaCombo } from "./totals";
 
 type CartContextValue = {
   items: CartItem[];

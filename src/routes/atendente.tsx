@@ -9,8 +9,9 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, mensagemStatus, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
-import { precoFinal, useProdutos } from "@/lib/catalog";
-import { calcTotals } from "@/lib/totals";
+import { precoFinal, tipoVendaProduto, useCategorias, useProdutos } from "@/lib/catalog";
+import { MINIMO_COMBO, calcTotals } from "@/lib/totals";
+import { ajustarParaCombo } from "@/lib/cart";
 import { logAdmin } from "@/lib/operacao";
 import { normalizarTelefone } from "@/lib/crm";
 
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/atendente")({
   component: Atendente,
 });
 
-type Linha = { produto_id: string; nome: string; preco: number; quantidade: number };
+type Linha = { produto_id: string; nome: string; preco: number; quantidade: number; combo?: boolean };
 
 function Atendente() {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ function Atendente() {
   const { data: roles } = useRoles(user?.id);
   const permitido = roles?.includes("admin") || roles?.includes("atendente");
   const { data: produtos } = useProdutos();
+const { data: categorias } = useCategorias();
+const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [c.id, c.slug])), [categorias]);
 
   const [buscaCli, setBuscaCli] = useState("");
   const [nome, setNome] = useState("");
@@ -75,16 +78,30 @@ function Atendente() {
   function addProd(id: string) {
     const p = (produtos ?? []).find((x) => x.id === id);
     if (!p || !p.disponivel) return;
+    // Mesma regra do carrinho: combo entra em múltiplos de 50.
+    const combo = tipoVendaProduto(p, slugCategoriaPorId.get(p.categoria_id) ?? "") === "combo_50";
+    const passo = combo ? MINIMO_COMBO : 1;
     setLinhas((prev) => {
       const f = prev.find((l) => l.produto_id === id);
-      if (f) return prev.map((l) => (l.produto_id === id ? { ...l, quantidade: l.quantidade + 1 } : l));
-      return [...prev, { produto_id: id, nome: p.nome, preco: precoFinal(p), quantidade: 1 }];
+      if (f) {
+        const soma = f.quantidade + passo;
+        return prev.map((l) =>
+          l.produto_id === id ? { ...l, quantidade: combo ? ajustarParaCombo(soma) : soma } : l,
+        );
+      }
+      return [...prev, { produto_id: id, nome: p.nome, preco: precoFinal(p), quantidade: passo, combo }];
     });
   }
 
   function mudaQtd(id: string, delta: number) {
     setLinhas((prev) =>
-      prev.map((l) => (l.produto_id === id ? { ...l, quantidade: l.quantidade + delta } : l)).filter((l) => l.quantidade > 0),
+      prev
+        .map((l) => {
+          if (l.produto_id !== id) return l;
+          const n = l.quantidade + delta;
+          return { ...l, quantidade: l.combo ? ajustarParaCombo(Math.max(n, MINIMO_COMBO)) : n };
+        })
+        .filter((l) => l.quantidade > 0),
     );
   }
 

@@ -21,3 +21,13 @@ export async function resolve(specifier, context, next) {
     throw e;
   }
 }
+
+// Importações de asset (foto/ícone/CSS) não existem no Node: vira módulo vazio
+// para conseguir testar a lógica de módulos que importam imagem.
+const ASSET = /\.(jpe?g|png|webp|avif|gif|svg|css|scss)$/i;
+export async function load(url, context, next) {
+  if (ASSET.test(url)) {
+    return { format: "module", source: "export default { url: '' };", shortCircuit: true };
+  }
+  return next(url, context);
+}

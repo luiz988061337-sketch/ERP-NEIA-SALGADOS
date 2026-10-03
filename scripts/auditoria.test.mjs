@@ -199,11 +199,45 @@ t("pode resgatar 200+", fidl.podeResgatar(200).ok === true);
 t("não resgata 199", fidl.podeResgatar(199).ok === false);
 t("recompensa >100 bloqueia", fidl.podeResgatar(500, { ...fidl.DEFAULT_FIDELIDADE, recompensaValor: 150 }).ok === false);
 
-// ---------- operação ----------
+// ---------- operações ----------
 const op = await import("@/lib/operacao.ts");
 t("minutosDesde 90min", op.minutosDesde("2026-10-03T10:30:00Z", new Date("2026-10-03T12:00:00Z")) === 90);
 t("minutosDesde vazio = null", op.minutosDesde(null) === null);
 t("minutosDesde inválido = null", op.minutosDesde("xx") === null);
+
+// ---------- REGRA DOS 50 NA ENTRADA DO CARRINHO (regressão) ----------
+// O catálogo, o Montar Combo, o Repetir pedido e o Pedido rápido passam por
+// ajustarParaCombo(). Antes, o catálogo vendia 1 unidade e furava a regra.
+const ajusta = totals.ajustarParaCombo;
+const entradas = [[1, 50], [10, 50], [49, 50], [50, 50], [51, 100], [60, 100], [70, 100], [77, 100], [80, 100], [90, 100], [99, 100], [100, 100], [110, 150], [149, 150], [150, 150], [200, 200], [201, 250]];
+for (const [entrada, esperado] of entradas) {
+  t(`carrinho: entra ${entrada}un de combo -> ${esperado}un`, ajusta(entrada) === esperado);
+}
+t("carrinho: sempre múltiplo de 50", entradas.every(([e]) => ajusta(e) % 50 === 0));
+t("carrinho: nunca abaixo do mínimo", entradas.every(([e]) => ajusta(e) >= 50));
+t("carrinho: 0 e negativo zeram", ajusta(0) === 0 && ajusta(-10) === 0);
+
+// ---------- CATÁLOGO: congelados vendem por unidade ----------
+const catalogo = await import("@/lib/catalog.ts");
+const congelado = { slug: "mini-congelados", tipo_venda: "unidade" };
+const comboCat = { slug: "mini-fritos", tipo_venda: "combo_50" };
+t("congelado = unidade (sem regra dos 50)", catalogo.tipoVendaProduto(congelado) === "unidade");
+t("minis fritos = combo_50", catalogo.tipoVendaProduto(comboCat) === "combo_50");
+t("congelado 1un NÃO é arredondado para 50", isUnidadeLivre(congelado) === true);
+function isUnidadeLivre(p) {
+  // congelados/kits/bebidas ficam fora do combo: quantidade livre
+  return catalogo.tipoVendaProduto(p) !== "combo_50";
+}
+
+// ---------- ESTIMATIVA DO ORÇAMENTO: nunca mexe no pedido sem avisar ----------
+const calc = await import("@/lib/calculadora-salgados.ts");
+const e30x15 = calc.estimarOrcamento(30, 15, 1.6);
+t("30 pessoas x 15 = 450", e30x15.unidades === 450);
+t("450 é múltiplo de 50", e30x15.unidadesCombo === 450);
+const e30x17 = calc.estimarOrcamento(30, 17, 1.6);
+t("30 x 17 = 510", e30x17.unidades === 510);
+t("510 sugere 550 e informa o quanto falta", e30x17.unidadesCombo === 550 && e30x17.faltamParaCombo === 40);
+t("estimativa preserva o cálculo do cliente", e30x17.unidades === 510);
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);
