@@ -23,6 +23,17 @@ export const STATUS_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+/** Rótulo amigável p/ o dono (sem trocar o enum do banco). */
+export const STATUS_EXIBICAO: Record<string, string> = {
+  recebido: "Novo",
+  em_producao: "Confirmado / Em produção",
+  pronto: "Pronto",
+  aguardando_motoboy: "Saiu para entrega (aguard. motoboy)",
+  em_rota: "Saiu para entrega",
+  entregue: "Entregue",
+  cancelado: "Cancelado",
+};
+
 export const STATUS_FLOW = [
   "recebido",
   "em_producao",

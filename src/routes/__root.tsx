@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
+import { CartDock } from "@/components/cart-dock";
 import { SiteHeader } from "@/components/site-header";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -142,7 +143,7 @@ function RootComponent() {
           <main className="flex-1">
             <Outlet />
           </main>
-          <footer className="border-t border-border/60 bg-card py-8">
+          <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
             <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
               <p className="font-display text-base text-foreground">Néia Salgados</p>
               <p className="mt-1">Salgados fritos, assados, congelados e kits para festa.</p>
@@ -152,6 +153,7 @@ function RootComponent() {
             </div>
           </footer>
         </div>
+        <CartDock />
         <Toaster position="top-center" richColors />
       </CartProvider>
     </QueryClientProvider>

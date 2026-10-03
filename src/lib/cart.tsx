@@ -8,13 +8,20 @@ export type CartItem = {
   quantidade: number;
   /** uuid do produto no banco; null = item montado (combo), sem vínculo. */
   produtoId?: string | null | undefined;
+  observacao?: string | null | undefined;
+  /** true = combo montado: quantidade deve ser múltiplo de 50 (regra comercial). */
+  combo?: boolean | undefined;
 };
+
+/** Detecta linha de combo — regra centralizada em totals.ts. */
+export { isComboItem } from "./totals";
 
 type CartContextValue = {
   items: CartItem[];
   add: (item: Omit<CartItem, "quantidade">, qtd?: number) => void;
   remove: (id: string) => void;
   setQuantidade: (id: string, qtd: number) => void;
+  setObservacao: (id: string, obs: string) => void;
   clear: () => void;
   subtotal: number;
   totalItens: number;
@@ -63,13 +70,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const setObservacao = useCallback((id: string, obs: string) => {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, observacao: obs.slice(0, 200) } : i)));
+  }, []);
+
   const clear = useCallback(() => setItems([]), []);
 
   const value = useMemo<CartContextValue>(() => {
     const subtotal = items.reduce((acc, i) => acc + i.preco * i.quantidade, 0);
     const totalItens = items.reduce((acc, i) => acc + i.quantidade, 0);
-    return { items, add, remove, setQuantidade, clear, subtotal, totalItens };
-  }, [items, add, remove, setQuantidade, clear]);
+    return { items, add, remove, setQuantidade, setObservacao, clear, subtotal, totalItens };
+  }, [items, add, remove, setQuantidade, setObservacao, clear]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

@@ -2,6 +2,8 @@
 logs
 *.log
 npm-debug.log*
+# Env com chaves (já versionado uma vez — não adicionar segredos novos)
+.env
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*

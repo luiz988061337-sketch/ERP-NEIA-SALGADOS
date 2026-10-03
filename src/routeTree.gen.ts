@@ -11,13 +11,19 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AtendenteRouteImport } from './routes/atendente'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CampanhasRouteImport } from './routes/campanhas'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ComboRouteImport } from './routes/combo'
 import { Route as ContaRouteImport } from './routes/conta'
+import { Route as CrmConfigRouteImport } from './routes/crm-config'
 import { Route as MotoboyRouteImport } from './routes/motoboy'
+import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ProducaoRouteImport } from './routes/producao'
+import { Route as RecorrentesRouteImport } from './routes/recorrentes'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -30,9 +36,19 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtendenteRoute = AtendenteRouteImport.update({
+  id: '/atendente',
+  path: '/atendente',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampanhasRoute = CampanhasRouteImport.update({
+  id: '/campanhas',
+  path: '/campanhas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CarrinhoRoute = CarrinhoRouteImport.update({
@@ -45,6 +61,11 @@ const CheckoutRoute = CheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientesRoute = ClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ComboRoute = ComboRouteImport.update({
   id: '/combo',
   path: '/combo',
@@ -55,14 +76,29 @@ const ContaRoute = ContaRouteImport.update({
   path: '/conta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrmConfigRoute = CrmConfigRouteImport.update({
+  id: '/crm-config',
+  path: '/crm-config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotoboyRoute = MotoboyRouteImport.update({
   id: '/motoboy',
   path: '/motoboy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrcamentosRoute = OrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProducaoRoute = ProducaoRouteImport.update({
   id: '/producao',
   path: '/producao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecorrentesRoute = RecorrentesRouteImport.update({
+  id: '/recorrentes',
+  path: '/recorrentes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PedidoIdRoute = PedidoIdRouteImport.update({
@@ -74,38 +110,56 @@ const PedidoIdRoute = PedidoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
+  '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
+  '/crm-config': typeof CrmConfigRoute
   '/motoboy': typeof MotoboyRoute
+  '/orcamentos': typeof OrcamentosRoute
   '/producao': typeof ProducaoRoute
+  '/recorrentes': typeof RecorrentesRoute
   '/pedido/$id': typeof PedidoIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
+  '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
+  '/crm-config': typeof CrmConfigRoute
   '/motoboy': typeof MotoboyRoute
+  '/orcamentos': typeof OrcamentosRoute
   '/producao': typeof ProducaoRoute
+  '/recorrentes': typeof RecorrentesRoute
   '/pedido/$id': typeof PedidoIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
+  '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
+  '/crm-config': typeof CrmConfigRoute
   '/motoboy': typeof MotoboyRoute
+  '/orcamentos': typeof OrcamentosRoute
   '/producao': typeof ProducaoRoute
+  '/recorrentes': typeof RecorrentesRoute
   '/pedido/$id': typeof PedidoIdRoute
 }
 export interface FileRouteTypes {
@@ -113,50 +167,74 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/atendente'
     | '/auth'
+    | '/campanhas'
     | '/carrinho'
     | '/checkout'
+    | '/clientes'
     | '/combo'
     | '/conta'
+    | '/crm-config'
     | '/motoboy'
+    | '/orcamentos'
     | '/producao'
+    | '/recorrentes'
     | '/pedido/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin'
+    | '/atendente'
     | '/auth'
+    | '/campanhas'
     | '/carrinho'
     | '/checkout'
+    | '/clientes'
     | '/combo'
     | '/conta'
+    | '/crm-config'
     | '/motoboy'
+    | '/orcamentos'
     | '/producao'
+    | '/recorrentes'
     | '/pedido/$id'
   id:
     | '__root__'
     | '/'
     | '/admin'
+    | '/atendente'
     | '/auth'
+    | '/campanhas'
     | '/carrinho'
     | '/checkout'
+    | '/clientes'
     | '/combo'
     | '/conta'
+    | '/crm-config'
     | '/motoboy'
+    | '/orcamentos'
     | '/producao'
+    | '/recorrentes'
     | '/pedido/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AtendenteRoute: typeof AtendenteRoute
   AuthRoute: typeof AuthRoute
+  CampanhasRoute: typeof CampanhasRoute
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
+  ClientesRoute: typeof ClientesRoute
   ComboRoute: typeof ComboRoute
   ContaRoute: typeof ContaRoute
+  CrmConfigRoute: typeof CrmConfigRoute
   MotoboyRoute: typeof MotoboyRoute
+  OrcamentosRoute: typeof OrcamentosRoute
   ProducaoRoute: typeof ProducaoRoute
+  RecorrentesRoute: typeof RecorrentesRoute
   PedidoIdRoute: typeof PedidoIdRoute
 }
 
@@ -176,11 +254,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/atendente': {
+      id: '/atendente'
+      path: '/atendente'
+      fullPath: '/atendente'
+      preLoaderRoute: typeof AtendenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campanhas': {
+      id: '/campanhas'
+      path: '/campanhas'
+      fullPath: '/campanhas'
+      preLoaderRoute: typeof CampanhasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/carrinho': {
@@ -197,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clientes': {
+      id: '/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof ClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/combo': {
       id: '/combo'
       path: '/combo'
@@ -211,6 +310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crm-config': {
+      id: '/crm-config'
+      path: '/crm-config'
+      fullPath: '/crm-config'
+      preLoaderRoute: typeof CrmConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motoboy': {
       id: '/motoboy'
       path: '/motoboy'
@@ -218,11 +324,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MotoboyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orcamentos': {
+      id: '/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/orcamentos'
+      preLoaderRoute: typeof OrcamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/producao': {
       id: '/producao'
       path: '/producao'
       fullPath: '/producao'
       preLoaderRoute: typeof ProducaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recorrentes': {
+      id: '/recorrentes'
+      path: '/recorrentes'
+      fullPath: '/recorrentes'
+      preLoaderRoute: typeof RecorrentesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pedido/$id': {
@@ -238,13 +358,19 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AtendenteRoute: AtendenteRoute,
   AuthRoute: AuthRoute,
+  CampanhasRoute: CampanhasRoute,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
+  ClientesRoute: ClientesRoute,
   ComboRoute: ComboRoute,
   ContaRoute: ContaRoute,
+  CrmConfigRoute: CrmConfigRoute,
   MotoboyRoute: MotoboyRoute,
+  OrcamentosRoute: OrcamentosRoute,
   ProducaoRoute: ProducaoRoute,
+  RecorrentesRoute: RecorrentesRoute,
   PedidoIdRoute: PedidoIdRoute,
 }
 export const routeTree = rootRouteImport

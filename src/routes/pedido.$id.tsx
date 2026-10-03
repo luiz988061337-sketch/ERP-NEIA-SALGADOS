@@ -5,6 +5,7 @@ import { Bike, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StatusSteps } from "@/components/status-steps";
+import { NotasCliente } from "@/components/pedido-notas";
 import { MapView } from "@/components/map-view";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dataHora, PAGAMENTO_LABEL } from "@/lib/format";
@@ -107,6 +108,8 @@ function Acompanhar() {
       <section className="rounded-xl border border-border bg-card p-5">
         <StatusSteps status={pedido.status} />
       </section>
+
+      <NotasCliente pedidoId={pedido.id} />
 
       {pedido.status === "em_rota" ? (
         <section className="space-y-2 rounded-xl border border-border bg-card p-5">

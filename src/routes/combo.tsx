@@ -8,6 +8,7 @@ import { useStaffOnly } from "@/lib/session";
 import { imagemProduto, useCategorias, useProdutos } from "@/lib/catalog";
 import { brl } from "@/lib/format";
 import { COMBO_CATEGORIAS, MINIMO_COMBO, PASSO_COMBO, saborCurto } from "@/lib/combo";
+import { isMultiploCombo, quantoFaltaCombo } from "@/lib/totals";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/combo")({
@@ -50,8 +51,9 @@ function Combo() {
 
   const total = Object.values(qtds).reduce((a, q) => a + q, 0);
   const resto = total % PASSO_COMBO;
-  const faltam = resto === 0 ? 0 : PASSO_COMBO - resto;
-  const valido = total >= MINIMO_COMBO && resto === 0;
+  const faltam = quantoFaltaCombo(total);
+  const valido = isMultiploCombo(total);
+  const alvo = total === 0 ? MINIMO_COMBO : resto === 0 ? total : total + faltam;
   const valor = cat ? total * cat.precoUnit : 0;
   const progresso = total === 0 ? 0 : resto === 0 ? 100 : (resto / PASSO_COMBO) * 100;
 
@@ -73,7 +75,15 @@ function Combo() {
   }
 
   function adicionar() {
-    if (!cat || !valido) return;
+    if (!cat) return;
+    if (!valido) {
+      toast.error(
+        total === 0
+          ? "Os combos são vendidos em múltiplos de 50 unidades. Toque em + para começar."
+          : `Seu combo precisa ter ${alvo} unidades. Adicione mais ${faltam} unidades.`,
+      );
+      return;
+    }
     const partes = itens
       .filter((p) => (qtds[p.id] ?? 0) > 0)
       .map((p) => `${qtds[p.id]}x ${saborCurto(p.nome)}`);
@@ -83,6 +93,7 @@ function Combo() {
       preco: valor,
       imagem: null,
       produtoId: null,
+      combo: true,
     });
     toast.success(`Combo de ${total} minis adicionado ao carrinho!`);
     navigate({ to: "/carrinho" });
@@ -101,8 +112,8 @@ function Combo() {
       </Button>
       <h1 className="font-display text-3xl">Monte seu combo</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Escolha a categoria, misture os sabores a partir de 1 unidade e feche múltiplos de {PASSO_COMBO} por
-        categoria.
+        Monte seu combo escolhendo os sabores que quiser. O total de cada categoria deve ser
+        50, 100, 150 unidades ou múltiplos de {PASSO_COMBO}. Congelados vendem por unidade no cardápio.
       </p>
 
       {!cat ? (
@@ -207,10 +218,13 @@ function Combo() {
           <div className="sticky bottom-4 mt-6 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-float)]">
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-1.5 font-semibold">
-                <Package className="size-4 text-primary" /> {total}un no combo
+                <Package className="size-4 text-primary" /> Quantidade selecionada: {total} / {alvo}
               </span>
               <span className="font-display text-lg text-primary">{brl(valor)}</span>
             </div>
+            {valido && total > 0 ? (
+              <p className="mt-1 text-sm font-bold text-green-600">✓ Combo completo ({total}un)</p>
+            ) : null}
             <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progresso}%` }} />
             </div>

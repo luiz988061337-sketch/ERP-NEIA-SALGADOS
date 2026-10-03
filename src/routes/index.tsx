@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Clock, Package, Search, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, Clock, Package, Search, Share2, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { toast } from "sonner";
 import hero from "@/assets/hero.jpg";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
-import { useAvaliacoes, useCategorias, useProdutos } from "@/lib/catalog";
+import { isPromoAtiva, useAvaliacoes, useCategorias, useProdutos } from "@/lib/catalog";
 import { useSession, useStaffOnly } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
@@ -50,6 +50,34 @@ function Home() {
     if (staffOnly && painel) navigate({ to: painel, replace: true });
   }, [staffOnly, painel, navigate]);
 
+  // Link rastreável de campanha (?campanha=xxx): guarda a origem p/ atribuir o pedido depois.
+  useEffect(() => {
+    try {
+      const camp = new URLSearchParams(window.location.search).get("campanha");
+      if (camp) {
+        const slug = camp.slice(0, 60);
+        localStorage.setItem("neia-campanha", slug);
+        const chave = `neia-clique-${slug}`;
+        if (!sessionStorage.getItem(chave)) {
+          sessionStorage.setItem(chave, "1");
+          void supabase.from("campanha_cliques").insert({ slug }).then(() => undefined, () => undefined);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function compartilhar() {
+    const url = `${window.location.origin}/`;
+    const texto = "Cardápio Néia Salgados — salgados, combos e kits para festa!";
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      (navigator as any).share({ title: "Néia Salgados", text: texto, url }).catch(() => undefined);
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`${texto} ${url}`)}`, "_blank", "noopener");
+    }
+  }
+
   const { data: favoritos } = useQuery({
     queryKey: ["favoritos", user?.id],
     enabled: !!user,
@@ -91,6 +119,9 @@ function Home() {
   );
 
   const catsVisiveis = (categorias ?? []).filter((c) => !catAtiva || c.id === catAtiva);
+  const slugPorId = useMemo(() => new Map((categorias ?? []).map((c) => [c.id, c.slug])), [categorias]);
+  const ofertas = useMemo(() => (produtos ?? []).filter((p) => isPromoAtiva(p) && p.disponivel), [produtos]);
+  const destaques = useMemo(() => (produtos ?? []).filter((p) => p.destaque && p.disponivel), [produtos]);
 
   if (staffOnly) {
     return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
@@ -116,7 +147,7 @@ function Home() {
               <p className="mt-3 text-sm text-white/85 sm:text-base">
                 Fritos, assados, congelados e kits para festa. Peça agora e receba em minutos.
               </p>
-              <div className="mt-5 flex flex-wrap gap-4 text-xs text-white/85 sm:text-sm">
+              <div className="mt-5 flex flex-wrap items-center gap-4 text-xs text-white/85 sm:text-sm">
                 <span className="flex items-center gap-1.5">
                   <Clock className="size-4" /> 40-60 min
                 </span>
@@ -126,6 +157,13 @@ function Home() {
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="size-4" /> Pagamento na entrega ou PIX
                 </span>
+                <button
+                  type="button"
+                  onClick={compartilhar}
+                  className="flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 font-semibold text-white backdrop-blur hover:bg-white/30"
+                >
+                  <Share2 className="size-4" /> Compartilhar
+                </button>
               </div>
             </div>
           </div>
@@ -179,7 +217,7 @@ function Home() {
           </span>
           <span className="flex-1">
             <span className="block font-display text-lg leading-tight">Monte seu combo</span>
-            <span className="block text-xs text-white/85">Misture sabores em múltiplos de 50 por categoria</span>
+            <span className="block text-xs text-white/85">Misture sabores à vontade — total por categoria em múltiplos de 50</span>
           </span>
           <ArrowRight className="size-5" />
         </Link>
@@ -196,6 +234,44 @@ function Home() {
               </div>
             ))}
           </div>
+        ) : null}
+        {!carregando && !termo && !catAtiva ? (
+          <>
+            {ofertas.length > 0 ? (
+              <section className="mb-8" aria-label="Ofertas da semana">
+                <h2 className="mb-3 font-display text-2xl">🔥 Ofertas da semana</h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {ofertas.slice(0, 8).map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      produto={p}
+                      slugCategoria={slugPorId.get(p.categoria_id) ?? ""}
+                      nota={(() => { const n = notas.get(p.id); return n ? n.soma / n.qtd : null; })()}
+                      favorito={favoritos?.includes(p.id)}
+                      onToggleFavorito={() => toggleFavorito(p.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+            {destaques.length > 0 ? (
+              <section className="mb-8" aria-label="Destaques">
+                <h2 className="mb-3 font-display text-2xl">⭐ Destaques</h2>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {destaques.slice(0, 8).map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      produto={p}
+                      slugCategoria={slugPorId.get(p.categoria_id) ?? ""}
+                      nota={(() => { const n = notas.get(p.id); return n ? n.soma / n.qtd : null; })()}
+                      favorito={favoritos?.includes(p.id)}
+                      onToggleFavorito={() => toggleFavorito(p.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </>
         ) : null}
         {!carregando
           ? catsVisiveis.map((cat) => {
@@ -236,10 +312,27 @@ function Home() {
             ) : null}
           </div>
         ) : null}
+
+        <section className="mb-8 rounded-2xl border border-border bg-card p-5" aria-label="Como funciona">
+          <h2 className="font-display text-2xl">Como funciona</h2>
+          <ol className="mt-3 grid gap-3 sm:grid-cols-3">
+            <li className="rounded-xl bg-muted p-4 text-sm"><p className="font-bold">1. Escolha seus salgados</p><p className="mt-1 text-muted-foreground">Escolha produtos e sabores no cardápio ou monte seu combo.</p></li>
+            <li className="rounded-xl bg-muted p-4 text-sm"><p className="font-bold">2. Monte seu pedido</p><p className="mt-1 text-muted-foreground">Combine sabores em múltiplos de 50. Congelados vendem por unidade.</p></li>
+            <li className="rounded-xl bg-muted p-4 text-sm"><p className="font-bold">3. Receba em casa</p><p className="mt-1 text-muted-foreground">Informe endereço, escolha PIX ou pagamento na entrega e receba.</p></li>
+          </ol>
+        </section>
+
+        <section className="mb-4 flex flex-wrap gap-2 text-xs sm:text-sm" aria-label="Informações de confiança">
+          <span className="rounded-full border border-border bg-card px-3 py-1.5">🚚 Entrega em 40–60 minutos</span>
+          <span className="rounded-full border border-border bg-card px-3 py-1.5">📦 Pedidos para festas e eventos</span>
+          <span className="rounded-full border border-border bg-card px-3 py-1.5">🔢 Combos a partir de 50 unidades</span>
+          <span className="rounded-full border border-border bg-card px-3 py-1.5">🧊 Congelados vendidos por unidade</span>
+          <span className="rounded-full border border-border bg-card px-3 py-1.5">💳 PIX e pagamento na entrega</span>
+        </section>
       </div>
 
       {totalItens > 0 ? (
-        <div className="fixed inset-x-0 bottom-4 z-40 mx-auto w-[min(100%-2rem,32rem)]">
+        <div className="fixed inset-x-0 bottom-4 z-40 mx-auto hidden w-[min(100%-2rem,32rem)] md:block">
           <Button asChild size="lg" className="w-full justify-between shadow-[var(--shadow-float)]">
             <Link to="/carrinho">
               <span className="flex items-center gap-2">

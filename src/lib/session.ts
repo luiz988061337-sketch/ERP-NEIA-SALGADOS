@@ -22,7 +22,7 @@ export function useSession() {
   return { session, user: (session?.user ?? null) as User | null, loading };
 }
 
-export type Role = "admin" | "producao" | "motoboy" | "cliente";
+export type Role = "admin" | "producao" | "motoboy" | "cliente" | "atendente" | "financeiro";
 
 export function useRoles(userId: string | undefined) {
   return useQuery({
@@ -51,6 +51,7 @@ export function usePerfil(userId: string | undefined) {
 /**
  * Funcionário sem papel de admin (produção/motoboy): usa só o painel,
  * sem cardápio/carrinho/checkout. Admin mantém acesso total.
+ * Atendente/financeiro têm acesso ao admin restrito por seção (ver Admin).
  */
 export function useStaffOnly() {
   const { user } = useSession();

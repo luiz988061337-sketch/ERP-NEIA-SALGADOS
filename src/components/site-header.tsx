@@ -25,6 +25,7 @@ export function SiteHeader() {
   const isAdmin = roles?.includes("admin");
   const isProducao = roles?.includes("producao") || isAdmin;
   const isMotoboy = roles?.includes("motoboy") || isAdmin;
+  const isAtendente = roles?.includes("atendente") || isAdmin;
 
   async function sair() {
     await queryClient.cancelQueries();
@@ -62,6 +63,21 @@ export function SiteHeader() {
               <Link to="/conta">Meus pedidos</Link>
             </Button>
           ) : null}
+          {user && (!staffOnly || isAtendente) ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/orcamentos">Orçamentos</Link>
+            </Button>
+          ) : null}
+          {user && !staffOnly ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/recorrentes">Recorrentes</Link>
+            </Button>
+          ) : null}
+          {isAtendente ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/atendente">Novo pedido</Link>
+            </Button>
+          ) : null}
           {isProducao ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/producao">Produção</Link>
@@ -75,6 +91,16 @@ export function SiteHeader() {
           {isAdmin ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">Admin</Link>
+            </Button>
+          ) : null}
+          {isAdmin ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/clientes">Clientes</Link>
+            </Button>
+          ) : null}
+          {isAdmin ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/campanhas">Campanhas</Link>
             </Button>
           ) : null}
         </nav>
@@ -129,6 +155,48 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
+                {isAdmin ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/clientes">
+                      <LayoutDashboard className="mr-2 size-4" /> Clientes (CRM)
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {isAdmin ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/campanhas">
+                      <LayoutDashboard className="mr-2 size-4" /> Campanhas
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {isAdmin ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/crm-config">
+                      <LayoutDashboard className="mr-2 size-4" /> Config CRM
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {user && (!staffOnly || isAtendente) ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/orcamentos">
+                      <LayoutDashboard className="mr-2 size-4" /> Orçamentos
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {user && !staffOnly ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/recorrentes">
+                      <LayoutDashboard className="mr-2 size-4" /> Recorrentes
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {isAtendente ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/atendente">
+                      <LayoutDashboard className="mr-2 size-4" /> Novo pedido
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={sair}>
                   <LogOut className="mr-2 size-4" /> Sair
@@ -161,6 +229,21 @@ export function SiteHeader() {
               {user && !staffOnly ? (
                 <DropdownMenuItem asChild>
                   <Link to="/conta">Meus pedidos</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {user && (!staffOnly || isAtendente) ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/orcamentos">Orçamentos</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {user && !staffOnly ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/recorrentes">Recorrentes</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isAtendente ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/atendente">Novo pedido</Link>
                 </DropdownMenuItem>
               ) : null}
               {isProducao ? (

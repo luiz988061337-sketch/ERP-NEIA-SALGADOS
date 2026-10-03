@@ -1,5 +1,6 @@
-export const PASSO_COMBO = 50;
-export const MINIMO_COMBO = 50;
+import { MINIMO_COMBO, PASSO_COMBO } from "./totals";
+
+export { MINIMO_COMBO, PASSO_COMBO };
 
 export type ComboCategoria = {
   slug: string;
@@ -14,7 +15,7 @@ export const COMBO_CATEGORIAS: ComboCategoria[] = [
   { slug: "mini-pasteis", nome: "Mini Pastéis", descricao: "Carne, queijo, frango e pizza", precoUnit: 2.3 },
   { slug: "mini-pizzas", nome: "Mini Pizzas", descricao: "Calabresa, mussarela, frango e portuguesa", precoUnit: 3.7 },
   { slug: "mini-empadinhas", nome: "Mini Empadinhas", descricao: "Frango, queijo, palmito e carne", precoUnit: 2.4 },
-  { slug: "mini-congelados", nome: "Mini Congelados", descricao: "Para fritar em casa", precoUnit: 1.6 },
+  // Congelados, kits e bebidas vendem por unidade — fora do combo (tipo_venda=unidade).
 ];
 
 /** Nome curto do sabor para o resumo do combo (tira o "25un" do fim). */
