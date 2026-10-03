@@ -51,15 +51,26 @@ export function HeroCarousel({ itens, carregando }: { itens: HeroCarouselItem[];
   return (
     <section className="relative h-[320px] w-full overflow-hidden sm:h-[420px]" aria-label="Destaques">
       {itens.map((item, i) => (
-        <img
+        <div
           key={item.id}
-          src={item.imagem_url}
-          alt={item.legenda || `Slide ${i + 1}`}
-          loading={i === 0 ? "eager" : "lazy"}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === indice ? "opacity-100" : "pointer-events-none opacity-0"}`}
-        />
+          className={`absolute inset-0 transition-opacity duration-700 ${i === indice ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        >
+          {/* fundo desfocado da mesma foto: a imagem entra inteira, sem corte */}
+          <img
+            src={item.imagem_url}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 size-full scale-110 object-cover blur-2xl"
+          />
+          <img
+            src={item.imagem_url}
+            alt={item.legenda || `Slide ${i + 1}`}
+            loading={i === 0 ? "eager" : "lazy"}
+            className="relative size-full object-contain"
+          />
+        </div>
       ))}
-      <div className="absolute inset-0 bg-gradient-to-r from-foreground/85 via-foreground/55 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-foreground/85 via-foreground/55 to-foreground/10" />
       <div className="absolute inset-0 flex items-center">
         <div className="mx-auto w-full max-w-6xl px-4">
           <div className="max-w-lg text-white">

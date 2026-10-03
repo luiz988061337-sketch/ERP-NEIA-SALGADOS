@@ -50,6 +50,7 @@ import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
 import { novoEstoque, type TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
+import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { useRoles, useSession } from "@/lib/session";
 import type { Role } from "@/lib/session";
 import type { PeriodoKey } from "@/lib/operacao";
@@ -240,6 +241,12 @@ function Admin() {
   });
   const [novoSlide, setNovoSlide] = useState({ imagem_url: "", legenda: "", ordem: 0 });
   const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [fotoInfo, setFotoInfo] = useState("");
+
+  function limparNovoSlide() {
+    setNovoSlide({ imagem_url: "", legenda: "", ordem: 0 });
+    setFotoInfo("");
+  }
 
   const BUCKET_HERO = "hero";
 
@@ -247,33 +254,43 @@ function Admin() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecione um arquivo de imagem.");
+    if (!extensaoValida(file)) {
+      toast.error("Use JPG, PNG, WebP ou AVIF.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Imagem acima de 5 MB. Reduza o tamanho e tente de novo.");
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error("Arquivo acima de 12 MB. Escolha uma foto menor.");
       return;
     }
     setEnviandoFoto(true);
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-    const caminho = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await supabase.storage.from(BUCKET_HERO).upload(caminho, file, {
-      upsert: true,
-      contentType: file.type,
-    });
-    setEnviandoFoto(false);
-    if (error) {
-      toast.error(
-        /bucket|not found|schema/i.test(error.message)
-          ? "Bucket de imagens ausente — rode a migration 0020 no Supabase."
-          : error.message,
-      );
-      return;
+    try {
+      // Reduz sem cortar: a proporção original é preservada, então a foto
+      // aparece inteira na capa mesmo sendo alta ou quadrada.
+      const { blob, type, largura, altura } = await redimensionarImagem(file);
+      const ext = type === "image/png" ? "png" : "jpg";
+      const caminho = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from(BUCKET_HERO).upload(caminho, blob, {
+        upsert: true,
+        contentType: type,
+      });
+      if (error) {
+        toast.error(
+          /bucket|not found|schema/i.test(error.message)
+            ? "Bucket de imagens ausente — rode a migration 0020 no Supabase."
+            : error.message,
+        );
+        return;
+      }
+      const { data } = supabase.storage.from(BUCKET_HERO).getPublicUrl(caminho);
+      setNovoSlide((s) => ({ ...s, imagem_url: data.publicUrl }));
+      setFotoInfo(`${largura}x${altura} • ${tamanhoLegivel(blob.size)}`);
+      toast.success(`Foto pronta (${largura}x${altura}, ${tamanhoLegivel(blob.size)}). Agora clique em Adicionar slide.`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Não consegui preparar a imagem. Tente outra foto.");
+    } finally {
+      setEnviandoFoto(false);
     }
-    const { data } = supabase.storage.from(BUCKET_HERO).getPublicUrl(caminho);
-    setNovoSlide((s) => ({ ...s, imagem_url: data.publicUrl }));
-    toast.success("Foto enviada. Agora clique em Adicionar slide.");
   }
 
   async function adicionarSlide(e: React.FormEvent<HTMLFormElement>) {
@@ -281,7 +298,7 @@ function Admin() {
     const { error } = await supabase.from("hero_carousel").insert({ ...novoSlide, ativo: true });
     if (error) { toast.error(error.message); return; }
     toast.success("Slide adicionado.");
-    setNovoSlide({ imagem_url: "", legenda: "", ordem: 0 });
+    limparNovoSlide();
     void refetchHero();
   }
 
@@ -611,13 +628,21 @@ function Admin() {
                   onChange={enviarFotoHero}
                   className="block w-full cursor-pointer rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-semibold"
                 />
-                <p className="text-xs text-muted-foreground">JPG, PNG ou WebP até 5 MB. Proporção horizontal fica melhor na capa.</p>
-                {enviandoFoto ? <p className="text-xs text-muted-foreground">Enviando foto…</p> : null}
+                <p className="text-xs text-muted-foreground">
+                  JPG, PNG, WebP ou AVIF. A foto é redimensionada sem corte e aparece inteira na capa —
+                  proporção horizontal (ex.: 1600x900) ocupa mais espaço, mas qualquer formato funciona.
+                </p>
+                {enviandoFoto ? <p className="text-xs text-muted-foreground">Preparando e enviando foto…</p> : null}
                 {novoSlide.imagem_url ? (
-                  <div className="mt-1 flex items-center gap-2">
+                  <div className="mt-2 rounded-lg border border-border p-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={novoSlide.imagem_url} alt="Prévia" className="h-16 w-28 rounded object-cover" />
-                    <span className="text-xs text-muted-foreground">Foto anexada.</span>
+                    <img src={novoSlide.imagem_url} alt="Prévia" className="h-28 w-full rounded object-contain" />
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        Foto anexada{fotoInfo ? ` — ${fotoInfo}` : ""} (sem corte)
+                      </span>
+                      <Button type="button" size="sm" variant="ghost" onClick={limparNovoSlide}>Trocar</Button>
+                    </div>
                   </div>
                 ) : null}
               </div>
