@@ -1037,6 +1037,7 @@ export type Database = {
           tipo_evento: string
           total: number
           user_id: string | null
+          validade: string | null
         }
         Insert: {
           created_at?: string
@@ -1055,6 +1056,7 @@ export type Database = {
           tipo_evento?: string
           total?: number
           user_id?: string | null
+          validade?: string | null
         }
         Update: {
           created_at?: string
@@ -1073,6 +1075,7 @@ export type Database = {
           tipo_evento?: string
           total?: number
           user_id?: string | null
+          validade?: string | null
         }
         Relationships: []
       }
