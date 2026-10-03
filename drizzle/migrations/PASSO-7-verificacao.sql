@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASSO 7 - VERIFICACAO COMPLETA (gerado por scripts/gerar-verificacao.mjs)
--- Compara o banco com TUDO que o app usa: 25 tabelas / 240 colunas.
+-- Compara o banco com TUDO que o app usa: 26 tabelas / 252 colunas.
 -- Rode em UM New query.
 -- "1_O_QUE_FALTA" deve vir como TUDO OK.
 -- ============================================================================
@@ -127,6 +127,18 @@ WITH e(tabela, coluna) AS (
     ('calculadora_config','maximo_por_pessoa'),
     ('calculadora_config','zap_contato'),
     ('calculadora_config','orcamento_validade_dias'),
+    ('loja_config','id'),
+    ('loja_config','nome'),
+    ('loja_config','telefone'),
+    ('loja_config','endereco'),
+    ('loja_config','bairro'),
+    ('loja_config','cidade'),
+    ('loja_config','complemento'),
+    ('loja_config','referencia'),
+    ('loja_config','instrucoes_retirada'),
+    ('loja_config','mapa_lat'),
+    ('loja_config','mapa_lng'),
+    ('loja_config','atualizado_em'),
     ('motoboys','ativo'),
     ('motoboys','created_at'),
     ('motoboys','id'),
@@ -288,6 +300,7 @@ FROM (VALUES
   ('admin_logs'),
   ('hero_carousel'),
   ('calculadora_config'),
+  ('loja_config'),
   ('motoboys'),
   ('campanha_cliques'),
   ('crm_campaigns'),

@@ -21,6 +21,7 @@ import { useCrmSettings } from "@/lib/crm";
 import { registrarEventoCarrinho } from "@/lib/inteligencia";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
+import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
 
 export const PIX_CHAVE = "neiasalgados@pix.com.br";
 
@@ -60,6 +61,9 @@ function Checkout() {
   const [tipoEntrega, setTipoEntrega] = useState<"entrega" | "retirada">("entrega");
   const [quando, setQuando] = useState<"agora" | "agendar">("agora");
   const { data: settings } = useCrmSettings();
+  const { data: lojaConfig } = useLojaConfig();
+  const loja = lojaConfig ?? DEFAULT_LOJA_CONFIG;
+  const enderecoLojaTexto = enderecoLoja(loja);
   const funilRef = useRef(false);
 
   useEffect(() => {
@@ -240,7 +244,7 @@ function Checkout() {
         user_id: user.id,
         cliente_nome: parsed.data.cliente_nome,
         telefone: parsed.data.telefone,
-        endereco: isRetirada ? "Retirada na loja" : `${parsed.data.endereco} — ${parsed.data.cidade}`,
+        endereco: isRetirada ? (enderecoLojaTexto || "Retirada na loja") : `${parsed.data.endereco} — ${parsed.data.cidade}`,
         bairro: isRetirada ? "-" : parsed.data.bairro,
         cidade: isRetirada ? "-" : parsed.data.cidade,
         complemento: isRetirada ? "" : (parsed.data.complemento ?? ""),
@@ -380,7 +384,22 @@ function Checkout() {
               <div className="space-y-1.5"><Label htmlFor="referencia">Ponto de referência</Label><Input id="referencia" name="referencia" placeholder="Próximo à praça" /></div>
             </>
           ) : (
-            <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">Você retira o pedido na loja. Sem taxa de entrega.</p>
+            <div className="space-y-1.5 rounded-lg bg-muted p-3 text-sm">
+              <p className="font-semibold">Você retira o pedido na loja. Sem taxa de entrega.</p>
+              {enderecoLojaTexto ? (
+                <>
+                  <p className="mt-1 text-muted-foreground">{enderecoLojaTexto}</p>
+                  {loja.referencia ? <p className="text-muted-foreground">Referência: {loja.referencia}</p> : null}
+                </>
+              ) : (
+                <p className="mt-1 text-muted-foreground">
+                  O endereço da loja é informado no WhatsApp assim que o pedido é confirmado.
+                </p>
+              )}
+              {loja.instrucoes_retirada ? (
+                <p className="mt-1 whitespace-pre-line text-muted-foreground">{loja.instrucoes_retirada}</p>
+              ) : null}
+            </div>
           )}
           <div className="space-y-1.5"><Label htmlFor="observacoes">Observações</Label><Textarea id="observacoes" name="observacoes" placeholder="Ex: troco, ponto de entrega..." /></div>
         </section>

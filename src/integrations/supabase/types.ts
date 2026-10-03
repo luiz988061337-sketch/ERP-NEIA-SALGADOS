@@ -530,6 +530,51 @@ export type Database = {
         }
         Relationships: []
       }
+      loja_config: {
+        Row: {
+          id: boolean
+          nome: string
+          telefone: string
+          endereco: string
+          bairro: string
+          cidade: string
+          complemento: string
+          referencia: string
+          instrucoes_retirada: string
+          mapa_lat: number | null
+          mapa_lng: number | null
+          atualizado_em: string
+        }
+        Insert: {
+          id?: boolean
+          nome?: string
+          telefone?: string
+          endereco?: string
+          bairro?: string
+          cidade?: string
+          complemento?: string
+          referencia?: string
+          instrucoes_retirada?: string
+          mapa_lat?: number | null
+          mapa_lng?: number | null
+          atualizado_em?: string
+        }
+        Update: {
+          id?: boolean
+          nome?: string
+          telefone?: string
+          endereco?: string
+          bairro?: string
+          cidade?: string
+          complemento?: string
+          referencia?: string
+          instrucoes_retirada?: string
+          mapa_lat?: number | null
+          mapa_lng?: number | null
+          atualizado_em?: string
+        }
+        Relationships: []
+      }
       motoboys: {
         Row: {
           ativo: boolean

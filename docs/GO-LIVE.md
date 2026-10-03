@@ -31,6 +31,7 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 19. `0018_tipo_entrega.sql` — `pedidos.tipo_entrega` (`entrega` | `retirada`).
 20. `0019_orcamento_contato.sql` — `calculadora_config.zap_contato` + `orcamento_validade_dias`.
 21. `0020_storage_hero.sql` — bucket público `hero` para upload das fotos do carrossel.
+22. `0021_loja_config.sql` — tabela `loja_config` (endereço de retirada, telefone, ponto no mapa).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega

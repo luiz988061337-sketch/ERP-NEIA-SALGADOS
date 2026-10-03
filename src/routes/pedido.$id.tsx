@@ -9,6 +9,7 @@ import { NotasCliente } from "@/components/pedido-notas";
 import { MapView } from "@/components/map-view";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, dataHora, PAGAMENTO_LABEL } from "@/lib/format";
+import { enderecoLoja, DEFAULT_LOJA_CONFIG, lojaTemEndereco, pontoDaLoja, useLojaConfig } from "@/lib/loja";
 
 export const Route = createFileRoute("/pedido/$id")({
   head: () => ({
@@ -89,6 +90,9 @@ function Acompanhar() {
     );
 
   const isRetirada = pedido.tipo_entrega === "retirada";
+  const { data: lojaConfig } = useLojaConfig();
+  const loja = lojaConfig ?? DEFAULT_LOJA_CONFIG;
+  const pontoLoja = isRetirada ? pontoDaLoja(loja) : null;
 
   const pontos = [
     pedido.destino_lat && pedido.destino_lng
@@ -165,16 +169,31 @@ function Acompanhar() {
 
       <section className="rounded-xl border border-border bg-card p-5 text-sm">
         <h2 className="font-display text-xl">{isRetirada ? "Retirada" : "Endereço"}</h2>
-        <p className="mt-1 text-muted-foreground">
-          {isRetirada ? (
-            <>Retirada na loja — confira o endereço e o horário no WhatsApp.</>
-          ) : (
-            <>
-              {pedido.endereco}
-              {pedido.complemento ? `, ${pedido.complemento}` : ""} — {pedido.bairro}
-            </>
-          )}
-        </p>
+        {isRetirada ? (
+          <>
+            {lojaTemEndereco(loja) ? (
+              <p className="mt-1 text-muted-foreground">{enderecoLoja(loja)}</p>
+            ) : (
+              <p className="mt-1 text-muted-foreground">
+                O endereço da loja é confirmado pelo WhatsApp assim que o pedido ficar pronto.
+              </p>
+            )}
+            {loja.referencia ? <p className="mt-1 text-muted-foreground">Referência: {loja.referencia}</p> : null}
+            {loja.instrucoes_retirada ? (
+              <p className="mt-1 whitespace-pre-line text-muted-foreground">{loja.instrucoes_retirada}</p>
+            ) : null}
+            {pontoLoja ? (
+              <div className="mt-3">
+                <MapView pontos={[pontoLoja]} />
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <p className="mt-1 text-muted-foreground">
+            {pedido.endereco}
+            {pedido.complemento ? `, ${pedido.complemento}` : ""} — {pedido.bairro}
+          </p>
+        )}
         <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
           <Phone className="size-3.5" /> {pedido.telefone}
         </p>

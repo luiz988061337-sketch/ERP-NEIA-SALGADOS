@@ -24,6 +24,7 @@ import {
   DEFAULT_CALCULADORA_CONFIG,
 } from "@/lib/calculadora-salgados";
 import { COMBO_CATEGORIAS } from "@/lib/combo";
+import { useLojaConfig } from "@/lib/loja";
 import { TAXA_ENTREGA, brl, whatsappLink } from "@/lib/format";
 import {
   imagemProduto,
@@ -70,6 +71,9 @@ type ItemEscolhido = { produto: Produto; quantidade: number };
 function Calculadora() {
   const { data: config } = useCalculadoraConfig();
   const cfg = config ?? DEFAULT_CALCULADORA_CONFIG;
+  const { data: lojaConfig } = useLojaConfig();
+  // Sem contato na Calculadora, usa o WhatsApp cadastrado na aba Loja.
+  const zapContato = cfg.zap_contato || (lojaConfig?.telefone ?? "");
   const { user } = useSession();
   const { data: perfil } = usePerfil(user?.id);
   const { data: produtos } = useProdutos();
@@ -191,12 +195,12 @@ function Calculadora() {
       pedirWhatsapp();
       return;
     }
-    if (!cfg.zap_contato) {
+    if (!zapContato) {
       toast.error("Orçamento por WhatsApp ainda não configurado. Use o combo ou fale com a loja.");
       return;
     }
     const texto = `${mensagemOrcamento(dados)}\n\nMeu nome: ${dados.nome || "-"}`;
-    window.open(whatsappLink(cfg.zap_contato, texto), "_blank", "noopener");
+    window.open(whatsappLink(zapContato, texto), "_blank", "noopener");
   }
 
   /** Sempre disponível: mesmo sem contato configurado, o cliente leva o orçamento. */
@@ -617,7 +621,7 @@ function Calculadora() {
         </p>
 
         <div className="mt-4 space-y-2">
-          {cfg.zap_contato ? (
+          {zapContato ? (
             <Button
               type="button"
               size="lg"

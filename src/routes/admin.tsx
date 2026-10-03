@@ -11,6 +11,7 @@ import {
   Package,
   Printer,
   Star,
+  Store,
   Tag,
   Trash2,
   Users,
@@ -52,6 +53,7 @@ import { novoEstoque, type TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
+import { DEFAULT_LOJA_CONFIG, enderecoLoja, type LojaConfig } from "@/lib/loja";
 import { useRoles, useSession } from "@/lib/session";
 import type { Role } from "@/lib/session";
 import type { PeriodoKey } from "@/lib/operacao";
@@ -367,6 +369,38 @@ function Admin() {
       return data;
     },
   });
+  const { data: lojaConfig, refetch: refetchLoja } = useQuery({
+    queryKey: ["loja-config"],
+    enabled: !!isAdmin,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("loja_config").select("*").eq("id", true).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [lojaEdit, setLojaEdit] = useState<Partial<LojaConfig> | null>(null);
+
+  async function salvarLoja(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!lojaEdit) return;
+    const { mapa_lat, mapa_lng, ...resto } = lojaEdit;
+    const num = (v: unknown): number | null => {
+      const n = Number(v);
+      return v === "" || v == null || Number.isNaN(n) ? null : n;
+    };
+    const payload = { ...resto, mapa_lat: num(mapa_lat), mapa_lng: num(mapa_lng) };
+    const { error } = await supabase.from("loja_config").update(payload).eq("id", true);
+    if (error) {
+      toast.error(/does not exist|schema/i.test(error.message) ? "Rode a migration 0021 no Supabase." : error.message);
+      return;
+    }
+    toast.success("Dados da loja salvos.");
+    setLojaEdit(null);
+    void refetchLoja();
+    queryClient.invalidateQueries({ queryKey: ["loja-config"] });
+  }
+
   const [calcEdit, setCalcEdit] = useState<{ permitir_personalizado: boolean; por_pessoa_padrao: number; minimo_por_pessoa: number; maximo_por_pessoa: number } | null>(null);
 
   async function salvarCalcConfig(e: React.FormEvent<HTMLFormElement>) {
@@ -484,6 +518,7 @@ function Admin() {
           <TabsTrigger value="motoboys"><Bike className="mr-1 size-4" />Motoboys</TabsTrigger>
 <TabsTrigger value="hero"><ImageIcon className="mr-1 size-4" />Hero</TabsTrigger>
 <TabsTrigger value="calculadora"><Calculator className="mr-1 size-4" />Calculadora</TabsTrigger>
+          <TabsTrigger value="loja"><Store className="mr-1 size-4" />Loja</TabsTrigger>
           <TabsTrigger value="cupons"><Tag className="mr-1 size-4" />Cupons</TabsTrigger>
           <TabsTrigger value="metas"><Target className="mr-1 size-4" />Metas</TabsTrigger>
           <TabsTrigger value="financeiro"><Wallet className="mr-1 size-4" />Financeiro</TabsTrigger>
@@ -722,6 +757,76 @@ function Admin() {
               <div className="space-y-1"><Label>Validade da estimativa (dias)</Label><Input type="number" defaultValue={calcConfig?.orcamento_validade_dias ?? 3} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), orcamento_validade_dias: Number(e.target.value) || 3 }))} /></div>
               <label className="flex items-center gap-2 text-sm"><Switch checked={calcEdit?.permitir_personalizado ?? calcConfig?.permitir_personalizado ?? true} onCheckedChange={(v) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), permitir_personalizado: v }))} /> Permitir quantidade personalizada</label>
               <div className="sm:col-span-2"><Button type="submit">Salvar configuração</Button></div>
+            </form>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="loja" className="mt-4">
+          <section className="rounded-xl border border-border bg-card p-5">
+            <h2 className="font-display text-xl">Dados da loja</h2>
+            <p className="text-xs text-muted-foreground">
+              Endereço, telefone e ponto no mapa. Aparecem para o cliente quando ele escolhe{" "}
+              <strong>retirada na loja</strong> no checkout e no acompanhamento do pedido.
+            </p>
+            <p className="mt-2 rounded-lg bg-muted p-2.5 text-xs text-muted-foreground">
+              {enderecoLoja({ ...DEFAULT_LOJA_CONFIG, ...(lojaConfig ?? {}) }) || "Endereço ainda não cadastrado."}
+            </p>
+            <form onSubmit={salvarLoja} className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="loja-nome">Nome</Label>
+                <Input id="loja-nome" defaultValue={lojaConfig?.nome ?? DEFAULT_LOJA_CONFIG.nome} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), nome: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-telefone">WhatsApp da loja</Label>
+                <Input
+                  id="loja-telefone"
+                  placeholder="11999999999"
+                  defaultValue={lojaConfig?.telefone ?? ""}
+                  onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), telefone: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Também serve como contato do orçamento quando a Calculadora estiver vazia.</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-endereco">Endereço e número</Label>
+                <Input id="loja-endereco" defaultValue={lojaConfig?.endereco ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), endereco: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-bairro">Bairro</Label>
+                <Input id="loja-bairro" defaultValue={lojaConfig?.bairro ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), bairro: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-cidade">Cidade</Label>
+                <Input id="loja-cidade" defaultValue={lojaConfig?.cidade ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), cidade: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-complemento">Complemento</Label>
+                <Input id="loja-complemento" placeholder="Loja 2, sala 5..." defaultValue={lojaConfig?.complemento ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), complemento: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-referencia">Ponto de referência</Label>
+                <Input id="loja-referencia" placeholder="Próximo à praça central" defaultValue={lojaConfig?.referencia ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), referencia: e.target.value }))} />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="loja-instrucoes">Instruções para retirada</Label>
+                <Textarea
+                  id="loja-instrucoes"
+                  rows={3}
+                  placeholder={"Ex: retirada das 8h às 19h.\nEstacionamento na esquina."}
+                  defaultValue={lojaConfig?.instrucoes_retirada ?? ""}
+                  onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), instrucoes_retirada: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">Aparece no checkout e no acompanhamento do pedido.</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-lat">Latitude (opcional)</Label>
+                <Input id="loja-lat" inputMode="decimal" placeholder="-23.550520" defaultValue={lojaConfig?.mapa_lat ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), mapa_lat: e.target.value as unknown as number }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-lng">Longitude (opcional)</Label>
+                <Input id="loja-lng" inputMode="decimal" placeholder="-46.633308" defaultValue={lojaConfig?.mapa_lng ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), mapa_lng: e.target.value as unknown as number }))} />
+                <p className="text-xs text-muted-foreground">Com as duas, a loja aparece no mapa do pedido de retirada. No Google Maps: botão direito → copiar latitude/longitude.</p>
+              </div>
+              <div className="sm:col-span-2"><Button type="submit" disabled={!lojaEdit}>Salvar dados da loja</Button></div>
             </form>
           </section>
         </TabsContent>
