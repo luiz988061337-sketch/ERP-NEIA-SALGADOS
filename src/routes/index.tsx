@@ -84,7 +84,7 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase.from("favoritos").select("produto_id");
       if (error) throw error;
-      return (data ?? []).map((f) => f.produto_id);
+      return (data ?? []).map((f: { produto_id: string }) => f.produto_id);
     },
   });
 
