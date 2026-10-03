@@ -667,7 +667,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
     if (error) toast.error("Erro ao salvar produto.");
     else {
       toast.success("Produto salvo!");
-      void logAdmin(id ? "produto_alterado" : "produto_criado", String(fullPayload.nome));
+      void logAdmin(id ? "produto_alterado" : "produto_criado", String(fullPayload["nome"]));
       setEditando(null);
       setNovo(false);
       onChange();
@@ -957,7 +957,7 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
     if (error) toast.error("Erro ao criar cupom (código duplicado?).");
     else {
       toast.success("Cupom criado!");
-      void logAdmin("cupom_criado", String(payload.codigo));
+      void logAdmin("cupom_criado", String(payload["codigo"]));
       (e.target as HTMLFormElement).reset();
       setExpandir(false);
       onChange();
