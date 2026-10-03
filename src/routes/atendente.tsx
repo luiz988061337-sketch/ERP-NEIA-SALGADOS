@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, mensagemStatus, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";

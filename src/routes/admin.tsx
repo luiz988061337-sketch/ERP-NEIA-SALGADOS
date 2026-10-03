@@ -40,7 +40,7 @@ import { StatusBadge } from "@/components/status-steps";
 import { MapView } from "@/components/map-view";
 import { NotasAdmin } from "@/components/pedido-notas";
 import { CentralOperacao } from "@/components/central-operacao";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, STATUS_EXIBICAO, STATUS_LABEL, whatsappLink, type OrderStatus } from "@/lib/format";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";

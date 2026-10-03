@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, TAXA_ENTREGA } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 import { useCart } from "@/lib/cart";

@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Json } from "@/integrations/supabase/types";
 
 /** Registra ação administrativa (best-effort: ignora se tabela ainda não migrada). */

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { ProductCard } from "@/components/product-card";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora } from "@/lib/format";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
