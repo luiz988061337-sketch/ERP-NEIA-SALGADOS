@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Calculator, Clock, Package, Search, Share2, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, Calculator, Clock, Heart, MessageCircle, Package, Receipt, RotateCcw, Search, Share2, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { toast } from "sonner";
 import hero from "@/assets/hero.jpg";
 import { HeroCarousel, useHeroCarousel } from "@/components/hero-carousel";
@@ -12,7 +12,9 @@ import { isPromoAtiva, useAvaliacoes, useCategorias, useProdutos } from "@/lib/c
 import { useSession, useStaffOnly } from "@/lib/session";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { useCart } from "@/lib/cart";
-import { brl, TAXA_ENTREGA } from "@/lib/format";
+import { useCalculadoraConfig } from "@/lib/calculadora-salgados";
+import { brl, TAXA_ENTREGA, whatsappLink } from "@/lib/format";
+import { useLojaConfig } from "@/lib/loja";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -47,6 +49,9 @@ function Home() {
   const [catAtiva, setCatAtiva] = useState<string | null>(null);
   const carregando = loadingCats || loadingProds;
   const { itens: heroItens, carregando: heroCarregando } = useHeroCarousel();
+const { data: lojaConfig } = useLojaConfig();
+const { data: cfgCalculadora } = useCalculadoraConfig();
+const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap_contato ?? "").trim();
 
   useEffect(() => {
     if (staffOnly && painel) navigate({ to: painel, replace: true });
@@ -391,6 +396,19 @@ function Home() {
           </Button>
         </div>
       ) : null}
+      </div>
     </div>
+  );
+}
+
+function Atalho({ to, icon, texto }: { to: string; icon: React.ReactNode; texto: string }) {
+  return (
+    <Link
+      to={to}
+      className="flex min-h-[56px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+    >
+      <span className="text-primary">{icon}</span>
+      {texto}
+    </Link>
   );
 }
