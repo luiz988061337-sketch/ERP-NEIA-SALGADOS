@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/status-steps";
-import { MapView } from "@/components/map-view";
+import { geocodificarEndereco, MapView } from "@/components/map-view";
 import { NotasAdmin } from "@/components/pedido-notas";
 import { CentralOperacao } from "@/components/central-operacao";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
@@ -54,6 +54,7 @@ import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { DEFAULT_LOJA_CONFIG, enderecoLoja, type LojaConfig } from "@/lib/loja";
+import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
 import { useRoles, useSession } from "@/lib/session";
 import type { Role } from "@/lib/session";
 import type { PeriodoKey } from "@/lib/operacao";
@@ -379,24 +380,88 @@ function Admin() {
       return data;
     },
   });
-  const [lojaEdit, setLojaEdit] = useState<Partial<LojaConfig> | null>(null);
+  // Formulário controlado: o CEP precisa escrever nos campos.
+  const [lojaForm, setLojaForm] = useState<LojaConfig | null>(null);
+  const [cepLoja, setCepLoja] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [localizando, setLocalizando] = useState(false);
+
+  useEffect(() => {
+    if (lojaForm || !lojaConfig) return;
+    setLojaForm({ ...DEFAULT_LOJA_CONFIG, ...(lojaConfig as Partial<LojaConfig>) });
+  }, [lojaConfig, lojaForm]);
+
+  const lojaAtual = lojaForm ?? { ...DEFAULT_LOJA_CONFIG, ...(lojaConfig ?? {}) };
+  function setLoja(campo: keyof LojaConfig, valor: string) {
+    setLojaForm((f) => ({ ...(f ?? lojaAtual), [campo]: valor }));
+  }
+
+  async function aplicarCep() {
+    if (!cepValido(cepLoja)) {
+      toast.error("Digite um CEP com 8 dígitos.");
+      return;
+    }
+    setBuscandoCep(true);
+    try {
+      const r = await buscarCep(cepLoja);
+      setLojaForm((f) => ({
+        ...(f ?? lojaAtual),
+        endereco: [r.logradouro, r.complemento].filter(Boolean).join(", ") || (f ?? lojaAtual).endereco,
+        bairro: r.bairro || (f ?? lojaAtual).bairro,
+        cidade: r.localidade || (f ?? lojaAtual).cidade,
+      }));
+      toast.success(`CEP ${mascararCep(r.cep)}: ${r.localidade}${r.uf ? `/${r.uf}` : ""}. Confira o número.`);
+      document.getElementById("loja-endereco")?.focus();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não consegui buscar o CEP.");
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
+
+  async function localizarNoMapa() {
+    const endereco = [
+      lojaAtual.endereco,
+      lojaAtual.complemento,
+      lojaAtual.bairro,
+      lojaAtual.cidade,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    if (!endereco) {
+      toast.error("Preencha o endereço (use o CEP) antes de achar no mapa.");
+      return;
+    }
+    setLocalizando(true);
+    const loc = await geocodificarEndereco(endereco);
+    setLocalizando(false);
+    if (!loc) {
+      toast.error("Não localizei esse endereço. Confira o texto ou digite latitude/longitude ao lado.");
+      return;
+    }
+    setLojaForm((f) => ({ ...(f ?? lojaAtual), mapa_lat: loc.lat, mapa_lng: loc.lng }));
+    toast.success(`Loja marcada: ${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}.`);
+  }
 
   async function salvarLoja(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!lojaEdit) return;
-    const { mapa_lat, mapa_lng, ...resto } = lojaEdit;
+    if (!lojaForm) return;
     const num = (v: unknown): number | null => {
       const n = Number(v);
       return v === "" || v == null || Number.isNaN(n) ? null : n;
     };
-    const payload = { ...resto, mapa_lat: num(mapa_lat), mapa_lng: num(mapa_lng) };
+    const payload = {
+      ...lojaForm,
+      mapa_lat: num(lojaForm.mapa_lat),
+      mapa_lng: num(lojaForm.mapa_lng),
+      atualizado_em: new Date().toISOString(),
+    };
     const { error } = await supabase.from("loja_config").update(payload).eq("id", true);
     if (error) {
       toast.error(/does not exist|schema/i.test(error.message) ? "Rode a migration 0021 no Supabase." : error.message);
       return;
     }
     toast.success("Dados da loja salvos.");
-    setLojaEdit(null);
     void refetchLoja();
     queryClient.invalidateQueries({ queryKey: ["loja-config"] });
   }
@@ -761,7 +826,7 @@ function Admin() {
           </section>
         </TabsContent>
 
-        <TabsContent value="loja" className="mt-4">
+<TabsContent value="loja" className="mt-4">
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-display text-xl">Dados da loja</h2>
             <p className="text-xs text-muted-foreground">
@@ -769,42 +834,83 @@ function Admin() {
               <strong>retirada na loja</strong> no checkout e no acompanhamento do pedido.
             </p>
             <p className="mt-2 rounded-lg bg-muted p-2.5 text-xs text-muted-foreground">
-              {enderecoLoja({ ...DEFAULT_LOJA_CONFIG, ...(lojaConfig ?? {}) }) || "Endereço ainda não cadastrado."}
+              Como o cliente vê: {enderecoLoja(lojaAtual) || "endereço ainda não cadastrado"}
             </p>
+
             <form onSubmit={salvarLoja} className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="loja-cep">CEP</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    id="loja-cep"
+                    inputMode="numeric"
+                    placeholder="00000-000"
+                    value={cepLoja}
+                    onChange={(e) => setCepLoja(mascararCep(e.target.value))}
+                    className="w-40"
+                  />
+                  <Button type="button" variant="outline" onClick={aplicarCep} disabled={buscandoCep}>
+                    {buscandoCep ? "Buscando…" : "Buscar endereço"}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={localizarNoMapa} disabled={localizando}>
+                    {localizando ? "Localizando…" : "Achar no mapa"}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O CEP preenche rua, bairro e cidade (base do Correio). "Achar no mapa" geocodifica o endereço
+                  completo e preenche a latitude/longitude.
+                </p>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="loja-endereco">Endereço e número</Label>
+                <Input
+                  id="loja-endereco"
+                  value={lojaAtual.endereco}
+                  onChange={(e) => setLoja("endereco", e.target.value)}
+                  placeholder="Rua das Flores, 123"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-bairro">Bairro</Label>
+                <Input id="loja-bairro" value={lojaAtual.bairro} onChange={(e) => setLoja("bairro", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-cidade">Cidade</Label>
+                <Input id="loja-cidade" value={lojaAtual.cidade} onChange={(e) => setLoja("cidade", e.target.value)} />
+              </div>
+              <div className="space-y-1">
                 <Label htmlFor="loja-nome">Nome</Label>
-                <Input id="loja-nome" defaultValue={lojaConfig?.nome ?? DEFAULT_LOJA_CONFIG.nome} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), nome: e.target.value }))} />
+                <Input id="loja-nome" value={lojaAtual.nome} onChange={(e) => setLoja("nome", e.target.value)} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="loja-telefone">WhatsApp da loja</Label>
                 <Input
                   id="loja-telefone"
+                  inputMode="tel"
                   placeholder="11999999999"
-                  defaultValue={lojaConfig?.telefone ?? ""}
-                  onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), telefone: e.target.value }))}
+                  value={lojaAtual.telefone}
+                  onChange={(e) => setLoja("telefone", e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Também serve como contato do orçamento quando a Calculadora estiver vazia.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-endereco">Endereço e número</Label>
-                <Input id="loja-endereco" defaultValue={lojaConfig?.endereco ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), endereco: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-bairro">Bairro</Label>
-                <Input id="loja-bairro" defaultValue={lojaConfig?.bairro ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), bairro: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-cidade">Cidade</Label>
-                <Input id="loja-cidade" defaultValue={lojaConfig?.cidade ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), cidade: e.target.value }))} />
+                <p className="text-xs text-muted-foreground">Também serve como contato do orçamento quando a Calculadora está vazia.</p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="loja-complemento">Complemento</Label>
-                <Input id="loja-complemento" placeholder="Loja 2, sala 5..." defaultValue={lojaConfig?.complemento ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), complemento: e.target.value }))} />
+                <Input
+                  id="loja-complemento"
+                  placeholder="Loja 2, sala 5…"
+                  value={lojaAtual.complemento}
+                  onChange={(e) => setLoja("complemento", e.target.value)}
+                />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="loja-referencia">Ponto de referência</Label>
-                <Input id="loja-referencia" placeholder="Próximo à praça central" defaultValue={lojaConfig?.referencia ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), referencia: e.target.value }))} />
+                <Input
+                  id="loja-referencia"
+                  placeholder="Próximo à praça central"
+                  value={lojaAtual.referencia}
+                  onChange={(e) => setLoja("referencia", e.target.value)}
+                />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label htmlFor="loja-instrucoes">Instruções para retirada</Label>
@@ -812,25 +918,48 @@ function Admin() {
                   id="loja-instrucoes"
                   rows={3}
                   placeholder={"Ex: retirada das 8h às 19h.\nEstacionamento na esquina."}
-                  defaultValue={lojaConfig?.instrucoes_retirada ?? ""}
-                  onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), instrucoes_retirada: e.target.value }))}
+                  value={lojaAtual.instrucoes_retirada}
+                  onChange={(e) => setLoja("instrucoes_retirada", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">Aparece no checkout e no acompanhamento do pedido.</p>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="loja-lat">Latitude (opcional)</Label>
-                <Input id="loja-lat" inputMode="decimal" placeholder="-23.550520" defaultValue={lojaConfig?.mapa_lat ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), mapa_lat: e.target.value as unknown as number }))} />
+                <Label htmlFor="loja-lat">Latitude</Label>
+                <Input
+                  id="loja-lat"
+                  inputMode="decimal"
+                  placeholder="-23.550520"
+                  value={lojaAtual.mapa_lat ?? ""}
+                  onChange={(e) => setLoja("mapa_lat", e.target.value)}
+                />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="loja-lng">Longitude (opcional)</Label>
-                <Input id="loja-lng" inputMode="decimal" placeholder="-46.633308" defaultValue={lojaConfig?.mapa_lng ?? ""} onChange={(e) => setLojaEdit((s) => ({ ...(s ?? lojaConfig), mapa_lng: e.target.value as unknown as number }))} />
-                <p className="text-xs text-muted-foreground">Com as duas, a loja aparece no mapa do pedido de retirada. No Google Maps: botão direito → copiar latitude/longitude.</p>
+                <Label htmlFor="loja-lng">Longitude</Label>
+                <Input
+                  id="loja-lng"
+                  inputMode="decimal"
+                  placeholder="-46.633308"
+                  value={lojaAtual.mapa_lng ?? ""}
+                  onChange={(e) => setLoja("mapa_lng", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Sem coordenadas, a loja aparece no mapa só se você usar "Achar no mapa".
+                </p>
               </div>
-              <div className="sm:col-span-2"><Button type="submit" disabled={!lojaEdit}>Salvar dados da loja</Button></div>
+
+              <div className="sm:col-span-2">
+                <Button type="submit" disabled={!lojaForm}>Salvar dados da loja</Button>
+              </div>
+              {Number(lojaAtual.mapa_lat) && Number(lojaAtual.mapa_lng) ? (
+                <div className="space-y-1 sm:col-span-2">
+                  <Label>Como a loja aparece para o cliente</Label>
+                  <MapView pontos={[{ lat: Number(lojaAtual.mapa_lat), lng: Number(lojaAtual.mapa_lng), label: lojaAtual.nome || "Loja" }]} />
+                  <p className="text-xs text-muted-foreground">Esse é o marcador do pedido de retirada. Ajuste o endereço e use "Achar no mapa" de novo se ele estiver no lugar errado.</p>
+                </div>
+              ) : null}
             </form>
           </section>
         </TabsContent>
-
         <TabsContent value="avaliacoes" className="mt-4">
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-display text-xl">Avaliações (qualidade • prazo • atendimento)</h2>
