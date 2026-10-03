@@ -7,6 +7,15 @@
 -- que é o que o /combo e o /calculadora usam para calcular preço.
 -- ============================================================================
 
+-- ---------- 0) colunas opcionais (vêm de 0001 e 0003) ----------
+-- Se alguma dessas faltar, o INSERT de produtos falha. Criamos aqui para o
+-- script ser autossuficiente. IF NOT EXISTS: não mexe no que já existe.
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS tipo_venda text NOT NULL DEFAULT 'combo_50',
+  ADD COLUMN IF NOT EXISTS destaque boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS estoque_minimo integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS unidade_medida text NOT NULL DEFAULT 'un';
+
 -- ---------- categorias ----------
 INSERT INTO public.categorias (slug, nome, ordem, ativo) VALUES
   ('mini-fritos',       'Mini Fritos',       1, true),
@@ -73,3 +82,12 @@ SELECT
      WHERE c.slug LIKE 'mini-%') AS "4_PRECOS_ENCONTRADOS",
   (SELECT string_agg(DISTINCT v.preco::text, ' / ' ORDER BY v.preco::text)
      FROM (VALUES (1.60),(2.30),(3.70),(2.40)) AS v(preco)) AS "5_PRECOS_ESPERADOS";
+
+-- Se 1_CATEGORIAS_MINI ou 3_PRODUTOS_COMBO vierem vazio/0, o problema NAO e este
+-- script: e o banco onde ele rodou. Compare com o resultado do PASSO-7.
+SELECT
+  current_user AS "6_USUARIO",
+  current_database() AS "7_BANCO",
+  current_setting('server_version') AS "8_POSTGRES",
+  (SELECT string_agg(column_name, ', ' ORDER BY column_name) FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'produtos') AS "9_COLUNAS_PRODUTOS";
