@@ -51,6 +51,7 @@ import { downloadCSV } from "@/lib/export";
 import { novoEstoque, type TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
+import { SlideAdmin } from "@/components/hero-slide-admin";
 import { useRoles, useSession } from "@/lib/session";
 import type { Role } from "@/lib/session";
 import type { PeriodoKey } from "@/lib/operacao";
@@ -308,10 +309,52 @@ function Admin() {
     void refetchHero();
   }
 
-  async function excluirSlide(id: string) {
+  async function salvarSlide(id: string, campos: { legenda?: string; ordem?: number }) {
+    const { error } = await supabase.from("hero_carousel").update(campos).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Slide atualizado.");
+    void refetchHero();
+  }
+
+  /** Troca a foto de um slide existente, mantendo legenda e ordem. */
+  async function trocarFotoSlide(id: string, file: File) {
+    setEnviandoFoto(true);
+    try {
+      const { blob, type, largura, altura } = await redimensionarImagem(file);
+      const ext = type === "image/png" ? "png" : "jpg";
+      const caminho = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from(BUCKET_HERO).upload(caminho, blob, { upsert: true, contentType: type });
+      if (error) { toast.error(error.message); return; }
+      const { data } = supabase.storage.from(BUCKET_HERO).getPublicUrl(caminho);
+      const upd = await supabase.from("hero_carousel").update({ imagem_url: data.publicUrl }).eq("id", id);
+      if (upd.error) { toast.error(upd.error.message); return; }
+      toast.success(`Foto trocada (${largura}x${altura}, ${tamanhoLegivel(blob.size)}).`);
+      void refetchHero();
+    } catch (err) {
+      console.error(err);
+      toast.error("Não consegui preparar a imagem. Tente outra foto.");
+    } finally {
+      setEnviandoFoto(false);
+    }
+  }
+
+  /** Extrai o caminho do storage de uma URL pública (ou null se for URL externa). */
+  function caminhoNoStorage(url: string): string | null {
+    const m = url.match(/\/storage\/v1\/object\/public\/hero\/(.+)$/);
+    return m && m[1] ? decodeURIComponent(m[1]) : null;
+  }
+
+  async function excluirSlide(id: string, imagemUrl: string) {
     if (!window.confirm("Excluir este slide?")) return;
     const { error } = await supabase.from("hero_carousel").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
+    // Apaga o arquivo do storage para não deixar lixo acumulado.
+    const caminho = caminhoNoStorage(imagemUrl);
+    if (caminho) {
+      const { error: errStorage } = await supabase.storage.from(BUCKET_HERO).remove([caminho]);
+      if (errStorage) console.warn("Slide removido, mas a imagem ficou no storage:", errStorage.message);
+    }
+    toast.success("Slide excluído.");
     void refetchHero();
   }
 
@@ -652,15 +695,15 @@ function Admin() {
             </form>
             <div className="mt-4 space-y-2">
               {(heroSlides ?? []).map((s: any) => (
-                <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm">
-                  <img src={s.imagem_url} alt="" className="size-12 rounded object-cover" />
-                  <div className="flex-1">
-                    <p className="font-semibold">{s.legenda || "Sem legenda"}</p>
-                    <p className="text-xs text-muted-foreground">Ordem {s.ordem} • {s.ativo ? "Ativo" : "Inativo"}</p>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => alternarSlideAtivo(s.id, s.ativo)}>{s.ativo ? "Desativar" : "Ativar"}</Button>
-                  <Button size="sm" variant="ghost" onClick={() => excluirSlide(s.id)}><Trash2 className="size-4" /></Button>
-                </div>
+                <SlideAdmin
+                  key={s.id}
+                  slide={s}
+                  enviando={enviandoFoto}
+                  onAlternar={() => alternarSlideAtivo(s.id, s.ativo)}
+                  onSalvar={(campos) => salvarSlide(s.id, campos)}
+                  onTrocarFoto={(file) => trocarFotoSlide(s.id, file)}
+                  onExcluir={() => excluirSlide(s.id, s.imagem_url)}
+                />
               ))}
               {(heroSlides ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum slide cadastrado.</p>}
             </div>

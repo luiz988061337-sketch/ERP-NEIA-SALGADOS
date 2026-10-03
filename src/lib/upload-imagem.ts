@@ -23,7 +23,10 @@ export function tamanhoLegivel(bytes: number): string {
  * Se a imagem for maior que `maxLado`, redimensiona para caber (sem cortar).
  * PNG com transparência vira PNG; o resto vira JPEG para não inflar o banco.
  */
-export async function redimensionarImagem(file: File, maxLado = 1920): Promise<ImagemRedimensionada> {
+export async function redimensionarImagem(
+  file: File,
+  maxLado = 1920,
+): Promise<ImagemRedimensionada> {
   const bitmap = await createImageBitmap(file);
   const escala = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height));
   const largura = Math.round(bitmap.width * escala);
@@ -49,9 +52,19 @@ export async function redimensionarImagem(file: File, maxLado = 1920): Promise<I
 
   const outType = file.type === "image/png" ? "image/png" : "image/jpeg";
   const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Falha ao gerar a imagem"))), outType, 0.9);
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Falha ao gerar a imagem"))),
+      outType,
+      0.9,
+    );
   });
 
   const base = file.name.replace(/\.[^.]+$/, "") || "hero";
-  return { blob, nome: `${base}.${outType === "image/png" ? "png" : "jpg"}`, type: outType, largura, altura };
+  return {
+    blob,
+    nome: `${base}.${outType === "image/png" ? "png" : "jpg"}`,
+    type: outType,
+    largura,
+    altura,
+  };
 }

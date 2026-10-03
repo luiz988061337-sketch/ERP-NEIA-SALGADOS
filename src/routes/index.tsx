@@ -134,15 +134,21 @@ function Home() {
       {heroItens.length > 0 || heroCarregando ? (
         <HeroCarousel itens={heroItens} carregando={heroCarregando} />
       ) : (
-      <section className="relative overflow-hidden">
+      <section className="relative h-[320px] w-full overflow-hidden sm:h-[420px]">
+        <img
+          src={hero}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 size-full scale-110 object-cover blur-2xl"
+        />
         <img
           src={hero}
           alt="Bandeja de salgados variados"
           width={1600}
           height={912}
-          className="h-[320px] w-full object-cover sm:h-[420px]"
+          className="relative size-full object-contain"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-foreground/85 via-foreground/55 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-foreground/85 via-foreground/55 to-foreground/10" />
         <div className="absolute inset-0 flex items-center">
           <div className="mx-auto w-full max-w-6xl px-4">
             <div className="max-w-lg text-background">
