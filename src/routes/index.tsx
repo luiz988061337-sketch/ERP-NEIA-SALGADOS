@@ -225,7 +225,7 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4 py-6 pb-28">
+      <div className="mx-auto max-w-6xl px-4 py-6 pb-28" id="cardapio">
         <div className="mb-6 grid gap-3 sm:grid-cols-2">
           <Link
             to="/combo"
@@ -256,7 +256,7 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
         </div>
 
         <nav aria-label="Atalhos" className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          <Atalho to="#cardapio" icon={<ShoppingBag className="size-4" />} texto="Fazer pedido" />
+          <Atalho href="#cardapio" icon={<ShoppingBag className="size-4" />} texto="Fazer pedido" />
           <Atalho to="/calculadora" icon={<Calculator className="size-4" />} texto="Calcular quantidade" />
           <Atalho to="/conta" icon={<RotateCcw className="size-4" />} texto="Repetir pedido" />
           <Atalho to="/conta" icon={<Heart className="size-4" />} texto="Favoritos" />
@@ -396,19 +396,29 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
           </Button>
         </div>
       ) : null}
-      </div>
     </div>
   );
 }
 
-function Atalho({ to, icon, texto }: { to: string; icon: React.ReactNode; texto: string }) {
-  return (
-    <Link
-      to={to}
-      className="flex min-h-[56px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
-    >
+function Atalho({ to, href, icon, texto }: { to?: string; href?: string; icon: React.ReactNode; texto: string }) {
+  const classe =
+    "flex min-h-[56px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-muted";
+  const conteudo = (
+    <>
       <span className="text-primary">{icon}</span>
       {texto}
+    </>
+  );
+  if (href) {
+    return (
+      <a href={href} className={classe}>
+        {conteudo}
+      </a>
+    );
+  }
+  return (
+    <Link to={to ?? "/"} className={classe}>
+      {conteudo}
     </Link>
   );
 }
