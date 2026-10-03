@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-steps";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, dataHora, hora, mensagemStatus, whatsappLink, type OrderStatus, type ProdStatus } from "@/lib/format";
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
 import { useRoles, useSession } from "@/lib/session";

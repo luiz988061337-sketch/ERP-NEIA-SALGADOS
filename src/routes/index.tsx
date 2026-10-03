@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product-card";
 import { isPromoAtiva, useAvaliacoes, useCategorias, useProdutos } from "@/lib/catalog";
 import { useSession, useStaffOnly } from "@/lib/session";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { useCart } from "@/lib/cart";
 import { brl, TAXA_ENTREGA } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -84,7 +84,7 @@ function Home() {
     queryFn: async () => {
       const { data, error } = await supabase.from("favoritos").select("produto_id");
       if (error) throw error;
-      return (data ?? []).map((f) => f.produto_id);
+      return (data ?? []).map((f: { produto_id: string }) => f.produto_id);
     },
   });
 

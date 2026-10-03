@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { ProductCard } from "@/components/product-card";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora } from "@/lib/format";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
@@ -70,7 +70,7 @@ function Conta() {
     queryFn: async () => {
       const { data, error } = await supabase.from("favoritos").select("produto_id").eq("user_id", user!.id);
       if (error) throw error;
-      return (data ?? []).map((f) => f.produto_id);
+      return (data ?? []).map((f: { produto_id: string }) => f.produto_id);
     },
   });
 
@@ -487,7 +487,7 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
       toast.error("Escolha de 1 a 5 estrelas para a qualidade.");
       return;
     }
-    const payload: Database["public"]["Tables"]["avaliacoes"]["Insert"] = {
+    const payload: Record<string, any> = {
       produto_id: produtoId,
       user_id: userId,
       nota,

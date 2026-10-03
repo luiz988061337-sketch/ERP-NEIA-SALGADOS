@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRoles, useSession } from "@/lib/session";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { DEFAULT_CRM_SETTINGS, useCrmSettings, type CrmSettings } from "@/lib/crm";
 
 export const Route = createFileRoute("/crm-config")({

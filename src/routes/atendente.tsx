@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, mensagemStatus, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
@@ -138,7 +138,7 @@ function Atendente() {
       }
       if (itens.length === 0) throw new Error("Nenhum item disponível no momento.");
       const calcF = calcTotals({ subtotal: sub, taxaEntrega: entrega === "entrega" ? TAXA_ENTREGA : 0, desconto });
-      const insertBody: Database["public"]["Tables"]["pedidos"]["Insert"] = {
+      const insertBody: Record<string, any> = {
         user_id: user.id,
         cliente_nome: nome.trim(),
         telefone: telefone.trim(),

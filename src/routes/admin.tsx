@@ -40,7 +40,7 @@ import { StatusBadge } from "@/components/status-steps";
 import { MapView } from "@/components/map-view";
 import { NotasAdmin } from "@/components/pedido-notas";
 import { CentralOperacao } from "@/components/central-operacao";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, STATUS_EXIBICAO, STATUS_LABEL, whatsappLink, type OrderStatus } from "@/lib/format";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";
@@ -635,7 +635,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
   async function salvar(e: React.FormEvent<HTMLFormElement>, id?: string) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const fullPayload: Database["public"]["Tables"]["produtos"]["Insert"] = {
+    const fullPayload: Record<string, any> = {
       nome: String(f.get("nome")),
       descricao: String(f.get("descricao") ?? ""),
       preco: Number(f.get("preco")),
@@ -667,7 +667,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
     if (error) toast.error("Erro ao salvar produto.");
     else {
       toast.success("Produto salvo!");
-      void logAdmin(id ? "produto_alterado" : "produto_criado", String(fullPayload.nome));
+      void logAdmin(id ? "produto_alterado" : "produto_criado", String(fullPayload["nome"]));
       setEditando(null);
       setNovo(false);
       onChange();
@@ -935,7 +935,7 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
     for (const p of produtos) {
       if (f.get(`prod_${p.id}`) === "on") part.push(p.id);
     }
-    const payload: Database["public"]["Tables"]["cupons"]["Insert"] = {
+    const payload: Record<string, any> = {
       codigo: String(f.get("codigo")).toUpperCase().trim(),
       tipo: String(f.get("tipo")),
       valor: Number(f.get("valor")),
@@ -957,7 +957,7 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
     if (error) toast.error("Erro ao criar cupom (código duplicado?).");
     else {
       toast.success("Cupom criado!");
-      void logAdmin("cupom_criado", String(payload.codigo));
+      void logAdmin("cupom_criado", String(payload["codigo"]));
       (e.target as HTMLFormElement).reset();
       setExpandir(false);
       onChange();
