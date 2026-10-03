@@ -15,6 +15,20 @@ export type CartItem = {
 
 /** Detecta linha de combo — regra centralizada em totals.ts. */
 export { isComboItem } from "./totals";
+import { isComboItem, MINIMO_COMBO, PASSO_COMBO } from "./totals";
+
+/**
+ * Arredonda para cima até um múltiplo de 50 (mínimo 50).
+ * Regra comercial: combo só em 50, 100, 150...applied em todas as entradas
+ * do carrinho — catálogo, Montar Combo, Repetir pedido e Pedido rápido.
+ */
+export function ajustarParaCombo(qtd: number): number {
+  const n = Math.floor(Number(qtd) || 0);
+  if (n <= 0) return 0;
+  if (n < MINIMO_COMBO) return MINIMO_COMBO;
+  const resto = n % PASSO_COMBO;
+  return resto === 0 ? n : n + (PASSO_COMBO - resto);
+}
 
 type CartContextValue = {
   items: CartItem[];
@@ -51,12 +65,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const add = useCallback((item: Omit<CartItem, "quantidade">, qtd = 1) => {
+    // Regra dos 50 aplicada na entrada: nunca entra 1, 60 ou 77 num combo.
+    const combo = isComboItem(item as CartItem);
+    const quantidade = combo ? ajustarParaCombo(qtd) : Math.max(1, Math.floor(Number(qtd) || 1));
     setItems((prev) => {
       const found = prev.find((i) => i.id === item.id);
       if (found) {
-        return prev.map((i) => (i.id === item.id ? { ...i, quantidade: i.quantidade + qtd } : i));
+        const somado = found.quantidade + quantidade;
+        return prev.map((i) =>
+          i.id === item.id
+            ? { ...i, quantidade: isComboItem(i) ? ajustarParaCombo(somado) : somado }
+            : i,
+        );
       }
-      return [...prev, { ...item, quantidade: qtd }];
+      return [...prev, { ...item, quantidade }];
     });
   }, []);
 
@@ -66,7 +88,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const setQuantidade = useCallback((id: string, qtd: number) => {
     setItems((prev) =>
-      qtd <= 0 ? prev.filter((i) => i.id !== id) : prev.map((i) => (i.id === id ? { ...i, quantidade: qtd } : i)),
+      prev.flatMap((i) => {
+        if (i.id !== id) return [i];
+        const n = Math.floor(Number(qtd) || 0);
+        if (n <= 0) return [];
+        return [{ ...i, quantidade: isComboItem(i) ? ajustarParaCombo(n) : n }];
+      }),
     );
   }, []);
 

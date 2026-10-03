@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { brl } from "@/lib/format";
 import { imagemProduto, isPromoAtiva, precoFinal, tipoVendaProduto, type Produto } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
+import { MINIMO_COMBO } from "@/lib/totals";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -22,13 +23,29 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
   const promo = produto.preco_promocional != null && isPromoAtiva(produto);
   const indisponivel = !produto.disponivel || produto.estoque <= 0;
   const tipo = tipoVendaProduto(produto, slugCategoria);
+  const ehCombo = tipo === "combo_50";
   const adicionando = useRef(false);
 
   function adicionar() {
     if (indisponivel || adicionando.current) return;
     adicionando.current = true;
-    add({ id: produto.id, nome: produto.nome, preco, imagem: produto.imagem_url, produtoId: produto.id });
-    toast.success(`${produto.nome} adicionado ao pedido`);
+    // Combo entra com 50 unidades (regra dos múltiplos). Congelados/unidade: 1.
+    add(
+      {
+        id: produto.id,
+        nome: produto.nome,
+        preco,
+        imagem: produto.imagem_url,
+        produtoId: produto.id,
+        combo: ehCombo,
+      },
+      ehCombo ? MINIMO_COMBO : 1,
+    );
+    toast.success(
+      ehCombo
+        ? `${MINIMO_COMBO} unidades de ${produto.nome} adicionadas — combos saem de ${MINIMO_COMBO} em ${MINIMO_COMBO}.`
+        : `${produto.nome} adicionado ao pedido`,
+    );
     setTimeout(() => {
       adicionando.current = false;
     }, 600);
@@ -67,7 +84,7 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
         <h3 className="font-display text-base leading-tight">{produto.nome}</h3>
         <p className="line-clamp-2 text-xs text-muted-foreground">{produto.descricao}</p>
         <p className="text-[11px] font-medium text-muted-foreground">
-          {tipo === "combo_50" ? "Combo de 50 • mistura sabores no Montar Combo" : "Venda por unidade"}
+          {ehCombo ? `Venda em múltiplos de ${MINIMO_COMBO} • mínimo ${MINIMO_COMBO}un` : "Venda por unidade"}
         </p>
 
         {nota ? (
@@ -90,7 +107,7 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
             onClick={adicionar}
             aria-label={`Adicionar ${produto.nome} ao pedido`}
           >
-            {indisponivel ? "Esgotado" : <><Plus className="mr-1 size-4" /> Adicionar</>}
+            {indisponivel ? "Esgotado" : <><Plus className="mr-1 size-4" /> {ehCombo ? `+${MINIMO_COMBO}un` : "Adicionar"}</>}
           </Button>
         </div>
       </div>

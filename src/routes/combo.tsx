@@ -90,11 +90,12 @@ function Combo() {
     add({
       id: `combo-${cat.slug}-${Date.now()}`,
       nome: `Combo ${cat.nome} ${total}un (${partes.join(", ")})`,
-      preco: valor,
+      // preco = unitário da categoria; quantidade = unidades (múltiplo de 50).
+      preco: cat.precoUnit,
       imagem: null,
       produtoId: null,
       combo: true,
-    });
+    }, total);
     toast.success(`Combo de ${total} minis adicionado ao carrinho!`);
     navigate({ to: "/carrinho" });
   }

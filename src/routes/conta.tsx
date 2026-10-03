@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Heart, MapPin, Star, Trophy, Trash2, Plus } from "lucide-react";
@@ -13,10 +13,10 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora } from "@/lib/format";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
-import { useAvaliacoes, useProdutos, precoFinal, type Produto } from "@/lib/catalog";
+import { useAvaliacoes, useCategorias, useProdutos, precoFinal, tipoVendaProduto, type Produto } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { COMBO_CATEGORIAS } from "@/lib/combo";
-import { isMultiploCombo } from "@/lib/totals";
+import { MINIMO_COMBO, isMultiploCombo } from "@/lib/totals";
 import { pedidoHabitual } from "@/lib/inteligencia";
 import { useCrmSettings } from "@/lib/crm";
 import { DEFAULT_FIDELIDADE, podeResgatar, type FidelidadeCfg } from "@/lib/fidelidade";
@@ -76,6 +76,11 @@ function Conta() {
 
   const { data: produtos } = useProdutos();
   const { data: avaliacoes } = useAvaliacoes();
+  const { data: categorias } = useCategorias();
+  const slugCategoriaPorId = useMemo(
+    () => new Map((categorias ?? []).map((c) => [c.id, c.slug])),
+    [categorias],
+  );
 
   const { data: enderecos } = useQuery({
     queryKey: ["enderecos", user?.id],
@@ -122,7 +127,18 @@ function Conta() {
           indisponiveis.push(it.nome);
           continue;
         }
-        add({ id: prod.id, nome: prod.nome, preco: precoFinal(prod), imagem: prod.imagem_url, produtoId: prod.id }, it.quantidade);
+        const ehCombo = tipoVendaProduto(prod, slugCategoriaPorId.get(prod.categoria_id) ?? "") === "combo_50";
+        add(
+          {
+            id: prod.id,
+            nome: prod.nome,
+            preco: precoFinal(prod),
+            imagem: prod.imagem_url,
+            produtoId: prod.id,
+            combo: ehCombo,
+          },
+          ehCombo ? MINIMO_COMBO : it.quantidade,
+        );
         adicionados.push(prod.nome);
         continue;
       }
@@ -131,7 +147,17 @@ function Conta() {
       const cat = m ? COMBO_CATEGORIAS.find((c) => c.nome === m[1]) : undefined;
       const total = m ? Number(m[2]) : NaN;
       if (cat && Number.isFinite(total) && isMultiploCombo(total)) {
-        add({ id: `combo-${cat.slug}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`, nome: it.nome, preco: total * cat.precoUnit, imagem: null, produtoId: null, combo: true }, 1);
+        add(
+          {
+            id: `combo-${cat.slug}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+            nome: it.nome,
+            preco: cat.precoUnit,
+            imagem: null,
+            produtoId: null,
+            combo: true,
+          },
+          total,
+        );
         adicionados.push(it.nome);
       } else if (it.produto_id) {
         indisponiveis.push(it.nome);
