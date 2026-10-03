@@ -181,7 +181,7 @@ function Recorrentes() {
       }
       if (validos.length === 0) throw new Error("Nenhum item disponível.");
       const calc = calcTotals({ subtotal: sub, taxaEntrega: TAXA_ENTREGA, desconto: 0 });
-      const body: Database["public"]["Tables"]["pedidos"]["Insert"] = {
+      const body: Record<string, any> = {
         user_id: user.id,
         cliente_nome: r.cliente_nome,
         telefone: r.telefone,

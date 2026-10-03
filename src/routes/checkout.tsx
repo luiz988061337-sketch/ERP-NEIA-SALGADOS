@@ -223,7 +223,7 @@ function Checkout() {
 
       const coords = await geocodificarEndereco(`${parsed.data.endereco}, ${parsed.data.bairro}, ${parsed.data.cidade}`).catch(() => null);
 
-      const insertBody: Database["public"]["Tables"]["pedidos"]["Insert"] = {
+      const insertBody: Record<string, any> = {
         user_id: user.id,
         cliente_nome: parsed.data.cliente_nome,
         telefone: parsed.data.telefone,

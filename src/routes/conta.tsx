@@ -487,7 +487,7 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
       toast.error("Escolha de 1 a 5 estrelas para a qualidade.");
       return;
     }
-    const payload: Database["public"]["Tables"]["avaliacoes"]["Insert"] = {
+    const payload: Record<string, any> = {
       produto_id: produtoId,
       user_id: userId,
       nota,

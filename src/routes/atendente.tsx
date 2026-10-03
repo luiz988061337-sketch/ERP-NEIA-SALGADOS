@@ -138,7 +138,7 @@ function Atendente() {
       }
       if (itens.length === 0) throw new Error("Nenhum item disponível no momento.");
       const calcF = calcTotals({ subtotal: sub, taxaEntrega: entrega === "entrega" ? TAXA_ENTREGA : 0, desconto });
-      const insertBody: Database["public"]["Tables"]["pedidos"]["Insert"] = {
+      const insertBody: Record<string, any> = {
         user_id: user.id,
         cliente_nome: nome.trim(),
         telefone: telefone.trim(),

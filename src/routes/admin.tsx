@@ -635,7 +635,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
   async function salvar(e: React.FormEvent<HTMLFormElement>, id?: string) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const fullPayload: Database["public"]["Tables"]["produtos"]["Insert"] = {
+    const fullPayload: Record<string, any> = {
       nome: String(f.get("nome")),
       descricao: String(f.get("descricao") ?? ""),
       preco: Number(f.get("preco")),
@@ -935,7 +935,7 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
     for (const p of produtos) {
       if (f.get(`prod_${p.id}`) === "on") part.push(p.id);
     }
-    const payload: Database["public"]["Tables"]["cupons"]["Insert"] = {
+    const payload: Record<string, any> = {
       codigo: String(f.get("codigo")).toUpperCase().trim(),
       tipo: String(f.get("tipo")),
       valor: Number(f.get("valor")),
