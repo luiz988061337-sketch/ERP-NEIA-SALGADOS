@@ -249,6 +249,26 @@ function Home() {
             <ArrowRight className="size-5" />
           </Link>
         </div>
+
+        <nav aria-label="Atalhos" className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <Atalho to="#cardapio" icon={<ShoppingBag className="size-4" />} texto="Fazer pedido" />
+          <Atalho to="/calculadora" icon={<Calculator className="size-4" />} texto="Calcular quantidade" />
+          <Atalho to="/conta" icon={<RotateCcw className="size-4" />} texto="Repetir pedido" />
+          <Atalho to="/conta" icon={<Heart className="size-4" />} texto="Favoritos" />
+          <Atalho to="/conta" icon={<Receipt className="size-4" />} texto="Meus pedidos" />
+          {telefoneLoja ? (
+            <a
+              href={whatsappLink(telefoneLoja, "Olá! Vim pelo site e quero fazer um pedido.")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-[56px] items-center justify-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+            >
+              <MessageCircle className="size-4 text-primary" />
+              Falar no WhatsApp
+            </a>
+          ) : null}
+        </nav>
+
         {carregando ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" aria-label="Carregando cardápio">
             {Array.from({ length: 8 }).map((_, i) => (
