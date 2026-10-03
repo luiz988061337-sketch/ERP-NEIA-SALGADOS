@@ -1,6 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Calculator, Check, Info, MessageCircle, Minus, Plus, Save, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  Calculator,
+  Check,
+  Copy,
+  Info,
+  MessageCircle,
+  Minus,
+  Plus,
+  Save,
+  Search,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +25,14 @@ import {
 } from "@/lib/calculadora-salgados";
 import { COMBO_CATEGORIAS } from "@/lib/combo";
 import { TAXA_ENTREGA, brl, whatsappLink } from "@/lib/format";
-import { imagemProduto, precoFinal, tipoVendaProduto, useCategorias, useProdutos, type Produto } from "@/lib/catalog";
+import {
+  imagemProduto,
+  precoFinal,
+  tipoVendaProduto,
+  useCategorias,
+  useProdutos,
+  type Produto,
+} from "@/lib/catalog";
 import { usePerfil, useSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -37,7 +55,15 @@ export const Route = createFileRoute("/calculadora")({
   component: Calculadora,
 });
 
-const TIPOS_EVENTO = ["Aniversário", "Casamento", "Chá de bebê", "Empresa", "Festa", "Confraternização", "Outro"];
+const TIPOS_EVENTO = [
+  "Aniversário",
+  "Casamento",
+  "Chá de bebê",
+  "Empresa",
+  "Festa",
+  "Confraternização",
+  "Outro",
+];
 
 type ItemEscolhido = { produto: Produto; quantidade: number };
 
@@ -63,6 +89,8 @@ function Calculadora() {
   const [observacoes, setObservacoes] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+  const [textoManual, setTextoManual] = useState("");
 
   // Preenche nome/telefone do perfil uma vez, sem sobrescrever o que o cliente digitou.
   const [prefill, setPrefill] = useState(false);
@@ -86,7 +114,9 @@ function Calculadora() {
     const termo = busca.trim().toLowerCase();
     const base = termo
       ? catalogo.filter(
-          (p) => p.nome.toLowerCase().includes(termo) || (p.descricao ?? "").toLowerCase().includes(termo),
+          (p) =>
+            p.nome.toLowerCase().includes(termo) ||
+            (p.descricao ?? "").toLowerCase().includes(termo),
         )
       : catalogo;
     return base.slice(0, 12);
@@ -112,7 +142,9 @@ function Calculadora() {
   const subtotal = usandoMix ? totalMix : est.subtotal;
 
   const linhasWhatsapp = usandoMix
-    ? itens.map((i) => `${i.quantidade}x ${i.produto.nome} — ${brl(precoFinal(i.produto) * i.quantidade)}`)
+    ? itens.map(
+        (i) => `${i.quantidade}x ${i.produto.nome} — ${brl(precoFinal(i.produto) * i.quantidade)}`,
+      )
     : [];
 
   const dados = {
@@ -167,6 +199,19 @@ function Calculadora() {
     window.open(whatsappLink(cfg.zap_contato, texto), "_blank", "noopener");
   }
 
+  /** Sempre disponível: mesmo sem contato configurado, o cliente leva o orçamento. */
+  async function copiarOrcamento(): Promise<void> {
+    const texto = `${mensagemOrcamento(dados)}\n\nMeu nome: ${dados.nome || "-"}\nMeu WhatsApp: ${dados.telefone || "-"}`;
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(true);
+      toast.success("Orçamento copiado. Cole no WhatsApp da Néia Salgados.");
+    } catch {
+      // clipboard bloqueado (http/permission): mostra o texto para copiar na mao
+      setTextoManual(texto);
+    }
+  }
+
   async function salvar(): Promise<void> {
     if (!user) {
       toast.info("Entre na sua conta para salvar o orçamento, ou envie pelo WhatsApp.");
@@ -184,7 +229,14 @@ function Calculadora() {
           quantidade: i.quantidade,
           preco_unitario: precoFinal(i.produto),
         }))
-      : [{ produto_id: null, nome: categoria?.nome ?? "", quantidade: est.unidadesCombo, preco_unitario: categoria?.precoUnit ?? 0 }];
+      : [
+          {
+            produto_id: null,
+            nome: categoria?.nome ?? "",
+            quantidade: est.unidadesCombo,
+            preco_unitario: categoria?.precoUnit ?? 0,
+          },
+        ];
     const validade = new Date();
     validade.setDate(validade.getDate() + Math.max(1, cfg.orcamento_validade_dias));
     const validadeIso = validade.toISOString().slice(0, 10);
@@ -199,7 +251,9 @@ function Calculadora() {
       mix,
       observacoes: [
         observacoes.trim(),
-        usandoMix ? "mix escolhido no cardápio" : `${est.porPessoa} por pessoa, fechado em ${est.unidadesCombo} un`,
+        usandoMix
+          ? "mix escolhido no cardápio"
+          : `${est.porPessoa} por pessoa, fechado em ${est.unidadesCombo} un`,
         "orçamento do cliente: só salgados, sem serviço de evento",
       ]
         .filter(Boolean)
@@ -218,7 +272,8 @@ function Calculadora() {
       const { validade: _v, ...semValidade } = payload;
       const retry = await supabase.from("orcamentos").insert(semValidade);
       error = retry.error;
-      if (!retry.error) toast.warning("Orçamento salvo sem validade — rode a migration 0007 no Supabase.");
+      if (!retry.error)
+        toast.warning("Orçamento salvo sem validade — rode a migration 0007 no Supabase.");
     }
     setSalvando(false);
     if (error) {
@@ -235,12 +290,16 @@ function Calculadora() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <Link to="/" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        to="/"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="size-4" /> Voltar ao cardápio
       </Link>
       <h1 className="font-display text-3xl">Orçamento de salgados</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Calcule quantos salgados o seu evento precisa e receba o orçamento no WhatsApp, sem compromisso.
+        Calcule quantos salgados o seu evento precisa e receba o orçamento no WhatsApp, sem
+        compromisso.
       </p>
 
       <div className="mt-4 flex gap-3 rounded-2xl border border-secondary/40 bg-secondary/15 p-4 text-sm">
@@ -249,9 +308,10 @@ function Calculadora() {
           <p className="font-semibold">Fornecemos somente os salgados — não realizamos eventos.</p>
           <p className="text-muted-foreground">
             Não temos buffet, equipe de salgadeiro nem serviço de buffet: fazemos{" "}
-            <strong className="text-foreground">entregas e retiradas</strong>, com os salgados sempre prontos —
-            entregues no seu endereço ou retirados na loja. O buffet, a decoração, as bebidas e o serviço
-            ficam por conta do organizador(a) do evento. O orçamento abaixo é só dos salgados.
+            <strong className="text-foreground">entregas e retiradas</strong>, com os salgados
+            sempre prontos — entregues no seu endereço ou retirados na loja. O buffet, a decoração,
+            as bebidas e o serviço ficam por conta do organizador(a) do evento. O orçamento abaixo é
+            só dos salgados.
           </p>
         </div>
       </div>
@@ -274,12 +334,23 @@ function Calculadora() {
           <Label>Quantos salgados por pessoa?</Label>
           <div className="flex flex-wrap gap-2">
             {[15, 20, 25, 30].map((op) => (
-              <Button key={op} type="button" size="sm" variant={porPessoa === op ? "default" : "outline"} onClick={() => setPorPessoa(op)}>
+              <Button
+                key={op}
+                type="button"
+                size="sm"
+                variant={porPessoa === op ? "default" : "outline"}
+                onClick={() => setPorPessoa(op)}
+              >
                 {op}
               </Button>
             ))}
             {cfg.permitir_personalizado ? (
-              <Button type="button" size="sm" variant={porPessoa === "personalizado" ? "default" : "outline"} onClick={() => setPorPessoa("personalizado")}>
+              <Button
+                type="button"
+                size="sm"
+                variant={porPessoa === "personalizado" ? "default" : "outline"}
+                onClick={() => setPorPessoa("personalizado")}
+              >
                 Outro
               </Button>
             ) : null}
@@ -292,7 +363,15 @@ function Calculadora() {
               max={cfg.maximo_por_pessoa}
               value={personalizado}
               onChange={(e) =>
-                setPersonalizado(Math.min(cfg.maximo_por_pessoa, Math.max(cfg.minimo_por_pessoa, Number(e.target.value) || cfg.minimo_por_pessoa)))
+                setPersonalizado(
+                  Math.min(
+                    cfg.maximo_por_pessoa,
+                    Math.max(
+                      cfg.minimo_por_pessoa,
+                      Number(e.target.value) || cfg.minimo_por_pessoa,
+                    ),
+                  ),
+                )
               }
             />
           ) : null}
@@ -314,15 +393,17 @@ function Calculadora() {
               </option>
             ))}
           </select>
-          {categoria ? <p className="text-xs text-muted-foreground">{categoria.descricao}</p> : null}
+          {categoria ? (
+            <p className="text-xs text-muted-foreground">{categoria.descricao}</p>
+          ) : null}
         </div>
       </div>
 
       <div className="mt-4 rounded-2xl border border-border bg-card p-5">
         <h2 className="font-display text-xl">2. Buscar salgados no cardápio</h2>
         <p className="text-xs text-muted-foreground">
-          Opcional: se já souber o que quer, procure pelo nome e escolha os itens. O orçamento passa a usar os
-          preços reais do cardápio.
+          Opcional: se já souber o que quer, procure pelo nome e escolha os itens. O orçamento passa
+          a usar os preços reais do cardápio.
         </p>
         <div className="relative mt-3">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -343,7 +424,10 @@ function Calculadora() {
               const slug = slugCategoriaPorId.get(p.categoria_id);
               const combo = tipoVendaProduto(p, slug) === "combo_50";
               return (
-                <li key={p.id} className="flex items-center gap-3 rounded-lg border border-border p-2">
+                <li
+                  key={p.id}
+                  className="flex items-center gap-3 rounded-lg border border-border p-2"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imagemProduto(p.imagem_url, slug)}
@@ -365,18 +449,32 @@ function Calculadora() {
                     ) : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
-                    <Button type="button" size="icon" variant="outline" aria-label={`Remover ${p.nome}`} onClick={() => ajustar(p, -1)}>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      aria-label={`Remover ${p.nome}`}
+                      onClick={() => ajustar(p, -1)}
+                    >
                       <Minus className="size-4" />
                     </Button>
                     <span className="w-10 text-center text-sm font-semibold">{qtd}</span>
-                    <Button type="button" size="icon" variant="outline" aria-label={`Adicionar ${p.nome}`} onClick={() => ajustar(p, combo ? 50 : 1)}>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      aria-label={`Adicionar ${p.nome}`}
+                      onClick={() => ajustar(p, combo ? 50 : 1)}
+                    >
                       <Plus className="size-4" />
                     </Button>
                   </div>
                 </li>
               );
             })}
-            {resultados.length === 0 ? <li className="text-sm text-muted-foreground">Nada encontrado por “{busca}”.</li> : null}
+            {resultados.length === 0 ? (
+              <li className="text-sm text-muted-foreground">Nada encontrado por “{busca}”.</li>
+            ) : null}
           </ul>
         )}
         {itens.length > 0 ? (
@@ -391,23 +489,45 @@ function Calculadora() {
 
       <div className="mt-4 rounded-2xl border border-border bg-card p-5">
         <h2 className="font-display text-xl">3. Seus dados</h2>
-        <p className="text-xs text-muted-foreground">É só para a gente saber com quem falar sobre os salgados.</p>
+        <p className="text-xs text-muted-foreground">
+          É só para a gente saber com quem falar sobre os salgados.
+        </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="orcam-nome">Nome *</Label>
-            <Input id="orcam-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Como podemos te chamar" />
+            <Input
+              id="orcam-nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Como podemos te chamar"
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="orcam-whats">WhatsApp *</Label>
-            <Input id="orcam-whats" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(11) 90000-0000" inputMode="tel" />
-            {telefone && !telefoneOk ? <p className="text-xs text-destructive">Informe DDD + número.</p> : null}
+            <Input
+              id="orcam-whats"
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="(11) 90000-0000"
+              inputMode="tel"
+            />
+            {telefone && !telefoneOk ? (
+              <p className="text-xs text-destructive">Informe DDD + número.</p>
+            ) : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="orcam-evento">É para um evento?</Label>
-            <select id="orcam-evento" value={tipoEvento} onChange={(e) => setTipoEvento(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <select
+              id="orcam-evento"
+              value={tipoEvento}
+              onChange={(e) => setTipoEvento(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
               <option value="">Não é para evento</option>
               {TIPOS_EVENTO.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
             <p className="text-xs text-muted-foreground">
@@ -416,13 +536,26 @@ function Calculadora() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="orcam-data">Data desejada</Label>
-            <Input id="orcam-data" type="date" value={dataEvento} onChange={(e) => setDataEvento(e.target.value)} />
-            <p className="text-xs text-muted-foreground">Confirmamos a disponibilidade desta data pelo WhatsApp.</p>
+            <Input
+              id="orcam-data"
+              type="date"
+              value={dataEvento}
+              onChange={(e) => setDataEvento(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Confirmamos a disponibilidade desta data pelo WhatsApp.
+            </p>
           </div>
         </div>
         <div className="mt-3 space-y-1.5">
           <Label htmlFor="orcam-obs">Observações</Label>
-          <Textarea id="orcam-obs" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Ex: sem cebola, para as 20h, montar com 3 sabores" maxLength={300} />
+          <Textarea
+            id="orcam-obs"
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            placeholder="Ex: sem cebola, para as 20h, montar com 3 sabores"
+            maxLength={300}
+          />
         </div>
       </div>
 
@@ -432,12 +565,17 @@ function Calculadora() {
         <p className="text-sm text-muted-foreground">
           {usandoMix ? (
             <>
-              Itens escolhidos no cardápio: <strong>{unidades} unidades</strong> em {itens.length} produto(s).
+              Itens escolhidos no cardápio: <strong>{unidades} unidades</strong> em {itens.length}{" "}
+              produto(s).
             </>
           ) : (
             <>
-              Para comprar em combos (múltiplos de 50), sugerimos <strong>{est.unidadesCombo} unidades</strong>
-              {est.faltamParaCombo > 0 ? <> (faltam {est.faltamParaCombo} para fechar a caixa)</> : null}.
+              Para comprar em combos (múltiplos de 50), sugerimos{" "}
+              <strong>{est.unidadesCombo} unidades</strong>
+              {est.faltamParaCombo > 0 ? (
+                <> (faltam {est.faltamParaCombo} para fechar a caixa)</>
+              ) : null}
+              .
             </>
           )}
         </p>
@@ -469,34 +607,87 @@ function Calculadora() {
           </div>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Estimativa válida por {cfg.orcamento_validade_dias} dias. O valor final confirma o mix e a taxa de entrega.
+          Estimativa válida por {cfg.orcamento_validade_dias} dias. O valor final confirma o mix e a
+          taxa de entrega.
         </p>
         <p className="mt-2 rounded-lg bg-muted p-2.5 text-xs text-muted-foreground">
-          <strong className="text-foreground">Fica claro:</strong> este orçamento é somente dos salgados que a
-          gente fornece. Não realizamos eventos, não montamos buffet e não servimos os salgados no local — a
-          organização do evento é do cliente.
+          <strong className="text-foreground">Fica claro:</strong> este orçamento é somente dos
+          salgados que a gente fornece. Não realizamos eventos, não montamos buffet e não servimos
+          os salgados no local — a organização do evento é do cliente.
         </p>
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <Button type="button" size="lg" className="flex-1" onClick={enviarWhatsapp} disabled={unidades <= 0}>
-            <MessageCircle className="mr-2 size-4" /> Solicitar pelo WhatsApp
-          </Button>
-          {user ? (
-            <Button type="button" size="lg" variant="outline" className="flex-1" onClick={salvar} disabled={salvando || salvo || unidades <= 0}>
-              {salvo ? <Check className="mr-2 size-4" /> : <Save className="mr-2 size-4" />}
-              {salvo ? "Orçamento salvo" : salvando ? "Salvando..." : "Salvar orçamento"}
+        <div className="mt-4 space-y-2">
+          {cfg.zap_contato ? (
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
+              onClick={enviarWhatsapp}
+              disabled={unidades <= 0}
+            >
+              <MessageCircle className="mr-2 size-4" /> Solicitar pelo WhatsApp
             </Button>
           ) : (
-            <Button type="button" size="lg" variant="outline" className="flex-1" onClick={() => navigate({ to: "/auth", search: { redirect: "/calculadora" } })}>
-              Entrar para salvar
-            </Button>
+            <p className="rounded-lg bg-muted p-2.5 text-xs text-muted-foreground">
+              O contato de WhatsApp ainda não foi configurado no painel admin. Use{" "}
+              <strong>Copiar orçamento</strong> e envie para a Néia Salgados, ou{" "}
+              <Link to="/combo" className="underline">
+                monte o combo
+              </Link>{" "}
+              agora.
+            </p>
           )}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="flex-1"
+              onClick={copiarOrcamento}
+              disabled={unidades <= 0}
+            >
+              {copiado ? <Check className="mr-2 size-4" /> : <Copy className="mr-2 size-4" />}
+              {copiado ? "Copiado" : "Copiar orçamento"}
+            </Button>
+            {user ? (
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="flex-1"
+                onClick={salvar}
+                disabled={salvando || salvo || unidades <= 0}
+              >
+                {salvo ? <Check className="mr-2 size-4" /> : <Save className="mr-2 size-4" />}
+                {salvo ? "Orçamento salvo" : salvando ? "Salvando..." : "Salvar orçamento"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="flex-1"
+                onClick={() => navigate({ to: "/auth", search: { redirect: "/calculadora" } })}
+              >
+                Entrar para salvar
+              </Button>
+            )}
+          </div>
+          {textoManual ? (
+            <div className="space-y-1">
+              <Label htmlFor="orcam-texto">
+                Não conseguimos copiar automático — selecione e copie:
+              </Label>
+              <Textarea
+                id="orcam-texto"
+                readOnly
+                value={textoManual}
+                rows={8}
+                className="text-xs"
+              />
+            </div>
+          ) : null}
         </div>
-        {!cfg.zap_contato ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            O contato de WhatsApp ainda não foi configurado no painel admin — nesse caso, monte o combo pelo link abaixo.
-          </p>
-        ) : null}
         <Button asChild variant="ghost" className="mt-2 w-full">
           <Link to="/combo">Montar combo agora</Link>
         </Button>

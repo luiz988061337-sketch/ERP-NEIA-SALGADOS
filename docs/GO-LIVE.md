@@ -82,9 +82,15 @@ Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
 - `PASSO-5b`…`PASSO-5f` — migrations que faltaram, **uma por New query**.
 - `PASSO-5z-verificacao.sql` — o que ainda está faltando.
 - `PASSO-6-orcamento-e-fotos.sql` — `0019` + `0020` juntas.
+- `PASSO-7-verificacao.sql` — confere o banco contra as tabelas/colunas que o app usa.
 
-Os geradores ficam em `scripts/gerar-bootstrap.mjs` e `scripts/gerar-correcoes.mjs`
-(`node scripts/gerar-bootstrap.mjs` regenera o lote).
+Os geradores ficam em `scripts/`:
+
+- `gerar-bootstrap.mjs` — `PASSO-4` (todas as migrations em lote)
+- `gerar-correcoes.mjs` — `PASSO-5a`..`5f` + `PASSO-5z`
+- `gerar-verificacao.mjs` — `PASSO-7`, derivado de `src/integrations/supabase/types.ts`
+
+Depois de mexer no schema, rode `node scripts/gerar-verificacao.mjs` e aplique o `PASSO-7` gerado.
 
 Se `hero_carousel` existir mas estiver vazia, a home continua usando `hero.jpg` — cadastre um
 slide na aba **Hero** do admin para o carrossel aparecer.
