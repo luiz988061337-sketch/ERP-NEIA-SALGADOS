@@ -303,5 +303,19 @@ t("erro humano curto passa intacto", M(new Error("Sua sessão expirou. Entre nov
 t("não-Error cai no padrão", M("qualquer coisa") === "Não foi possível concluir agora. Tente novamente.");
 t("nenhuma mensagem tecnicaknown", ["constraint", "undefined", "NaN", "uuid", "PGRST"].every((t2) => !M(new Error(`${t2} falha`)).includes(t2)));
 
+// ---------- COMANDA 80mm: visível, curta, só ASCII ----------
+const imp = await import("@/lib/impressao.ts");
+const cupom = imp.textoCupom({
+  numero: 1048, dataHora: "04/10/2026 18:00", cliente: "José da Silva", telefone: "(11) 90000-0000",
+  itens: [{ qtd: 50, nome: "Coxinha" }, { qtd: 30, nome: "Kibe" }], totalUnidades: 80,
+  entregaRetirada: "ENTREGA", horario: "18:00-18:30", endereco: "Rua das Flores, 123",
+  pagamento: "PIX", observacoes: "Sem pimenta", status: "CONFIRMADO",
+});
+t("comanda tem pedido em destaque", cupom.includes("PEDIDO #1048"));
+t("comanda tem total em destaque", cupom.includes("TOTAL: 80 UN"));
+t("comanda sem acentos (driver térmico)", /^[\x20-\x7E\n]*$/.test(cupom));
+t("comanda linhas curtas p/ 80mm", cupom.split("\n").every((l) => l.length <= 42));
+t("comanda maiúscula", cupom === cupom.toUpperCase());
+
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);
