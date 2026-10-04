@@ -69,6 +69,7 @@ import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { DEFAULT_LOJA_CONFIG, enderecoLoja, type LojaConfig } from "@/lib/loja";
+import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
 import { useRoles, useSession } from "@/lib/session";
 import type { Role } from "@/lib/session";
@@ -1188,6 +1189,14 @@ function BuscaGlobal({ termo, onTermo, pedidos, produtos, profiles, onIrPedido, 
 }
 
 function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { pedidos: any[]; onStatus: (p: any, s: OrderStatus) => void; onPagamento?: (p: any, s: string) => void; foco?: string; onLimparFoco?: () => void }) {
+  async function imprimirDireto(p: any) {
+    try {
+      await impressaoDireta(supabase, p);
+      toast.success(`Pedido nº ${p.numero} enviado para a Tanca.`);
+    } catch {
+      toast.error("Não entrou na fila. Confira em /impressao.");
+    }
+  }
   const [filtro, setFiltro] = useState("todos");
   const [fEvento, setFEvento] = useState("todos");
   const [soAgendados, setSoAgendados] = useState(false);
@@ -1293,8 +1302,8 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
               <Button size="sm" variant="outline" onClick={() => window.open(whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)), "_blank")}>
                 <MessageCircle className="mr-1 size-3.5" /> WhatsApp
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => window.print()}>
-                <Printer className="mr-1 size-3.5" /> Imprimir
+              <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
+                <Printer className="mr-1 size-3.5" /> Imprimir direto
               </Button>
             </div>
           </article>
