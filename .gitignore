@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+# .env é versionado de propósito: o build da Lovable lê as variáveis daqui.
+# Só podem entrar chaves PUBLICÁVEIS (SUPABASE_PUBLISHABLE_KEY, browser key do Maps).
+# NUNCA colocar aqui: service_role key, senhas, tokens privados.
+.env
+.env.local
+!.env.example
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+.output
+.vinxi
+.tanstack/**
+.nitro
+*.local
+
+# Wrangler / Cloudflare
+.wrangler/
+.dev.vars
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

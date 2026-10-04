@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790633532603,
+      "tag": "0000_neia_salgados_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791130314259,
+      "tag": "0001_migration",
+      "breakpoints": true
+    }
+  ]
+}
