@@ -26,7 +26,7 @@ import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
-import { validarAgendamento, mensagemLotado } from "@/lib/horario";
+import { validarAgendamento, mensagemLotado, janelaLotada } from "@/lib/horario";
 
 /** Fallback quando loja_config.pix_chave ainda não foi preenchida (migration 0029). Preferir sempre loja.pix_chave. */
 export const PIX_CHAVE = "24913937000116";
@@ -269,13 +269,19 @@ function Checkout() {
         toast.error(v.motivo);
         return;
       }
-      // Capacidade da janela (best-effort): soma unidades já agendadas ±30min
+      // Capacidade da janela por UNIDADES (não por nº de pedidos): soma itens ±30min vs teto
       try {
         const dt = new Date(dtRaw);
         const ini = new Date(dt.getTime() - 30 * 60000).toISOString();
         const fim = new Date(dt.getTime() + 30 * 60000).toISOString();
-        const { data: vizinhos } = await supabase.from("pedidos").select("id").gte("agendado_para", ini).lte("agendado_para", fim).neq("status", "cancelado").limit(200);
-        if ((vizinhos ?? []).length >= 20) {
+        const { data: vizinhos } = await supabase.from("pedidos").select("id, pedido_itens(quantidade)").gte("agendado_para", ini).lte("agendado_para", fim).neq("status", "cancelado").limit(200);
+        let teto = 2000;
+        try {
+          const { data: hc } = await supabase.from("horario_config").select("teto_unidades_janela").eq("id", true).maybeSingle();
+          if (Number((hc as any)?.teto_unidades_janela) > 0) teto = Number((hc as any).teto_unidades_janela);
+        } catch { /* teto padrão */ }
+        const un = ((vizinhos ?? []) as any[]).reduce((s, p) => s + ((p.pedido_itens ?? []) as any[]).reduce((a, i) => a + Number(i.quantidade ?? 0), 0), 0);
+        if (janelaLotada(un, teto)) {
           toast.error(mensagemLotado());
           return;
         }
