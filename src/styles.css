@@ -132,10 +132,22 @@
     border-color: var(--color-border);
   }
 
+  html,
+  body {
+    /* Nenhum elemento pode causar rolagem horizontal da página */
+    overflow-x: clip;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+  }
+
+  img,
+  video,
+  canvas {
+    max-width: 100%;
   }
 
   h1,
