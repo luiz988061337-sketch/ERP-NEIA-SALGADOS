@@ -278,6 +278,14 @@ t("CNPJ gera subcampo 01 com 14 dígitos", (() => {
   return p.copiaECola.includes("011424913937000116");
 })());
 
+// ---------- FRITURA: tempo por produto, pedido = lote mais longo ----------
+const coz = await import("@/lib/cozinha.ts");
+t("50un padrão = 210s", coz.tempoFritura(50) === 210);
+t("100un = 420s", coz.tempoFritura(100) === 420);
+t("pedido misto usa o lote mais longo", coz.tempoFrituraPedido([{ quantidade: 50, seg50: 210 }, { quantidade: 50, seg50: 300 }]) === 300);
+t("seg50 nulo cai no padrão", coz.tempoFrituraPedido([{ quantidade: 50, seg50: null }]) === 210);
+t("janela lotada por unidades", (await import("@/lib/horario.ts")).janelaLotada(2000, 2000) === true);
+
 // ---------- MENSAGENS DE ERRO PARA O CLIENTE (§19) ----------
 const erros = await import("@/lib/erros.ts");
 const M = erros.mensagemDeErro;
