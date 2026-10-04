@@ -18,8 +18,6 @@ const STAFF_EMAIL = process.env.STAFF_EMAIL ?? "";
 const STAFF_PASSWORD = process.env.STAFF_PASSWORD ?? "";
 const PRINTER = process.env.PRINTER_NAME ?? "Tanca TP-550";
 const POLL = Number(process.env.POLL_MS ?? 5000);
-// Fonte grande em negrito via imprimir.ps1 (Consolas Bold). Tamanho em pt.
-const FONT_SIZE = Number(process.env.FONT_TAMANHO ?? 12);
 const IMPRIMIR_PS1 = process.env.IMPRIMIR_PS1 ?? join(dirname(fileURLToPath(import.meta.url)), "imprimir.ps1");
 // Política de repetição: erro volta à fila após RETRY_MIN, até MAX_TENTATIVAS.
 // "enviando" sem atualização há STUCK_MIN volta à fila (agente reiniciado no meio).
@@ -46,10 +44,10 @@ if (!SERVICE) {
 function imprimirTexto(texto: string): void {
   const arq = join(tmpdir(), `neia-${Date.now()}.txt`);
   writeFileSync(arq, texto, "utf8");
-  // 1) fonte grande em negrito (imprimir.ps1); 2) fallback Out-Printer.
+  // 1) fonte auto-ajustada (imprimir.ps1); 2) fallback Out-Printer.
   try {
     execSync(
-      `powershell -ExecutionPolicy Bypass -File "${IMPRIMIR_PS1}" "${arq}" "${PRINTER}" ${FONT_SIZE}`,
+      `powershell -ExecutionPolicy Bypass -File "${IMPRIMIR_PS1}" "${arq}" "${PRINTER}"`,
       { stdio: "ignore" },
     );
     return;
@@ -77,10 +75,13 @@ async function tick(): Promise<void> {
   const { data } = await sb.from("fila_impressao").select("*").eq("status", "pendente").order("created_at").limit(5);
   for (const job of data ?? []) {
     if (job.imprimir_apos && +new Date(job.imprimir_apos) > Date.now()) continue;
-    await sb.from("fila_impressao").update({ status: "enviando", tentativa: (job.tentativa ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", job.id);
+    // Reserva atômica: só quem mudar pendente->enviando imprime (2 agentes nunca duplicam).
+    const { data: claimed, error: claimErr } = await sb.from("fila_impressao").update({ status: "enviando", tentativa: (job.tentativa ?? 0) + 1, updated_at: new Date().toISOString() }).eq("id", job.id).eq("status", "pendente").select("id");
+    if (claimErr || !claimed || claimed.length === 0) continue;
     try {
       imprimirTexto(String(job.payload ?? ""));
-      await sb.from("fila_impressao").update({ status: "impresso", updated_at: new Date().toISOString() }).eq("id", job.id);
+      const { error: fimErr } = await sb.from("fila_impressao").update({ status: "impresso", updated_at: new Date().toISOString() }).eq("id", job.id);
+      if (fimErr) throw fimErr;
       if (job.pedido_id) await sb.from("pedidos").update({ impresso: true }).eq("id", job.pedido_id);
       console.log(`OK ${job.trabalho_uuid}`);
     } catch (e) {
