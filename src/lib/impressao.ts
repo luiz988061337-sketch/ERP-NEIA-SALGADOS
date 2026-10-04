@@ -118,3 +118,65 @@ export function textoTeste(): string {
 export function idTrabalho(pedidoId: string, evento: string): string {
   return `${pedidoId}:${evento}`;
 }
+
+/**
+ * Impressão DIRETA: enfileira o pedido na Tanca sem abrir diálogo do navegador.
+ * O agente imprime em segundos. Nunca bloqueia a operação em caso de falha.
+ */
+export async function impressaoDireta(client: any, pedido: any): Promise<void> {
+  const itens: ItemCupom[] = ((pedido.pedido_itens ?? []) as any[]).map((i: any) => ({
+    qtd: Number(i.quantidade ?? 0),
+    nome: String(i.nome ?? ""),
+    precoUnit: i.preco_unitario != null ? Number(i.preco_unitario) : null,
+  }));
+  const totalUn = itens.reduce((s, i) => s + i.qtd, 0);
+  const { PAGAMENTO_LABEL } = await import("./format");
+  const payload = textoCupom({
+    numero: pedido.numero,
+    dataHora: new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    cliente: pedido.cliente_nome ?? "",
+    telefone: pedido.telefone ?? "",
+    itens,
+    totalUnidades: totalUn,
+    entregaRetirada: pedido.tipo_entrega === "retirada" ? "RETIRADA NA LOJA" : "ENTREGA",
+    horario: pedido.agendado_para ? new Date(pedido.agendado_para).toLocaleString("pt-BR") : "o mais rapido possivel",
+    endereco: pedido.tipo_entrega === "retirada" ? "Retirada na loja" : String(pedido.endereco ?? ""),
+    pagamento: PAGAMENTO_LABEL[pedido.forma_pagamento] ?? String(pedido.forma_pagamento ?? ""),
+    observacoes: pedido.observacoes ?? "",
+    status: pedido.pagamento_status === "pendente" ? "PENDENTE_PGTO" : "CONFIRMADO",
+    bairro: pedido.bairro ?? null,
+    cidade: pedido.cidade ?? null,
+    cep: pedido.cep ?? null,
+    complemento: pedido.complemento ?? null,
+    referencia: pedido.referencia ?? null,
+    subtotal: pedido.subtotal != null ? Number(pedido.subtotal) : null,
+    taxaEntrega: pedido.taxa_entrega != null ? Number(pedido.taxa_entrega) : null,
+    total: pedido.total != null ? Number(pedido.total) : null,
+  });
+  const { error } = await client.from("fila_impressao").insert({
+    trabalho_uuid: `${pedido.id}:direta:${Date.now()}`,
+    pedido_id: pedido.id,
+    tipo: "pedido",
+    payload,
+    impressora: "Tanca TP-550",
+  });
+  if (error) throw error;
+}
+
+/** Ficha consolidada da cozinha (vários pedidos) — também direta. */
+export async function fichaDireta(client: any, linhas: { nome: string; qtd: number }[], titulo?: string): Promise<void> {
+  const L = [
+    centro(titulo ?? "FICHA DE PRODUCAO"),
+    centro(new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })),
+    BARRA,
+    ...linhas.map((l) => linhaItem(l.nome, `${l.qtd} un`)),
+    BARRA,
+  ];
+  const { error } = await client.from("fila_impressao").insert({
+    trabalho_uuid: `ficha:${Date.now()}`,
+    tipo: "ficha_cozinha",
+    payload: L.join("\n"),
+    impressora: "Tanca TP-550",
+  });
+  if (error) throw error;
+}
