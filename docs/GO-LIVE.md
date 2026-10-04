@@ -48,6 +48,7 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 36. `0035_loja_social.sql` — links Instagram/Facebook/site/avaliação Google da loja.
 37. `0036_fritura_produto.sql` — `produtos.tempo_fritura_s` (NULL = 210s padrão).
 38. `0037_pedidos_cep.sql` — `pedidos.cep` (comanda + fiscal futuro).
+39. `0038_cardapio_sabores.sql` — 26 sabores em frito + congelado (sem duplicar; sem doguinho).
 Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0033 — rode esses separado).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
