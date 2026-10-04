@@ -39,7 +39,12 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 27. `0026_cozinha.sql` — `fila_fritura` + tempo por produto.
 28. `0027_lembretes.sql` — `pedido_lembretes` 7d/3d/24h.
 29. `0028_crm_experiencia.sql` — jornada, indicação, degustação pós-orçamento, parceiros, ajuda, alta demanda.
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só.
+30. `0029_loja_pix.sql` — `loja_config.pix_chave` (sai do hardcoded).
+31. `0030_reserva_atomica.sql` — `reservar/liberar_reserva_atomica` (checkout usa via RPC).
+32. `0031_reserva_grants.sql` — EXECUTE nas funções de reserva.
+33. `0032_entrega_fase3.sql` — `motoboys.user_id`, `pedidos.andar/torre`, avisos p/ motoboy.
+34. `0033_fiscal_base.sql` — empresa fiscal, documentos, eventos, NCM/CFOP do produto, CPF/CNPJ e origem no pedido. NENHUM dado tributário preenchido: validar com o contador.
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0033 — rode esses separado).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
