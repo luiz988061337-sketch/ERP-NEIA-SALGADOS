@@ -19,13 +19,16 @@ import { validarCupom } from "@/lib/cupons";
 import { pontosGanhos as calcPontos } from "@/lib/fidelidade";
 import { useCrmSettings } from "@/lib/crm";
 import { registrarEventoCarrinho } from "@/lib/inteligencia";
-import { gerarPix, urlQrPix } from "@/lib/pix";
+import { gerarPix } from "@/lib/pix";
+import { QrPixLocal } from "@/components/qr-pix-local";
+import { textoCupom } from "@/lib/impressao";
 import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
 import { validarAgendamento, mensagemLotado } from "@/lib/horario";
 
+/** Fallback quando loja_config.pix_chave ainda não foi preenchida (migration 0029). Preferir sempre loja.pix_chave. */
 export const PIX_CHAVE = "24913937000116";
 
 export const Route = createFileRoute("/checkout")({
@@ -46,6 +49,17 @@ const schema = z.object({
   cidade: z.string().trim().max(100).optional().default(""),
   complemento: z.string().trim().max(100).optional().default(""),
   referencia: z.string().trim().max(150).optional().default(""),
+  tipo_imovel: z.enum(["casa", "apartamento"]).optional().default("casa"),
+  apartamento: z.string().trim().max(20).optional().default(""),
+  bloco: z.string().trim().max(20).optional().default(""),
+  andar: z.string().trim().max(10).optional().default(""),
+  torre: z.string().trim().max(20).optional().default(""),
+  interfone: z.string().trim().max(30).optional().default(""),
+  pode_subir: z.string().optional().default(""),
+  cpf_cnpj: z.string().trim().max(14).optional().default(""),
+  nome_fiscal: z.string().trim().max(100).optional().default(""),
+  origem_cliente: z.string().trim().max(30).optional().default(""),
+  origem_indicador: z.string().trim().max(100).optional().default(""),
   observacoes: z.string().trim().max(300).optional().default(""),
   troco: z.string().trim().max(20).optional().default(""),
 });
@@ -62,6 +76,7 @@ function Checkout() {
   const [enviando, setEnviando] = useState(false);
   const [enderecoId, setEnderecoId] = useState<string>("");
   const [tipoEntrega, setTipoEntrega] = useState<"entrega" | "retirada">("entrega");
+  const [tipoImovel, setTipoImovel] = useState("casa");
   const [quando, setQuando] = useState<"agora" | "agendar">("agora");
   const { data: settings } = useCrmSettings();
   const { data: lojaConfig } = useLojaConfig();
@@ -92,6 +107,17 @@ function Checkout() {
     },
   });
 
+  const { data: qtdPedidos } = useQuery({
+    queryKey: ["pedidos-count", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("user_id", user!.id);
+      return count ?? 0;
+    },
+  });
+  const primeiroPedido = (qtdPedidos ?? 1) === 0;
+  const [origem, setOrigem] = useState("");
+
   useEffect(() => {
     if (staffOnly && painel) navigate({ to: painel, replace: true });
   }, [staffOnly, painel, navigate]);
@@ -114,12 +140,12 @@ function Checkout() {
     metaPontos: settings?.fid_meta_pontos ?? 200,
     recompensaValor: settings?.fid_recompensa_valor ?? 20,
   });
+  const pixChaveEfetiva = (loja.pix_chave || PIX_CHAVE).trim();
   const pix = gerarPix({
-    chave: loja.pix_chave || PIX_CHAVE,
+    chave: pixChaveEfetiva,
     valor: totalFinalUI,
-    descricao: "Pedido Néia Salgados",
+    descricao: "Pedido Neia Salgados",
   });
-  const pixQR = pix ? urlQrPix(pix.copiaECola) : "";
 
   if (staffOnly) {
     return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
@@ -175,6 +201,17 @@ function Checkout() {
       cidade: form.get("cidade"),
       complemento: form.get("complemento") ?? "",
       referencia: form.get("referencia") ?? "",
+      cpf_cnpj: String(form.get("cpf_cnpj") ?? "").replace(/\D/g, "").slice(0, 14),
+      nome_fiscal: form.get("nome_fiscal") ?? "",
+      origem_cliente: form.get("origem_cliente") ?? "",
+      origem_indicador: form.get("origem_indicador") ?? "",
+      tipo_imovel: form.get("tipo_imovel") ?? "casa",
+      apartamento: form.get("apartamento") ?? "",
+      bloco: form.get("bloco") ?? "",
+      andar: form.get("andar") ?? "",
+      torre: form.get("torre") ?? "",
+      interfone: form.get("interfone") ?? "",
+      pode_subir: form.get("pode_subir") ?? "",
       observacoes: form.get("observacoes") ?? "",
       troco: form.get("troco") ?? "",
     });
@@ -265,8 +302,18 @@ function Checkout() {
         cidade: isRetirada ? "-" : parsed.data.cidade,
         complemento: isRetirada ? "" : (parsed.data.complemento ?? ""),
         referencia: isRetirada ? "" : (parsed.data.referencia ?? ""),
+        tipo_imovel: isRetirada ? null : (parsed.data.tipo_imovel ?? "casa"),
+        apartamento: isRetirada ? null : (parsed.data.apartamento ?? ""),
+        bloco: isRetirada ? null : (parsed.data.bloco ?? ""),
+        andar: isRetirada ? null : (parsed.data.andar ?? ""),
+        torre: isRetirada ? null : (parsed.data.torre ?? ""),
+        interfone: isRetirada ? null : (parsed.data.interfone ?? ""),
+        pode_subir: isRetirada ? null : (String(parsed.data.pode_subir ?? "") === "on"),
+        cpf_cnpj: parsed.data.cpf_cnpj || null,
+        nome_fiscal: parsed.data.nome_fiscal || null,
+        origem_cliente: primeiroPedido ? (parsed.data.origem_cliente || null) : null,
+        observacoes: parsed.data.origem_indicador ? `${obsFinal ?? ""} [Indicado por: ${parsed.data.origem_indicador}]`.trim() : (obsFinal ?? ""),
         tipo_entrega: tipoEntrega,
-        observacoes: obsFinal ?? "",
         forma_pagamento: pagamento,
         // Pagamento começa SEMPRE pendente. Nunca marcar como pago aqui:
         // a loja confirma. Status do pedido e status do pagamento são separados.
@@ -296,6 +343,16 @@ function Checkout() {
             campanha_origem: _co,
             tipo_entrega: _te2,
             pagamento_status: _ps,
+            tipo_imovel: _ti,
+            apartamento: _ap,
+            bloco: _bl,
+            andar: _an,
+            torre: _to,
+            interfone: _in,
+            pode_subir: _ps2,
+            cpf_cnpj: _cp,
+            nome_fiscal: _nf,
+            origem_cliente: _oc,
             ...legacy
           } = insertBody;
           const retry = await supabase.from("pedidos").insert(legacy).select("id, numero, cliente_nome, telefone").single();
@@ -320,14 +377,49 @@ function Checkout() {
       );
       if (erroItens) console.error(erroItens);
 
-      const linhasCupom = itensValidados.map((i) => `${i.quantidade}x ${i.nome}`).join("\n");
-      // Reserva estoque (best-effort, tabelas 0023/0026 — nunca bloqueia a venda)
-      try {
-        const reservas = itensValidados
-          .filter((i) => i.produtoId)
-          .map((i) => ({ pedido_id: (pedido as any).id, produto_id: i.produtoId, quantidade: i.quantidade, status: "ativa" }));
-        if (reservas.length > 0) await supabase.from("reservas_estoque").insert(reservas);
-      } catch { /* sem migration — segue sem reserva */ }
+      // Reserva atômica (0030): lock por produto, nunca vende acima do estoque.
+      // Combos montados (sem produtoId) não reservam aqui — sãoacks montagem.
+      const itensReservaveis = itensValidados.filter((i) => i.produtoId);
+      let rpcIndisponivel = false;
+      const falhasEstoque: string[] = [];
+      for (const i of itensReservaveis) {
+        try {
+          const { data, error } = await supabase.rpc("reservar_estoque_atomica", {
+            p_pedido_id: (pedido as any).id,
+            p_produto_id: i.produtoId as string,
+            p_qtd: Math.floor(i.quantidade),
+          });
+          if (error) {
+            // Migration 0030 ainda não aplicada — cai para best-effort legado abaixo.
+            rpcIndisponivel = true;
+            break;
+          }
+          if (data !== true) falhasEstoque.push(i.nome);
+        } catch {
+          rpcIndisponivel = true;
+          break;
+        }
+      }
+      if (rpcIndisponivel) {
+        // Fallback legado: insert direto (sem garantia contra concorrência).
+        try {
+          const reservas = itensReservaveis.map((i) => ({ pedido_id: (pedido as any).id, produto_id: i.produtoId, quantidade: i.quantidade, status: "ativa" }));
+          if (reservas.length > 0) await supabase.from("reservas_estoque").insert(reservas);
+        } catch { /* sem migration — segue sem reserva */ }
+      } else if (falhasEstoque.length > 0) {
+        // Sem estoque: desfaz reservas parciais, cancela pedido e avisa com alternativa.
+        try { await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: (pedido as any).id }); } catch { /* best-effort */ }
+        try { await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", (pedido as any).id); } catch { /* best-effort */ }
+        try {
+          await supabase.from("pedido_status_historico").insert({
+            pedido_id: (pedido as any).id,
+            de_status: "recebido",
+            para_status: "cancelado",
+            motivo: `estoque insuficiente: ${falhasEstoque.join(", ")}`,
+          });
+        } catch { /* sem migration — segue */ }
+        throw new Error(`Temos apenas estoque parcial. Faltou: ${falhasEstoque.join(", ")}. Reduza a quantidade ou escolha uma alternativa da mesma categoria.`);
+      }
       try {
         await supabase.from("pedido_status_historico").insert({
           pedido_id: (pedido as any).id,
@@ -337,11 +429,26 @@ function Checkout() {
         });
       } catch { /* sem migration — segue */ }
       try {
+        const totalUnidades = itensValidados.reduce((a, i) => a + i.quantidade, 0);
+        const payloadCozinha = textoCupom({
+          numero: (pedido as any).numero,
+          dataHora: new Date().toLocaleString("pt-BR"),
+          cliente: parsed.data.cliente_nome,
+          telefone: parsed.data.telefone,
+          itens: itensValidados.map((i) => ({ qtd: i.quantidade, nome: i.nome })),
+          totalUnidades,
+          entregaRetirada: isRetirada ? "RETIRADA NA LOJA" : "ENTREGA",
+          horario: agendadoPara ? new Date(agendadoPara).toLocaleString("pt-BR") : "o mais rapido possivel",
+          endereco: isRetirada ? (enderecoLojaTexto || "Retirada na loja") : `${parsed.data.endereco} — ${parsed.data.bairro}, ${parsed.data.cidade}${parsed.data.complemento ? ` (${parsed.data.complemento})` : ""}`,
+          pagamento: PAGAMENTO_LABEL[pagamento] ?? pagamento,
+          observacoes: obsFinal ?? "",
+          status: "CONFIRMADO",
+        });
         await supabase.from("fila_impressao").insert({
           trabalho_uuid: `${(pedido as any).id}:confirmado`,
           pedido_id: (pedido as any).id,
           tipo: "pedido",
-          payload: `NEIA SALGADOS\nPEDIDO #${(pedido as any).numero}\n${linhasCupom}\nTotal ${totalFinal}`,
+          payload: payloadCozinha,
           impressora: "Tanca TP-550",
           imprimir_apos: quando === "agendar" ? agendadoPara : null,
         });
@@ -365,7 +472,11 @@ function Checkout() {
         ? `\n\nReceber em: ${new Date(agendadoPara).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${agendamentoObs ? ` (${agendamentoObs})` : ""}`
         : "\n\nReceber: o mais rápido possível";
       const eventoTxt = tipoEvento ? `\nTipo de evento: ${tipoEvento}` : "";
-      const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\n${isRetirada ? "Retirada na loja" : "Entrega"}: ${brl(taxaEntregaFinal)}\nTotal: ${brl(totalFinal)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\n${isRetirada ? "🏪 Retirada na loja" : `Endereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}\nRef.: ${parsed.data.referencia || "-"}`}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
+      const ehApto = !isRetirada && parsed.data.tipo_imovel === "apartamento";
+      const condTxt = ehApto
+        ? `\nApto: ${parsed.data.apartamento || "-"}${parsed.data.bloco ? ` • Bloco/Torre: ${parsed.data.bloco}` : ""}${parsed.data.andar ? ` • Andar: ${parsed.data.andar}` : ""}${parsed.data.interfone ? ` • Interfone: ${parsed.data.interfone}` : ""}${String(parsed.data.pode_subir ?? "") === "on" ? " • autorizado subir" : ""}`
+        : "";
+      const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\n${isRetirada ? "Retirada na loja" : "Entrega"}: ${brl(taxaEntregaFinal)}\nTotal: ${brl(totalFinal)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\n${isRetirada ? "🏪 Retirada na loja" : `Endereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}${condTxt}\nRef.: ${parsed.data.referencia || "-"}`}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
       window.open(whatsappLink((pedido as any).telefone, msgWhats), "_blank", "noopener");
       navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
 } catch (err) {
@@ -429,6 +540,36 @@ function Checkout() {
                 <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Apto, bloco..." /></div>
               </div>
               <div className="space-y-1.5"><Label htmlFor="referencia">Ponto de referência</Label><Input id="referencia" name="referencia" placeholder="Próximo à praça" /></div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label htmlFor="tipo_imovel">Tipo de imóvel</Label>
+                  <select id="tipo_imovel" name="tipo_imovel" value={tipoImovel} onChange={(e) => setTipoImovel(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option value="casa">Casa</option>
+                    <option value="apartamento">Apartamento / condomínio</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5"><Label htmlFor="interfone">Interfone (se houver)</Label><Input id="interfone" name="interfone" placeholder="Ex: 1234" maxLength={30} /></div>
+              </div>
+              {tipoImovel === "apartamento" ? (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-1.5"><Label htmlFor="apartamento">Apto *</Label><Input id="apartamento" name="apartamento" placeholder="Ex: 42" maxLength={20} /></div>
+                    <div className="space-y-1.5"><Label htmlFor="bloco">Bloco / torre</Label><Input id="bloco" name="bloco" placeholder="Ex: B" maxLength={20} /></div>
+                    <div className="space-y-1.5"><Label htmlFor="andar">Andar</Label><Input id="andar" name="andar" placeholder="Ex: 4" maxLength={10} /></div>
+                  </div>
+                  <input type="hidden" name="torre" value="" />
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input type="checkbox" name="pode_subir" className="size-4" /> Autorizo o motoboy a subir até o apartamento
+                  </label>
+                  <p className="text-xs text-muted-foreground">Se possível, aguarde o motoboy na portaria no momento da chegada. 😊</p>
+                </>
+              ) : (
+                <>
+                  <input type="hidden" name="apartamento" value="" />
+                  <input type="hidden" name="bloco" value="" />
+                  <input type="hidden" name="andar" value="" />
+                  <input type="hidden" name="torre" value="" />
+                </>
+              )}
             </>
           ) : (
             <div className="space-y-1.5 rounded-lg bg-muted p-3 text-sm">
@@ -449,6 +590,32 @@ function Checkout() {
             </div>
           )}
           <div className="space-y-1.5"><Label htmlFor="observacoes">Observações</Label><Textarea id="observacoes" name="observacoes" placeholder="Ex: troco, ponto de entrega..." /></div>
+          {primeiroPedido ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="origem_cliente">👋 Como você conheceu a Néia Salgados?</Label>
+                <select id="origem_cliente" name="origem_cliente" value={origem} onChange={(e) => setOrigem(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="">
+                  <option value="">Prefiro não dizer</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="google">Google</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="indicacao">Indicação</option>
+                  <option value="parceiro">Parceiro</option>
+                  <option value="anuncio">Anúncio</option>
+                  <option value="ja_conhecia">Já conhecia</option>
+                  <option value="pessoalmente">Pessoalmente</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              {origem === "indicacao" ? <div className="space-y-1.5"><Label htmlFor="origem_indicador">Quem indicou?</Label><Input id="origem_indicador" name="origem_indicador" placeholder="Nome de quem indicou" maxLength={100} /></div> : <input type="hidden" name="origem_indicador" value="" />}
+            </div>
+          ) : null}
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted-foreground">Nota fiscal (opcional — só se precisar)</summary>
+            <div className="mt-2 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="cpf_cnpj">CPF / CNPJ</Label><Input id="cpf_cnpj" name="cpf_cnpj" inputMode="numeric" maxLength={14} /></div>
+              <div className="space-y-1.5"><Label htmlFor="nome_fiscal">Nome / razão social</Label><Input id="nome_fiscal" name="nome_fiscal" maxLength={100} /></div>
+            </div>
+          </details>
         </section>
 
         <section className="space-y-3 rounded-xl border border-border bg-card p-5">
@@ -499,8 +666,9 @@ function Checkout() {
               {pix ? (
                 <>
                   <div className="mt-2 flex flex-col items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={pixQR} alt={`QR Code PIX de ${brl(totalFinalUI)}`} width={220} height={220} className="rounded-lg border border-border bg-white p-2" loading="lazy" />
+                    <div className="rounded-lg border border-border bg-white p-2">
+                      <QrPixLocal copiaECola={pix.copiaECola} tamanho={220} />
+                    </div>
                     <p className="text-xs font-semibold">{brl(totalFinalUI)}</p>
                     <p className="text-center text-xs text-muted-foreground">
                       Abra o app do banco, escolha Pix &gt; Ler QR Code e aponte a câmera.
@@ -528,7 +696,7 @@ function Checkout() {
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Chave:</span>
-                    <code className="min-w-0 flex-1 truncate text-xs">{PIX_CHAVE}</code>
+                    <code className="min-w-0 flex-1 truncate text-xs">{pixChaveEfetiva}</code>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     O pagamento é conferido pela loja. Envie o comprovante pelo WhatsApp depois de finalizar.
