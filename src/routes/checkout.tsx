@@ -22,6 +22,7 @@ import { registrarEventoCarrinho } from "@/lib/inteligencia";
 import { gerarPix } from "@/lib/pix";
 import { QrPixLocal } from "@/components/qr-pix-local";
 import { textoCupom } from "@/lib/impressao";
+import { tempoFritura } from "@/lib/cozinha";
 import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
@@ -47,6 +48,7 @@ const schema = z.object({
   endereco: z.string().trim().max(200).optional().default(""),
   bairro: z.string().trim().max(100).optional().default(""),
   cidade: z.string().trim().max(100).optional().default(""),
+  cep: z.string().trim().max(9).optional().default(""),
   complemento: z.string().trim().max(100).optional().default(""),
   referencia: z.string().trim().max(150).optional().default(""),
   tipo_imovel: z.enum(["casa", "apartamento"]).optional().default("casa"),
@@ -223,6 +225,7 @@ function Checkout() {
       endereco: form.get("endereco"),
       bairro: form.get("bairro"),
       cidade: form.get("cidade"),
+      cep: form.get("cep") ?? "",
       complemento: form.get("complemento") ?? "",
       referencia: form.get("referencia") ?? "",
       cpf_cnpj: String(form.get("cpf_cnpj") ?? "").replace(/\D/g, "").slice(0, 14),
@@ -330,6 +333,7 @@ function Checkout() {
         endereco: isRetirada ? (enderecoLojaTexto || "Retirada na loja") : `${parsed.data.endereco} — ${parsed.data.cidade}`,
         bairro: isRetirada ? "-" : parsed.data.bairro,
         cidade: isRetirada ? "-" : parsed.data.cidade,
+        cep: isRetirada ? null : (String(parsed.data.cep ?? "").replace(/\D/g, "").slice(0, 8) || null),
         complemento: isRetirada ? "" : (parsed.data.complemento ?? ""),
         referencia: isRetirada ? "" : (parsed.data.referencia ?? ""),
         tipo_imovel: isRetirada ? null : (parsed.data.tipo_imovel ?? "casa"),
@@ -383,6 +387,7 @@ function Checkout() {
             cpf_cnpj: _cp,
             nome_fiscal: _nf,
             origem_cliente: _oc,
+            cep: _cep,
             ...legacy
           } = insertBody;
           const retry = await supabase.from("pedidos").insert(legacy).select("id, numero, cliente_nome, telefone").single();
@@ -460,19 +465,36 @@ function Checkout() {
       } catch { /* sem migration — segue */ }
       try {
         const totalUnidades = itensValidados.reduce((a, i) => a + i.quantidade, 0);
+        const prepMin = Math.ceil(tempoFritura(totalUnidades) / 60) + 40;
+        const fmtH = (d: Date) => d.toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const iniPrev = new Date(Date.now() + prepMin * 60000);
+        const fimPrev = new Date(iniPrev.getTime() + 30 * 60000);
         const payloadCozinha = textoCupom({
           numero: (pedido as any).numero,
-          dataHora: new Date().toLocaleString("pt-BR"),
+          dataHora: new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
           cliente: parsed.data.cliente_nome,
           telefone: parsed.data.telefone,
-          itens: itensValidados.map((i) => ({ qtd: i.quantidade, nome: i.nome })),
+          itens: itensValidados.map((i) => ({ qtd: i.quantidade, nome: i.nome, precoUnit: i.preco })),
           totalUnidades,
           entregaRetirada: isRetirada ? "RETIRADA NA LOJA" : "ENTREGA",
           horario: agendadoPara ? new Date(agendadoPara).toLocaleString("pt-BR") : "o mais rapido possivel",
-          endereco: isRetirada ? (enderecoLojaTexto || "Retirada na loja") : `${parsed.data.endereco} — ${parsed.data.bairro}, ${parsed.data.cidade}${parsed.data.complemento ? ` (${parsed.data.complemento})` : ""}`,
+          endereco: isRetirada ? (enderecoLojaTexto || "Retirada na loja") : `${parsed.data.endereco} — ${parsed.data.cidade}`,
           pagamento: PAGAMENTO_LABEL[pagamento] ?? pagamento,
           observacoes: obsFinal ?? "",
-          status: "CONFIRMADO",
+          status: "PENDENTE_PGTO",
+          bairro: isRetirada ? null : parsed.data.bairro,
+          cidade: isRetirada ? null : parsed.data.cidade,
+          cep: isRetirada ? null : (parsed.data.cep || null),
+          complemento: isRetirada ? null : (parsed.data.complemento || null),
+          referencia: isRetirada ? null : (parsed.data.referencia || null),
+          subtotal: subtotalValidado,
+          taxaEntrega: taxaEntregaFinal,
+          total: totalFinal,
+          pedidosCliente: (qtdPedidos ?? 0) + 1,
+          motoboy: null,
+          prevista: `${fmtH(iniPrev)} - ${fmtH(fimPrev)}`,
+          agendadoEm: quando === "agendar" ? new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null,
+          agendadoPara: agendadoPara ? new Date(agendadoPara).toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(/\./g, "") + "h" : null,
         });
         await supabase.from("fila_impressao").insert({
           trabalho_uuid: `${(pedido as any).id}:confirmado`,
@@ -567,7 +589,8 @@ function Checkout() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1.5"><Label htmlFor="bairro">Bairro *</Label><Input id="bairro" name="bairro" required /></div>
                 <div className="space-y-1.5"><Label htmlFor="cidade">Cidade *</Label><Input id="cidade" name="cidade" placeholder="Sua cidade" required autoComplete="address-level2" /></div>
-                <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Apto, bloco..." /></div>
+                <div className="space-y-1.5"><Label htmlFor="cep">CEP</Label><Input id="cep" name="cep" inputMode="numeric" placeholder="18000-000" maxLength={9} /></div>
+                <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Casa, fundos..." /></div>
               </div>
               <div className="space-y-1.5"><Label htmlFor="referencia">Ponto de referência</Label><Input id="referencia" name="referencia" placeholder="Próximo à praça" /></div>
               <div className="grid gap-4 sm:grid-cols-2">
