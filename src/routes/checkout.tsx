@@ -117,6 +117,30 @@ function Checkout() {
   });
   const primeiroPedido = (qtdPedidos ?? 1) === 0;
   const [origem, setOrigem] = useState("");
+  const [agDt, setAgDt] = useState("");
+
+  const { data: demandas } = useQuery({
+    queryKey: ["datas-demanda-checkout"],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("datas_demanda").select("*").eq("ativo", true).order("data").limit(20);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+  const avisoDemanda = (() => {
+    if (quando !== "agendar" || !agDt) return null;
+    const alvo = new Date(agDt).getTime();
+    if (Number.isNaN(alvo)) return null;
+    for (const d of demandas ?? []) {
+      const dd = new Date(`${d.data}T12:00:00`).getTime();
+      const dias = Math.ceil((dd - alvo) / 86400000);
+      if (dias >= 0 && dias <= Number(d.antecedencia_dias ?? 10)) {
+        return `${d.ocasiao}${d.mensagem ? ` — ${d.mensagem}` : ""} Peça com antecedência!`;
+      }
+    }
+    return null;
+  })();
 
   useEffect(() => {
     if (staffOnly && painel) navigate({ to: painel, replace: true });
@@ -630,10 +654,11 @@ function Checkout() {
           </div>
           {quando === "agendar" ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label htmlFor="agendamento_para">Data e horário *</Label><Input id="agendamento_para" name="agendamento_para" type="datetime-local" required={quando === "agendar"} /></div>
+              <div className="space-y-1.5"><Label htmlFor="agendamento_para">Data e horário *</Label><Input id="agendamento_para" name="agendamento_para" type="datetime-local" required={quando === "agendar"} value={agDt} onChange={(e) => setAgDt(e.target.value)} /></div>
               <div className="space-y-1.5"><Label htmlFor="agendamento_obs">Observação do agendamento</Label><Input id="agendamento_obs" name="agendamento_obs" placeholder="Ex: festa às 15h" maxLength={200} /></div>
             </div>
           ) : null}
+          {avisoDemanda ? <p className="rounded-lg bg-secondary/30 p-2.5 text-xs">📅 {avisoDemanda}</p> : null}
           <div className="space-y-1.5">
             <Label htmlFor="tipo_evento">Tipo de evento (opcional)</Label>
             <select id="tipo_evento" name="tipo_evento" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="">
