@@ -36,6 +36,7 @@ import {
 } from "@/lib/catalog";
 import { usePerfil, useSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose } from "@/lib/supabase-loose";
 
 export const Route = createFileRoute("/calculadora")({
   head: () => ({
@@ -270,11 +271,11 @@ function Calculadora() {
       validade: validadeIso,
     };
 
-    let { error } = await supabase.from("orcamentos").insert(payload);
+    let { error } = await supabaseLoose.from("orcamentos").insert(payload);
     if (error && /column|does not exist/i.test(error.message)) {
       // Banco sem a migration 0007 (coluna validade): salva sem a data.
       const { validade: _v, ...semValidade } = payload;
-      const retry = await supabase.from("orcamentos").insert(semValidade);
+      const retry = await supabaseLoose.from("orcamentos").insert(semValidade);
       error = retry.error;
       if (!retry.error)
         toast.warning("Orçamento salvo sem validade — rode a migration 0007 no Supabase.");
