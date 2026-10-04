@@ -1141,13 +1141,17 @@ export type Database = {
           cidade: string
           complemento: string
           endereco: string
+          facebook: string
+          google_avaliacao: string
           id: boolean
+          instagram: string
           instrucoes_retirada: string
           mapa_lat: number | null
           mapa_lng: number | null
           nome: string
           pix_chave: string
           referencia: string
+          site: string
           telefone: string
         }
         Insert: {
@@ -1156,13 +1160,17 @@ export type Database = {
           cidade?: string
           complemento?: string
           endereco?: string
+          facebook?: string
+          google_avaliacao?: string
           id?: boolean
+          instagram?: string
           instrucoes_retirada?: string
           mapa_lat?: number | null
           mapa_lng?: number | null
           nome?: string
           pix_chave?: string
           referencia?: string
+          site?: string
           telefone?: string
         }
         Update: {
@@ -1171,13 +1179,17 @@ export type Database = {
           cidade?: string
           complemento?: string
           endereco?: string
+          facebook?: string
+          google_avaliacao?: string
           id?: boolean
+          instagram?: string
           instrucoes_retirada?: string
           mapa_lat?: number | null
           mapa_lng?: number | null
           nome?: string
           pix_chave?: string
           referencia?: string
+          site?: string
           telefone?: string
         }
         Relationships: []
@@ -1611,6 +1623,7 @@ export type Database = {
           bairro: string
           bloco: string | null
           campanha_origem: string
+          cep: string | null
           cidade: string
           cliente_nome: string
           complemento: string
@@ -1671,6 +1684,7 @@ export type Database = {
           bairro?: string
           bloco?: string | null
           campanha_origem?: string
+          cep?: string | null
           cidade?: string
           cliente_nome: string
           complemento?: string
@@ -1731,6 +1745,7 @@ export type Database = {
           bairro?: string
           bloco?: string | null
           campanha_origem?: string
+          cep?: string | null
           cidade?: string
           cliente_nome?: string
           complemento?: string
@@ -1873,6 +1888,7 @@ export type Database = {
           promo_fim: string | null
           promo_inicio: string | null
           tempo_fritura_50s: number
+          tempo_fritura_s: number | null
           tipo_venda: string
           unidade_medida: string
         }
@@ -1903,6 +1919,7 @@ export type Database = {
           promo_fim?: string | null
           promo_inicio?: string | null
           tempo_fritura_50s?: number
+          tempo_fritura_s?: number | null
           tipo_venda?: string
           unidade_medida?: string
         }
@@ -1933,6 +1950,7 @@ export type Database = {
           promo_fim?: string | null
           promo_inicio?: string | null
           tempo_fritura_50s?: number
+          tempo_fritura_s?: number | null
           tipo_venda?: string
           unidade_medida?: string
         }
