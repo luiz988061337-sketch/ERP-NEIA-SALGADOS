@@ -493,6 +493,15 @@ function Admin() {
     void refetchCalc();
   }
 
+  async function moderarAvaliacao(id: string, aprovada: boolean) {
+    const { error } = await supabase.from("avaliacoes").update({ aprovada }).eq("id", id);
+    if (error) toast.error("Não foi possível moderar.");
+    else {
+      toast.success(aprovada ? "Avaliação publicada." : "Avaliação despublicada.");
+      queryClient.invalidateQueries({ queryKey: ["admin-avaliacoes"] });
+    }
+  }
+
   function refreshAll() {
     for (const k of ["admin-pedidos", "admin-produtos", "admin-categorias", "admin-cupons", "admin-profiles", "admin-avaliacoes", "admin-all-roles", "admin-metas"])
       queryClient.invalidateQueries({ queryKey: [k] });
@@ -986,6 +995,43 @@ function Admin() {
                 <p className="text-xs text-muted-foreground">Também serve como contato do orçamento quando a Calculadora está vazia.</p>
               </div>
               <div className="space-y-1">
+                <Label htmlFor="loja-instagram">Instagram (link)</Label>
+                <Input
+                  id="loja-instagram"
+                  placeholder="https://instagram.com/..."
+                  value={lojaAtual.instagram ?? ""}
+                  onChange={(e) => setLoja("instagram", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-facebook">Facebook (link)</Label>
+                <Input
+                  id="loja-facebook"
+                  placeholder="https://facebook.com/..."
+                  value={lojaAtual.facebook ?? ""}
+                  onChange={(e) => setLoja("facebook", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-site">Site (link)</Label>
+                <Input
+                  id="loja-site"
+                  placeholder="https://..."
+                  value={lojaAtual.site ?? ""}
+                  onChange={(e) => setLoja("site", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-google">Avaliação Google (link)</Label>
+                <Input
+                  id="loja-google"
+                  placeholder="Link do perfil para avaliar"
+                  value={lojaAtual.google_avaliacao ?? ""}
+                  onChange={(e) => setLoja("google_avaliacao", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Aparece no pedido entregue. Nunca condicione benefício à nota.</p>
+              </div>
+              <div className="space-y-1">
                 <Label htmlFor="loja-complemento">Complemento</Label>
                 <Input
                   id="loja-complemento"
@@ -1066,6 +1112,12 @@ function Admin() {
                     <span className="ml-auto text-xs text-muted-foreground">{dataHora(a.created_at)}</span>
                   </p>
                   {a.comentario && <p className="mt-1 text-muted-foreground">“{a.comentario}”</p>}
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                    {a.autoriza_publicar ? <span className="text-muted-foreground">✔ autorizou publicar</span> : <span className="text-muted-foreground">não autorizou publicar</span>}
+                    {a.aprovada ? <span className="text-success">● publicada</span> : <span className="text-muted-foreground">○ pendente</span>}
+                    {!a.aprovada ? <Button size="sm" variant="outline" onClick={() => moderarAvaliacao(a.id, true)}>Aprovar e publicar</Button> : null}
+                    {a.aprovada ? <Button size="sm" variant="ghost" onClick={() => moderarAvaliacao(a.id, false)}>Despublicar</Button> : null}
+                  </p>
                 </li>
               ))}
               {(avaliacoes ?? []).length === 0 && <li className="text-muted-foreground">Sem avaliações.</li>}
