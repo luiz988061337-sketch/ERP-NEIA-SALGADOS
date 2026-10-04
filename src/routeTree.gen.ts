@@ -22,6 +22,7 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ComboRouteImport } from './routes/combo'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as CrmConfigRouteImport } from './routes/crm-config'
+import { Route as FiscalRouteImport } from './routes/fiscal'
 import { Route as HistoriaRouteImport } from './routes/historia'
 import { Route as ImpressaoRouteImport } from './routes/impressao'
 import { Route as McpRouteImport } from './routes/mcp'
@@ -100,6 +101,11 @@ const CrmConfigRoute = CrmConfigRouteImport.update({
   path: '/crm-config',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FiscalRoute = FiscalRouteImport.update({
+  id: '/fiscal',
+  path: '/fiscal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoriaRoute = HistoriaRouteImport.update({
   id: '/historia',
   path: '/historia',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
   '/crm-config': typeof CrmConfigRoute
+  '/fiscal': typeof FiscalRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
   '/mcp': typeof McpRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
   '/crm-config': typeof CrmConfigRoute
+  '/fiscal': typeof FiscalRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
   '/mcp': typeof McpRoute
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
   '/crm-config': typeof CrmConfigRoute
+  '/fiscal': typeof FiscalRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
   '/mcp': typeof McpRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/combo'
     | '/conta'
     | '/crm-config'
+    | '/fiscal'
     | '/historia'
     | '/impressao'
     | '/mcp'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/combo'
     | '/conta'
     | '/crm-config'
+    | '/fiscal'
     | '/historia'
     | '/impressao'
     | '/mcp'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/combo'
     | '/conta'
     | '/crm-config'
+    | '/fiscal'
     | '/historia'
     | '/impressao'
     | '/mcp'
@@ -342,6 +354,7 @@ export interface RootRouteChildren {
   ComboRoute: typeof ComboRoute
   ContaRoute: typeof ContaRoute
   CrmConfigRoute: typeof CrmConfigRoute
+  FiscalRoute: typeof FiscalRoute
   HistoriaRoute: typeof HistoriaRoute
   ImpressaoRoute: typeof ImpressaoRoute
   McpRoute: typeof McpRoute
@@ -449,6 +462,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fiscal': {
+      id: '/fiscal'
+      path: '/fiscal'
+      fullPath: '/fiscal'
+      preLoaderRoute: typeof FiscalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historia': {
       id: '/historia'
       path: '/historia'
@@ -550,6 +570,7 @@ const rootRouteChildren: RootRouteChildren = {
   ComboRoute: ComboRoute,
   ContaRoute: ContaRoute,
   CrmConfigRoute: CrmConfigRoute,
+  FiscalRoute: FiscalRoute,
   HistoriaRoute: HistoriaRoute,
   ImpressaoRoute: ImpressaoRoute,
   McpRoute: McpRoute,
@@ -567,13 +588,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
