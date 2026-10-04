@@ -71,6 +71,7 @@ function Operacao() {
       <LembretesBox />;
       <AvisosBox />
       <DemandaBox />
+      <GargaloBox />
 
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-display text-xl">O que preciso preparar agora?</h2>
@@ -182,6 +183,61 @@ function DemandaBox() {
           </li>
         ))}
         {(data ?? []).length === 0 ? <li className="text-muted-foreground">Nenhuma data configurada.</li> : null}
+      </ul>
+    </section>
+  );
+}
+
+/** §80: gargalos medidos no histórico real (separação/fritura+montagem/entrega). */
+function GargaloBox() {
+  const { data } = useQuery({
+    queryKey: ["op-gargalo"],
+    queryFn: async () => {
+      try {
+        const corte = new Date(Date.now() - 7 * 86400000).toISOString();
+        const { data } = await supabase.from("pedido_status_historico").select("pedido_id, de_status, para_status, created_at").gte("created_at", corte).order("created_at").limit(500);
+        const porPedido = new Map<string, { de: string | null; para: string; em: number }[]>();
+        for (const h of (data ?? []) as any[]) {
+          const arr = porPedido.get(h.pedido_id) ?? [];
+          arr.push({ de: h.de_status, para: h.para_status, em: +new Date(h.created_at) });
+          porPedido.set(h.pedido_id, arr);
+        }
+        const chaves = ["separacao", "fritura_montagem", "entrega"] as const;
+        const soma: Record<string, number> = { separacao: 0, fritura_montagem: 0, entrega: 0 };
+        const n: Record<string, number> = { separacao: 0, fritura_montagem: 0, entrega: 0 };
+        for (const evs of porPedido.values()) {
+          for (let i = 1; i < evs.length; i++) {
+            const prev = evs[i - 1] as { de: string | null; para: string; em: number };
+            const cur = evs[i] as { de: string | null; para: string; em: number };
+            const dt = (cur.em - prev.em) / 60000;
+            if (dt < 0 || dt > 24 * 60) continue;
+            let k: string | null = null;
+            if (prev.para === "recebido" && cur.para === "em_producao") k = "separacao";
+            else if (prev.para === "em_producao" && cur.para === "pronto") k = "fritura_montagem";
+            else if (prev.para === "pronto" && ["entregue", "em_rota", "aguardando_motoboy"].includes(cur.para)) k = "entrega";
+            if (k) { soma[k] = (soma[k] ?? 0) + dt; n[k] = (n[k] ?? 0) + 1; }
+          }
+        }
+        const media: Record<string, number> = {};
+        for (const k of chaves) media[k] = (n[k] ?? 0) ? Math.round((soma[k] ?? 0) / (n[k] ?? 1)) : 0;
+        return { media, amostras: n };
+      } catch { return null; }
+    },
+  });
+  if (!data) return null;
+  const pares = (Object.entries(data.media) as [string, number][]).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
+  const top = pares[0] ?? ["separacao", 0];
+  const topNome = top[0] ?? "separacao";
+  const topVal = top[1] ?? 0;
+  const nome: Record<string, string> = { separacao: "Separação", fritura_montagem: "Fritura/montagem", entrega: "Entrega" };
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 text-sm">
+      <h2 className="font-display text-xl">Gargalos (7 dias)</h2>
+      <p className="mt-1">Maior tempo médio: <strong>{nome[topNome] ?? topNome} ({topVal} min)</strong></p>
+      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+        {pares.map(([k, v]) => (
+          <li key={k}>{nome[k] ?? k}: {v} min médias ({(data.amostras[k] ?? 0)} amostras)</li>
+        ))}
       </ul>
     </section>
   );
