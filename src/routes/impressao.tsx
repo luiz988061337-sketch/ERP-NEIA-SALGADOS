@@ -109,9 +109,9 @@ function Fila() {
         {(fila.data ?? []).map((j: { id: string; trabalho_uuid: string; status: string; tentativa: number; payload: string; pedido_id: string | null; reimpressoes: number; ultimo_erro?: string | null }) => (
           <div key={j.id} className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-3 text-sm">
             <div className="min-w-0">
-              <div className="truncate font-mono text-xs">{j.trabalho_uuid}</div>
+              <div className="truncate font-mono text-xs" title={j.trabalho_uuid}>{j.trabalho_uuid}</div>
               <div className="text-muted-foreground">{j.status} • tentativas {j.tentativa} • reimp {j.reimpressoes}</div>
-              {j.status === "erro" && j.ultimo_erro ? <div className="truncate text-xs text-destructive">{j.ultimo_erro}</div> : null}
+              {j.status === "erro" && j.ultimo_erro ? <div className="mt-1 break-all text-xs text-destructive">{j.ultimo_erro}</div> : null}
             </div>
             <div className="flex shrink-0 gap-1">
               {j.status === "erro" ? <Button variant="outline" size="sm" onClick={() => tentarNovamente(j)}>↻ Tentar</Button> : null}
