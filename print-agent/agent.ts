@@ -12,15 +12,32 @@ import { join } from "node:path";
 
 const URL = process.env.SUPABASE_URL ?? "";
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const ANON = process.env.SUPABASE_ANON_KEY ?? "";
+const STAFF_EMAIL = process.env.STAFF_EMAIL ?? "";
+const STAFF_PASSWORD = process.env.STAFF_PASSWORD ?? "";
 const PRINTER = process.env.PRINTER_NAME ?? "Tanca TP-550";
 const POLL = Number(process.env.POLL_MS ?? 5000);
+// Política de repetição: erro volta à fila após RETRY_MIN, até MAX_TENTATIVAS.
+// "enviando" sem atualização há STUCK_MIN volta à fila (agente reiniciado no meio).
+const MAX_TENT = Number(process.env.MAX_TENTATIVAS ?? 5);
+const RETRY_MIN = Number(process.env.RETRY_MIN ?? 2);
+const STUCK_MIN = 5;
 
-if (!URL || !SERVICE) {
-  console.error("Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env do print-agent.");
+if (!URL || (!SERVICE && (!ANON || !STAFF_EMAIL || !STAFF_PASSWORD))) {
+  console.error("Configure no .env do print-agent: SUPABASE_URL + (SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_ANON_KEY + STAFF_EMAIL + STAFF_PASSWORD de um usuário admin/atendente/producao).");
   process.exit(1);
 }
 
-const sb = createClient(URL, SERVICE);
+const sb = createClient(URL, SERVICE || ANON);
+
+if (!SERVICE) {
+  const { error } = await sb.auth.signInWithPassword({ email: STAFF_EMAIL, password: STAFF_PASSWORD });
+  if (error) {
+    console.error("Login do agente falhou. Use um usuário com papel admin, atendente ou producao.", error.message);
+    process.exit(1);
+  }
+  console.log(`Agente logado como ${STAFF_EMAIL} (sessão com refresh automático).`);
+}
 
 function imprimirTexto(texto: string): void {
   const arq = join(tmpdir(), `neia-${Date.now()}.txt`);
@@ -34,6 +51,17 @@ function imprimirTexto(texto: string): void {
 }
 
 async function tick(): Promise<void> {
+  const agora = Date.now();
+  // 1) "enviando" travado (agente caiu no meio da impressão) volta à fila — sem duplicar
+  try {
+    await sb.from("fila_impressao").update({ status: "pendente", updated_at: new Date().toISOString() })
+      .eq("status", "enviando").lt("updated_at", new Date(agora - STUCK_MIN * 60000).toISOString());
+  } catch { /* segue */ }
+  // 2) erro com tentativas restantes volta à fila após o intervalo (backoff simples)
+  try {
+    await sb.from("fila_impressao").update({ status: "pendente", updated_at: new Date().toISOString() })
+      .eq("status", "erro").lt("tentativa", MAX_TENT).lt("updated_at", new Date(agora - RETRY_MIN * 60000).toISOString());
+  } catch { /* segue */ }
   const { data } = await sb.from("fila_impressao").select("*").eq("status", "pendente").order("created_at").limit(5);
   for (const job of data ?? []) {
     if (job.imprimir_apos && +new Date(job.imprimir_apos) > Date.now()) continue;
