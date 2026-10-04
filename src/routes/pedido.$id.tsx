@@ -70,7 +70,10 @@ function Acompanhar() {
     if (!window.confirm(`Cancelar o pedido nº ${pedido.numero}?`)) return;
     setCancelando(true);
     const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", pedido.id);
-    // Libera reservas (best-effort, tabela 0023)
+    // Libera reservas e devolve estoque (0030). Fallback legado se RPC não existir.
+    try {
+      await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: pedido.id });
+    } catch { /* sem migration — segue para fallback */ }
     try {
       await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", pedido.id).eq("status", "ativa");
     } catch { /* sem migration — segue */ }
@@ -199,10 +202,17 @@ function Acompanhar() {
             ) : null}
           </>
         ) : (
+          <>
           <p className="mt-1 text-muted-foreground">
             {pedido.endereco}
             {pedido.complemento ? `, ${pedido.complemento}` : ""} — {pedido.bairro}
           </p>
+          {pedido.tipo_imovel === "apartamento" || pedido.apartamento ? (
+            <p className="mt-1 text-muted-foreground">
+              Apto {pedido.apartamento || "—"}{pedido.bloco ? ` • Bloco/Torre ${pedido.bloco}` : ""}{pedido.andar ? ` • Andar ${pedido.andar}` : ""}{pedido.interfone ? ` • Interfone ${pedido.interfone}` : ""}{pedido.pode_subir ? " • autorizado subir" : ""}
+            </p>
+          ) : null}
+          </>
         )}
         <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
           <Phone className="size-3.5" /> {pedido.telefone}
