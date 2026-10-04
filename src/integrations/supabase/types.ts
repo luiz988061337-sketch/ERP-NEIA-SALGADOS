@@ -14,32 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          acao: string
+          actor: string | null
+          created_at: string
+          detalhe: string
+          id: string
+        }
+        Insert: {
+          acao: string
+          actor?: string | null
+          created_at?: string
+          detalhe?: string
+          id?: string
+        }
+        Update: {
+          acao?: string
+          actor?: string | null
+          created_at?: string
+          detalhe?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      ajuda_artigos: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          corpo: string
+          id: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          corpo: string
+          id?: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          corpo?: string
+          id?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       avaliacoes: {
         Row: {
+          aprovada: boolean
+          atendimento: number | null
+          autoriza_publicar: boolean
           comentario: string
           created_at: string
           id: string
           nota: number
+          pedido_id: string | null
+          prazo: number | null
           produto_id: string
           user_id: string
         }
         Insert: {
+          aprovada?: boolean
+          atendimento?: number | null
+          autoriza_publicar?: boolean
           comentario?: string
           created_at?: string
           id?: string
           nota: number
+          pedido_id?: string | null
+          prazo?: number | null
           produto_id: string
           user_id: string
         }
         Update: {
+          aprovada?: boolean
+          atendimento?: number | null
+          autoriza_publicar?: boolean
           comentario?: string
           created_at?: string
           id?: string
           nota?: number
+          pedido_id?: string | null
+          prazo?: number | null
           produto_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "avaliacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "avaliacoes_produto_id_fkey"
             columns: ["produto_id"]
@@ -94,6 +164,36 @@ export type Database = {
           created_at?: string
           id?: string
           slug?: string
+        }
+        Relationships: []
+      }
+      carrinho_eventos: {
+        Row: {
+          created_at: string
+          etapa: string
+          id: string
+          itens: Json
+          subtotal: number
+          telefone: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          etapa?: string
+          id?: string
+          itens?: Json
+          subtotal?: number
+          telefone?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          etapa?: string
+          id?: string
+          itens?: Json
+          subtotal?: number
+          telefone?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -318,44 +418,62 @@ export type Database = {
         Row: {
           ativo_ate_dias: number
           campanhas_habilitadas: boolean
+          carrinho_recuperacao_ativa: boolean
           fid_ativo: boolean
           fid_meta_pontos: number
           fid_reais_por_ponto: number
           fid_recompensa_valor: number
+          freq_min_pedidos: number
           id: boolean
           inativo_apos_dias: number
           intervalo_min_campanhas_dias: number
           mensagem_padrao: string
           muito_inativo_apos_dias: number
+          recompra_ativa: boolean
           risco_apos_dias: number
+          sugestoes_ativas: boolean
+          vip_min_pedidos: number
+          vip_min_valor: number
         }
         Insert: {
           ativo_ate_dias?: number
           campanhas_habilitadas?: boolean
+          carrinho_recuperacao_ativa?: boolean
           fid_ativo?: boolean
           fid_meta_pontos?: number
           fid_reais_por_ponto?: number
           fid_recompensa_valor?: number
+          freq_min_pedidos?: number
           id?: boolean
           inativo_apos_dias?: number
           intervalo_min_campanhas_dias?: number
           mensagem_padrao?: string
           muito_inativo_apos_dias?: number
+          recompra_ativa?: boolean
           risco_apos_dias?: number
+          sugestoes_ativas?: boolean
+          vip_min_pedidos?: number
+          vip_min_valor?: number
         }
         Update: {
           ativo_ate_dias?: number
           campanhas_habilitadas?: boolean
+          carrinho_recuperacao_ativa?: boolean
           fid_ativo?: boolean
           fid_meta_pontos?: number
           fid_reais_por_ponto?: number
           fid_recompensa_valor?: number
+          freq_min_pedidos?: number
           id?: boolean
           inativo_apos_dias?: number
           intervalo_min_campanhas_dias?: number
           mensagem_padrao?: string
           muito_inativo_apos_dias?: number
+          recompra_ativa?: boolean
           risco_apos_dias?: number
+          sugestoes_ativas?: boolean
+          vip_min_pedidos?: number
+          vip_min_valor?: number
         }
         Relationships: []
       }
@@ -401,6 +519,126 @@ export type Database = {
         }
         Relationships: []
       }
+      datas_demanda: {
+        Row: {
+          antecedencia_dias: number
+          ativo: boolean
+          data: string
+          id: string
+          mensagem: string | null
+          nivel: string
+          ocasiao: string
+        }
+        Insert: {
+          antecedencia_dias?: number
+          ativo?: boolean
+          data: string
+          id?: string
+          mensagem?: string | null
+          nivel?: string
+          ocasiao: string
+        }
+        Update: {
+          antecedencia_dias?: number
+          ativo?: boolean
+          data?: string
+          id?: string
+          mensagem?: string | null
+          nivel?: string
+          ocasiao?: string
+        }
+        Relationships: []
+      }
+      degustacao_regras: {
+        Row: {
+          id: boolean
+          pessoas_minimas: number
+          qtd_minima: number
+          valor_minimo: number
+        }
+        Insert: {
+          id?: boolean
+          pessoas_minimas?: number
+          qtd_minima?: number
+          valor_minimo?: number
+        }
+        Update: {
+          id?: boolean
+          pessoas_minimas?: number
+          qtd_minima?: number
+          valor_minimo?: number
+        }
+        Relationships: []
+      }
+      degustacoes: {
+        Row: {
+          created_at: string
+          id: string
+          orcamento_id: string | null
+          pedido_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "degustacoes_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "degustacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string
+          id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          id?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       enderecos: {
         Row: {
           bairro: string
@@ -434,6 +672,44 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_mov: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          motivo: string
+          produto_id: string
+          quantidade: number
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo?: string
+          produto_id: string
+          quantidade?: number
+          tipo?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          motivo?: string
+          produto_id?: string
+          quantidade?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_mov_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       favoritos: {
         Row: {
           produto_id: string
@@ -453,6 +729,122 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fila_fritura: {
+        Row: {
+          created_at: string
+          fim: string | null
+          funcionario: string | null
+          id: string
+          inicio: string | null
+          pedido_id: string | null
+          produto_id: string | null
+          quantidade: number
+          status: string
+          tempo_est_s: number
+          tempo_real_s: number | null
+        }
+        Insert: {
+          created_at?: string
+          fim?: string | null
+          funcionario?: string | null
+          id?: string
+          inicio?: string | null
+          pedido_id?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+          tempo_est_s?: number
+          tempo_real_s?: number | null
+        }
+        Update: {
+          created_at?: string
+          fim?: string | null
+          funcionario?: string | null
+          id?: string
+          inicio?: string | null
+          pedido_id?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+          tempo_est_s?: number
+          tempo_real_s?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fila_fritura_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fila_fritura_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fila_impressao: {
+        Row: {
+          created_at: string
+          id: string
+          impressora: string
+          imprimir_apos: string | null
+          motivo_reimpressao: string | null
+          payload: string
+          pedido_id: string | null
+          reimpressoes: number
+          status: string
+          tentativa: number
+          tipo: string
+          trabalho_uuid: string
+          ultimo_erro: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          impressora?: string
+          imprimir_apos?: string | null
+          motivo_reimpressao?: string | null
+          payload?: string
+          pedido_id?: string | null
+          reimpressoes?: number
+          status?: string
+          tentativa?: number
+          tipo?: string
+          trabalho_uuid: string
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          impressora?: string
+          imprimir_apos?: string | null
+          motivo_reimpressao?: string | null
+          payload?: string
+          pedido_id?: string | null
+          reimpressoes?: number
+          status?: string
+          tentativa?: number
+          tipo?: string
+          trabalho_uuid?: string
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fila_impressao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
         ]
@@ -483,6 +875,92 @@ export type Database = {
           ordem?: number
         }
         Relationships: []
+      }
+      horario_config: {
+        Row: {
+          antecedencia_min: number
+          id: boolean
+          tempo_fritura_50s: number
+          teto_unidades_janela: number
+        }
+        Insert: {
+          antecedencia_min?: number
+          id?: boolean
+          tempo_fritura_50s?: number
+          teto_unidades_janela?: number
+        }
+        Update: {
+          antecedencia_min?: number
+          id?: boolean
+          tempo_fritura_50s?: number
+          teto_unidades_janela?: number
+        }
+        Relationships: []
+      }
+      indicacoes: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          indicador_id: string
+          novo_user_id: string | null
+          pontos_indicador: number
+          pontos_novo: number
+          status: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          indicador_id: string
+          novo_user_id?: string | null
+          pontos_indicador?: number
+          pontos_novo?: number
+          status?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          indicador_id?: string
+          novo_user_id?: string | null
+          pontos_indicador?: number
+          pontos_novo?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      jornada_eventos: {
+        Row: {
+          created_at: string
+          etapa: string
+          id: string
+          pedido_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          etapa: string
+          id?: string
+          pedido_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          etapa?: string
+          id?: string
+          pedido_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jornada_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       loja_config: {
         Row: {
@@ -529,6 +1007,50 @@ export type Database = {
         }
         Relationships: []
       }
+      lotes: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          produto_id: string
+          produzido_em: string | null
+          quantidade: number
+          restante: number
+          status: string
+          validade: string | null
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          produto_id: string
+          produzido_em?: string | null
+          quantidade?: number
+          restante?: number
+          status?: string
+          validade?: string | null
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          produto_id?: string
+          produzido_em?: string | null
+          quantidade?: number
+          restante?: number
+          status?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metas: {
         Row: {
           created_at: string
@@ -563,7 +1085,9 @@ export type Database = {
           id: string
           nome: string
           observacao: string
+          status: string
           telefone: string
+          ultima_base_em: string | null
         }
         Insert: {
           ativo?: boolean
@@ -571,7 +1095,9 @@ export type Database = {
           id?: string
           nome?: string
           observacao?: string
+          status?: string
           telefone?: string
+          ultima_base_em?: string | null
         }
         Update: {
           ativo?: boolean
@@ -579,7 +1105,167 @@ export type Database = {
           id?: string
           nome?: string
           observacao?: string
+          status?: string
           telefone?: string
+          ultima_base_em?: string | null
+        }
+        Relationships: []
+      }
+      notificacoes: {
+        Row: {
+          created_at: string
+          detalhe: string
+          id: string
+          lida: boolean
+          link: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string
+          id?: string
+          lida?: boolean
+          link?: string
+          tipo?: string
+          titulo?: string
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string
+          id?: string
+          lida?: boolean
+          link?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      orcamentos: {
+        Row: {
+          cliente_nome: string
+          created_at: string
+          data_evento: string | null
+          horario: string
+          id: string
+          mix: Json
+          observacoes: string
+          pedido_id: string | null
+          pessoas: number
+          status: string
+          subtotal: number
+          taxa_entrega: number
+          telefone: string
+          tipo_evento: string
+          total: number
+          user_id: string | null
+          validade: string | null
+        }
+        Insert: {
+          cliente_nome?: string
+          created_at?: string
+          data_evento?: string | null
+          horario?: string
+          id?: string
+          mix?: Json
+          observacoes?: string
+          pedido_id?: string | null
+          pessoas?: number
+          status?: string
+          subtotal?: number
+          taxa_entrega?: number
+          telefone?: string
+          tipo_evento?: string
+          total?: number
+          user_id?: string | null
+          validade?: string | null
+        }
+        Update: {
+          cliente_nome?: string
+          created_at?: string
+          data_evento?: string | null
+          horario?: string
+          id?: string
+          mix?: Json
+          observacoes?: string
+          pedido_id?: string | null
+          pessoas?: number
+          status?: string
+          subtotal?: number
+          taxa_entrega?: number
+          telefone?: string
+          tipo_evento?: string
+          total?: number
+          user_id?: string | null
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiros: {
+        Row: {
+          autoriza_divulgacao: boolean
+          bairro: string | null
+          categoria: string
+          cidade: string | null
+          cnpj: string | null
+          created_at: string
+          descricao: string | null
+          email: string | null
+          id: string
+          instagram: string | null
+          logo_url: string | null
+          nome: string
+          proposta: string | null
+          responsavel: string | null
+          site: string | null
+          status: string
+          whatsapp: string | null
+        }
+        Insert: {
+          autoriza_divulgacao?: boolean
+          bairro?: string | null
+          categoria: string
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          descricao?: string | null
+          email?: string | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          nome: string
+          proposta?: string | null
+          responsavel?: string | null
+          site?: string | null
+          status?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          autoriza_divulgacao?: boolean
+          bairro?: string | null
+          categoria?: string
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          descricao?: string | null
+          email?: string | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          nome?: string
+          proposta?: string | null
+          responsavel?: string | null
+          site?: string | null
+          status?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
@@ -625,10 +1311,126 @@ export type Database = {
           },
         ]
       }
+      pedido_lembretes: {
+        Row: {
+          created_at: string
+          id: string
+          pedido_id: string
+          status: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pedido_id: string
+          status?: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pedido_id?: string
+          status?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_lembretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_notas: {
+        Row: {
+          autor: string | null
+          created_at: string
+          id: string
+          pedido_id: string
+          texto: string
+          visivel_cliente: boolean
+        }
+        Insert: {
+          autor?: string | null
+          created_at?: string
+          id?: string
+          pedido_id: string
+          texto?: string
+          visivel_cliente?: boolean
+        }
+        Update: {
+          autor?: string | null
+          created_at?: string
+          id?: string
+          pedido_id?: string
+          texto?: string
+          visivel_cliente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_notas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_status_historico: {
+        Row: {
+          actor: string | null
+          created_at: string
+          de_status: string | null
+          id: string
+          motivo: string | null
+          override: boolean
+          para_status: string
+          pedido_id: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          de_status?: string | null
+          id?: string
+          motivo?: string | null
+          override?: boolean
+          para_status: string
+          pedido_id: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          de_status?: string | null
+          id?: string
+          motivo?: string | null
+          override?: boolean
+          para_status?: string
+          pedido_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_status_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
           aceito_em: string | null
+          agendado_para: string | null
+          agendamento_janela: string | null
+          agendamento_obs: string
+          apartamento: string | null
+          atrasado: boolean
+          atraso_descricao: string | null
+          atraso_motivo: string | null
           bairro: string
+          bloco: string | null
           campanha_origem: string
           cidade: string
           cliente_nome: string
@@ -642,28 +1444,48 @@ export type Database = {
           entregue_em: string | null
           forma_pagamento: Database["public"]["Enums"]["pagamento"]
           id: string
+          impresso: boolean
+          indicado_por: string | null
+          interfone: string | null
           motoboy_atualizado_em: string | null
           motoboy_id: string | null
           motoboy_lat: number | null
           motoboy_lng: number | null
           numero: number
           observacoes: string
+          origem_parceiro_id: string | null
           pagamento_em: string | null
           pagamento_status: string
+          pode_subir: boolean | null
+          preparo_em: string | null
+          problema: string | null
           producao_status: Database["public"]["Enums"]["prod_status"]
+          pronto_em: string | null
           referencia: string
+          rota_id: string | null
+          saiu_em: string | null
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number
           taxa_entrega: number
           taxa_motoboy: number
           telefone: string
           tipo_entrega: string
+          tipo_evento: string
+          tipo_imovel: string | null
           total: number
           user_id: string | null
         }
         Insert: {
           aceito_em?: string | null
+          agendado_para?: string | null
+          agendamento_janela?: string | null
+          agendamento_obs?: string
+          apartamento?: string | null
+          atrasado?: boolean
+          atraso_descricao?: string | null
+          atraso_motivo?: string | null
           bairro?: string
+          bloco?: string | null
           campanha_origem?: string
           cidade?: string
           cliente_nome: string
@@ -677,28 +1499,48 @@ export type Database = {
           entregue_em?: string | null
           forma_pagamento?: Database["public"]["Enums"]["pagamento"]
           id?: string
+          impresso?: boolean
+          indicado_por?: string | null
+          interfone?: string | null
           motoboy_atualizado_em?: string | null
           motoboy_id?: string | null
           motoboy_lat?: number | null
           motoboy_lng?: number | null
           numero?: number
           observacoes?: string
+          origem_parceiro_id?: string | null
           pagamento_em?: string | null
           pagamento_status?: string
+          pode_subir?: boolean | null
+          preparo_em?: string | null
+          problema?: string | null
           producao_status?: Database["public"]["Enums"]["prod_status"]
+          pronto_em?: string | null
           referencia?: string
+          rota_id?: string | null
+          saiu_em?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           taxa_entrega?: number
           taxa_motoboy?: number
           telefone: string
           tipo_entrega?: string
+          tipo_evento?: string
+          tipo_imovel?: string | null
           total?: number
           user_id?: string | null
         }
         Update: {
           aceito_em?: string | null
+          agendado_para?: string | null
+          agendamento_janela?: string | null
+          agendamento_obs?: string
+          apartamento?: string | null
+          atrasado?: boolean
+          atraso_descricao?: string | null
+          atraso_motivo?: string | null
           bairro?: string
+          bloco?: string | null
           campanha_origem?: string
           cidade?: string
           cliente_nome?: string
@@ -712,23 +1554,100 @@ export type Database = {
           entregue_em?: string | null
           forma_pagamento?: Database["public"]["Enums"]["pagamento"]
           id?: string
+          impresso?: boolean
+          indicado_por?: string | null
+          interfone?: string | null
           motoboy_atualizado_em?: string | null
           motoboy_id?: string | null
           motoboy_lat?: number | null
           motoboy_lng?: number | null
           numero?: number
           observacoes?: string
+          origem_parceiro_id?: string | null
           pagamento_em?: string | null
           pagamento_status?: string
+          pode_subir?: boolean | null
+          preparo_em?: string | null
+          problema?: string | null
           producao_status?: Database["public"]["Enums"]["prod_status"]
+          pronto_em?: string | null
           referencia?: string
+          rota_id?: string | null
+          saiu_em?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number
           taxa_entrega?: number
           taxa_motoboy?: number
           telefone?: string
           tipo_entrega?: string
+          tipo_evento?: string
+          tipo_imovel?: string | null
           total?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas_entrega"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_recorrentes: {
+        Row: {
+          bairro: string
+          cidade: string
+          cliente_nome: string
+          complemento: string
+          created_at: string
+          endereco: string
+          forma_pagamento: string
+          frequencia: string
+          id: string
+          itens: Json
+          modo_confirmacao: string
+          proxima_execucao: string
+          referencia: string
+          status: string
+          telefone: string
+          user_id: string | null
+        }
+        Insert: {
+          bairro?: string
+          cidade?: string
+          cliente_nome?: string
+          complemento?: string
+          created_at?: string
+          endereco?: string
+          forma_pagamento?: string
+          frequencia?: string
+          id?: string
+          itens?: Json
+          modo_confirmacao?: string
+          proxima_execucao?: string
+          referencia?: string
+          status?: string
+          telefone?: string
+          user_id?: string | null
+        }
+        Update: {
+          bairro?: string
+          cidade?: string
+          cliente_nome?: string
+          complemento?: string
+          created_at?: string
+          endereco?: string
+          forma_pagamento?: string
+          frequencia?: string
+          id?: string
+          itens?: Json
+          modo_confirmacao?: string
+          proxima_execucao?: string
+          referencia?: string
+          status?: string
+          telefone?: string
           user_id?: string | null
         }
         Relationships: []
@@ -737,10 +1656,12 @@ export type Database = {
         Row: {
           categoria_id: string
           created_at: string
+          custo: number | null
           descricao: string
           destaque: boolean
           disponivel: boolean
           estoque: number
+          estoque_maximo: number | null
           estoque_minimo: number
           id: string
           imagem_url: string | null
@@ -750,16 +1671,19 @@ export type Database = {
           promo_ativo: boolean
           promo_fim: string | null
           promo_inicio: string | null
+          tempo_fritura_50s: number
           tipo_venda: string
           unidade_medida: string
         }
         Insert: {
           categoria_id: string
           created_at?: string
+          custo?: number | null
           descricao?: string
           destaque?: boolean
           disponivel?: boolean
           estoque?: number
+          estoque_maximo?: number | null
           estoque_minimo?: number
           id?: string
           imagem_url?: string | null
@@ -769,16 +1693,19 @@ export type Database = {
           promo_ativo?: boolean
           promo_fim?: string | null
           promo_inicio?: string | null
+          tempo_fritura_50s?: number
           tipo_venda?: string
           unidade_medida?: string
         }
         Update: {
           categoria_id?: string
           created_at?: string
+          custo?: number | null
           descricao?: string
           destaque?: boolean
           disponivel?: boolean
           estoque?: number
+          estoque_maximo?: number | null
           estoque_minimo?: number
           id?: string
           imagem_url?: string | null
@@ -788,6 +1715,7 @@ export type Database = {
           promo_ativo?: boolean
           promo_fim?: string | null
           promo_inicio?: string | null
+          tempo_fritura_50s?: number
           tipo_venda?: string
           unidade_medida?: string
         }
@@ -824,6 +1752,126 @@ export type Database = {
           telefone?: string
         }
         Relationships: []
+      }
+      reservas_estoque: {
+        Row: {
+          created_at: string
+          id: string
+          lote_id: string | null
+          pedido_id: string
+          produto_id: string | null
+          quantidade: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          pedido_id: string
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          pedido_id?: string
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_estoque_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_estoque_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rota_pedidos: {
+        Row: {
+          ordem: number
+          pedido_id: string
+          rota_id: string
+        }
+        Insert: {
+          ordem?: number
+          pedido_id: string
+          rota_id: string
+        }
+        Update: {
+          ordem?: number
+          pedido_id?: string
+          rota_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_pedidos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_pedidos_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas_entrega"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotas_entrega: {
+        Row: {
+          chegou_em: string | null
+          created_at: string
+          id: string
+          motoboy_id: string | null
+          saiu_em: string | null
+          status: string
+        }
+        Insert: {
+          chegou_em?: string | null
+          created_at?: string
+          id?: string
+          motoboy_id?: string | null
+          saiu_em?: string | null
+          status?: string
+        }
+        Update: {
+          chegou_em?: string | null
+          created_at?: string
+          id?: string
+          motoboy_id?: string | null
+          saiu_em?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotas_entrega_motoboy_id_fkey"
+            columns: ["motoboy_id"]
+            isOneToOne: false
+            referencedRelation: "motoboys"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
