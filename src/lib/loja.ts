@@ -26,6 +26,7 @@ export const DEFAULT_LOJA_CONFIG: LojaConfig = {
   instrucoes_retirada: "",
   mapa_lat: null,
   mapa_lng: null,
+  pix_chave: "",
 };
 
 export const COLUNAS_LOJA =
