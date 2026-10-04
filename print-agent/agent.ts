@@ -8,7 +8,8 @@ import "dotenv/config";
 import { execSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const URL = process.env.SUPABASE_URL ?? "";
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -17,6 +18,9 @@ const STAFF_EMAIL = process.env.STAFF_EMAIL ?? "";
 const STAFF_PASSWORD = process.env.STAFF_PASSWORD ?? "";
 const PRINTER = process.env.PRINTER_NAME ?? "Tanca TP-550";
 const POLL = Number(process.env.POLL_MS ?? 5000);
+// Fonte grande em negrito via imprimir.ps1 (Consolas Bold). Tamanho em pt.
+const FONT_SIZE = Number(process.env.FONT_TAMANHO ?? 12);
+const IMPRIMIR_PS1 = process.env.IMPRIMIR_PS1 ?? join(dirname(fileURLToPath(import.meta.url)), "imprimir.ps1");
 // Política de repetição: erro volta à fila após RETRY_MIN, até MAX_TENTATIVAS.
 // "enviando" sem atualização há STUCK_MIN volta à fila (agente reiniciado no meio).
 const MAX_TENT = Number(process.env.MAX_TENTATIVAS ?? 5);
@@ -42,6 +46,14 @@ if (!SERVICE) {
 function imprimirTexto(texto: string): void {
   const arq = join(tmpdir(), `neia-${Date.now()}.txt`);
   writeFileSync(arq, texto, "utf8");
+  // 1) fonte grande em negrito (imprimir.ps1); 2) fallback Out-Printer.
+  try {
+    execSync(
+      `powershell -ExecutionPolicy Bypass -File "${IMPRIMIR_PS1}" "${arq}" "${PRINTER}" ${FONT_SIZE}`,
+      { stdio: "ignore" },
+    );
+    return;
+  } catch { /* cai no fallback */ }
   // Usa impressora nomeada; se falhar, cai para padrão do Windows.
   try {
     execSync(`powershell -Command "Get-Content '${arq}' | Out-Printer -Name '${PRINTER}'"`, { stdio: "inherit" });
