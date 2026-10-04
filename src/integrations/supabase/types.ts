@@ -639,6 +639,178 @@ export type Database = {
         }
         Relationships: []
       }
+      documento_eventos: {
+        Row: {
+          actor: string | null
+          created_at: string
+          detalhe: string
+          documento_id: string
+          evento: string
+          id: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          detalhe?: string
+          documento_id: string
+          evento: string
+          id?: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          detalhe?: string
+          documento_id?: string
+          evento?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_eventos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_fiscais: {
+        Row: {
+          ambiente: string
+          chave_acesso: string | null
+          codigo_rejeicao: string | null
+          created_at: string
+          danfe_url: string | null
+          id: string
+          mensagem_rejeicao: string | null
+          modelo: string
+          numero: number | null
+          pedido_id: string
+          protocolo: string | null
+          serie: string
+          status: string
+          updated_at: string
+          xml: string | null
+        }
+        Insert: {
+          ambiente?: string
+          chave_acesso?: string | null
+          codigo_rejeicao?: string | null
+          created_at?: string
+          danfe_url?: string | null
+          id?: string
+          mensagem_rejeicao?: string | null
+          modelo?: string
+          numero?: number | null
+          pedido_id: string
+          protocolo?: string | null
+          serie?: string
+          status?: string
+          updated_at?: string
+          xml?: string | null
+        }
+        Update: {
+          ambiente?: string
+          chave_acesso?: string | null
+          codigo_rejeicao?: string | null
+          created_at?: string
+          danfe_url?: string | null
+          id?: string
+          mensagem_rejeicao?: string | null
+          modelo?: string
+          numero?: number | null
+          pedido_id?: string
+          protocolo?: string | null
+          serie?: string
+          status?: string
+          updated_at?: string
+          xml?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_fiscais_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa_fiscal: {
+        Row: {
+          ambiente: string
+          atualizado_em: string
+          bairro: string
+          cep: string
+          cidade: string
+          cnpj: string
+          complemento: string
+          csc_id: string
+          endereco: string
+          id: boolean
+          info_adicionais: string
+          inscricao_estadual: string
+          inscricao_municipal: string
+          modelo_padrao: string
+          nome_fantasia: string
+          numero: string
+          numero_inicial: number
+          provedor: string
+          razao_social: string
+          regime_tributario: string
+          serie: string
+          uf: string
+        }
+        Insert: {
+          ambiente?: string
+          atualizado_em?: string
+          bairro?: string
+          cep?: string
+          cidade?: string
+          cnpj?: string
+          complemento?: string
+          csc_id?: string
+          endereco?: string
+          id?: boolean
+          info_adicionais?: string
+          inscricao_estadual?: string
+          inscricao_municipal?: string
+          modelo_padrao?: string
+          nome_fantasia?: string
+          numero?: string
+          numero_inicial?: number
+          provedor?: string
+          razao_social?: string
+          regime_tributario?: string
+          serie?: string
+          uf?: string
+        }
+        Update: {
+          ambiente?: string
+          atualizado_em?: string
+          bairro?: string
+          cep?: string
+          cidade?: string
+          cnpj?: string
+          complemento?: string
+          csc_id?: string
+          endereco?: string
+          id?: boolean
+          info_adicionais?: string
+          inscricao_estadual?: string
+          inscricao_municipal?: string
+          modelo_padrao?: string
+          nome_fantasia?: string
+          numero?: string
+          numero_inicial?: number
+          provedor?: string
+          razao_social?: string
+          regime_tributario?: string
+          serie?: string
+          uf?: string
+        }
+        Relationships: []
+      }
       enderecos: {
         Row: {
           bairro: string
@@ -1091,6 +1263,7 @@ export type Database = {
           status: string
           telefone: string
           ultima_base_em: string | null
+          user_id: string | null
         }
         Insert: {
           ativo?: boolean
@@ -1101,6 +1274,7 @@ export type Database = {
           status?: string
           telefone?: string
           ultima_base_em?: string | null
+          user_id?: string | null
         }
         Update: {
           ativo?: boolean
@@ -1111,6 +1285,7 @@ export type Database = {
           status?: string
           telefone?: string
           ultima_base_em?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1428,6 +1603,7 @@ export type Database = {
           agendado_para: string | null
           agendamento_janela: string | null
           agendamento_obs: string
+          andar: string | null
           apartamento: string | null
           atrasado: boolean
           atraso_descricao: string | null
@@ -1438,6 +1614,7 @@ export type Database = {
           cidade: string
           cliente_nome: string
           complemento: string
+          cpf_cnpj: string | null
           created_at: string
           cupom: string | null
           desconto: number
@@ -1454,8 +1631,10 @@ export type Database = {
           motoboy_id: string | null
           motoboy_lat: number | null
           motoboy_lng: number | null
+          nome_fiscal: string | null
           numero: number
           observacoes: string
+          origem_cliente: string | null
           origem_parceiro_id: string | null
           pagamento_em: string | null
           pagamento_status: string
@@ -1475,6 +1654,7 @@ export type Database = {
           tipo_entrega: string
           tipo_evento: string
           tipo_imovel: string | null
+          torre: string | null
           total: number
           user_id: string | null
         }
@@ -1483,6 +1663,7 @@ export type Database = {
           agendado_para?: string | null
           agendamento_janela?: string | null
           agendamento_obs?: string
+          andar?: string | null
           apartamento?: string | null
           atrasado?: boolean
           atraso_descricao?: string | null
@@ -1493,6 +1674,7 @@ export type Database = {
           cidade?: string
           cliente_nome: string
           complemento?: string
+          cpf_cnpj?: string | null
           created_at?: string
           cupom?: string | null
           desconto?: number
@@ -1509,8 +1691,10 @@ export type Database = {
           motoboy_id?: string | null
           motoboy_lat?: number | null
           motoboy_lng?: number | null
+          nome_fiscal?: string | null
           numero?: number
           observacoes?: string
+          origem_cliente?: string | null
           origem_parceiro_id?: string | null
           pagamento_em?: string | null
           pagamento_status?: string
@@ -1530,6 +1714,7 @@ export type Database = {
           tipo_entrega?: string
           tipo_evento?: string
           tipo_imovel?: string | null
+          torre?: string | null
           total?: number
           user_id?: string | null
         }
@@ -1538,6 +1723,7 @@ export type Database = {
           agendado_para?: string | null
           agendamento_janela?: string | null
           agendamento_obs?: string
+          andar?: string | null
           apartamento?: string | null
           atrasado?: boolean
           atraso_descricao?: string | null
@@ -1548,6 +1734,7 @@ export type Database = {
           cidade?: string
           cliente_nome?: string
           complemento?: string
+          cpf_cnpj?: string | null
           created_at?: string
           cupom?: string | null
           desconto?: number
@@ -1564,8 +1751,10 @@ export type Database = {
           motoboy_id?: string | null
           motoboy_lat?: number | null
           motoboy_lng?: number | null
+          nome_fiscal?: string | null
           numero?: number
           observacoes?: string
+          origem_cliente?: string | null
           origem_parceiro_id?: string | null
           pagamento_em?: string | null
           pagamento_status?: string
@@ -1585,6 +1774,7 @@ export type Database = {
           tipo_entrega?: string
           tipo_evento?: string
           tipo_imovel?: string | null
+          torre?: string | null
           total?: number
           user_id?: string | null
         }
@@ -1658,17 +1848,25 @@ export type Database = {
       produtos: {
         Row: {
           categoria_id: string
+          cest: string | null
+          cfop_padrao: string | null
           created_at: string
+          csosn: string | null
+          cst: string | null
           custo: number | null
           descricao: string
+          descricao_fiscal: string | null
           destaque: boolean
           disponivel: boolean
           estoque: number
           estoque_maximo: number | null
           estoque_minimo: number
+          gtin: string | null
           id: string
           imagem_url: string | null
+          ncm: string | null
           nome: string
+          origem_mercadoria: string | null
           preco: number
           preco_promocional: number | null
           promo_ativo: boolean
@@ -1680,17 +1878,25 @@ export type Database = {
         }
         Insert: {
           categoria_id: string
+          cest?: string | null
+          cfop_padrao?: string | null
           created_at?: string
+          csosn?: string | null
+          cst?: string | null
           custo?: number | null
           descricao?: string
+          descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
+          gtin?: string | null
           id?: string
           imagem_url?: string | null
+          ncm?: string | null
           nome: string
+          origem_mercadoria?: string | null
           preco: number
           preco_promocional?: number | null
           promo_ativo?: boolean
@@ -1702,17 +1908,25 @@ export type Database = {
         }
         Update: {
           categoria_id?: string
+          cest?: string | null
+          cfop_padrao?: string | null
           created_at?: string
+          csosn?: string | null
+          cst?: string | null
           custo?: number | null
           descricao?: string
+          descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
+          gtin?: string | null
           id?: string
           imagem_url?: string | null
+          ncm?: string | null
           nome?: string
+          origem_mercadoria?: string | null
           preco?: number
           preco_promocional?: number | null
           promo_ativo?: boolean
