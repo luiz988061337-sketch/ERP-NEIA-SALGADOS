@@ -303,19 +303,26 @@ t("erro humano curto passa intacto", M(new Error("Sua sessão expirou. Entre nov
 t("não-Error cai no padrão", M("qualquer coisa") === "Não foi possível concluir agora. Tente novamente.");
 t("nenhuma mensagem tecnicaknown", ["constraint", "undefined", "NaN", "uuid", "PGRST"].every((t2) => !M(new Error(`${t2} falha`)).includes(t2)));
 
-// ---------- COMANDA 80mm: visível, curta, só ASCII ----------
+// ---------- COMANDA 80mm: modelo da casa, visível, só ASCII ----------
 const imp = await import("@/lib/impressao.ts");
 const cupom = imp.textoCupom({
-  numero: 1048, dataHora: "04/10/2026 18:00", cliente: "José da Silva", telefone: "(11) 90000-0000",
-  itens: [{ qtd: 50, nome: "Coxinha" }, { qtd: 30, nome: "Kibe" }], totalUnidades: 80,
-  entregaRetirada: "ENTREGA", horario: "18:00-18:30", endereco: "Rua das Flores, 123",
-  pagamento: "PIX", observacoes: "Sem pimenta", status: "CONFIRMADO",
+  numero: 293, dataHora: "01/10/2026 19:24", cliente: "José da Silva", telefone: "(15) 99692-6064",
+  itens: [{ qtd: 50, nome: "Mini Esfiha De Carne", precoUnit: 1 }, { qtd: 25, nome: "Risoles" }], totalUnidades: 75,
+  entregaRetirada: "ENTREGA", horario: "20:24 - 20:54", endereco: "Rua Julio Cirino Silva, N 235",
+  pagamento: "Cartao (Visa Credito)", observacoes: "", status: "PENDENTE_PGTO",
+  bairro: "Jardim Wanel Ville V", cidade: "Sorocaba", cep: "18057057",
+  subtotal: 177.5, taxaEntrega: 18, total: 195.5, pedidosCliente: 5,
+  prevista: "20:24 - 20:54",
 });
-t("comanda tem pedido em destaque", cupom.includes("PEDIDO #1048"));
-t("comanda tem total em destaque", cupom.includes("TOTAL: 80 UN"));
+t("comanda PARA ENTREGA no topo", cupom.includes("PARA ENTREGA"));
+t("comanda pedido em destaque", cupom.includes("Pedido 293"));
+t("comanda item com preço à direita", cupom.includes("(50)") && cupom.includes("R$ 50,00"));
+t("comanda pontilhado entre itens", cupom.includes(".........................................."));
+t("comanda cobra do cliente", cupom.includes("Cobrar do cliente"));
+t("comanda totais com R$", cupom.includes("Subtotal:") && cupom.includes("R$ 195,50"));
 t("comanda sem acentos (driver térmico)", /^[\x20-\x7E\n]*$/.test(cupom));
 t("comanda linhas curtas p/ 80mm", cupom.split("\n").every((l) => l.length <= 42));
-t("comanda maiúscula", cupom === cupom.toUpperCase());
+t("moeda com vírgula", imp.moedaCupom(177.5) === "R$ 177,50");
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);
