@@ -62,12 +62,15 @@ function Operacao() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
       <h1 className="font-display text-3xl">O que precisa de atenção?</h1>
+      <p className="text-sm"><a href="/fiscal" className="underline">Administração → Fiscal</a> • <a href="/impressao" className="underline">Impressão</a></p>
       <ul className="rounded-xl border border-border bg-card p-4 text-sm">
         {oQuePrecisaAtencao(lista, criticos).map((a) => <li key={a}>• {a}</li>)}
         {oQuePrecisaAtencao(lista, criticos).length === 0 ? <li>Tudo sob controle. ✅</li> : null}
       </ul>
       <p className="text-sm text-muted-foreground">{acontecendoAgora(lista, 0, 0)}</p>
       <LembretesBox />;
+      <AvisosBox />
+      <DemandaBox />
 
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-display text-xl">O que preciso preparar agora?</h2>
@@ -97,6 +100,90 @@ function Operacao() {
         <NovoLote onOk={() => qc.invalidateQueries({ queryKey: ["op-lotes"] })} />
       </section>
     </div>
+  );
+}
+
+function AvisosBox() {
+  const qc2 = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["op-avisos"], refetchInterval: 15000,
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("notificacoes").select("*").order("created_at", { ascending: false }).limit(20);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+  async function ler(id: string) {
+    await supabase.from("notificacoes").update({ lida: true }).eq("id", id);
+    qc2.invalidateQueries({ queryKey: ["op-avisos"] });
+  }
+  const novas = (data ?? []).filter((n) => !n.lida);
+  if (!data || data.length === 0) return null;
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 text-sm">
+      <h2 className="font-display text-xl">Avisos ({novas.length} novos)</h2>
+      <ul className="mt-2 space-y-2">
+        {data.map((n: any) => (
+          <li key={n.id} className="flex flex-wrap items-center gap-2">
+            <span className={n.lida ? "text-muted-foreground" : "font-semibold"}>{n.titulo} — {n.detalhe}</span>
+            {!n.lida ? <Button size="sm" variant="ghost" onClick={() => ler(n.id)}>Marcar lida</Button> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function DemandaBox() {
+  const qc3 = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["op-demanda"],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("datas_demanda").select("*").order("data").limit(30);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+  async function salvar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const { error } = await supabase.from("datas_demanda").insert({
+      ocasiao: String(f.get("ocasiao") ?? ""),
+      data: String(f.get("data") ?? ""),
+      mensagem: String(f.get("mensagem") ?? ""),
+      antecedencia_dias: Number(f.get("ant") ?? 10),
+      nivel: String(f.get("nivel") ?? "alta"),
+      ativo: true,
+    });
+    if (error) toast.error("Não salvou. Rode a migration 0028.");
+    else { toast.success("Data de alta demanda salva."); (e.target as HTMLFormElement).reset(); qc3.invalidateQueries({ queryKey: ["op-demanda"] }); }
+  }
+  async function alternar(d: any) {
+    await supabase.from("datas_demanda").update({ ativo: !d.ativo }).eq("id", d.id);
+    qc3.invalidateQueries({ queryKey: ["op-demanda"] });
+  }
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 text-sm">
+      <h2 className="font-display text-xl">Datas de alta demanda</h2>
+      <form onSubmit={salvar} className="mt-2 flex flex-wrap gap-2">
+        <Input name="ocasiao" placeholder="Ocasião (ex: Dia das Mães)" required className="w-44" />
+        <Input name="data" type="date" required className="w-36" />
+        <Input name="mensagem" placeholder="Aviso ao cliente" className="w-52" />
+        <Input name="ant" type="number" defaultValue={10} title="Antecedência (dias)" className="w-20" />
+        <Button type="submit" size="sm">+ Data</Button>
+      </form>
+      <ul className="mt-2 space-y-1">
+        {(data ?? []).map((d: any) => (
+          <li key={d.id} className="flex flex-wrap items-center gap-2">
+            <span className={d.ativo ? "" : "text-muted-foreground line-through"}>{d.ocasiao} • {d.data}{d.mensagem ? ` — ${d.mensagem}` : ""}</span>
+            <Button size="sm" variant="ghost" onClick={() => alternar(d)}>{d.ativo ? "Desativar" : "Ativar"}</Button>
+          </li>
+        ))}
+        {(data ?? []).length === 0 ? <li className="text-muted-foreground">Nenhuma data configurada.</li> : null}
+      </ul>
+    </section>
   );
 }
 
