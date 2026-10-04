@@ -48,8 +48,8 @@ export function chaveComoPayload(chave: string): { campo: string; valor: string 
 }
 
 function campo(id: string, valor: string): string {
-  // Mantém @ (chave Pix por e-mail) e o resto do que o BR Code aceita.
-  const v = valor.replace(/[^A-Za-z0-9 @.\-_]/g, "");
+  // Mantém @ (chave Pix por e-mail) e * (txid "***" = sem identificação, padrão oficial).
+  const v = valor.replace(/[^A-Za-z0-9 @.\-_*]/g, "");
   return `${id}${String(v.length).padStart(2, "0")}${v}`;
 }
 
