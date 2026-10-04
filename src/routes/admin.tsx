@@ -1325,6 +1325,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
       estoque: Number(f.get("estoque") ?? 0),
       estoque_minimo: Number(f.get("estoque_minimo") ?? 0),
       custo: f.get("custo") ? Number(f.get("custo")) : null,
+      tempo_fritura_s: f.get("tempo_fritura_s") ? Number(f.get("tempo_fritura_s")) : null,
       disponivel: f.get("disponivel") === "on",
       imagem_url: String(f.get("imagem_url") ?? "") || null,
       tipo_venda: String(f.get("tipo_venda") ?? "combo_50"),
@@ -1338,7 +1339,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
       : await supabase.from("produtos").insert(fullPayload);
     if (error && String(error.message ?? "").includes("column")) {
       // Banco ainda sem migrações 0001/0003/0004 — salva campos legados
-      const { tipo_venda: _tv, destaque: _d, promo_inicio: _pi, promo_fim: _pf, promo_ativo: _pa, estoque_minimo: _em, custo: _cu, ...legacy } = fullPayload;
+      const { tipo_venda: _tv, destaque: _d, promo_inicio: _pi, promo_fim: _pf, promo_ativo: _pa, estoque_minimo: _em, custo: _cu, tempo_fritura_s: _tf, ...legacy } = fullPayload;
       const retry = id
         ? await supabase.from("produtos").update(legacy).eq("id", id)
         : await supabase.from("produtos").insert(legacy);
@@ -1411,6 +1412,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
           <div className="space-y-1"><Label>Estoque</Label><Input name="estoque" type="number" defaultValue={editando?.estoque ?? 100} /></div>
           <div className="space-y-1"><Label>Estoque mínimo (alerta)</Label><Input name="estoque_minimo" type="number" defaultValue={editando?.estoque_minimo ?? 0} /></div>
           <div className="space-y-1"><Label>Custo (margem estimada, opcional)</Label><Input name="custo" type="number" step="0.01" defaultValue={editando?.custo ?? ""} /></div>
+          <div className="space-y-1"><Label>Fritura 50un em seg (padrão 210)</Label><Input name="tempo_fritura_s" type="number" min={0} placeholder="210" defaultValue={editando?.tempo_fritura_s ?? ""} /></div>
           <div className="space-y-1"><Label>Imagem URL (opcional)</Label><Input name="imagem_url" defaultValue={editando?.imagem_url ?? ""} /></div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="disponivel" defaultChecked={editando?.disponivel ?? true} /> Disponível</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="destaque" defaultChecked={editando?.destaque ?? false} /> ⭐ Destaque (Mais pedidos)</label>
