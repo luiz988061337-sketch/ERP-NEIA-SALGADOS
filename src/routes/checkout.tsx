@@ -20,6 +20,7 @@ import { pontosGanhos as calcPontos } from "@/lib/fidelidade";
 import { useCrmSettings } from "@/lib/crm";
 import { registrarEventoCarrinho } from "@/lib/inteligencia";
 import { gerarPix, urlQrPix } from "@/lib/pix";
+import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
@@ -330,10 +331,10 @@ function Checkout() {
       const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\n${isRetirada ? "Retirada na loja" : "Entrega"}: ${brl(taxaEntregaFinal)}\nTotal: ${brl(totalFinal)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\n${isRetirada ? "🏪 Retirada na loja" : `Endereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}\nRef.: ${parsed.data.referencia || "-"}`}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
       window.open(whatsappLink((pedido as any).telefone, msgWhats), "_blank", "noopener");
       navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Não foi possível registrar o pedido.");
-    } finally {
+} catch (err) {
+    console.error(err);
+    toast.error(mensagemDeErro(err));
+  } finally {
       setEnviando(false);
     }
   }

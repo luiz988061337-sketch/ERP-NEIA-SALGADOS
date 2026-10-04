@@ -273,5 +273,22 @@ t("descrição sem acento não quebra tamanho", (() => {
   return p.copiaECola.includes("Acao de Gracas");
 })());
 
+// ---------- MENSAGENS DE ERRO PARA O CLIENTE (§19) ----------
+const erros = await import("@/lib/erros.ts");
+const M = erros.mensagemDeErro;
+t("erro técnico (constraint) vira frase simples", M(new Error("violates foreign key constraint 'pedidos_user_id_fkey'")) === "Não foi possível concluir agora. Tente novamente.");
+t("erro de coluna não vaza nome técnico", !M(new Error('column "tipo_entrega" does not exist')).includes("column"));
+t("duplicate key não vaza", !M(new Error("duplicate key value violates unique constraint")).includes("duplicate"));
+t("undefined não vaza", M(new Error("undefined is not an object")) === "Não foi possível concluir agora. Tente novamente.");
+t("NaN não vaza", M(new Error("NaN")) === "Não foi possível concluir agora. Tente novamente.");
+t("uuid não vaza", M(new Error("invalid input syntax for type uuid: 123")) === "Não foi possível concluir agora. Tente novamente.");
+t("PGRST (PostgREST) não vaza", M(new Error("PGRST116: 0 rows")).includes("Tente novamente"));
+t("falha de rede não vaza", M(new Error("Failed to fetch")).includes("Tente novamente"));
+t("erro de negócio passa intacto", M(new Error('"Coxinha": combos são vendidos em múltiplos de 50 unidades. Ajuste no carrinho.')).includes("múltiplos de 50"));
+t("produto indisponível passa intacto", M(new Error("Produto Coxinha indisponível no momento.")).includes("indisponível"));
+t("erro humano curto passa intacto", M(new Error("Sua sessão expirou. Entre novamente.")) === "Sua sessão expirou. Entre novamente.");
+t("não-Error cai no padrão", M("qualquer coisa") === "Não foi possível concluir agora. Tente novamente.");
+t("nenhuma mensagem tecnicaknown", ["constraint", "undefined", "NaN", "uuid", "PGRST"].every((t2) => !M(new Error(`${t2} falha`)).includes(t2)));
+
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);
