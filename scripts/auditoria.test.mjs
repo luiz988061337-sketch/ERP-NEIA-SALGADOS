@@ -272,6 +272,11 @@ t("descrição sem acento não quebra tamanho", (() => {
   const p = pixlib.gerarPix({ chave: "neiasalgados@pix.com.br", valor: 10, descricao: "Pedido Ação de Graças" });
   return p.copiaECola.includes("Acao de Gracas");
 })());
+t("txid *** preservado (banco rejeita txid vazio)", pix.copiaECola.includes("62070503***"));
+t("CNPJ gera subcampo 01 com 14 dígitos", (() => {
+  const p = pixlib.gerarPix({ chave: "24913937000116", valor: 46 });
+  return p.copiaECola.includes("011424913937000116");
+})());
 
 // ---------- MENSAGENS DE ERRO PARA O CLIENTE (§19) ----------
 const erros = await import("@/lib/erros.ts");
