@@ -13,6 +13,10 @@ export type LojaConfig = {
   mapa_lat: number | null;
   mapa_lng: number | null;
   pix_chave?: string;
+  instagram?: string;
+  facebook?: string;
+  site?: string;
+  google_avaliacao?: string;
 };
 
 export const DEFAULT_LOJA_CONFIG: LojaConfig = {
@@ -27,10 +31,14 @@ export const DEFAULT_LOJA_CONFIG: LojaConfig = {
   mapa_lat: null,
   mapa_lng: null,
   pix_chave: "",
+  instagram: "",
+  facebook: "",
+  site: "",
+  google_avaliacao: "",
 };
 
 export const COLUNAS_LOJA =
-  "nome, telefone, endereco, bairro, cidade, complemento, referencia, instrucoes_retirada, mapa_lat, mapa_lng, pix_chave";
+  "nome, telefone, endereco, bairro, cidade, complemento, referencia, instrucoes_retirada, mapa_lat, mapa_lng, pix_chave, instagram, facebook, site, google_avaliacao";
 
 export function useLojaConfig() {
   return useQuery({
