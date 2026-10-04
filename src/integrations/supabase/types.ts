@@ -974,6 +974,7 @@ export type Database = {
           mapa_lat: number | null
           mapa_lng: number | null
           nome: string
+          pix_chave: string
           referencia: string
           telefone: string
         }
@@ -988,6 +989,7 @@ export type Database = {
           mapa_lat?: number | null
           mapa_lng?: number | null
           nome?: string
+          pix_chave?: string
           referencia?: string
           telefone?: string
         }
@@ -1002,6 +1004,7 @@ export type Database = {
           mapa_lat?: number | null
           mapa_lng?: number | null
           nome?: string
+          pix_chave?: string
           referencia?: string
           telefone?: string
         }
@@ -1893,7 +1896,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      parceiros_publicos: {
+        Row: {
+          bairro: string | null
+          categoria: string | null
+          cidade: string | null
+          descricao: string | null
+          id: string | null
+          instagram: string | null
+          logo_url: string | null
+          nome: string | null
+          site: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          descricao?: string | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          nome?: string | null
+          site?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          descricao?: string | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          nome?: string | null
+          site?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -1901,6 +1939,14 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      liberar_reserva_atomica: {
+        Args: { p_pedido_id: string }
+        Returns: number
+      }
+      reservar_estoque_atomica: {
+        Args: { p_pedido_id: string; p_produto_id: string; p_qtd: number }
         Returns: boolean
       }
     }
