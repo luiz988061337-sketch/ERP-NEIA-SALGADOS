@@ -2,8 +2,10 @@
 logs
 *.log
 npm-debug.log*
-# Env com chaves (já versionado uma vez — não adicionar segredos novos)
+# Env com chaves - NUNCA versionar (removido do indice em 2026-10)
 .env
+.env.*
+!.env.example
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
