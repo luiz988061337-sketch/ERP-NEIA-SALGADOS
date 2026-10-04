@@ -18,6 +18,7 @@ import {
   useCrmSettings,
 } from "@/lib/crm";
 import { diasParaRecompra, montarWhatsApp } from "@/lib/inteligencia";
+import { simularCampanhas } from "@/lib/crm-fidelidade";
 
 export const Route = createFileRoute("/campanhas")({
   validateSearch: z.object({
@@ -206,6 +207,8 @@ function Campanhas() {
       <CupomReativacao aptos={aptos.length} />
 
       <RecuperacaoCarrinho />
+
+      <SimuladorBox />
     </div>
   );
 }
@@ -348,6 +351,33 @@ function DesempenhoCampanhas() {
 }
 
 /** Recuperação de carrinho: checkouts iniciados (7d) sem pedido posterior. Manual via WhatsApp. */
+function SimuladorBox() {
+  const [venda, setVenda] = useState("46");
+  const [custo, setCusto] = useState("30");
+  const [emb, setEmb] = useState("2");
+  const base = { precoVenda: Number(venda) || 0, custoProduto: Number(custo) || 0, embalagem: Number(emb) || 0, taxas: 0, impostos: 0, desconto: 0, pontosValor: 0 };
+  const linhas = simularCampanhas(base, [0, 5, 10]);
+  return (
+    <div className="mt-4 space-y-2 rounded-xl border border-border bg-card p-5 text-sm">
+      <h2 className="font-display text-xl">Simulador de campanha</h2>
+      <p className="text-xs text-muted-foreground">Receita − custos − desconto = lucro estimado. Nunca confunda faturamento com lucro.</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className="space-y-1.5"><Label>Venda (R$)</Label><Input type="number" value={venda} onChange={(e) => setVenda(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Custo produto (R$)</Label><Input type="number" value={custo} onChange={(e) => setCusto(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label>Embalagem (R$)</Label><Input type="number" value={emb} onChange={(e) => setEmb(e.target.value)} /></div>
+      </div>
+      <ul className="space-y-1">
+        {linhas.map((l) => (
+          <li key={l.desconto} className="flex justify-between gap-2">
+            <span className="text-muted-foreground">{l.desconto === 0 ? "Sem desconto" : `Desconto R$ ${l.desconto}`}</span>
+            <span>lucro {brl(l.liquido)} • margem {l.margemPct.toFixed(1)}%</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function RecuperacaoCarrinho() {
   const { data: eventos } = useQuery({
     queryKey: ["carrinho-abandonos"],
