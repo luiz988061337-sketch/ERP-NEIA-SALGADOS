@@ -11,6 +11,7 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, dataHora, hora, mensagemStatus, whatsappLink, type OrderStatus, type ProdStatus } from "@/lib/format";
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
 import { tempoFritura, tempoFrituraPedido, formatarTempo, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
+import { impressaoDireta, fichaDireta } from "@/lib/impressao";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/producao")({
@@ -183,6 +184,24 @@ function Producao() {
     );
   }
 
+  async function imprimirDireto(pedido: any) {
+    try {
+      await impressaoDireta(supabase, pedido);
+      toast.success(`Pedido nº ${pedido.numero} enviado para a Tanca.`);
+    } catch {
+      toast.error("Não entrou na fila. Confira em /impressao.");
+    }
+  }
+
+  async function imprimirFicha() {
+    try {
+      await fichaDireta(supabase, consolidado.map((c) => ({ nome: c.nome, qtd: c.total })));
+      toast.success("Ficha enviada para a Tanca.");
+    } catch {
+      toast.error("Não entrou na fila. Confira em /impressao.");
+    }
+  }
+
   function bip() {
     try {
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -257,7 +276,7 @@ function Producao() {
             ))}
           </ul>
         )}
-        <Button size="sm" variant="outline" className="mt-3" onClick={() => window.print()}><Printer className="mr-1 size-4" /> Imprimir ficha</Button>
+        <Button size="sm" variant="outline" className="mt-3" onClick={imprimirFicha}><Printer className="mr-1 size-4" /> Imprimir ficha direto</Button>
       </section>
 
       <section className="mt-4 rounded-xl border border-border bg-card p-4" aria-label="Previsão">
@@ -342,8 +361,8 @@ function Producao() {
                   Chamar motoboy
                 </Button>
               ) : null}
-              <Button size="sm" variant="ghost" onClick={() => window.print()}>
-                <Printer className="mr-1 size-4" /> Imprimir
+              <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
+                <Printer className="mr-1 size-4" /> Imprimir direto
               </Button>
             </div>
           </article>
