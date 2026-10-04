@@ -23,6 +23,50 @@ export const Route = createFileRoute("/pedido/$id")({
   component: Acompanhar,
 });
 
+/** §75: marketing separado da comunicação operacional, só durante a espera. */
+function MarketingEspera({ status, loja }: { status: string; loja: any }) {
+  if (["entregue", "retirado", "cancelado"].includes(status)) return null;
+  const links = [
+    loja.instagram ? { nome: "Instagram", href: loja.instagram } : null,
+    loja.facebook ? { nome: "Facebook", href: loja.facebook } : null,
+    loja.site ? { nome: "Site", href: loja.site } : null,
+  ].filter(Boolean) as { nome: string; href: string }[];
+  if (links.length === 0 && !loja.telefone) return null;
+  return (
+    <section className="rounded-xl border border-border bg-card p-5 text-sm">
+      <h2 className="font-display text-xl">😊 Enquanto preparamos seu pedido...</h2>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {links.map((l) => (
+          <Button key={l.nome} size="sm" variant="outline" asChild>
+            <a href={l.href} target="_blank" rel="noopener noreferrer">{l.nome}</a>
+          </Button>
+        ))}
+        {loja.telefone ? (
+          <Button size="sm" variant="outline" asChild>
+            <a href={`https://wa.me/55${String(loja.telefone).replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+/** §66: convite Google pós-entrega. Nunca condiciona benefício à nota. */
+function ConviteGoogle({ status, loja, numero }: { status: string; loja: any; numero: number }) {
+  if (!["entregue", "retirado"].includes(status)) return null;
+  return (
+    <section className="rounded-xl border border-border bg-card p-5 text-sm">
+      <h2 className="font-display text-xl">Gostou do pedido nº {numero}?</h2>
+      <p className="mt-1 text-muted-foreground">Avalie os produtos em <Link to="/conta">Minha conta</Link> e, se quiser, deixe sua avaliação pública no Google. Obrigado! ❤️</p>
+      {loja.google_avaliacao ? (
+        <Button size="sm" className="mt-2" asChild>
+          <a href={loja.google_avaliacao} target="_blank" rel="noopener noreferrer">Avaliar no Google</a>
+        </Button>
+      ) : null}
+    </section>
+  );
+}
+
 function Acompanhar() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
@@ -121,6 +165,9 @@ function Acompanhar() {
       <section className="rounded-xl border border-border bg-card p-5">
         <StatusSteps status={pedido.status} tipoEntrega={pedido.tipo_entrega} />
       </section>
+
+      <MarketingEspera status={pedido.status} loja={loja} />
+      <ConviteGoogle status={pedido.status} loja={loja} numero={pedido.numero} />
 
       <NotasCliente pedidoId={pedido.id} />
 
