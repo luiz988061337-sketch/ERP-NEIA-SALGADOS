@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
-import { mensagemPortaria, MOTIVO_ATRASO } from "@/lib/entrega";
+import { mensagemPortaria, MOTIVO_ATRASO, ordenarRota } from "@/lib/entrega";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 
@@ -41,6 +41,8 @@ function Motoboy() {
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const watchId = useRef<number | null>(null);
+  const [retornando, setRetornando] = useState(false);
+  const [aba, setAba] = useState("disponiveis");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/motoboy" }, replace: true });
@@ -184,11 +186,20 @@ function Motoboy() {
     else {
       toast.success(`Pedido nº ${p.numero} entregue! +${brl(p.taxa_motoboy)}`);
       window.open(whatsappLink(p.telefone, mensagemStatus("entregue", p.cliente_nome, p.numero)), "_blank", "noopener");
-      // Se não há mais pendentes, vira RETORNANDO À BASE automaticamente
+      // Se não há mais pendentes, vira RETORNANDO À BASE automaticamente + avisa o admin
       try {
         const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("motoboy_id", user!.id).in("status", ["aguardando_motoboy", "em_rota"]);
         if ((count ?? 0) === 0) {
           await supabase.from("motoboys").update({ status: "retornando_base" }).eq("user_id", user!.id);
+          setRetornando(true);
+          try {
+            await supabase.from("notificacoes").insert({
+              tipo: "motoboy_retorno",
+              titulo: "Motoboy retornando à base",
+              detalhe: `Entregas concluídas. Verifique próximos pedidos prontos para nova rota.`,
+              link: "/admin",
+            });
+          } catch { /* sem migration — segue */ }
           toast.success("Todas entregas concluídas. Status: RETORNANDO À BASE. Avise ao chegar: Cheguei à base.");
         }
       } catch { /* sem migration — segue */ }
@@ -208,10 +219,19 @@ function Motoboy() {
 
   async function base(status: string) {
     try {
-      const { error } = await supabase.from("motoboys").update({ status, ultima_base_em: status === "disponivel_base" ? new Date().toISOString() : undefined }).eq("user_id", user!.id);
-      if (error) throw error;
+      const { data: atual } = await supabase.from("motoboys").select("id").eq("user_id", user!.id).maybeSingle();
+      if ((atual as any)?.id) {
+        const { error } = await supabase.from("motoboys").update({ status, ultima_base_em: status === "disponivel_base" ? new Date().toISOString() : undefined }).eq("user_id", user!.id);
+        if (error) throw error;
+      } else {
+        // Primeiro uso: vincula o usuário logado ao cadastro do motoboy
+        const { error } = await supabase.from("motoboys").insert({ user_id: user!.id, nome: (user as any)?.email ?? "Motoboy", telefone: "", status });
+        if (error) throw error;
+      }
+      if (status === "disponivel_base") setRetornando(false);
       toast.success(status === "disponivel_base" ? "CHEGUEI À BASE registrado. Disponível." : "Retornando à base.");
-    } catch { toast.error("Cadastre o motoboy em /admin → Motoboys primeiro."); }
+    } catch { toast.error("Cadastre o motoboy em /admin → Motoboys primeiro (rode a migration 0032)."); }
+    refresh();
   }
 
   const financ = useMemo(() => {
@@ -244,6 +264,13 @@ function Motoboy() {
         <Button size="sm" variant="outline" onClick={() => base("retornando_base")}>Retornando à base</Button>
         <Button size="sm" variant="outline" onClick={() => base("disponivel_base")}>Cheguei à base</Button>
       </div>
+      {retornando && (disponiveis ?? []).length > 0 ? (
+        <div className="mt-3 rounded-xl border border-primary/40 bg-primary/5 p-3 text-sm">
+          <p className="font-semibold">Há {(disponiveis ?? []).length} entrega(s) aguardando motoboy.</p>
+          <p className="text-xs text-muted-foreground">Nada foi atribuído automaticamente. Toque para ver e aceite se quiser sair de novo.</p>
+          <Button size="sm" className="mt-2" onClick={() => { setAba("disponiveis"); setRetornando(false); }}>Ver disponíveis</Button>
+        </div>
+      ) : null}
 
       {/* Financeiro */}
       <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3">
@@ -255,7 +282,7 @@ function Motoboy() {
         <FinCard titulo="Canceladas" qtd={financ.canceladas} valor="—" destaque={false} />
       </div>
 
-      <Tabs defaultValue="disponiveis" className="mt-6">
+      <Tabs value={aba} onValueChange={setAba} className="mt-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="disponiveis">Disponíveis ({disponiveis?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="andamento">Em andamento ({emAndamento.length})</TabsTrigger>
@@ -287,6 +314,7 @@ function Motoboy() {
         </TabsContent>
 
         <TabsContent value="andamento" className="mt-4 space-y-3">
+          {emAndamento.length > 1 ? <RotaPanel pedidos={emAndamento} motoboyUserId={user!.id} /> : null}
           {emAndamento.map((p: any) => (
             <EntregaCard key={p.id} p={p} onIniciar={() => iniciar(p)} onFinalizar={() => finalizar(p)} />
           ))}
@@ -321,6 +349,86 @@ function FinCard({ titulo, qtd, valor, destaque = true }: { titulo: string; qtd:
   );
 }
 
+function RotaPanel({ pedidos, motoboyUserId }: { pedidos: any[]; motoboyUserId: string }) {
+  const [ordem, setOrdem] = useState<string[]>(pedidos.map((p) => p.id));
+  const [rotaId, setRotaId] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  useEffect(() => {
+    setOrdem((atual) => {
+      const ids = pedidos.map((p) => p.id);
+      const mantidos = atual.filter((id) => ids.includes(id));
+      const novos = ids.filter((id) => !mantidos.includes(id));
+      return [...mantidos, ...novos];
+    });
+  }, [pedidos]);
+  const lista = ordenarRota(
+    pedidos.map((p) => ({ pedidoId: p.id, ordem: 0, endereco: "", cliente: "" })),
+    ordem,
+  );
+  const porId = new Map(pedidos.map((p) => [p.id, p]));
+  function mover(id: string, dir: -1 | 1) {
+    setOrdem((atual) => {
+      const i = atual.indexOf(id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= atual.length) return atual;
+      const copia = [...atual];
+      const tmp = copia[i] as string;
+      copia[i] = copia[j] as string;
+      copia[j] = tmp;
+      return copia;
+    });
+    setRotaId(null);
+  }
+  function linkRota(): string {
+    const dests = lista.map((r) => { const p = porId.get(r.pedidoId); return `${p?.endereco ?? ""}, ${p?.bairro ?? ""}`; }).filter((d) => d.trim().length > 3);
+    if (dests.length === 0) return "#";
+    if (dests.length === 1) return rotaGoogleMaps(dests[0] ?? "");
+    const [first, ...rest] = dests;
+    const last = (rest.pop() ?? "") as string;
+    const way = rest.length > 0 ? `&waypoints=${encodeURIComponent(rest.join("|"))}` : "";
+    return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(first ?? "")}&destination=${encodeURIComponent(last)}${way}&travelmode=driving`;
+  }
+  async function salvarRota() {
+    setSalvando(true);
+    try {
+      const { data: mb } = await supabase.from("motoboys").select("id").eq("user_id", motoboyUserId).maybeSingle();
+      const motoboyId = (mb as any)?.id ?? null;
+      const { data: rota, error } = await supabase.from("rotas_entrega").insert({ motoboy_id: motoboyId, status: "em_rota", saiu_em: new Date().toISOString() }).select("id").single();
+      if (error || !(rota as any)?.id) throw error ?? new Error("insert falhou");
+      const id = (rota as any).id as string;
+      const { error: e2 } = await supabase.from("rota_pedidos").insert(lista.map((r, i) => ({ rota_id: id, pedido_id: r.pedidoId, ordem: i + 1 })));
+      if (e2) throw e2;
+      await supabase.from("pedidos").update({ rota_id: id }).in("id", lista.map((r) => r.pedidoId));
+      setRotaId(id);
+      toast.success(`Rota com ${lista.length} paradas salva.`);
+    } catch { toast.error("Não foi possível salvar a rota (rode a migration 0032)."); }
+    setSalvando(false);
+  }
+  return (
+    <section className="rounded-xl border border-border bg-card p-4">
+      <h2 className="font-display text-lg">Minha rota ({lista.length} paradas)</h2>
+      <p className="text-xs text-muted-foreground">Reordene com ↑ ↓ e salve. Nada é atribuído sozinho.</p>
+      <ol className="mt-2 space-y-1 text-sm">
+        {lista.map((r, i) => {
+          const p = porId.get(r.pedidoId);
+          return (
+            <li key={r.pedidoId} className="flex items-center gap-2">
+              <span className="font-display">{i + 1}.</span>
+              <span className="min-w-0 flex-1 truncate">Nº {p?.numero} • {p?.endereco} — {p?.bairro}</span>
+              <Button size="sm" variant="ghost" disabled={i === 0} onClick={() => mover(r.pedidoId, -1)}>↑</Button>
+              <Button size="sm" variant="ghost" disabled={i === lista.length - 1} onClick={() => mover(r.pedidoId, 1)}>↓</Button>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" asChild><a href={linkRota()} target="_blank" rel="noopener noreferrer"><Navigation className="mr-1 size-4" /> Abrir rota no Maps</a></Button>
+        <Button size="sm" onClick={salvarRota} disabled={salvando}>{salvando ? "Salvando..." : rotaId ? "Rota salva ✓ (toque p/ atualizar)" : "Salvar rota"}</Button>
+      </div>
+    </section>
+  );
+}
+
 function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => void; onFinalizar: () => void }) {
   const [avisarAtraso, setAvisarAtraso] = useState(false);
   const destino = `${p.endereco}${p.complemento ? `, ${p.complemento}` : ""}, ${p.bairro}`;
@@ -347,6 +455,9 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
           </a>
         </p>
         <p className="flex items-start gap-1.5"><MapPin className="mt-0.5 size-3.5 shrink-0" /> {destino}{p.referencia ? ` (Ref: ${p.referencia})` : ""}</p>
+        {p.tipo_imovel === "apartamento" || p.apartamento ? (
+          <p className="text-xs text-muted-foreground">Apto {p.apartamento || "—"}{p.bloco ? ` • Bloco/Torre ${p.bloco}` : ""}{p.andar ? ` • Andar ${p.andar}` : ""}{p.torre ? ` • Torre ${p.torre}` : ""}{p.interfone ? ` • Interfone ${p.interfone}` : ""}{p.pode_subir ? " • autorizado subir" : ""}</p>
+        ) : null}
         <p className="flex items-center gap-1.5"><Banknote className="size-3.5" /> {PAGAMENTO_LABEL[p.forma_pagamento] ?? p.forma_pagamento} • Total pedido {brl(p.total)} • <strong className="text-success">Sua taxa {brl(p.taxa_motoboy)}</strong></p>
         {(p.pedido_itens ?? []).length > 0 && (
           <p className="text-xs text-muted-foreground">Itens: {(p.pedido_itens ?? []).map((i: any) => `${i.quantidade}x ${i.nome}`).join(", ")}</p>
@@ -372,6 +483,18 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
   );
 }
 
+const MOTIVO_LABEL: Record<string, string> = {
+  transito: "Trânsito",
+  chuva_via: "Chuva / via",
+  problema_veiculo: "Problema no veículo",
+  endereco_dificil: "Endereço difícil",
+  problema_endereco: "Problema no endereço",
+  cliente_ausente: "Cliente ausente",
+  espera: "Espera",
+  acidente_bloqueio: "Acidente / bloqueio",
+  outro: "Outro (descrever)",
+};
+
 function AtrasoForm({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const [motivo, setMotivo] = useState("transito");
@@ -385,7 +508,7 @@ function AtrasoForm({ id }: { id: string }) {
   return (
     <div className="mt-2 flex gap-2">
       <select value={motivo} onChange={(e) => setMotivo(e.target.value)} className="rounded-md border border-input bg-background px-2 py-1 text-xs">
-        {MOTIVO_ATRASO.map((m) => <option key={m} value={m}>{m}</option>)}
+        {MOTIVO_ATRASO.map((m) => <option key={m} value={m}>{MOTIVO_LABEL[m] ?? m}</option>)}
       </select>
       {motivo === "outro" ? <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Descreva" className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs" /> : null}
       <Button size="sm" onClick={salvar}>Salvar</Button>
