@@ -163,10 +163,10 @@ function AuthPage() {
       />
 
       <Tabs defaultValue="entrar" className="mt-8">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="entrar">Entrar</TabsTrigger>
-          <TabsTrigger value="cadastrar">Criar conta</TabsTrigger>
-          <TabsTrigger value="whats">WhatsApp</TabsTrigger>
+        <TabsList className="no-scrollbar flex w-full justify-start gap-1 overflow-x-auto">
+          <TabsTrigger value="entrar" className="shrink-0">Entrar</TabsTrigger>
+          <TabsTrigger value="cadastrar" className="shrink-0">Criar conta</TabsTrigger>
+          <TabsTrigger value="whats" className="shrink-0">WhatsApp</TabsTrigger>
         </TabsList>
 
         <TabsContent value="entrar">
