@@ -237,11 +237,11 @@ function Conta() {
       </section>
 
       <Tabs value={aba} onValueChange={setAba} className="mt-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
-          <TabsTrigger value="favoritos">Favoritos</TabsTrigger>
-          <TabsTrigger value="enderecos">Endereços</TabsTrigger>
-          <TabsTrigger value="avaliar">Avaliar</TabsTrigger>
+        <TabsList className="no-scrollbar flex w-full justify-start gap-1 overflow-x-auto">
+          <TabsTrigger value="pedidos" className="shrink-0">Pedidos</TabsTrigger>
+          <TabsTrigger value="favoritos" className="shrink-0">Favoritos</TabsTrigger>
+          <TabsTrigger value="enderecos" className="shrink-0">Endereços</TabsTrigger>
+          <TabsTrigger value="avaliar" className="shrink-0">Avaliar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pedidos" className="mt-4">
