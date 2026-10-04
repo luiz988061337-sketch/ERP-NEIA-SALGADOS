@@ -283,10 +283,10 @@ function Motoboy() {
       </div>
 
       <Tabs value={aba} onValueChange={setAba} className="mt-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="disponiveis">Disponíveis ({disponiveis?.length ?? 0})</TabsTrigger>
-          <TabsTrigger value="andamento">Em andamento ({emAndamento.length})</TabsTrigger>
-          <TabsTrigger value="historico">Histórico</TabsTrigger>
+        <TabsList className="no-scrollbar flex w-full justify-start gap-1 overflow-x-auto">
+          <TabsTrigger value="disponiveis" className="shrink-0 text-xs sm:text-sm">Disponíveis ({disponiveis?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="andamento" className="shrink-0 text-xs sm:text-sm">Em andamento ({emAndamento.length})</TabsTrigger>
+          <TabsTrigger value="historico" className="shrink-0 text-xs sm:text-sm">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="disponiveis" className="mt-4 space-y-3">
@@ -412,9 +412,9 @@ function RotaPanel({ pedidos, motoboyUserId }: { pedidos: any[]; motoboyUserId: 
         {lista.map((r, i) => {
           const p = porId.get(r.pedidoId);
           return (
-            <li key={r.pedidoId} className="flex items-center gap-2">
-              <span className="font-display">{i + 1}.</span>
-              <span className="min-w-0 flex-1 truncate">Nº {p?.numero} • {p?.endereco} — {p?.bairro}</span>
+            <li key={r.pedidoId} className="flex items-start gap-2">
+              <span className="font-display">Nº {porId.get(r.pedidoId)?.numero}</span>
+              <span className="min-w-0 flex-1">{i + 1}. {p?.endereco} — {p?.bairro}</span>
               <Button size="sm" variant="ghost" disabled={i === 0} onClick={() => mover(r.pedidoId, -1)}>↑</Button>
               <Button size="sm" variant="ghost" disabled={i === lista.length - 1} onClick={() => mover(r.pedidoId, 1)}>↓</Button>
             </li>
