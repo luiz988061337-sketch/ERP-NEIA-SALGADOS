@@ -486,6 +486,7 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
   const [prazos, setPrazos] = useState<Record<string, number>>({});
   const [atends, setAtends] = useState<Record<string, number>>({});
   const [coment, setComent] = useState<Record<string, string>>({});
+  const [autoriza, setAutoriza] = useState<Record<string, boolean>>({});
 
   const comprados = [...new Set((pedidos ?? []).flatMap((p: any) => (p.pedido_itens ?? []).map((i: any) => i.produto_id).filter(Boolean)))];
   const paraAvaliar = produtos.filter((p) => comprados.includes(p.id));
@@ -520,10 +521,11 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
       comentario: coment[produtoId] ?? "",
       prazo: prazos[produtoId] ?? null,
       atendimento: atends[produtoId] ?? null,
+      autoriza_publicar: !!autoriza[produtoId],
     };
     let { error } = await supabase.from("avaliacoes").upsert(payload, { onConflict: "produto_id,user_id" });
     if (error && String(error.message ?? "").includes("column")) {
-      const { prazo: _pz, atendimento: _at, ...legacy } = payload;
+      const { prazo: _pz, atendimento: _at, autoriza_publicar: _ap, ...legacy } = payload;
       const retry = await supabase.from("avaliacoes").upsert(legacy, { onConflict: "produto_id,user_id" });
       error = retry.error;
       if (!error) toast.warning("Avaliação salva sem prazo/atendimento — rode a migração 0004.");
@@ -560,6 +562,10 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
             className="mt-2"
             maxLength={200}
           />
+          <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={!!autoriza[p.id]} onChange={(e) => setAutoriza((s) => ({ ...s, [p.id]: e.target.checked }))} className="size-4" />
+            Autorizo publicar minha avaliação (nome abreviado, após aprovação da loja)
+          </label>
           <Button size="sm" className="mt-2" onClick={() => enviar(p.id)}>Enviar avaliação</Button>
         </li>
       ))}
