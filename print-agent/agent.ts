@@ -4,6 +4,7 @@
  * usa impressora padrão do Windows (Out-Printer). Rode no notebook da loja.
  */
 import { createClient } from "@supabase/supabase-js";
+import "dotenv/config";
 import { execSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
