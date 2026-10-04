@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PagamentoStatusBadge, StatusSteps } from "@/components/status-steps";
 import { NotasCliente } from "@/components/pedido-notas";
 import { MapView } from "@/components/map-view";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, dataHora, PAGAMENTO_LABEL } from "@/lib/format";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, lojaTemEndereco, pontoDaLoja, useLojaConfig } from "@/lib/loja";
 
@@ -70,6 +70,10 @@ function Acompanhar() {
     if (!window.confirm(`Cancelar o pedido nº ${pedido.numero}?`)) return;
     setCancelando(true);
     const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", pedido.id);
+    // Libera reservas (best-effort, tabela 0023)
+    try {
+      await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", pedido.id).eq("status", "ativa");
+    } catch { /* sem migration — segue */ }
     setCancelando(false);
     if (error) toast.error("Não foi possível cancelar. Fale com a loja.");
     else {
@@ -135,7 +139,7 @@ function Acompanhar() {
       <section className="space-y-2 rounded-xl border border-border bg-card p-5 text-sm">
         <h2 className="font-display text-xl">Resumo</h2>
         <ul className="space-y-1">
-          {(itens ?? []).map((i) => (
+          {(itens ?? []).map((i: any) => (
             <li key={i.id} className="flex justify-between">
               <span className="text-muted-foreground">
                 {i.quantidade}x {i.nome}

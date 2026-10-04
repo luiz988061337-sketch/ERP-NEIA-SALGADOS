@@ -1,0 +1,12 @@
+{
+  "name": "neia-print-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npx tsx agent.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "tsx": "^4.19.2"
+  }
+}

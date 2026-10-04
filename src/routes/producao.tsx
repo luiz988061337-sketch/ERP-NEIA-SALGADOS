@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/status-steps";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, dataHora, hora, mensagemStatus, whatsappLink, type OrderStatus, type ProdStatus } from "@/lib/format";
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
+import { tempoFritura, formatarTempo, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/producao")({
@@ -29,6 +30,8 @@ function Producao() {
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
+  const [sonsAtivos, setSonsAtivos] = useState(false);
+  const [tocados, setTocados] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/producao" }, replace: true });
@@ -142,6 +145,23 @@ function Producao() {
       toast.error("Não foi possível atualizar o pedido.");
       return;
     }
+    try {
+      await supabase.from("pedido_status_historico").insert({ pedido_id: pedido.id, de_status: pedido.status, para_status: status });
+    } catch { /* sem migration — segue */ }
+    try {
+      const totalUn = (pedido.pedido_itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0);
+      await supabase.from("fila_fritura").insert({
+        pedido_id: pedido.id, quantidade: totalUn, tempo_est_s: tempoFritura(totalUn), status: status === "pronto" ? "pronto" : "aguardando",
+      });
+    } catch { /* sem migration — segue */ }
+    try {
+      await supabase.from("fila_impressao").insert({
+        trabalho_uuid: `${pedido.id}:${status}:${Date.now()}`,
+        pedido_id: pedido.id, tipo: "pedido",
+        payload: `NEIA SALGADOS\nPEDIDO #${pedido.numero}\nSTATUS ${status}`,
+        impressora: "Tanca TP-550",
+      });
+    } catch { /* fila opcional */ }
     queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
     window.open(
       whatsappLink(pedido.telefone, mensagemStatus(status, pedido.cliente_nome, pedido.numero)),
@@ -149,6 +169,34 @@ function Producao() {
       "noopener",
     );
   }
+
+  function bip() {
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new Ctx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880; o.start();
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      o.stop(ctx.currentTime + 0.4);
+    } catch { /* sem áudio — mantém alerta visual */ }
+  }
+
+  // Alerta sonoro: novo pedido na fila (sem repetir após reload)
+  useEffect(() => {
+    if (!sonsAtivos || !pedidos) return;
+    const eventos: AlertaSonoro[] = pedidos
+      .filter((p: any) => p.status === "recebido")
+      .map((p: any) => ({ id: `novo:${p.id}`, tipo: "novo_pedido" as const, em: p.created_at }));
+    const novos = filtrarNovos(eventos, tocados);
+    if (novos.length > 0) {
+      bip();
+      setTocados((s) => new Set([...s, ...novos.map((n) => n.id)]));
+      toast.warning(`${novos.length} novo(s) pedido(s)!`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify((pedidos ?? []).map((p: any) => p.id + p.status)), sonsAtivos]);
 
   if (roles && !autorizado) {
     return <p className="p-10 text-center text-muted-foreground">Você não tem acesso ao painel de produção.</p>;
@@ -166,7 +214,9 @@ function Producao() {
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm">
         <div className="space-y-1"><Label htmlFor="dia-producao">Data de referência</Label><Input id="dia-producao" type="date" value={diaFiltro} onChange={(e) => setDiaFiltro(e.target.value)} /></div>
         <label className="flex items-center gap-2 pt-5"><input type="checkbox" checked={incluirProntos} onChange={(e) => setIncluirProntos(e.target.checked)} /> Incluir prontos</label>
-        <p className="w-full text-xs text-muted-foreground">Somente pedidos válidos (cancelados nunca entram).</p>
+        <label className="flex items-center gap-2 pt-5"><input type="checkbox" checked={sonsAtivos} onChange={(e) => { setSonsAtivos(e.target.checked); if (e.target.checked) bip(); }} /> Ativar sons</label>
+        <Button size="sm" variant="outline" onClick={bip}>Testar som</Button>
+        <p className="w-full text-xs text-muted-foreground">Som + impressão têm eventos independentes. Sem repetir após reload.</p>
       </div>
 
       <section className="mt-4 rounded-xl border border-border bg-card p-4" aria-label="Consolidação">
@@ -259,6 +309,9 @@ function Producao() {
               <p className="mt-2 rounded bg-muted p-2 text-xs">Obs.: {p.observacoes}</p>
             ) : null}
             <p className="mt-2 text-sm font-display text-primary">{brl(p.total)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Fritura est: {formatarTempo(tempoFritura((p.pedido_itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0)))} • Próximo lote: {(p.pedido_itens ?? [])[0]?.nome ?? "—"}
+            </p>
 
             <div className="mt-3 flex flex-wrap gap-2">
               {p.status === "recebido" ? (

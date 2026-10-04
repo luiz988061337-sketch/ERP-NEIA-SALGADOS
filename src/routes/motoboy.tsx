@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
-import { supabase } from "@/integrations/supabase/client";
+import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { mensagemPortaria, MOTIVO_ATRASO } from "@/lib/entrega";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 
@@ -183,8 +184,34 @@ function Motoboy() {
     else {
       toast.success(`Pedido nº ${p.numero} entregue! +${brl(p.taxa_motoboy)}`);
       window.open(whatsappLink(p.telefone, mensagemStatus("entregue", p.cliente_nome, p.numero)), "_blank", "noopener");
+      // Se não há mais pendentes, vira RETORNANDO À BASE automaticamente
+      try {
+        const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("motoboy_id", user!.id).in("status", ["aguardando_motoboy", "em_rota"]);
+        if ((count ?? 0) === 0) {
+          await supabase.from("motoboys").update({ status: "retornando_base" }).eq("user_id", user!.id);
+          toast.success("Todas entregas concluídas. Status: RETORNANDO À BASE. Avise ao chegar: Cheguei à base.");
+        }
+      } catch { /* sem migration — segue */ }
     }
     refresh();
+  }
+
+  async function marcarAtraso(p: any) {
+    const motivo = window.prompt(`Motivo do atraso (${MOTIVO_ATRASO.join(", ")}):`, "transito");
+    if (!motivo) return;
+    if (!MOTIVO_ATRASO.includes(motivo as never)) { toast.error("Motivo inválido."); return; }
+    const desc = motivo === "outro" ? (window.prompt("Descreva o motivo:") ?? "") : "";
+    const { error } = await supabase.from("pedidos").update({ atrasado: true, atraso_motivo: motivo, atraso_descricao: desc || null }).eq("id", p.id);
+    if (error) toast.error("Não foi possível marcar atraso (rode o PASSO-11).");
+    else { toast.warning(`Pedido nº ${p.numero} marcado como atrasado.`); refresh(); }
+  }
+
+  async function base(status: string) {
+    try {
+      const { error } = await supabase.from("motoboys").update({ status, ultima_base_em: status === "disponivel_base" ? new Date().toISOString() : undefined }).eq("user_id", user!.id);
+      if (error) throw error;
+      toast.success(status === "disponivel_base" ? "CHEGUEI À BASE registrado. Disponível." : "Retornando à base.");
+    } catch { toast.error("Cadastre o motoboy em /admin → Motoboys primeiro."); }
   }
 
   const financ = useMemo(() => {
@@ -213,6 +240,10 @@ function Motoboy() {
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="font-display text-3xl">Painel do motoboy</h1>
       <p className="text-sm text-muted-foreground">Aceite corridas, navegue e acompanhe seus ganhos.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => base("retornando_base")}>Retornando à base</Button>
+        <Button size="sm" variant="outline" onClick={() => base("disponivel_base")}>Cheguei à base</Button>
+      </div>
 
       {/* Financeiro */}
       <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3">
@@ -291,6 +322,7 @@ function FinCard({ titulo, qtd, valor, destaque = true }: { titulo: string; qtd:
 }
 
 function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => void; onFinalizar: () => void }) {
+  const [avisarAtraso, setAvisarAtraso] = useState(false);
   const destino = `${p.endereco}${p.complemento ? `, ${p.complemento}` : ""}, ${p.bairro}`;
   const pontos = [
     p.destino_lat && p.destino_lng ? { lat: p.destino_lat, lng: p.destino_lng, label: "Cliente" } : null,
@@ -330,8 +362,33 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
         </Button>
         {p.status !== "em_rota" && <Button size="sm" onClick={onIniciar}>Iniciar entrega</Button>}
         {p.status === "em_rota" && <Button size="sm" onClick={onFinalizar}>Finalizar entrega</Button>}
+        <Button size="sm" variant="outline" onClick={() => setAvisarAtraso((v) => !v)}>Atraso</Button>
       </div>
+      {p.atrasado ? <p className="mt-2 text-xs text-destructive">Atrasado: {p.atraso_motivo}{p.atraso_descricao ? ` — ${p.atraso_descricao}` : ""}</p> : null}
+      {p.tipo_imovel === "apartamento" || p.apartamento ? <p className="mt-2 text-xs text-muted-foreground">{mensagemPortaria(!!p.pode_subir)}</p> : null}
+      {avisarAtraso ? <AtrasoForm id={p.id} /> : null}
       {p.status === "em_rota" && <p className="mt-2 text-xs text-muted-foreground">Sua localização está sendo compartilhada com cliente e admin em tempo real.</p>}
     </article>
+  );
+}
+
+function AtrasoForm({ id }: { id: string }) {
+  const queryClient = useQueryClient();
+  const [motivo, setMotivo] = useState("transito");
+  const [desc, setDesc] = useState("");
+  async function salvar() {
+    if (motivo === "outro" && !desc.trim()) { toast.error("Descreva o motivo."); return; }
+    const { error } = await supabase.from("pedidos").update({ atrasado: true, atraso_motivo: motivo, atraso_descricao: desc || null }).eq("id", id);
+    if (error) toast.error("Rode o PASSO-11 no Supabase.");
+    else { toast.warning("Atraso registrado."); queryClient.invalidateQueries(); }
+  }
+  return (
+    <div className="mt-2 flex gap-2">
+      <select value={motivo} onChange={(e) => setMotivo(e.target.value)} className="rounded-md border border-input bg-background px-2 py-1 text-xs">
+        {MOTIVO_ATRASO.map((m) => <option key={m} value={m}>{m}</option>)}
+      </select>
+      {motivo === "outro" ? <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Descreva" className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs" /> : null}
+      <Button size="sm" onClick={salvar}>Salvar</Button>
+    </div>
   );
 }

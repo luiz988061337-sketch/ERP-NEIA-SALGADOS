@@ -63,6 +63,21 @@ export function SiteHeader() {
               <Link to="/calculadora">Orçamento</Link>
             </Button>
           )}
+          {staffOnly ? null : (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/parceiros">Parceiros</Link>
+            </Button>
+          )}
+          {staffOnly ? null : (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/ajuda">Ajuda</Link>
+            </Button>
+          )}
+          {staffOnly ? null : (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/historia">História</Link>
+            </Button>
+          )}
           {user && !staffOnly ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/conta">Meus pedidos</Link>

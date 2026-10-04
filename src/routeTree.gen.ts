@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AjudaRouteImport } from './routes/ajuda'
 import { Route as AtendenteRouteImport } from './routes/atendente'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CalculadoraRouteImport } from './routes/calculadora'
@@ -21,8 +22,12 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ComboRouteImport } from './routes/combo'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as CrmConfigRouteImport } from './routes/crm-config'
+import { Route as HistoriaRouteImport } from './routes/historia'
+import { Route as ImpressaoRouteImport } from './routes/impressao'
 import { Route as MotoboyRouteImport } from './routes/motoboy'
+import { Route as OperacaoRouteImport } from './routes/operacao'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
+import { Route as ParceirosRouteImport } from './routes/parceiros'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
@@ -35,6 +40,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AjudaRoute = AjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AtendenteRoute = AtendenteRouteImport.update({
@@ -87,14 +97,34 @@ const CrmConfigRoute = CrmConfigRouteImport.update({
   path: '/crm-config',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoriaRoute = HistoriaRouteImport.update({
+  id: '/historia',
+  path: '/historia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImpressaoRoute = ImpressaoRouteImport.update({
+  id: '/impressao',
+  path: '/impressao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotoboyRoute = MotoboyRouteImport.update({
   id: '/motoboy',
   path: '/motoboy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OperacaoRoute = OperacaoRouteImport.update({
+  id: '/operacao',
+  path: '/operacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrcamentosRoute = OrcamentosRouteImport.update({
   id: '/orcamentos',
   path: '/orcamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ParceirosRoute = ParceirosRouteImport.update({
+  id: '/parceiros',
+  path: '/parceiros',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProducaoRoute = ProducaoRouteImport.update({
@@ -116,6 +146,7 @@ const PedidoIdRoute = PedidoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ajuda': typeof AjudaRoute
   '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
   '/calculadora': typeof CalculadoraRoute
@@ -126,8 +157,12 @@ export interface FileRoutesByFullPath {
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
   '/crm-config': typeof CrmConfigRoute
+  '/historia': typeof HistoriaRoute
+  '/impressao': typeof ImpressaoRoute
   '/motoboy': typeof MotoboyRoute
+  '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/parceiros': typeof ParceirosRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -135,6 +170,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ajuda': typeof AjudaRoute
   '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
   '/calculadora': typeof CalculadoraRoute
@@ -145,8 +181,12 @@ export interface FileRoutesByTo {
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
   '/crm-config': typeof CrmConfigRoute
+  '/historia': typeof HistoriaRoute
+  '/impressao': typeof ImpressaoRoute
   '/motoboy': typeof MotoboyRoute
+  '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/parceiros': typeof ParceirosRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -155,6 +195,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/ajuda': typeof AjudaRoute
   '/atendente': typeof AtendenteRoute
   '/auth': typeof AuthRoute
   '/calculadora': typeof CalculadoraRoute
@@ -165,8 +206,12 @@ export interface FileRoutesById {
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
   '/crm-config': typeof CrmConfigRoute
+  '/historia': typeof HistoriaRoute
+  '/impressao': typeof ImpressaoRoute
   '/motoboy': typeof MotoboyRoute
+  '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
+  '/parceiros': typeof ParceirosRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -176,6 +221,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/ajuda'
     | '/atendente'
     | '/auth'
     | '/calculadora'
@@ -186,8 +232,12 @@ export interface FileRouteTypes {
     | '/combo'
     | '/conta'
     | '/crm-config'
+    | '/historia'
+    | '/impressao'
     | '/motoboy'
+    | '/operacao'
     | '/orcamentos'
+    | '/parceiros'
     | '/producao'
     | '/recorrentes'
     | '/pedido/$id'
@@ -195,6 +245,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/ajuda'
     | '/atendente'
     | '/auth'
     | '/calculadora'
@@ -205,8 +256,12 @@ export interface FileRouteTypes {
     | '/combo'
     | '/conta'
     | '/crm-config'
+    | '/historia'
+    | '/impressao'
     | '/motoboy'
+    | '/operacao'
     | '/orcamentos'
+    | '/parceiros'
     | '/producao'
     | '/recorrentes'
     | '/pedido/$id'
@@ -214,6 +269,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/ajuda'
     | '/atendente'
     | '/auth'
     | '/calculadora'
@@ -224,8 +280,12 @@ export interface FileRouteTypes {
     | '/combo'
     | '/conta'
     | '/crm-config'
+    | '/historia'
+    | '/impressao'
     | '/motoboy'
+    | '/operacao'
     | '/orcamentos'
+    | '/parceiros'
     | '/producao'
     | '/recorrentes'
     | '/pedido/$id'
@@ -234,6 +294,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  AjudaRoute: typeof AjudaRoute
   AtendenteRoute: typeof AtendenteRoute
   AuthRoute: typeof AuthRoute
   CalculadoraRoute: typeof CalculadoraRoute
@@ -244,8 +305,12 @@ export interface RootRouteChildren {
   ComboRoute: typeof ComboRoute
   ContaRoute: typeof ContaRoute
   CrmConfigRoute: typeof CrmConfigRoute
+  HistoriaRoute: typeof HistoriaRoute
+  ImpressaoRoute: typeof ImpressaoRoute
   MotoboyRoute: typeof MotoboyRoute
+  OperacaoRoute: typeof OperacaoRoute
   OrcamentosRoute: typeof OrcamentosRoute
+  ParceirosRoute: typeof ParceirosRoute
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
   PedidoIdRoute: typeof PedidoIdRoute
@@ -265,6 +330,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ajuda': {
+      id: '/ajuda'
+      path: '/ajuda'
+      fullPath: '/ajuda'
+      preLoaderRoute: typeof AjudaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/atendente': {
@@ -337,6 +409,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/historia': {
+      id: '/historia'
+      path: '/historia'
+      fullPath: '/historia'
+      preLoaderRoute: typeof HistoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/impressao': {
+      id: '/impressao'
+      path: '/impressao'
+      fullPath: '/impressao'
+      preLoaderRoute: typeof ImpressaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motoboy': {
       id: '/motoboy'
       path: '/motoboy'
@@ -344,11 +430,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MotoboyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/operacao': {
+      id: '/operacao'
+      path: '/operacao'
+      fullPath: '/operacao'
+      preLoaderRoute: typeof OperacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orcamentos': {
       id: '/orcamentos'
       path: '/orcamentos'
       fullPath: '/orcamentos'
       preLoaderRoute: typeof OrcamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/parceiros': {
+      id: '/parceiros'
+      path: '/parceiros'
+      fullPath: '/parceiros'
+      preLoaderRoute: typeof ParceirosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/producao': {
@@ -378,6 +478,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  AjudaRoute: AjudaRoute,
   AtendenteRoute: AtendenteRoute,
   AuthRoute: AuthRoute,
   CalculadoraRoute: CalculadoraRoute,
@@ -388,8 +489,12 @@ const rootRouteChildren: RootRouteChildren = {
   ComboRoute: ComboRoute,
   ContaRoute: ContaRoute,
   CrmConfigRoute: CrmConfigRoute,
+  HistoriaRoute: HistoriaRoute,
+  ImpressaoRoute: ImpressaoRoute,
   MotoboyRoute: MotoboyRoute,
+  OperacaoRoute: OperacaoRoute,
   OrcamentosRoute: OrcamentosRoute,
+  ParceirosRoute: ParceirosRoute,
   ProducaoRoute: ProducaoRoute,
   RecorrentesRoute: RecorrentesRoute,
   PedidoIdRoute: PedidoIdRoute,

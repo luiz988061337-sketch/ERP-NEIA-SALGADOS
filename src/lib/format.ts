@@ -21,6 +21,21 @@ export const STATUS_LABEL: Record<string, string> = {
   em_rota: "Em Rota",
   entregue: "Entregue",
   cancelado: "Cancelado",
+  // Etapas finas (virtuais — mapeadas p/ o enum do banco em pedido-status.ts)
+  novo: "Novo",
+  aguardando_pagamento: "Aguardando Pagamento",
+  confirmado: "Confirmado",
+  agendado: "Agendado",
+  aguardando_preparacao: "Aguardando Preparação",
+  em_separacao: "Em Separação",
+  em_preparacao: "Em Preparação",
+  em_montagem: "Em Montagem",
+  aguardando_retirada: "Aguardando Retirada",
+  aguardando_entrega: "Aguardando Entrega",
+  saiu_para_entrega: "Saiu para Entrega",
+  retirado: "Retirado",
+  atrasado: "Atrasado",
+  problema: "Problema",
 };
 
 /** Rótulo amigável p/ o dono (sem trocar o enum do banco). */
@@ -100,11 +115,25 @@ export const TAXA_ENTREGA = 6;
 export function mensagemStatus(status: string, cliente: string, numero: number): string {
   const base: Record<string, string> = {
     recebido: `Olá ${cliente}, seu pedido nº ${numero} foi recebido com sucesso.`,
+    novo: `Olá ${cliente}, seu pedido nº ${numero} foi recebido com sucesso.`,
+    aguardando_pagamento: `Olá ${cliente}, seu pedido nº ${numero} está aguardando pagamento.`,
+    confirmado: `Olá ${cliente}, seu pedido nº ${numero} foi confirmado.`,
+    agendado: `Olá ${cliente}, seu pedido nº ${numero} está agendado. Avisaremos na hora da preparação.`,
+    aguardando_preparacao: `Olá ${cliente}, seu pedido nº ${numero} está aguardando preparação.`,
+    em_separacao: `Olá ${cliente}, estamos separando seu pedido nº ${numero}.`,
+    em_preparacao: `Olá ${cliente}, seu pedido nº ${numero} entrou em preparação.`,
+    em_montagem: `Olá ${cliente}, estamos montando seu pedido nº ${numero}.`,
     em_producao: `Olá ${cliente}, seu pedido nº ${numero} está em produção.`,
     pronto: `Olá ${cliente}, seu pedido nº ${numero} foi finalizado e aguarda coleta.`,
+    aguardando_retirada: `Olá ${cliente}, seu pedido nº ${numero} está pronto para retirada.`,
+    aguardando_entrega: `Olá ${cliente}, seu pedido nº ${numero} está aguardando entrega.`,
     aguardando_motoboy: `Olá ${cliente}, seu pedido nº ${numero} está aguardando o motoboy.`,
+    saiu_para_entrega: `Olá ${cliente}, seu pedido nº ${numero} saiu para entrega.`,
     em_rota: `Olá ${cliente}, o motoboy já saiu para entrega do pedido nº ${numero}.`,
     entregue: `Olá ${cliente}, seu pedido nº ${numero} foi entregue. Obrigado pela preferência.`,
+    retirado: `Olá ${cliente}, seu pedido nº ${numero} foi retirado. Obrigado pela preferência.`,
+    atrasado: `Olá ${cliente}, seu pedido nº ${numero} atrasou um pouco. Já estamos cuidando disso.`,
+    problema: `Olá ${cliente}, tivemos um imprevisto no pedido nº ${numero}. Vamos falar com você.`,
     cancelado: `Olá ${cliente}, seu pedido nº ${numero} foi cancelado.`,
   };
   return base[status] ?? "";

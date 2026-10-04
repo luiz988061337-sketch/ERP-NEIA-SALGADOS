@@ -24,8 +24,9 @@ import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
+import { validarAgendamento, mensagemLotado } from "@/lib/horario";
 
-export const PIX_CHAVE = "neiasalgados@pix.com.br";
+export const PIX_CHAVE = "24913937000116";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -114,7 +115,7 @@ function Checkout() {
     recompensaValor: settings?.fid_recompensa_valor ?? 20,
   });
   const pix = gerarPix({
-    chave: PIX_CHAVE,
+    chave: loja.pix_chave || PIX_CHAVE,
     valor: totalFinalUI,
     descricao: "Pedido Néia Salgados",
   });
@@ -202,17 +203,26 @@ function Checkout() {
     let tipoEvento = String(form.get("tipo_evento") ?? "");
     if (quando === "agendar") {
       const dtRaw = String(form.get("agendamento_para") ?? "");
+      const v = validarAgendamento(dtRaw, new Date(), 30);
+      if (!v.ok) {
+        toast.error(v.motivo);
+        return;
+      }
+      // Capacidade da janela (best-effort): soma unidades já agendadas ±30min
+      try {
+        const dt = new Date(dtRaw);
+        const ini = new Date(dt.getTime() - 30 * 60000).toISOString();
+        const fim = new Date(dt.getTime() + 30 * 60000).toISOString();
+        const { data: vizinhos } = await supabase.from("pedidos").select("id").gte("agendado_para", ini).lte("agendado_para", fim).neq("status", "cancelado").limit(200);
+        if ((vizinhos ?? []).length >= 20) {
+          toast.error(mensagemLotado());
+          return;
+        }
+      } catch { /* sem dados — segue */ }
       const dt = new Date(dtRaw);
-      if (!dtRaw || Number.isNaN(+dt)) {
-        toast.error("Escolha data e horário para agendar.");
-        return;
-      }
-      if (+dt <= Date.now() + 30 * 60000) {
-        toast.error("Agende com pelo menos 30 minutos de antecedência.");
-        return;
-      }
       agendadoPara = dt.toISOString();
       agendamentoObs = String(form.get("agendamento_obs") ?? "").slice(0, 200);
+      void mensagemLotado;
     }
     setEnviando(true);
     try {
@@ -309,6 +319,33 @@ function Checkout() {
         })),
       );
       if (erroItens) console.error(erroItens);
+
+      const linhasCupom = itensValidados.map((i) => `${i.quantidade}x ${i.nome}`).join("\n");
+      // Reserva estoque (best-effort, tabelas 0023/0026 — nunca bloqueia a venda)
+      try {
+        const reservas = itensValidados
+          .filter((i) => i.produtoId)
+          .map((i) => ({ pedido_id: (pedido as any).id, produto_id: i.produtoId, quantidade: i.quantidade, status: "ativa" }));
+        if (reservas.length > 0) await supabase.from("reservas_estoque").insert(reservas);
+      } catch { /* sem migration — segue sem reserva */ }
+      try {
+        await supabase.from("pedido_status_historico").insert({
+          pedido_id: (pedido as any).id,
+          de_status: null,
+          para_status: "recebido",
+          motivo: quando === "agendar" ? `agendado ${agendadoPara}` : "novo",
+        });
+      } catch { /* sem migration — segue */ }
+      try {
+        await supabase.from("fila_impressao").insert({
+          trabalho_uuid: `${(pedido as any).id}:confirmado`,
+          pedido_id: (pedido as any).id,
+          tipo: "pedido",
+          payload: `NEIA SALGADOS\nPEDIDO #${(pedido as any).numero}\n${linhasCupom}\nTotal ${totalFinal}`,
+          impressora: "Tanca TP-550",
+          imprimir_apos: quando === "agendar" ? agendadoPara : null,
+        });
+      } catch { /* sem fila — pedido segue, cozinha avisa */ }
 
       // Fidelidade configurável (1 ponto a cada X reais)
       const pts = calcPontos(totalFinal, {

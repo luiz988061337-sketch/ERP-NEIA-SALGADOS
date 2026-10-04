@@ -12,6 +12,7 @@ export type LojaConfig = {
   instrucoes_retirada: string;
   mapa_lat: number | null;
   mapa_lng: number | null;
+  pix_chave?: string;
 };
 
 export const DEFAULT_LOJA_CONFIG: LojaConfig = {
@@ -28,7 +29,7 @@ export const DEFAULT_LOJA_CONFIG: LojaConfig = {
 };
 
 export const COLUNAS_LOJA =
-  "nome, telefone, endereco, bairro, cidade, complemento, referencia, instrucoes_retirada, mapa_lat, mapa_lng";
+  "nome, telefone, endereco, bairro, cidade, complemento, referencia, instrucoes_retirada, mapa_lat, mapa_lng, pix_chave";
 
 export function useLojaConfig() {
   return useQuery({

@@ -32,6 +32,14 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 20. `0019_orcamento_contato.sql` — `calculadora_config.zap_contato` + `orcamento_validade_dias`.
 21. `0020_storage_hero.sql` — bucket público `hero` para upload das fotos do carrossel.
 22. `0021_loja_config.sql` — tabela `loja_config` (endereço de retirada, telefone, ponto no mapa).
+23. `0022_pagamento_status.sql` — `pedidos.pagamento_status` separado.
+24. `0023_base_operacional.sql` — histórico, lotes, reservas, horario_config.
+25. `0024_entrega.sql` — rotas, atraso motivo, endereço apto/bloco, status motoboy.
+26. `0025_impressao.sql` — `fila_impressao` Tanca TP-550.
+27. `0026_cozinha.sql` — `fila_fritura` + tempo por produto.
+28. `0027_lembretes.sql` — `pedido_lembretes` 7d/3d/24h.
+29. `0028_crm_experiencia.sql` — jornada, indicação, degustação pós-orçamento, parceiros, ajuda, alta demanda.
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só.
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega

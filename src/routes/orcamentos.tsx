@@ -306,8 +306,35 @@ function Orcamentos() {
             {["rascunho", "enviado", "aprovado"].includes(atual.status) ? <Button size="sm" onClick={() => converter(atual)}>Converter em pedido</Button> : null}
           </div>
           <p className="text-xs text-muted-foreground">A conversão recalcula preços e disponibilidade — nunca confirma sozinha.</p>
+          <DegustacaoBox orcamento={atual} />
         </section>
       ) : null}
+    </div>
+  );
+}
+
+function DegustacaoBox({ orcamento }: { orcamento: any }) {
+  const totalQtd = ((orcamento.mix ?? []) as any[]).reduce((s, i) => s + Number(i.quantidade ?? 0), 0);
+  const [regras, setRegras] = useState<any>(null);
+  const [enviado, setEnviado] = useState(false);
+  useEffect(() => {
+    supabase.from("degustacao_regras").select("*").eq("id", true).maybeSingle().then(({ data }: any) => setRegras(data));
+  }, []);
+  const elegivel = regras
+    ? totalQtd >= Number(regras.qtd_minima ?? 500) && Number(orcamento.total ?? 0) >= Number(regras.valor_minimo ?? 500)
+    : totalQtd >= 500;
+  async function solicitar() {
+    const { error } = await supabase.from("degustacoes").insert({ orcamento_id: orcamento.id, status: "solicitada" });
+    if (error) toast.error("Rode o PASSO-11 no Supabase.");
+    else { setEnviado(true); toast.success("Degustação solicitada! Vamos analisar e avisar."); }
+  }
+  if (enviado) return <p className="rounded-lg bg-muted p-3 text-sm">Degustação SOLICITADA — acompanhe por aqui ou no WhatsApp.</p>;
+  if (!elegivel) return <p className="text-xs text-muted-foreground">Degustação disponível para orçamentos a partir de {regras?.qtd_minima ?? 500} un / R$ {regras?.valor_minimo ?? 500}.</p>;
+  return (
+    <div className="rounded-lg border border-border p-3 text-sm">
+      <p className="font-semibold">Que tal provar antes? 🎉</p>
+      <p className="text-muted-foreground">Seu orçamento é elegível para degustação. Opcional, sem bloquear o pedido.</p>
+      <Button size="sm" className="mt-2" onClick={solicitar}>Solicitar degustação</Button>
     </div>
   );
 }
