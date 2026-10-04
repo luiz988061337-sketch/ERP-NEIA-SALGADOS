@@ -40,6 +40,7 @@ function AuthPage() {
   useEffect(() => {
     if (!user || !rolesPronto) return;
     if (staffOnly && painel && destino === "/") navigate({ to: painel, replace: true });
+    else if (destino.includes("?")) window.location.replace(destino);
     else navigate({ to: destino, replace: true });
   }, [user, destino, navigate, staffOnly, painel, rolesPronto]);
 
@@ -83,7 +84,7 @@ function AuthPage() {
       email: parsed.data.email,
       password: parsed.data.senha,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: window.location.origin + destino,
         data: { nome: parsed.data.nome, telefone: parsed.data.telefone },
       },
     });
