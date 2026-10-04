@@ -746,7 +746,7 @@ function Checkout() {
           </div>
           <ul className="space-y-1 text-sm">
             {items.map((i) => (
-              <li key={i.id} className="flex justify-between gap-2"><span className="text-muted-foreground">{i.quantidade}x {i.nome}{i.observacao ? ` (${i.observacao})` : ""}</span><span className="shrink-0">{brl(i.preco * i.quantidade)}</span></li>
+              <li key={i.id} className="flex justify-between gap-2"><span className="min-w-0 break-words text-muted-foreground">{i.quantidade}x {i.nome}{i.observacao ? ` (${i.observacao})` : ""}</span><span className="shrink-0">{brl(i.preco * i.quantidade)}</span></li>
             ))}
           </ul>
           <div className="space-y-1 border-t border-border pt-2 text-sm">
