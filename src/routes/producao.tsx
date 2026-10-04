@@ -148,12 +148,14 @@ function Producao() {
     try {
       await supabase.from("pedido_status_historico").insert({ pedido_id: pedido.id, de_status: pedido.status, para_status: status });
     } catch { /* sem migration — segue */ }
-    try {
-      const totalUn = (pedido.pedido_itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0);
-      await supabase.from("fila_fritura").insert({
-        pedido_id: pedido.id, quantidade: totalUn, tempo_est_s: tempoFritura(totalUn), status: status === "pronto" ? "pronto" : "aguardando",
-      });
-    } catch { /* sem migration — segue */ }
+    if (status === "em_producao") {
+      try {
+        const totalUn = (pedido.pedido_itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0);
+        await supabase.from("fila_fritura").insert({
+          pedido_id: pedido.id, quantidade: totalUn, tempo_est_s: tempoFritura(totalUn), status: "aguardando",
+        });
+      } catch { /* sem migration — segue */ }
+    }
     try {
       await supabase.from("fila_impressao").insert({
         trabalho_uuid: `${pedido.id}:${status}:${Date.now()}`,
