@@ -534,14 +534,15 @@ function Admin() {
     }
     const recorrentes = [...cliMap.values()].filter((c) => c.qtd >= 2).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
 
-    const fatPorDia = useMemo(() => {
+    // Cálculo puro (nunca useMemo aninhado: hook dentro de hook quebra o render).
+    const fatPorDia = (() => {
       const map = new Map<string, number>();
       for (const p of doMes) {
         const dia = new Date(p.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
         map.set(dia, (map.get(dia) ?? 0) + Number(p.total));
       }
       return [...map.entries()].map(([dia, total]) => ({ dia, total }));
-    }, [doMes]);
+    })();
 
     return { doDia, doMes, fatDia, fatMes, ticket, maisVendidos, recorrentes, totalPedidos: lista.length, fatPorDia };
   }, [pedidos]);

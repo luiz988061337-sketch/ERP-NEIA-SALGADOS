@@ -24,13 +24,16 @@ import { Route as ContaRouteImport } from './routes/conta'
 import { Route as CrmConfigRouteImport } from './routes/crm-config'
 import { Route as HistoriaRouteImport } from './routes/historia'
 import { Route as ImpressaoRouteImport } from './routes/impressao'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as MotoboyRouteImport } from './routes/motoboy'
 import { Route as OperacaoRouteImport } from './routes/operacao'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ParceirosRouteImport } from './routes/parceiros'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -107,6 +110,11 @@ const ImpressaoRoute = ImpressaoRouteImport.update({
   path: '/impressao',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MotoboyRoute = MotoboyRouteImport.update({
   id: '/motoboy',
   path: '/motoboy',
@@ -137,9 +145,20 @@ const RecorrentesRoute = RecorrentesRouteImport.update({
   path: '/recorrentes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PedidoIdRoute = PedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -159,13 +178,16 @@ export interface FileRoutesByFullPath {
   '/crm-config': typeof CrmConfigRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
+  '/mcp': typeof McpRoute
   '/motoboy': typeof MotoboyRoute
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -183,13 +205,16 @@ export interface FileRoutesByTo {
   '/crm-config': typeof CrmConfigRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
+  '/mcp': typeof McpRoute
   '/motoboy': typeof MotoboyRoute
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -208,13 +233,16 @@ export interface FileRoutesById {
   '/crm-config': typeof CrmConfigRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
+  '/mcp': typeof McpRoute
   '/motoboy': typeof MotoboyRoute
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -234,13 +262,16 @@ export interface FileRouteTypes {
     | '/crm-config'
     | '/historia'
     | '/impressao'
+    | '/mcp'
     | '/motoboy'
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
     | '/producao'
     | '/recorrentes'
+    | '/.well-known/oauth-protected-resource'
     | '/pedido/$id'
+    | '/.lovable/oauth/consent'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -258,13 +289,16 @@ export interface FileRouteTypes {
     | '/crm-config'
     | '/historia'
     | '/impressao'
+    | '/mcp'
     | '/motoboy'
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
     | '/producao'
     | '/recorrentes'
+    | '/.well-known/oauth-protected-resource'
     | '/pedido/$id'
+    | '/.lovable/oauth/consent'
   id:
     | '__root__'
     | '/'
@@ -282,13 +316,16 @@ export interface FileRouteTypes {
     | '/crm-config'
     | '/historia'
     | '/impressao'
+    | '/mcp'
     | '/motoboy'
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
     | '/producao'
     | '/recorrentes'
+    | '/.well-known/oauth-protected-resource'
     | '/pedido/$id'
+    | '/.lovable/oauth/consent'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -307,13 +344,16 @@ export interface RootRouteChildren {
   CrmConfigRoute: typeof CrmConfigRoute
   HistoriaRoute: typeof HistoriaRoute
   ImpressaoRoute: typeof ImpressaoRoute
+  McpRoute: typeof McpRoute
   MotoboyRoute: typeof MotoboyRoute
   OperacaoRoute: typeof OperacaoRoute
   OrcamentosRoute: typeof OrcamentosRoute
   ParceirosRoute: typeof ParceirosRoute
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   PedidoIdRoute: typeof PedidoIdRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -423,6 +463,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImpressaoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/motoboy': {
       id: '/motoboy'
       path: '/motoboy'
@@ -465,11 +512,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecorrentesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedido/$id': {
       id: '/pedido/$id'
       path: '/pedido/$id'
       fullPath: '/pedido/$id'
       preLoaderRoute: typeof PedidoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -491,13 +552,17 @@ const rootRouteChildren: RootRouteChildren = {
   CrmConfigRoute: CrmConfigRoute,
   HistoriaRoute: HistoriaRoute,
   ImpressaoRoute: ImpressaoRoute,
+  McpRoute: McpRoute,
   MotoboyRoute: MotoboyRoute,
   OperacaoRoute: OperacaoRoute,
   OrcamentosRoute: OrcamentosRoute,
   ParceirosRoute: ParceirosRoute,
   ProducaoRoute: ProducaoRoute,
   RecorrentesRoute: RecorrentesRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   PedidoIdRoute: PedidoIdRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -14,447 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      avaliacoes: {
-        Row: {
-          atendimento: number | null
-          comentario: string
-          created_at: string
-          id: string
-          nota: number
-          pedido_id: string | null
-          prazo: number | null
-          produto_id: string
-          user_id: string
-        }
-        Insert: {
-          atendimento?: number | null
-          comentario?: string
-          created_at?: string
-          id?: string
-          nota: number
-          pedido_id?: string | null
-          prazo?: number | null
-          produto_id: string
-          user_id: string
-        }
-        Update: {
-          atendimento?: number | null
-          comentario?: string
-          created_at?: string
-          id?: string
-          nota?: number
-          pedido_id?: string | null
-          prazo?: number | null
-          produto_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "avaliacoes_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      categorias: {
-        Row: {
-          ativo: boolean
-          id: string
-          nome: string
-          ordem: number
-          slug: string
-        }
-        Insert: {
-          ativo?: boolean
-          id?: string
-          nome: string
-          ordem?: number
-          slug: string
-        }
-        Update: {
-          ativo?: boolean
-          id?: string
-          nome?: string
-          ordem?: number
-          slug?: string
-        }
-        Relationships: []
-      }
-      cupons: {
-        Row: {
-          ativo: boolean
-          cliente_telefone: string
-          codigo: string
-          id: string
-          max_usos: number
-          minimo: number
-          produtos_ids: Json
-          tipo: string
-          validade_fim: string | null
-          validade_ini: string | null
-          valor: number
-        }
-        Insert: {
-          ativo?: boolean
-          cliente_telefone?: string
-          codigo: string
-          id?: string
-          max_usos?: number
-          minimo?: number
-          produtos_ids?: Json
-          tipo?: string
-          validade_fim?: string | null
-          validade_ini?: string | null
-          valor: number
-        }
-        Update: {
-          ativo?: boolean
-          cliente_telefone?: string
-          codigo?: string
-          id?: string
-          max_usos?: number
-          minimo?: number
-          produtos_ids?: Json
-          tipo?: string
-          validade_fim?: string | null
-          validade_ini?: string | null
-          valor?: number
-        }
-        Relationships: []
-      }
-      enderecos: {
-        Row: {
-          bairro: string
-          complemento: string
-          created_at: string
-          id: string
-          numero: string
-          referencia: string
-          rua: string
-          user_id: string
-        }
-        Insert: {
-          bairro?: string
-          complemento?: string
-          created_at?: string
-          id?: string
-          numero?: string
-          referencia?: string
-          rua: string
-          user_id: string
-        }
-        Update: {
-          bairro?: string
-          complemento?: string
-          created_at?: string
-          id?: string
-          numero?: string
-          referencia?: string
-          rua?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      favoritos: {
-        Row: {
-          produto_id: string
-          user_id: string
-        }
-        Insert: {
-          produto_id: string
-          user_id: string
-        }
-        Update: {
-          produto_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "favoritos_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pedido_itens: {
-        Row: {
-          id: string
-          nome: string
-          pedido_id: string
-          preco_unitario: number
-          produto_id: string | null
-          quantidade: number
-        }
-        Insert: {
-          id?: string
-          nome: string
-          pedido_id: string
-          preco_unitario: number
-          produto_id?: string | null
-          quantidade?: number
-        }
-        Update: {
-          id?: string
-          nome?: string
-          pedido_id?: string
-          preco_unitario?: number
-          produto_id?: string | null
-          quantidade?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pedido_itens_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "pedidos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pedido_itens_produto_id_fkey"
-            columns: ["produto_id"]
-            isOneToOne: false
-            referencedRelation: "produtos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pedidos: {
-        Row: {
-          aceito_em: string | null
-          agendado_para: string | null
-          agendamento_obs: string
-          bairro: string
-          cidade: string
-          cliente_nome: string
-          campanha_origem: string
-          complemento: string
-          created_at: string
-          cupom: string | null
-          desconto: number
-          destino_lat: number | null
-          destino_lng: number | null
-          endereco: string
-          entregue_em: string | null
-          forma_pagamento: Database["public"]["Enums"]["pagamento"]
-          id: string
-          motoboy_atualizado_em: string | null
-          motoboy_id: string | null
-          motoboy_lat: number | null
-          motoboy_lng: number | null
-          numero: number
-          pagamento_em: string | null
-          pagamento_status: string
-          observacoes: string
-          producao_status: Database["public"]["Enums"]["prod_status"]
-          referencia: string
-          status: Database["public"]["Enums"]["order_status"]
-          subtotal: number
-          taxa_entrega: number
-          taxa_motoboy: number
-          telefone: string
-          tipo_entrega: string
-          tipo_evento: string
-          total: number
-          user_id: string | null
-        }
-        Insert: {
-          aceito_em?: string | null
-          agendado_para?: string | null
-          agendamento_obs?: string
-          bairro?: string
-          cidade?: string
-          cliente_nome: string
-          campanha_origem?: string
-          complemento?: string
-          created_at?: string
-          cupom?: string | null
-          desconto?: number
-          destino_lat?: number | null
-          destino_lng?: number | null
-          endereco: string
-          entregue_em?: string | null
-          forma_pagamento?: Database["public"]["Enums"]["pagamento"]
-          id?: string
-          motoboy_atualizado_em?: string | null
-          motoboy_id?: string | null
-          motoboy_lat?: number | null
-          motoboy_lng?: number | null
-          numero?: number
-          pagamento_em?: string | null
-          pagamento_status?: string
-          observacoes?: string
-          producao_status?: Database["public"]["Enums"]["prod_status"]
-          referencia?: string
-          status?: Database["public"]["Enums"]["order_status"]
-          subtotal?: number
-          taxa_entrega?: number
-          taxa_motoboy?: number
-          telefone: string
-          tipo_entrega?: string
-          tipo_evento?: string
-          total?: number
-          user_id?: string | null
-        }
-        Update: {
-          aceito_em?: string | null
-          agendado_para?: string | null
-          agendamento_obs?: string
-          bairro?: string
-          cidade?: string
-          cliente_nome?: string
-          campanha_origem?: string
-          complemento?: string
-          created_at?: string
-          cupom?: string | null
-          desconto?: number
-          destino_lat?: number | null
-          destino_lng?: number | null
-          endereco?: string
-          entregue_em?: string | null
-          forma_pagamento?: Database["public"]["Enums"]["pagamento"]
-          id?: string
-          motoboy_atualizado_em?: string | null
-          motoboy_id?: string | null
-          motoboy_lat?: number | null
-          motoboy_lng?: number | null
-          numero?: number
-          pagamento_em?: string | null
-          pagamento_status?: string
-          observacoes?: string
-          producao_status?: Database["public"]["Enums"]["prod_status"]
-          referencia?: string
-          status?: Database["public"]["Enums"]["order_status"]
-          subtotal?: number
-          taxa_entrega?: number
-          taxa_motoboy?: number
-          telefone?: string
-          tipo_entrega?: string
-          tipo_evento?: string
-          total?: number
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      produtos: {
-        Row: {
-          categoria_id: string
-          created_at: string
-          custo: number | null
-          descricao: string
-          destaque: boolean
-          disponivel: boolean
-          estoque: number
-          estoque_maximo: number | null
-          estoque_minimo: number
-          id: string
-          imagem_url: string | null
-          nome: string
-          preco: number
-          preco_promocional: number | null
-          promo_ativo: boolean
-          promo_fim: string | null
-          promo_inicio: string | null
-          tipo_venda: string
-          unidade_medida: string
-        }
-        Insert: {
-          categoria_id: string
-          created_at?: string
-          custo?: number | null
-          descricao?: string
-          destaque?: boolean
-          disponivel?: boolean
-          estoque?: number
-          estoque_maximo?: number | null
-          estoque_minimo?: number
-          id?: string
-          imagem_url?: string | null
-          nome: string
-          preco: number
-          preco_promocional?: number | null
-          promo_ativo?: boolean
-          promo_fim?: string | null
-          promo_inicio?: string | null
-          tipo_venda?: string
-          unidade_medida?: string
-        }
-        Update: {
-          categoria_id?: string
-          created_at?: string
-          custo?: number | null
-          descricao?: string
-          destaque?: boolean
-          disponivel?: boolean
-          estoque?: number
-          estoque_maximo?: number | null
-          estoque_minimo?: number
-          id?: string
-          imagem_url?: string | null
-          nome?: string
-          preco?: number
-          preco_promocional?: number | null
-          promo_ativo?: boolean
-          promo_fim?: string | null
-          promo_inicio?: string | null
-          tipo_venda?: string
-          unidade_medida?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "produtos_categoria_id_fkey"
-            columns: ["categoria_id"]
-            isOneToOne: false
-            referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          id: string
-          nome: string
-          pontos: number
-          telefone: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          nome?: string
-          pontos?: number
-          telefone?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          nome?: string
-          pontos?: number
-          telefone?: string
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
       admin_logs: {
         Row: {
           acao: string
@@ -479,132 +38,114 @@ export type Database = {
         }
         Relationships: []
       }
-      hero_carousel: {
+      ajuda_artigos: {
         Row: {
           ativo: boolean
-          created_at: string
+          categoria: string
+          corpo: string
           id: string
-          imagem_url: string
-          legenda: string
-          ordem: number
+          titulo: string
         }
         Insert: {
           ativo?: boolean
-          created_at?: string
+          categoria: string
+          corpo: string
           id?: string
-          imagem_url: string
-          legenda?: string
-          ordem?: number
+          titulo: string
         }
         Update: {
           ativo?: boolean
-          created_at?: string
+          categoria?: string
+          corpo?: string
           id?: string
-          imagem_url?: string
-          legenda?: string
-          ordem?: number
+          titulo?: string
         }
         Relationships: []
+      }
+      avaliacoes: {
+        Row: {
+          aprovada: boolean
+          atendimento: number | null
+          autoriza_publicar: boolean
+          comentario: string
+          created_at: string
+          id: string
+          nota: number
+          pedido_id: string | null
+          prazo: number | null
+          produto_id: string
+          user_id: string
+        }
+        Insert: {
+          aprovada?: boolean
+          atendimento?: number | null
+          autoriza_publicar?: boolean
+          comentario?: string
+          created_at?: string
+          id?: string
+          nota: number
+          pedido_id?: string | null
+          prazo?: number | null
+          produto_id: string
+          user_id: string
+        }
+        Update: {
+          aprovada?: boolean
+          atendimento?: number | null
+          autoriza_publicar?: boolean
+          comentario?: string
+          created_at?: string
+          id?: string
+          nota?: number
+          pedido_id?: string | null
+          prazo?: number | null
+          produto_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       calculadora_config: {
         Row: {
           id: boolean
+          maximo_por_pessoa: number
+          minimo_por_pessoa: number
+          orcamento_validade_dias: number
           permitir_personalizado: boolean
           por_pessoa_padrao: number
-          minimo_por_pessoa: number
-          maximo_por_pessoa: number
           zap_contato: string
-          orcamento_validade_dias: number
         }
         Insert: {
           id?: boolean
+          maximo_por_pessoa?: number
+          minimo_por_pessoa?: number
+          orcamento_validade_dias?: number
           permitir_personalizado?: boolean
           por_pessoa_padrao?: number
-          minimo_por_pessoa?: number
-          maximo_por_pessoa?: number
           zap_contato?: string
-          orcamento_validade_dias?: number
         }
         Update: {
           id?: boolean
+          maximo_por_pessoa?: number
+          minimo_por_pessoa?: number
+          orcamento_validade_dias?: number
           permitir_personalizado?: boolean
           por_pessoa_padrao?: number
-          minimo_por_pessoa?: number
-          maximo_por_pessoa?: number
           zap_contato?: string
-          orcamento_validade_dias?: number
-        }
-        Relationships: []
-      }
-      loja_config: {
-        Row: {
-          id: boolean
-          nome: string
-          telefone: string
-          endereco: string
-          bairro: string
-          cidade: string
-          complemento: string
-          referencia: string
-          instrucoes_retirada: string
-          mapa_lat: number | null
-          mapa_lng: number | null
-          atualizado_em: string
-        }
-        Insert: {
-          id?: boolean
-          nome?: string
-          telefone?: string
-          endereco?: string
-          bairro?: string
-          cidade?: string
-          complemento?: string
-          referencia?: string
-          instrucoes_retirada?: string
-          mapa_lat?: number | null
-          mapa_lng?: number | null
-          atualizado_em?: string
-        }
-        Update: {
-          id?: boolean
-          nome?: string
-          telefone?: string
-          endereco?: string
-          bairro?: string
-          cidade?: string
-          complemento?: string
-          referencia?: string
-          instrucoes_retirada?: string
-          mapa_lat?: number | null
-          mapa_lng?: number | null
-          atualizado_em?: string
-        }
-        Relationships: []
-      }
-      motoboys: {
-        Row: {
-          ativo: boolean
-          created_at: string
-          id: string
-          nome: string
-          observacao: string
-          telefone: string
-        }
-        Insert: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          nome?: string
-          observacao?: string
-          telefone?: string
-        }
-        Update: {
-          ativo?: boolean
-          created_at?: string
-          id?: string
-          nome?: string
-          observacao?: string
-          telefone?: string
         }
         Relationships: []
       }
@@ -626,7 +167,8 @@ export type Database = {
         }
         Relationships: []
       }
-      carrinho_eventos: {        Row: {
+      carrinho_eventos: {
+        Row: {
           created_at: string
           etapa: string
           id: string
@@ -652,6 +194,30 @@ export type Database = {
           subtotal?: number
           telefone?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      categorias: {
+        Row: {
+          ativo: boolean
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
         }
         Relationships: []
       }
@@ -779,7 +345,29 @@ export type Database = {
           telefone_norm?: string
           tipo?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crm_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "crm_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_events_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_events_telefone_norm_fkey"
+            columns: ["telefone_norm"]
+            isOneToOne: false
+            referencedRelation: "crm_customers"
+            referencedColumns: ["telefone_norm"]
+          },
+        ]
       }
       crm_recipients: {
         Row: {
@@ -809,7 +397,22 @@ export type Database = {
           telefone_norm?: string
           variaveis?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crm_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "crm_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_recipients_telefone_norm_fkey"
+            columns: ["telefone_norm"]
+            isOneToOne: false
+            referencedRelation: "crm_customers"
+            referencedColumns: ["telefone_norm"]
+          },
+        ]
       }
       crm_settings: {
         Row: {
@@ -874,6 +477,141 @@ export type Database = {
         }
         Relationships: []
       }
+      cupons: {
+        Row: {
+          ativo: boolean
+          cliente_telefone: string
+          codigo: string
+          id: string
+          max_usos: number
+          minimo: number
+          produtos_ids: Json
+          tipo: string
+          validade_fim: string | null
+          validade_ini: string | null
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_telefone?: string
+          codigo: string
+          id?: string
+          max_usos?: number
+          minimo?: number
+          produtos_ids?: Json
+          tipo?: string
+          validade_fim?: string | null
+          validade_ini?: string | null
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          cliente_telefone?: string
+          codigo?: string
+          id?: string
+          max_usos?: number
+          minimo?: number
+          produtos_ids?: Json
+          tipo?: string
+          validade_fim?: string | null
+          validade_ini?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      datas_demanda: {
+        Row: {
+          antecedencia_dias: number
+          ativo: boolean
+          data: string
+          id: string
+          mensagem: string | null
+          nivel: string
+          ocasiao: string
+        }
+        Insert: {
+          antecedencia_dias?: number
+          ativo?: boolean
+          data: string
+          id?: string
+          mensagem?: string | null
+          nivel?: string
+          ocasiao: string
+        }
+        Update: {
+          antecedencia_dias?: number
+          ativo?: boolean
+          data?: string
+          id?: string
+          mensagem?: string | null
+          nivel?: string
+          ocasiao?: string
+        }
+        Relationships: []
+      }
+      degustacao_regras: {
+        Row: {
+          id: boolean
+          pessoas_minimas: number
+          qtd_minima: number
+          valor_minimo: number
+        }
+        Insert: {
+          id?: boolean
+          pessoas_minimas?: number
+          qtd_minima?: number
+          valor_minimo?: number
+        }
+        Update: {
+          id?: boolean
+          pessoas_minimas?: number
+          qtd_minima?: number
+          valor_minimo?: number
+        }
+        Relationships: []
+      }
+      degustacoes: {
+        Row: {
+          created_at: string
+          id: string
+          orcamento_id: string | null
+          pedido_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          orcamento_id?: string | null
+          pedido_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "degustacoes_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "degustacoes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       despesas: {
         Row: {
           created_at: string
@@ -898,6 +636,39 @@ export type Database = {
           descricao?: string
           id?: string
           valor?: number
+        }
+        Relationships: []
+      }
+      enderecos: {
+        Row: {
+          bairro: string
+          complemento: string
+          created_at: string
+          id: string
+          numero: string
+          referencia: string
+          rua: string
+          user_id: string
+        }
+        Insert: {
+          bairro?: string
+          complemento?: string
+          created_at?: string
+          id?: string
+          numero?: string
+          referencia?: string
+          rua: string
+          user_id: string
+        }
+        Update: {
+          bairro?: string
+          complemento?: string
+          created_at?: string
+          id?: string
+          numero?: string
+          referencia?: string
+          rua?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -929,7 +700,900 @@ export type Database = {
           quantidade?: number
           tipo?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_mov_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favoritos: {
+        Row: {
+          produto_id: string
+          user_id: string
+        }
+        Insert: {
+          produto_id: string
+          user_id: string
+        }
+        Update: {
+          produto_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favoritos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fila_fritura: {
+        Row: {
+          created_at: string
+          fim: string | null
+          funcionario: string | null
+          id: string
+          inicio: string | null
+          pedido_id: string | null
+          produto_id: string | null
+          quantidade: number
+          status: string
+          tempo_est_s: number
+          tempo_real_s: number | null
+        }
+        Insert: {
+          created_at?: string
+          fim?: string | null
+          funcionario?: string | null
+          id?: string
+          inicio?: string | null
+          pedido_id?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+          tempo_est_s?: number
+          tempo_real_s?: number | null
+        }
+        Update: {
+          created_at?: string
+          fim?: string | null
+          funcionario?: string | null
+          id?: string
+          inicio?: string | null
+          pedido_id?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+          tempo_est_s?: number
+          tempo_real_s?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fila_fritura_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fila_fritura_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fila_impressao: {
+        Row: {
+          created_at: string
+          id: string
+          impressora: string
+          imprimir_apos: string | null
+          motivo_reimpressao: string | null
+          payload: string
+          pedido_id: string | null
+          reimpressoes: number
+          status: string
+          tentativa: number
+          tipo: string
+          trabalho_uuid: string
+          ultimo_erro: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          impressora?: string
+          imprimir_apos?: string | null
+          motivo_reimpressao?: string | null
+          payload?: string
+          pedido_id?: string | null
+          reimpressoes?: number
+          status?: string
+          tentativa?: number
+          tipo?: string
+          trabalho_uuid: string
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          impressora?: string
+          imprimir_apos?: string | null
+          motivo_reimpressao?: string | null
+          payload?: string
+          pedido_id?: string | null
+          reimpressoes?: number
+          status?: string
+          tentativa?: number
+          tipo?: string
+          trabalho_uuid?: string
+          ultimo_erro?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fila_impressao_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hero_carousel: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          imagem_url: string
+          legenda: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          imagem_url: string
+          legenda?: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          imagem_url?: string
+          legenda?: string
+          ordem?: number
+        }
         Relationships: []
+      }
+      horario_config: {
+        Row: {
+          antecedencia_min: number
+          id: boolean
+          tempo_fritura_50s: number
+          teto_unidades_janela: number
+        }
+        Insert: {
+          antecedencia_min?: number
+          id?: boolean
+          tempo_fritura_50s?: number
+          teto_unidades_janela?: number
+        }
+        Update: {
+          antecedencia_min?: number
+          id?: boolean
+          tempo_fritura_50s?: number
+          teto_unidades_janela?: number
+        }
+        Relationships: []
+      }
+      indicacoes: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          indicador_id: string
+          novo_user_id: string | null
+          pontos_indicador: number
+          pontos_novo: number
+          status: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          indicador_id: string
+          novo_user_id?: string | null
+          pontos_indicador?: number
+          pontos_novo?: number
+          status?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          indicador_id?: string
+          novo_user_id?: string | null
+          pontos_indicador?: number
+          pontos_novo?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      jornada_eventos: {
+        Row: {
+          created_at: string
+          etapa: string
+          id: string
+          pedido_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          etapa: string
+          id?: string
+          pedido_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          etapa?: string
+          id?: string
+          pedido_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jornada_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loja_config: {
+        Row: {
+          atualizado_em: string
+          bairro: string
+          cidade: string
+          complemento: string
+          endereco: string
+          id: boolean
+          instrucoes_retirada: string
+          mapa_lat: number | null
+          mapa_lng: number | null
+          nome: string
+          referencia: string
+          telefone: string
+        }
+        Insert: {
+          atualizado_em?: string
+          bairro?: string
+          cidade?: string
+          complemento?: string
+          endereco?: string
+          id?: boolean
+          instrucoes_retirada?: string
+          mapa_lat?: number | null
+          mapa_lng?: number | null
+          nome?: string
+          referencia?: string
+          telefone?: string
+        }
+        Update: {
+          atualizado_em?: string
+          bairro?: string
+          cidade?: string
+          complemento?: string
+          endereco?: string
+          id?: boolean
+          instrucoes_retirada?: string
+          mapa_lat?: number | null
+          mapa_lng?: number | null
+          nome?: string
+          referencia?: string
+          telefone?: string
+        }
+        Relationships: []
+      }
+      lotes: {
+        Row: {
+          codigo: string
+          created_at: string
+          id: string
+          produto_id: string
+          produzido_em: string | null
+          quantidade: number
+          restante: number
+          status: string
+          validade: string | null
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          id?: string
+          produto_id: string
+          produzido_em?: string | null
+          quantidade?: number
+          restante?: number
+          status?: string
+          validade?: string | null
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          id?: string
+          produto_id?: string
+          produzido_em?: string | null
+          quantidade?: number
+          restante?: number
+          status?: string
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          periodo_ref: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          periodo_ref?: string
+          tipo?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          periodo_ref?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      motoboys: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          observacao: string
+          status: string
+          telefone: string
+          ultima_base_em: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          observacao?: string
+          status?: string
+          telefone?: string
+          ultima_base_em?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          observacao?: string
+          status?: string
+          telefone?: string
+          ultima_base_em?: string | null
+        }
+        Relationships: []
+      }
+      notificacoes: {
+        Row: {
+          created_at: string
+          detalhe: string
+          id: string
+          lida: boolean
+          link: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string
+          id?: string
+          lida?: boolean
+          link?: string
+          tipo?: string
+          titulo?: string
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string
+          id?: string
+          lida?: boolean
+          link?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
+      orcamentos: {
+        Row: {
+          cliente_nome: string
+          created_at: string
+          data_evento: string | null
+          horario: string
+          id: string
+          mix: Json
+          observacoes: string
+          pedido_id: string | null
+          pessoas: number
+          status: string
+          subtotal: number
+          taxa_entrega: number
+          telefone: string
+          tipo_evento: string
+          total: number
+          user_id: string | null
+          validade: string | null
+        }
+        Insert: {
+          cliente_nome?: string
+          created_at?: string
+          data_evento?: string | null
+          horario?: string
+          id?: string
+          mix?: Json
+          observacoes?: string
+          pedido_id?: string | null
+          pessoas?: number
+          status?: string
+          subtotal?: number
+          taxa_entrega?: number
+          telefone?: string
+          tipo_evento?: string
+          total?: number
+          user_id?: string | null
+          validade?: string | null
+        }
+        Update: {
+          cliente_nome?: string
+          created_at?: string
+          data_evento?: string | null
+          horario?: string
+          id?: string
+          mix?: Json
+          observacoes?: string
+          pedido_id?: string | null
+          pessoas?: number
+          status?: string
+          subtotal?: number
+          taxa_entrega?: number
+          telefone?: string
+          tipo_evento?: string
+          total?: number
+          user_id?: string | null
+          validade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiros: {
+        Row: {
+          autoriza_divulgacao: boolean
+          bairro: string | null
+          categoria: string
+          cidade: string | null
+          cnpj: string | null
+          created_at: string
+          descricao: string | null
+          email: string | null
+          id: string
+          instagram: string | null
+          logo_url: string | null
+          nome: string
+          proposta: string | null
+          responsavel: string | null
+          site: string | null
+          status: string
+          whatsapp: string | null
+        }
+        Insert: {
+          autoriza_divulgacao?: boolean
+          bairro?: string | null
+          categoria: string
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          descricao?: string | null
+          email?: string | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          nome: string
+          proposta?: string | null
+          responsavel?: string | null
+          site?: string | null
+          status?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          autoriza_divulgacao?: boolean
+          bairro?: string | null
+          categoria?: string
+          cidade?: string | null
+          cnpj?: string | null
+          created_at?: string
+          descricao?: string | null
+          email?: string | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          nome?: string
+          proposta?: string | null
+          responsavel?: string | null
+          site?: string | null
+          status?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      pedido_itens: {
+        Row: {
+          id: string
+          nome: string
+          pedido_id: string
+          preco_unitario: number
+          produto_id: string | null
+          quantidade: number
+        }
+        Insert: {
+          id?: string
+          nome: string
+          pedido_id: string
+          preco_unitario: number
+          produto_id?: string | null
+          quantidade?: number
+        }
+        Update: {
+          id?: string
+          nome?: string
+          pedido_id?: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_lembretes: {
+        Row: {
+          created_at: string
+          id: string
+          pedido_id: string
+          status: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pedido_id: string
+          status?: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pedido_id?: string
+          status?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_lembretes_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_notas: {
+        Row: {
+          autor: string | null
+          created_at: string
+          id: string
+          pedido_id: string
+          texto: string
+          visivel_cliente: boolean
+        }
+        Insert: {
+          autor?: string | null
+          created_at?: string
+          id?: string
+          pedido_id: string
+          texto?: string
+          visivel_cliente?: boolean
+        }
+        Update: {
+          autor?: string | null
+          created_at?: string
+          id?: string
+          pedido_id?: string
+          texto?: string
+          visivel_cliente?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_notas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_status_historico: {
+        Row: {
+          actor: string | null
+          created_at: string
+          de_status: string | null
+          id: string
+          motivo: string | null
+          override: boolean
+          para_status: string
+          pedido_id: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          de_status?: string | null
+          id?: string
+          motivo?: string | null
+          override?: boolean
+          para_status: string
+          pedido_id: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          de_status?: string | null
+          id?: string
+          motivo?: string | null
+          override?: boolean
+          para_status?: string
+          pedido_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_status_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          aceito_em: string | null
+          agendado_para: string | null
+          agendamento_janela: string | null
+          agendamento_obs: string
+          apartamento: string | null
+          atrasado: boolean
+          atraso_descricao: string | null
+          atraso_motivo: string | null
+          bairro: string
+          bloco: string | null
+          campanha_origem: string
+          cidade: string
+          cliente_nome: string
+          complemento: string
+          created_at: string
+          cupom: string | null
+          desconto: number
+          destino_lat: number | null
+          destino_lng: number | null
+          endereco: string
+          entregue_em: string | null
+          forma_pagamento: Database["public"]["Enums"]["pagamento"]
+          id: string
+          impresso: boolean
+          indicado_por: string | null
+          interfone: string | null
+          motoboy_atualizado_em: string | null
+          motoboy_id: string | null
+          motoboy_lat: number | null
+          motoboy_lng: number | null
+          numero: number
+          observacoes: string
+          origem_parceiro_id: string | null
+          pagamento_em: string | null
+          pagamento_status: string
+          pode_subir: boolean | null
+          preparo_em: string | null
+          problema: string | null
+          producao_status: Database["public"]["Enums"]["prod_status"]
+          pronto_em: string | null
+          referencia: string
+          rota_id: string | null
+          saiu_em: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          taxa_entrega: number
+          taxa_motoboy: number
+          telefone: string
+          tipo_entrega: string
+          tipo_evento: string
+          tipo_imovel: string | null
+          total: number
+          user_id: string | null
+        }
+        Insert: {
+          aceito_em?: string | null
+          agendado_para?: string | null
+          agendamento_janela?: string | null
+          agendamento_obs?: string
+          apartamento?: string | null
+          atrasado?: boolean
+          atraso_descricao?: string | null
+          atraso_motivo?: string | null
+          bairro?: string
+          bloco?: string | null
+          campanha_origem?: string
+          cidade?: string
+          cliente_nome: string
+          complemento?: string
+          created_at?: string
+          cupom?: string | null
+          desconto?: number
+          destino_lat?: number | null
+          destino_lng?: number | null
+          endereco: string
+          entregue_em?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["pagamento"]
+          id?: string
+          impresso?: boolean
+          indicado_por?: string | null
+          interfone?: string | null
+          motoboy_atualizado_em?: string | null
+          motoboy_id?: string | null
+          motoboy_lat?: number | null
+          motoboy_lng?: number | null
+          numero?: number
+          observacoes?: string
+          origem_parceiro_id?: string | null
+          pagamento_em?: string | null
+          pagamento_status?: string
+          pode_subir?: boolean | null
+          preparo_em?: string | null
+          problema?: string | null
+          producao_status?: Database["public"]["Enums"]["prod_status"]
+          pronto_em?: string | null
+          referencia?: string
+          rota_id?: string | null
+          saiu_em?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number
+          taxa_entrega?: number
+          taxa_motoboy?: number
+          telefone: string
+          tipo_entrega?: string
+          tipo_evento?: string
+          tipo_imovel?: string | null
+          total?: number
+          user_id?: string | null
+        }
+        Update: {
+          aceito_em?: string | null
+          agendado_para?: string | null
+          agendamento_janela?: string | null
+          agendamento_obs?: string
+          apartamento?: string | null
+          atrasado?: boolean
+          atraso_descricao?: string | null
+          atraso_motivo?: string | null
+          bairro?: string
+          bloco?: string | null
+          campanha_origem?: string
+          cidade?: string
+          cliente_nome?: string
+          complemento?: string
+          created_at?: string
+          cupom?: string | null
+          desconto?: number
+          destino_lat?: number | null
+          destino_lng?: number | null
+          endereco?: string
+          entregue_em?: string | null
+          forma_pagamento?: Database["public"]["Enums"]["pagamento"]
+          id?: string
+          impresso?: boolean
+          indicado_por?: string | null
+          interfone?: string | null
+          motoboy_atualizado_em?: string | null
+          motoboy_id?: string | null
+          motoboy_lat?: number | null
+          motoboy_lng?: number | null
+          numero?: number
+          observacoes?: string
+          origem_parceiro_id?: string | null
+          pagamento_em?: string | null
+          pagamento_status?: string
+          pode_subir?: boolean | null
+          preparo_em?: string | null
+          problema?: string | null
+          producao_status?: Database["public"]["Enums"]["prod_status"]
+          pronto_em?: string | null
+          referencia?: string
+          rota_id?: string | null
+          saiu_em?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number
+          taxa_entrega?: number
+          taxa_motoboy?: number
+          telefone?: string
+          tipo_entrega?: string
+          tipo_evento?: string
+          tipo_imovel?: string | null
+          total?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas_entrega"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pedidos_recorrentes: {
         Row: {
@@ -988,145 +1652,242 @@ export type Database = {
         }
         Relationships: []
       }
-      pedido_notas: {        Row: {
-          autor: string | null
+      produtos: {
+        Row: {
+          categoria_id: string
           created_at: string
+          custo: number | null
+          descricao: string
+          destaque: boolean
+          disponivel: boolean
+          estoque: number
+          estoque_maximo: number | null
+          estoque_minimo: number
           id: string
-          pedido_id: string
-          texto: string
-          visivel_cliente: boolean
+          imagem_url: string | null
+          nome: string
+          preco: number
+          preco_promocional: number | null
+          promo_ativo: boolean
+          promo_fim: string | null
+          promo_inicio: string | null
+          tempo_fritura_50s: number
+          tipo_venda: string
+          unidade_medida: string
         }
         Insert: {
-          autor?: string | null
+          categoria_id: string
           created_at?: string
+          custo?: number | null
+          descricao?: string
+          destaque?: boolean
+          disponivel?: boolean
+          estoque?: number
+          estoque_maximo?: number | null
+          estoque_minimo?: number
           id?: string
-          pedido_id: string
-          texto?: string
-          visivel_cliente?: boolean
+          imagem_url?: string | null
+          nome: string
+          preco: number
+          preco_promocional?: number | null
+          promo_ativo?: boolean
+          promo_fim?: string | null
+          promo_inicio?: string | null
+          tempo_fritura_50s?: number
+          tipo_venda?: string
+          unidade_medida?: string
         }
         Update: {
-          autor?: string | null
+          categoria_id?: string
           created_at?: string
+          custo?: number | null
+          descricao?: string
+          destaque?: boolean
+          disponivel?: boolean
+          estoque?: number
+          estoque_maximo?: number | null
+          estoque_minimo?: number
           id?: string
-          pedido_id?: string
-          texto?: string
-          visivel_cliente?: boolean
+          imagem_url?: string | null
+          nome?: string
+          preco?: number
+          preco_promocional?: number | null
+          promo_ativo?: boolean
+          promo_fim?: string | null
+          promo_inicio?: string | null
+          tempo_fritura_50s?: number
+          tipo_venda?: string
+          unidade_medida?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "produtos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      metas: {        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          periodo_ref: string
-          tipo: string
-          valor: number
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          periodo_ref?: string
-          tipo?: string
-          valor?: number
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          periodo_ref?: string
-          tipo?: string
-          valor?: number
-        }
-        Relationships: []
-      }
-      notificacoes: {
+      profiles: {
         Row: {
           created_at: string
-          detalhe: string
           id: string
-          lida: boolean
-          link: string
-          tipo: string
-          titulo: string
-        }
-        Insert: {
-          created_at?: string
-          detalhe?: string
-          id?: string
-          lida?: boolean
-          link?: string
-          tipo?: string
-          titulo?: string
-        }
-        Update: {
-          created_at?: string
-          detalhe?: string
-          id?: string
-          lida?: boolean
-          link?: string
-          tipo?: string
-          titulo?: string
-        }
-        Relationships: []
-      }
-      orcamentos: {
-        Row: {
-          created_at: string
-          horario: string
-          data_evento: string | null
-          id: string
-          mix: Json
-          observacoes: string
-          pedido_id: string | null
-          pessoas: number
-          status: string
-          subtotal: number
-          taxa_entrega: number
+          nome: string
+          pontos: number
           telefone: string
-          cliente_nome: string
-          tipo_evento: string
-          total: number
-          user_id: string | null
-          validade: string | null
         }
         Insert: {
           created_at?: string
-          horario?: string
-          data_evento?: string | null
-          id?: string
-          mix?: Json
-          observacoes?: string
-          pedido_id?: string | null
-          pessoas?: number
-          status?: string
-          subtotal?: number
-          taxa_entrega?: number
+          id: string
+          nome?: string
+          pontos?: number
           telefone?: string
-          cliente_nome?: string
-          tipo_evento?: string
-          total?: number
-          user_id?: string | null
-          validade?: string | null
         }
         Update: {
           created_at?: string
-          horario?: string
-          data_evento?: string | null
           id?: string
-          mix?: Json
-          observacoes?: string
-          pedido_id?: string | null
-          pessoas?: number
-          status?: string
-          subtotal?: number
-          taxa_entrega?: number
+          nome?: string
+          pontos?: number
           telefone?: string
-          cliente_nome?: string
-          tipo_evento?: string
-          total?: number
-          user_id?: string | null
-          validade?: string | null
+        }
+        Relationships: []
+      }
+      reservas_estoque: {
+        Row: {
+          created_at: string
+          id: string
+          lote_id: string | null
+          pedido_id: string
+          produto_id: string | null
+          quantidade: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          pedido_id: string
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          pedido_id?: string
+          produto_id?: string | null
+          quantidade?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_estoque_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_estoque_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservas_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rota_pedidos: {
+        Row: {
+          ordem: number
+          pedido_id: string
+          rota_id: string
+        }
+        Insert: {
+          ordem?: number
+          pedido_id: string
+          rota_id: string
+        }
+        Update: {
+          ordem?: number
+          pedido_id?: string
+          rota_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rota_pedidos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rota_pedidos_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas_entrega"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotas_entrega: {
+        Row: {
+          chegou_em: string | null
+          created_at: string
+          id: string
+          motoboy_id: string | null
+          saiu_em: string | null
+          status: string
+        }
+        Insert: {
+          chegou_em?: string | null
+          created_at?: string
+          id?: string
+          motoboy_id?: string | null
+          saiu_em?: string | null
+          status?: string
+        }
+        Update: {
+          chegou_em?: string | null
+          created_at?: string
+          id?: string
+          motoboy_id?: string | null
+          saiu_em?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotas_entrega_motoboy_id_fkey"
+            columns: ["motoboy_id"]
+            isOneToOne: false
+            referencedRelation: "motoboys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -1144,7 +1905,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "producao" | "motoboy" | "cliente" | "atendente" | "financeiro"
+      app_role:
+        | "admin"
+        | "producao"
+        | "motoboy"
+        | "cliente"
+        | "atendente"
+        | "financeiro"
       order_status:
         | "recebido"
         | "em_producao"
@@ -1282,7 +2049,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "producao", "motoboy", "cliente", "atendente", "financeiro"],
+      app_role: [
+        "admin",
+        "producao",
+        "motoboy",
+        "cliente",
+        "atendente",
+        "financeiro",
+      ],
       order_status: [
         "recebido",
         "em_producao",
