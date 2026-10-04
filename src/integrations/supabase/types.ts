@@ -1896,7 +1896,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      parceiros_publicos: {
+        Row: {
+          bairro: string | null
+          categoria: string | null
+          cidade: string | null
+          descricao: string | null
+          id: string | null
+          instagram: string | null
+          logo_url: string | null
+          nome: string | null
+          site: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          descricao?: string | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          nome?: string | null
+          site?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          categoria?: string | null
+          cidade?: string | null
+          descricao?: string | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          nome?: string | null
+          site?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
