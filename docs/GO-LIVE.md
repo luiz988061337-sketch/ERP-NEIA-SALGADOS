@@ -197,6 +197,11 @@ provedor/cofre e DANFE testada em homologação.
 Localmente exige `.env` com `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY`
 (o script aborta na hora sem isso — sem env o SSR retorna 500 por desenho).
 
+Decisão documentada (§7 do prompt): **checkout exige login** (`/auth?redirect=/checkout`).
+Guest checkout não existe porque a RLS (`pedidos insert own`) só aceita
+`authenticated` com `user_id = auth.uid()`. Implementar guest exigiria policy
+anon + CRM por telefone sem conta — decisão do dono, fora do go-live.
+
 1. Cardápio → combo 50/100 (ok) → tentativa 49/51 no carrinho (bloqueia).
 2. Checkout R$40 + R$6 = **R$46**; confirma; confere admin + WhatsApp com o mesmo total.
 3. Admin muda status → WhatsApp abre; motoboy aceita/inicia/entrega.
