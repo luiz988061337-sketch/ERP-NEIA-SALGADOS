@@ -62,7 +62,8 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 50. `0049_dedup_uniques.sql` — CORRETIVA: `UNIQUE(pedido_id, produto_id)` na fritura (reconfirmar não frita em dobro) + `UNIQUE(categoria, titulo)` nos artigos de ajuda (reaplicar não duplica). Deduplica antes de criar.
 51. `0050_estoque_unico.sql` — CORRETIVA, não pule: regra única 0030×0042 (checkout + confirmação debitavam `produtos.estoque` 2x; cancel sem RPC vazava). 0030 dona de `produtos.estoque`; 0042 move lotes; no cancel a 0042 chama a 0030 antes dos lotes.
 52. `0051_grants_faltantes.sql` — CORRETIVA: GRANTs que faltavam em 0043–0046 (RLS+policy sem GRANT = PostgREST nega tudo; a seção Provedor do `/fiscal` nascia quebrada) + RLS na tabela de transições.
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0051 — rode esses separado).
+53. `0052_tempo_fritura_blocos.sql` — CORRETIVA: tempo proporcional linear dava 5s p/ 1 salgado e divergia do app; agora blocos (teto, mín. 1 lote), igual a `cozinha.ts`.
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0052 — rode esses separado).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
@@ -114,7 +115,7 @@ SELECT id, public FROM storage.buckets WHERE id = 'hero';
 Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
 `drizzle/migrations/`:
 
-- `PASSO-4-bootstrap-completo.sql` — `0000`→`0051` em ordem (regenerado por
+- `PASSO-4-bootstrap-completo.sql` — `0000`→`0052` em ordem (regenerado por
   `node scripts/gerar-bootstrap.mjs`; rode o gerador de novo se criar migration
   nova), cada arquivo em sub-transação própria: o que falhar aparece como
   `WARNING` e o resto continua.

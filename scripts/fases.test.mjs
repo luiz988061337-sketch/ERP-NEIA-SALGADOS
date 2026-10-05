@@ -52,9 +52,11 @@ t("avança ok", status.podeTransitar("confirmado", "agendado") === true);
 t("cancelado de entregue não", status.podeTransitar("entregue", "cancelado") === false);
 t("map novo->recebido", status.STATUS_MAP_DB.novo === "recebido");
 
-// Fritura 50=3:30
+// Fritura 50=3:30 (modelo em BLOCOS: mínimo 1 lote, igual ao SQL 0052)
 t("50un=210s", cozinha.tempoFritura(50) === 210);
 t("100un=420s", cozinha.tempoFritura(100) === 420);
+t("1un=1 lote", cozinha.tempoFritura(1) === 210);
+t("75un=2 lotes", cozinha.tempoFritura(75) === 420);
 t("150=10:30", cozinha.formatarTempo(630) === "10:30");
 t("sem repetir som", cozinha.filtrarNovos([{ id: "1", tipo: "novo_pedido", em: "" }], new Set(["1"])).length === 0);
 
@@ -114,6 +116,9 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
   const f28 = readFileSync("drizzle/migrations/0028_crm_experiencia.sql", "utf8");
   t("fritura 1 linha por pedido+produto", /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f43) && /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f49));
   t("ajuda sem duplicar reaplicando", /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f28) && /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f49));
+  // Fritura em BLOCOS no SQL (0052) igual ao app — o linear dava 5s p/ 1un.
+  const f52 = readFileSync("drizzle/migrations/0052_tempo_fritura_blocos.sql", "utf8");
+  t("SQL frita em blocos", /CEIL\s*\(\s*GREATEST/i.test(f52) && !/\/\s*v_base_qtd\s*\*\s*v_base_seg/i.test(f52));
   // Estoque: regra única 0030x0042 (0050) — sem ela, produtos.estoque caía 2x
   // por venda (checkout + confirmação) e o cancel restaurava errado.
   const f50 = readFileSync("drizzle/migrations/0050_estoque_unico.sql", "utf8");

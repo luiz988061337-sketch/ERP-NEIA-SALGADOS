@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASSO 4 - BOOTSTRAP COMPLETO (gerado por scripts/gerar-bootstrap.mjs)
--- Aplica drizzle/migrations/0000..0051 nessa ordem.
+-- Aplica drizzle/migrations/0000..0052 nessa ordem.
 -- Cada arquivo roda em uma sub-transacao propria: se um falhar, os OUTROS
 -- continuam e o erro aparece como WARNING no painel de mensagens.
 -- Pode rodar quantas vezes quiser.
@@ -2812,12 +2812,15 @@ BEGIN
   FROM public.produtos
   WHERE id = p_produto_id;
 
-  IF NOT FOUND THEN
-    RETURN 210; -- default 3:30
+  IF NOT FOUND OR v_base_seg IS NULL OR v_base_seg <= 0
+     OR v_base_qtd IS NULL OR v_base_qtd <= 0 THEN
+    RETURN 210; -- default 3:30 (igual a SEGUNDOS_POR_50_PADRAO)
   END IF;
 
-  -- Proporcional linear: (quantidade / base_qtd) * base_seg
-  v_tempo := CEIL(p_quantidade::numeric / v_base_qtd * v_base_seg);
+  -- NOTA 0052: BLOCOS (teto em lotes de base_qtd, mínimo 1 lote), espelhando
+  -- src/lib/cozinha.ts. O linear antigo dava 5s p/ 1 salgado.
+  -- Em bancos já criados, a 0052 sobrescreve esta função (corpo idêntico).
+  v_tempo := GREATEST(1, CEIL(GREATEST(0, p_quantidade)::numeric / v_base_qtd)) * v_base_seg;
   RETURN v_tempo;
 END;
 $$;
@@ -4133,6 +4136,46 @@ $body$;
   RAISE NOTICE 'APLICADO 0051_grants_faltantes.sql';
 EXCEPTION WHEN others THEN
   RAISE WARNING 'FALHOU 0051_grants_faltantes.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0052_tempo_fritura_blocos.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0052: tempo de fritura em BLOCOS (igual ao app).
+-- A 0043 calculava linear (qtd/base*qtd*seg): 1 salgado = 5 segundos, o que
+-- não existe em fritadeira — e divergia do src/lib/cozinha.ts (1 lote = 210s).
+-- Modelo único: teto da quantidade em lotes de unidade_base (mínimo 1 lote).
+-- Idempotente. Rode APÓS 0051. (Arquivo 0043 sincronizado p/ fresh.)
+
+CREATE OR REPLACE FUNCTION public.calcular_tempo_fritura(p_produto_id uuid, p_quantidade integer)
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_base_seg integer;
+  v_base_qtd integer;
+BEGIN
+  SELECT tempo_fritura_base_segundos, unidade_base_tempo_fritura
+  INTO v_base_seg, v_base_qtd
+  FROM public.produtos
+  WHERE id = p_produto_id;
+
+  IF NOT FOUND OR v_base_seg IS NULL OR v_base_seg <= 0
+     OR v_base_qtd IS NULL OR v_base_qtd <= 0 THEN
+    RETURN 210; -- default 3:30 (igual a SEGUNDOS_POR_50_PADRAO)
+  END IF;
+
+  -- Blocos: 1un..50un = 1 lote; 51un..100un = 2 lotes (igual a tempoFritura()).
+  RETURN GREATEST(1, CEIL(GREATEST(0, p_quantidade)::numeric / v_base_qtd)) * v_base_seg;
+END;
+$$;
+
+COMMENT ON FUNCTION public.calcular_tempo_fritura(uuid, integer) IS '0052: blocos (teto), espelha src/lib/cozinha.ts tempoFritura().';
+$body$;
+  RAISE NOTICE 'APLICADO 0052_tempo_fritura_blocos.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0052_tempo_fritura_blocos.sql -> %', SQLERRM;
 END
 $mig$;
 

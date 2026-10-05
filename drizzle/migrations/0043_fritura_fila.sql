@@ -53,12 +53,15 @@ BEGIN
   FROM public.produtos
   WHERE id = p_produto_id;
 
-  IF NOT FOUND THEN
-    RETURN 210; -- default 3:30
+  IF NOT FOUND OR v_base_seg IS NULL OR v_base_seg <= 0
+     OR v_base_qtd IS NULL OR v_base_qtd <= 0 THEN
+    RETURN 210; -- default 3:30 (igual a SEGUNDOS_POR_50_PADRAO)
   END IF;
 
-  -- Proporcional linear: (quantidade / base_qtd) * base_seg
-  v_tempo := CEIL(p_quantidade::numeric / v_base_qtd * v_base_seg);
+  -- NOTA 0052: BLOCOS (teto em lotes de base_qtd, mínimo 1 lote), espelhando
+  -- src/lib/cozinha.ts. O linear antigo dava 5s p/ 1 salgado.
+  -- Em bancos já criados, a 0052 sobrescreve esta função (corpo idêntico).
+  v_tempo := GREATEST(1, CEIL(GREATEST(0, p_quantidade)::numeric / v_base_qtd)) * v_base_seg;
   RETURN v_tempo;
 END;
 $$;
