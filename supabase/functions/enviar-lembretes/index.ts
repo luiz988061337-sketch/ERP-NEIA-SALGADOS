@@ -6,10 +6,13 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-serve(async () => {
+serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!url || !key) return new Response("sem env", { status: 500 });
+  const cron = Deno.env.get("LOVABLE_CRON_SECRET") ?? "";
+  if (!url || !key || !cron) return new Response("sem env", { status: 500 });
+  const auth = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (auth !== cron) return new Response("unauthorized", { status: 401 });
   const sb = createClient(url, key);
   const agora = Date.now();
   const { data: pedidos } = await sb.from("pedidos")
