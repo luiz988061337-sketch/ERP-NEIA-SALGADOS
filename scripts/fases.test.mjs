@@ -107,6 +107,13 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
     const loops = [...sql.matchAll(/FOR\s+v_item\s+IN[\s\S]*?LOOP/gi)];
     t(`${f} filtra produto nulo (${loops.length} loop(s))`, loops.length > 0 && loops.every((m) => /produto_id\s+IS\s+NOT\s+NULL/i.test(m[0])));
   }
+  // Banco: ON CONFLICT com alvo precisa da UNIQUE correspondente (0043/0049,
+  // 0028/0049) — sem ela, o DO NOTHING nunca dispara e reaplicar duplica.
+  const f43 = readFileSync("drizzle/migrations/0043_fritura_fila.sql", "utf8");
+  const f49 = readFileSync("drizzle/migrations/0049_dedup_uniques.sql", "utf8");
+  const f28 = readFileSync("drizzle/migrations/0028_crm_experiencia.sql", "utf8");
+  t("fritura 1 linha por pedido+produto", /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f43) && /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f49));
+  t("ajuda sem duplicar reaplicando", /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f28) && /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f49));
 }
 
 console.log(`\n${pass} passaram, ${fail} falharam`);

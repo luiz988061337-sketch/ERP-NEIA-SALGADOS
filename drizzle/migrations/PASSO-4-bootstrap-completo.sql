@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASSO 4 - BOOTSTRAP COMPLETO (gerado por scripts/gerar-bootstrap.mjs)
--- Aplica drizzle/migrations/0000..0048 nessa ordem.
+-- Aplica drizzle/migrations/0000..0049 nessa ordem.
 -- Cada arquivo roda em uma sub-transacao propria: se um falhar, os OUTROS
 -- continuam e o erro aparece como WARNING no painel de mensagens.
 -- Pode rodar quantas vezes quiser.
@@ -1799,7 +1799,8 @@ CREATE TABLE IF NOT EXISTS public.parceiros (
 -- Ajuda (central + busca por categoria)
 CREATE TABLE IF NOT EXISTS public.ajuda_artigos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  categoria text NOT NULL, titulo text NOT NULL, corpo text NOT NULL, ativo boolean NOT NULL DEFAULT true
+  categoria text NOT NULL, titulo text NOT NULL, corpo text NOT NULL, ativo boolean NOT NULL DEFAULT true,
+  UNIQUE (categoria, titulo)
 );
 
 -- Alta demanda (avisos progressivos 10/7/3d, nunca inventar sem config)
@@ -1855,7 +1856,7 @@ INSERT INTO public.ajuda_artigos (categoria, titulo, corpo) VALUES
  ('entrega','Entrega ou retirada?','Entrega tem taxa e vai com motoboy. Retirada é na loja, sem taxa, com endereço e mapa no pedido.'),
  ('pagamento','Como pago?','PIX com QR/Copia e Cola, dinheiro, crédito ou débito. O pagamento começa pendente e a loja confirma.'),
  ('agendamento','Posso agendar?','Sim, Seg–Sáb 08–12h e 13–22h (nunca 12–13h, Dom fechado), com 30min de antecedência.')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (categoria, titulo) DO NOTHING;
 $body$;
   RAISE NOTICE 'APLICADO 0028_crm_experiencia.sql';
 EXCEPTION WHEN others THEN
@@ -2787,6 +2788,14 @@ CREATE TABLE IF NOT EXISTS public.fritura_fila (
 CREATE INDEX IF NOT EXISTS fritura_fila_pedido_idx ON public.fritura_fila (pedido_id);
 CREATE INDEX IF NOT EXISTS fritura_fila_status_idx ON public.fritura_fila (status);
 CREATE INDEX IF NOT EXISTS fritura_fila_funcionario_idx ON public.fritura_fila (funcionario_id);
+
+-- NOTA 0049: 1 linha por pedido+produto (reconfirmar nunca frita em dobro).
+-- Em bancos já criados, a 0049 deduplica e adiciona a constraint.
+DO $$ BEGIN
+  ALTER TABLE public.fritura_fila
+    ADD CONSTRAINT fritura_fila_pedido_produto_key UNIQUE (pedido_id, produto_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =============================================
 -- 3. Função para calcular tempo de fritura
@@ -3811,6 +3820,52 @@ $body$;
   RAISE NOTICE 'APLICADO 0048_combo_sem_produto.sql';
 EXCEPTION WHEN others THEN
   RAISE WARNING 'FALHOU 0048_combo_sem_produto.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0049_dedup_uniques.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0049: unicidades que faltavam (idempotência real + sem fritar 2x).
+--   (a) fritura_fila sem UNIQUE: o ON CONFLICT DO NOTHING nunca disparava e,
+--       como 0041 permite voltar em_producao→recebido, reconfirmar o pedido
+--       enfileirava tudo de novo (cozinha frita em dobro). Agora 1 linha por
+--       pedido+produto.
+--   (b) ajuda_artigos sem UNIQUE: reaplicar 0028 duplicava os 5 artigos.
+-- Idempotente (dedup por ctid antes da constraint). Rode APÓS 0048.
+
+-- (a) fritura_fila: mantém a linha mais antiga por pedido+produto
+DELETE FROM public.fritura_fila a
+USING public.fritura_fila b
+WHERE a.ctid < b.ctid
+  AND a.pedido_id = b.pedido_id
+  AND a.produto_id IS NOT DISTINCT FROM b.produto_id;
+
+ALTER TABLE public.fritura_fila
+  DROP CONSTRAINT IF EXISTS fritura_fila_pedido_produto_key;
+ALTER TABLE public.fritura_fila
+  ADD CONSTRAINT fritura_fila_pedido_produto_key UNIQUE (pedido_id, produto_id);
+
+-- (b) ajuda_artigos: mantém o artigo mais antigo por categoria+título
+DELETE FROM public.ajuda_artigos a
+USING public.ajuda_artigos b
+WHERE a.ctid < b.ctid
+  AND a.categoria = b.categoria
+  AND a.titulo = b.titulo;
+
+ALTER TABLE public.ajuda_artigos
+  DROP CONSTRAINT IF EXISTS ajuda_artigos_categoria_titulo_key;
+ALTER TABLE public.ajuda_artigos
+  ADD CONSTRAINT ajuda_artigos_categoria_titulo_key UNIQUE (categoria, titulo);
+
+COMMENT ON CONSTRAINT fritura_fila_pedido_produto_key ON public.fritura_fila
+  IS '0049: 1 linha por pedido+produto — reconfirmar nunca frita em dobro.';
+$body$;
+  RAISE NOTICE 'APLICADO 0049_dedup_uniques.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0049_dedup_uniques.sql -> %', SQLERRM;
 END
 $mig$;
 

@@ -30,6 +30,14 @@ CREATE INDEX IF NOT EXISTS fritura_fila_pedido_idx ON public.fritura_fila (pedid
 CREATE INDEX IF NOT EXISTS fritura_fila_status_idx ON public.fritura_fila (status);
 CREATE INDEX IF NOT EXISTS fritura_fila_funcionario_idx ON public.fritura_fila (funcionario_id);
 
+-- NOTA 0049: 1 linha por pedido+produto (reconfirmar nunca frita em dobro).
+-- Em bancos já criados, a 0049 deduplica e adiciona a constraint.
+DO $$ BEGIN
+  ALTER TABLE public.fritura_fila
+    ADD CONSTRAINT fritura_fila_pedido_produto_key UNIQUE (pedido_id, produto_id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- =============================================
 -- 3. Função para calcular tempo de fritura
 -- =============================================

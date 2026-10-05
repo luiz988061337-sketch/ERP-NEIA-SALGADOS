@@ -59,7 +59,8 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 47. `0046_fiscal_integracao.sql` — `fiscal_provedor_config`, `fiscal_certificados` (só referência ao cofre), `documento_fiscal_itens`, trigger de validação NCM/CFOP na emissão.
 48. `0047_reconciliacao_entrega.sql` — CORRETIVA, não pule: normaliza motivos de atraso legados + CHECK novo, resolve motoboy via `user_id` nos triggers de saída/entrega, restringe validação de endereço a colunas de endereço (status de pedido legado volta a transitar).
 49. `0048_combo_sem_produto.sql` — CORRETIVA, não pule: reserva FEFO (0042) e fila de fritura (0043) ignoram itens sem produto. Sem ela, confirmar **qualquer combo** abortava e o fluxo principal travava.
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0048 — rode esses separado).
+50. `0049_dedup_uniques.sql` — CORRETIVA: `UNIQUE(pedido_id, produto_id)` na fritura (reconfirmar não frita em dobro) + `UNIQUE(categoria, titulo)` nos artigos de ajuda (reaplicar não duplica). Deduplica antes de criar.
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0049 — rode esses separado).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
@@ -111,7 +112,7 @@ SELECT id, public FROM storage.buckets WHERE id = 'hero';
 Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
 `drizzle/migrations/`:
 
-- `PASSO-4-bootstrap-completo.sql` — `0000`→`0048` em ordem (regenerado por
+- `PASSO-4-bootstrap-completo.sql` — `0000`→`0049` em ordem (regenerado por
   `node scripts/gerar-bootstrap.mjs`; rode o gerador de novo se criar migration
   nova), cada arquivo em sub-transação própria: o que falhar aparece como
   `WARNING` e o resto continua.
