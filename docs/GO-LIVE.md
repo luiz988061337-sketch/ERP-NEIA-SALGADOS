@@ -65,7 +65,8 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 53. `0052_tempo_fritura_blocos.sql` — CORRETIVA: tempo proporcional linear dava 5s p/ 1 salgado e divergia do app; agora blocos (teto, mín. 1 lote), igual a `cozinha.ts`, usando o campo do admin.
 54. `0053_historico_dono.sql` — CORRETIVA: o nascimento do pedido via checkout caía em RLS silenciosa (só staff inseria); agora o dono registra no próprio pedido (métricas de ciclo recuperam a origem).
 55. `0054_push_subscriptions.sql` — Web Push (notificação de status sem WhatsApp): 1 linha por aparelho, dono gerencia as próprias.
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0054 — rode esses separado).
+56. `0055_push_staff_read.sql` — staff pode VER se o cliente tem push (sem isso o app sempre abriria o WhatsApp); envio continua só via `push-enviar`.
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0055 — rode esses separado).
 
 Nota: `0002_secure_loyalty_and_partners.sql` (endurecimento Lovable: `search_path`,
 candidatura de parceiros, travas de pontos + RPCs `creditar_pontos_pedido` /
@@ -122,7 +123,7 @@ SELECT id, public FROM storage.buckets WHERE id = 'hero';
 Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
 `drizzle/migrations/`:
 
-- `PASSO-4-bootstrap-completo.sql` — `0000`→`0054` em ordem (regenerado por
+- `PASSO-4-bootstrap-completo.sql` — `0000`→`0055` em ordem (regenerado por
   `node scripts/gerar-bootstrap.mjs`; rode o gerador de novo se criar migration
   nova), cada arquivo em sub-transação própria: o que falhar aparece como
   `WARNING` e o resto continua.

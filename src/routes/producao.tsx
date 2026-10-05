@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-steps";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
-import { brl, dataHora, hora, mensagemStatus, whatsappLink, type OrderStatus, type ProdStatus } from "@/lib/format";
+import { brl, dataHora, hora, mensagemStatus, type OrderStatus, type ProdStatus } from "@/lib/format";
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
 import { tempoFritura, tempoFrituraPedido, formatarTempo, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
 import { impressaoDireta, fichaDireta } from "@/lib/impressao";
-import { notificarPush } from "@/lib/push";
+import { avisarStatus } from "@/lib/push";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/producao")({
@@ -157,7 +157,7 @@ function Producao() {
       toast.error("Não foi possível atualizar o pedido.");
       return;
     }
-    void notificarPush(supabase, pedido.id, status);
+    void avisarStatus(supabase, pedido, status, mensagemStatus(status, pedido.cliente_nome, pedido.numero));
     try {
       await supabase.from("pedido_status_historico").insert({ pedido_id: pedido.id, de_status: pedido.status, para_status: status });
     } catch { /* sem migration — segue */ }
@@ -179,11 +179,6 @@ function Producao() {
       });
     } catch { /* fila opcional */ }
     queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
-    window.open(
-      whatsappLink(pedido.telefone, mensagemStatus(status, pedido.cliente_nome, pedido.numero)),
-      "_blank",
-      "noopener",
-    );
   }
 
   async function imprimirDireto(pedido: any) {

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASSO 4 - BOOTSTRAP COMPLETO (gerado por scripts/gerar-bootstrap.mjs)
--- Aplica drizzle/migrations/0000..0054 nessa ordem.
+-- Aplica drizzle/migrations/0000..0055 nessa ordem.
 -- Cada arquivo roda em uma sub-transacao propria: se um falhar, os OUTROS
 -- continuam e o erro aparece como WARNING no painel de mensagens.
 -- Pode rodar quantas vezes quiser.
@@ -4356,6 +4356,36 @@ $body$;
   RAISE NOTICE 'APLICADO 0054_push_subscriptions.sql';
 EXCEPTION WHEN others THEN
   RAISE WARNING 'FALHOU 0054_push_subscriptions.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0055_push_staff_read.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0055: staff pode VER se o cliente tem push (para não abrir WhatsApp à toa).
+-- Só existência (o envio continua na Edge com service_role). Staff já vê
+-- telefone/endereço do cliente no admin — endpoint sozinho não autoriza envio
+-- (precisa da VAPID privada, só no cofre da função).
+-- Idempotente. Rode APÓS 0054.
+
+DROP POLICY IF EXISTS "push staff existe" ON public.push_subscriptions;
+CREATE POLICY "push staff existe" ON public.push_subscriptions FOR SELECT TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR public.has_role(auth.uid(), 'admin')
+    OR public.has_role(auth.uid(), 'financeiro')
+    OR public.has_role(auth.uid(), 'atendente')
+    OR public.has_role(auth.uid(), 'producao')
+    OR public.has_role(auth.uid(), 'motoboy')
+  );
+
+COMMENT ON TABLE public.push_subscriptions IS '0055: staff lê existência (evita WhatsApp redundante); envio só via push-enviar.';
+$body$;
+  RAISE NOTICE 'APLICADO 0055_push_staff_read.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0055_push_staff_read.sql -> %', SQLERRM;
 END
 $mig$;
 

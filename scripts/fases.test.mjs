@@ -111,6 +111,19 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
   t("push sem getKey é nulo", push.extrairInscricao({ endpoint: "x" }) === null);
   t("push sem endpoint é nulo", push.extrairInscricao({ endpoint: "", getKey: () => new ArrayBuffer(1) }) === null);
   t("push node sem suporte", push.suportePush() === false && push.estadoPush() === "nao-suportado");
+  // avisarStatus: push entregue → sem WhatsApp; sem push/sem janela → sem popup e sem erro
+  {
+    const ok = { functions: { invoke: async () => ({ data: { enviados: 1 } }) } };
+    const vazio = { functions: { invoke: async () => ({ data: { enviados: 0 } }) } };
+    const quebra = { functions: { invoke: async () => { throw new Error("x"); } } };
+    t("push entregue true", (await push.notificarPush(ok, "p1", "em_rota")) === true);
+    t("push zerado false", (await push.notificarPush(vazio, "p1", "em_rota")) === false);
+    t("push erro false", (await push.notificarPush(quebra, "p1", "em_rota")) === false);
+    t("push sem args false", (await push.notificarPush(ok, "", "")) === false);
+    await push.avisarStatus(ok, { id: "p1", telefone: "159" }, "em_rota", "oi");
+    await push.avisarStatus(quebra, { id: "p1", telefone: "159" }, "em_rota", "oi");
+    t("avisarStatus nunca quebra", true);
+  }
 }
 
 // Banco: loops de itens (0042 reserva, 0043 fritura) ignoram combo avulso

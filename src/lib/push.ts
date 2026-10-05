@@ -91,13 +91,38 @@ export async function ativarPush(
 
 /**
  * Avisa a Edge Function (fire-and-forget): ela monta o texto e envia a quem
- * assinou. Nunca quebra o fluxo de status — erro aqui é só log.
+ * assinou. Retorna true se ao menos 1 push foi entregue. Nunca quebra o
+ * fluxo de status — erro aqui é só log (e fallback no WhatsApp).
  */
-export async function notificarPush(client: any, pedidoId: string, status: string): Promise<void> {
-  if (!pedidoId || !status) return;
+export async function notificarPush(client: any, pedidoId: string, status: string): Promise<boolean> {
+  if (!pedidoId || !status) return false;
   try {
-    await client.functions.invoke("push-enviar", { body: { pedido_id: pedidoId, status } });
+    const { data } = await client.functions.invoke("push-enviar", { body: { pedido_id: pedidoId, status } });
+    return Number((data as any)?.enviados ?? 0) > 0;
   } catch {
     /* push é melhor esforço */
+    return false;
+  }
+}
+
+/**
+ * Push primeiro; se ninguém recebeu (sem inscrição, sem deploy, erro),
+ * abre o WhatsApp como hoje. É isso que some com o popup para quem ativou.
+ */
+export async function avisarStatus(
+  client: any,
+  pedido: { id: string; telefone?: string | null },
+  status: string,
+  textoWhats: string,
+): Promise<void> {
+  let ok = false;
+  try {
+    ok = await notificarPush(client, pedido.id, status);
+  } catch {
+    ok = false;
+  }
+  if (!ok && typeof window !== "undefined" && typeof window.open === "function" && pedido.telefone) {
+    const { whatsappLink } = await import("./format");
+    window.open(whatsappLink(pedido.telefone, textoWhats), "_blank", "noopener");
   }
 }
