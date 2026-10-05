@@ -1873,6 +1873,7 @@ export type Database = {
           descricao_fiscal: string | null
           destaque: boolean
           disponivel: boolean
+          embalagem_custo: number | null
           estoque: number
           estoque_maximo: number | null
           estoque_minimo: number
@@ -1904,6 +1905,7 @@ export type Database = {
           descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
+          embalagem_custo?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
@@ -1935,6 +1937,7 @@ export type Database = {
           descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
+          embalagem_custo?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
@@ -2200,6 +2203,7 @@ export type Database = {
         | "cancelado"
       pagamento: "pix" | "dinheiro" | "credito" | "debito"
       prod_status: "aguardando" | "produzindo" | "finalizado"
+      tipo_venda: "combo_50" | "unidade"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2346,6 +2350,7 @@ export const Constants = {
       ],
       pagamento: ["pix", "dinheiro", "credito", "debito"],
       prod_status: ["aguardando", "produzindo", "finalizado"],
+      tipo_venda: ["combo_50", "unidade"],
     },
   },
 } as const
