@@ -205,7 +205,7 @@ Localmente exige `.env` com `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY
 
 ## 8. Rollback
 
-- Código: `git` (este trabalho está sem commit — commite antes do deploy).
+- Código: `git` (histórico por fase no `master`; para voltar: `git revert` do commit da fase).
 - Banco: as migrações são aditivas (`IF NOT EXISTS`, `DROP+CREATE` de policies/trigger).
   Para reverter o trigger anti-fraude: `DROP TRIGGER pedidos_guard_update_trg ON public.pedidos;`
 - Se algo quebrar após migração, o app tem fallbacks que avisam via toast (funciona sem as colunas novas).
