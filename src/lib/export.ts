@@ -1,7 +1,8 @@
 /** Exporta linhas para CSV (download local). Sem backend, sem dados fictícios. */
 export function toCSV(rows: Record<string, unknown>[]): string {
   const esc = (v: unknown) => {
-    const s = v == null ? "" : String(v);
+    let s = v == null ? "" : String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const cols = [...new Set(rows.flatMap((r) => Object.keys(r)))];

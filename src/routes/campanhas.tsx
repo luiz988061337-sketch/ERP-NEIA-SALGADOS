@@ -227,7 +227,7 @@ function CupomReativacao({ aptos }: { aptos: number }) {
     }
     setGerando(true);
     try {
-      const code = `CAMP-${Date.now().toString(36).toUpperCase().slice(-4)}${Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0")}`;
+      const code = `CAMP-${Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase()}`;
       const fim = new Date(Date.now() + 15 * 86400000).toISOString();
       const { error } = await supabase.from("cupons").insert({
         codigo: code, tipo, valor: Number(valor), minimo: 0, ativo: true,

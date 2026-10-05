@@ -56,7 +56,7 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
     queryKey: ["atendente-clientes", buscaCli],
     enabled: !!permitido && buscaCli.trim().length >= 3,
     queryFn: async () => {
-      const t = buscaCli.trim();
+      const t = buscaCli.trim().replace(/[^\p{L}\p{N}\s]/gu, "").slice(0, 60);
       const dig = t.replace(/\D/g, "");
       const { data, error } = await supabase.from("profiles").select("nome, telefone").or(`nome.ilike.%${t}%,telefone.ilike.%${dig}%`).limit(12);
       if (error) throw error;

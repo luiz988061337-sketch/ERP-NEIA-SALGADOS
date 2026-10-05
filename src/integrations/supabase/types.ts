@@ -1860,6 +1860,35 @@ export type Database = {
         }
         Relationships: []
       }
+      pontos_creditos: {
+        Row: {
+          created_at: string
+          pedido_id: string
+          pontos: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pedido_id: string
+          pontos: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pedido_id?: string
+          pontos?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_creditos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           categoria_id: string
@@ -1873,6 +1902,7 @@ export type Database = {
           descricao_fiscal: string | null
           destaque: boolean
           disponivel: boolean
+          embalagem_custo: number | null
           estoque: number
           estoque_maximo: number | null
           estoque_minimo: number
@@ -1904,6 +1934,7 @@ export type Database = {
           descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
+          embalagem_custo?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
@@ -1935,6 +1966,7 @@ export type Database = {
           descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
+          embalagem_custo?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
@@ -2166,6 +2198,7 @@ export type Database = {
       }
     }
     Functions: {
+      creditar_pontos_pedido: { Args: { p_pedido_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2181,6 +2214,7 @@ export type Database = {
         Args: { p_pedido_id: string; p_produto_id: string; p_qtd: number }
         Returns: boolean
       }
+      resgatar_fidelidade: { Args: { p_telefone: string }; Returns: string }
     }
     Enums: {
       app_role:
@@ -2200,6 +2234,7 @@ export type Database = {
         | "cancelado"
       pagamento: "pix" | "dinheiro" | "credito" | "debito"
       prod_status: "aguardando" | "produzindo" | "finalizado"
+      tipo_venda: "combo_50" | "unidade"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2346,6 +2381,7 @@ export const Constants = {
       ],
       pagamento: ["pix", "dinheiro", "credito", "debito"],
       prod_status: ["aguardando", "produzindo", "finalizado"],
+      tipo_venda: ["combo_50", "unidade"],
     },
   },
 } as const
