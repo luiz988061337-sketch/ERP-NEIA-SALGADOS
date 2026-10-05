@@ -20,6 +20,7 @@ const crmf = await import("@/lib/crm-fidelidade.ts");
 const beb = await import("@/lib/bebidas.ts");
 const imp = await import("@/lib/impressao.ts");
 const estoque = await import("@/lib/estoque.ts");
+const fiscal = await import("@/lib/fiscal.ts");
 
 let pass = 0, fail = 0;
 function t(nome, cond) {
@@ -82,6 +83,19 @@ t("não sugere com bebida", beb.deveSugerirBebida([{ nome: "Coxinha" }, { nome: 
 // Impressão
 t("cupom tem pedido", imp.textoCupom({ numero: 1048, dataHora: "x", cliente: "A", telefone: "t", itens: [{ qtd: 50, nome: "Coxinha" }], totalUnidades: 50, entregaRetirada: "Entrega", horario: "18:00", endereco: "Rua", pagamento: "PIX", observacoes: "", status: "CONFIRMADO" }).includes("#1048"));
 t("estoque reserva não negativa direto", estoque.novoEstoque(10, "reserva", 5).ok === true);
+
+// Fiscal: máquina de status + validações (nunca autoriza sem provedor)
+t("fiscal final não sai", fiscal.podeTransitarFiscal("autorizada", "cancelada") === false);
+t("fiscal processando autoriza", fiscal.podeTransitarFiscal("em_processamento", "autorizada") === true);
+t("fiscal não pula fila", fiscal.podeTransitarFiscal("pendente", "autorizada") === false);
+t("fiscal produto ok", fiscal.produtoFiscalOk({ ncm: "19059090", cst: "00" }) === true);
+t("fiscal produto sem ncm", fiscal.produtoFiscalOk({ cst: "00" }) === false);
+t("fiscal produto sem tributo", fiscal.produtoFiscalOk({ ncm: "19059090" }) === false);
+t("fiscal empresa incompleta", fiscal.empresaConfigurada(null).ok === false);
+t("fiscal empresa sem modelo", fiscal.empresaConfigurada({ razao_social: "X", cnpj: "Y", modelo_padrao: "", provedor: "Z" }).ok === false);
+
+// Entrega: motivos alinhados ao enum atraso_motivo do banco (0044)
+t("motivos cabem no enum", entrega.MOTIVO_ATRASO.every((m) => ["transito","chuva","veiculo","endereco","cliente_ausente","espera","acidente_bloqueio","outro"].includes(m)));
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

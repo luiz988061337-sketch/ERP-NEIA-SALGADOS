@@ -485,10 +485,9 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
 
 const MOTIVO_LABEL: Record<string, string> = {
   transito: "Trânsito",
-  chuva_via: "Chuva / via",
-  problema_veiculo: "Problema no veículo",
-  endereco_dificil: "Endereço difícil",
-  problema_endereco: "Problema no endereço",
+  chuva: "Chuva",
+  veiculo: "Problema no veículo",
+  endereco: "Endereço difícil",
   cliente_ausente: "Cliente ausente",
   espera: "Espera",
   acidente_bloqueio: "Acidente / bloqueio",

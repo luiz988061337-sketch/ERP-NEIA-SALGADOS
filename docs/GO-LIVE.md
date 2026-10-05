@@ -49,7 +49,15 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 37. `0036_fritura_produto.sql` — `produtos.tempo_fritura_s` (NULL = 210s padrão).
 38. `0037_pedidos_cep.sql` — `pedidos.cep` (comanda + fiscal futuro).
 39. `0038_cardapio_sabores.sql` — 26 sabores em frito + congelado (sem duplicar; sem doguinho).
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0033 — rode esses separado).
+40. `0039_tipo_venda_produto.sql` — `produtos.tipo_venda` (`combo_50`|`unidade`), destaque, custo, embalagem.
+41. `0040_pedido_cidade_status.sql` — `pedidos.cidade` + `agendado_para` + `confirmado_em` + `pago_em`.
+42. `0041_status_transicoes_rls.sql` — transições de status permitidas + RLS de `pedido_itens` por dono/papel.
+43. `0042_estoque_reserva_fefo.sql` — `estoque_movimentacoes` + reserva atômica FEFO.
+44. `0043_fritura_fila.sql` — `fritura_fila` com tempo proporcional por produto/qtd (trigger ao confirmar).
+45. `0044_motoboy_rotas.sql` — `motoboy_status` enum, `rotas`, `rota_pedidos`, `motoboy_historico`, `entrega_atrasos`.
+46. `0045_entrega_apartamento.sql` — endereço apto/bloco/torre/andar/interfone, triggers saída/entrega, msg condomínio.
+47. `0046_fiscal_integracao.sql` — `fiscal_provedor_config`, `fiscal_certificados` (só referência ao cofre), `documento_fiscal_itens`, trigger de validação NCM/CFOP na emissão.
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0046 — rode esses separado).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
@@ -132,7 +140,9 @@ slide na aba **Hero** do admin para o carrossel aparecer.
 - Google Maps: restrinja a chave por HTTP referrer do domínio.
 - O `.env` local está ignorado no git; as chaves antigas já estão no histórico — considere rotacionar a chave do Maps.
 
-## 5. Edge Function do resgate (opcional, recomendado)
+## 5. Edge Functions
+
+### 5a. Resgate fidelidade (opcional, recomendado)
 
 ```bash
 supabase functions deploy resgatar-fidelidade
@@ -140,6 +150,23 @@ supabase functions deploy resgatar-fidelidade
 
 Depois do deploy, troque o fluxo client-side da conta para chamar a função.
 Sem deploy, o fluxo atual (limitado pela policy `0010`) continua valendo.
+
+### 5b. Emissão fiscal (obrigatório para NF-e/NFC-e)
+
+```bash
+supabase functions deploy fiscal-emitir
+```
+
+Configure `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` nos secrets da função
+(Dashboard → Edge Functions → Secrets). Depois preencha em `/fiscal`:
+empresa (CNPJ, IE, regime com o contador), modelo (55/65), provedor
+(Focus/Nuvem Fiscal) com URL + token de **homologação** primeiro.
+
+⚠️ Fail-closed até o contador liberar: sem NCM/CFOP/CST por produto, sem
+cMun IBGE e com combo avulso (produto_id NULL), a emissão bloqueia com o
+motivo na tela — nenhum documento é marcado `autorizada` sem retorno válido
+do provedor (cStat 100/150). Só vire `producao` com certificado A1 válido no
+provedor/cofre e DANFE testada em homologação.
 
 ## 6. Smoke test obrigatório (com o banco migrado)
 

@@ -46,6 +46,37 @@ function Fiscal() {
       return (data ?? []) as any[];
     },
   });
+  const [emitindo, setEmitindo] = useState<string | null>(null);
+  const pedidos = useQuery({
+    queryKey: ["pedidos-fiscal"], enabled: !!isAdmin,
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("pedidos").select("id, numero, cliente_nome, total, status").order("created_at", { ascending: false }).limit(30);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+
+  async function emitir(pedidoId: string, forcar = false) {
+    if (!cfg.ok) { toast.error(`Configure a empresa fiscal primeiro: faltam ${cfg.faltando.join(", ")}.`); return; }
+    if (emitindo) return;
+    setEmitindo(pedidoId);
+    try {
+      const { data, error } = await supabase.functions.invoke("fiscal-emitir", { body: { pedido_id: pedidoId, forcar } });
+      if (error) { toast.error(error.message || "Falha ao chamar a emissão fiscal."); return; }
+      if ((data as any)?.sucesso) {
+        toast.success(`Documento ${(data as any).documento?.numero ?? ""} autorizado. Protocolo ${(data as any).documento?.protocolo ?? ""}.`);
+      } else {
+        toast.error((data as any)?.erro || "Emissão rejeitada. Veja o detalhe do documento.");
+      }
+      qc.invalidateQueries({ queryKey: ["docs-fiscais"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-fiscal"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao emitir.");
+    } finally {
+      setEmitindo(null);
+    }
+  }
 
   async function salvarEmpresa(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -144,6 +175,29 @@ function Fiscal() {
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="font-display text-xl">Emitir (pedidos sem documento)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">A emissão valida empresa + NCM/CFOP/CST com o banco antes de chamar o provedor. Sem NCM do contador ou com combo avulso, ela bloqueia com o motivo — nunca emite com tributo inventado.</p>
+        {(() => {
+          const comDoc = new Set((docs.data ?? []).map((d: any) => d.pedido_id));
+          const pendentes = (pedidos.data ?? []).filter((p: any) => !comDoc.has(p.id));
+          if (pendentes.length === 0) return <p className="mt-2 text-sm text-muted-foreground">Nenhum pedido recente sem documento.</p>;
+          return (
+            <ul className="mt-2 space-y-2 text-sm">
+              {pendentes.map((p: any) => (
+                <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+                  <span className="font-display">Pedido #{p.numero}</span>
+                  <span className="text-xs text-muted-foreground">{p.cliente_nome ?? ""} • {p.status}</span>
+                  <Button size="sm" className="ml-auto" disabled={emitindo === p.id} onClick={() => emitir(p.id)}>
+                    {emitindo === p.id ? "Emitindo…" : "Emitir NF-e/NFC-e"}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-display text-xl">Documentos</h2>
         {(docs.data ?? []).length === 0 ? <p className="mt-2 text-sm text-muted-foreground">Nenhum documento. A emissão começa pelo pedido, após configurar empresa e validar dados com o contador.</p> : null}
         <ul className="mt-2 space-y-2 text-sm">
@@ -165,6 +219,11 @@ function Fiscal() {
                   {d.protocolo ? <p>Protocolo: {d.protocolo}</p> : null}
                   {d.status === "rejeitada" ? <p className="text-destructive">Rejeição {d.codigo_rejeicao}: {d.mensagem_rejeicao}</p> : null}
                   <div className="flex flex-wrap gap-1 pt-1">
+                    {["pendente", "rejeitada", "erro_comunicacao", "nao_emitida"].includes(d.status) ? (
+                      <Button size="sm" variant="outline" disabled={emitindo === d.pedido_id} onClick={() => emitir(d.pedido_id, true)}>
+                        {emitindo === d.pedido_id ? "Emitindo…" : "Reemitir via provedor"}
+                      </Button>
+                    ) : null}
                     <Button size="sm" variant="ghost" onClick={() => mudarStatus(d, "cancelada")}>Cancelar</Button>
                     <Button size="sm" variant="ghost" onClick={() => mudarStatus(d, "contingencia")}>Contingência</Button>
                   </div>

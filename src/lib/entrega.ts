@@ -13,10 +13,9 @@ export const MOTOBOY_STATUS = [
 
 export const MOTIVO_ATRASO = [
   "transito",
-  "chuva_via",
-  "problema_veiculo",
-  "endereco_dificil",
-  "problema_endereco",
+  "chuva",
+  "veiculo",
+  "endereco",
   "cliente_ausente",
   "espera",
   "acidente_bloqueio",
