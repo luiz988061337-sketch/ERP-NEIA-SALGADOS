@@ -1962,7 +1962,9 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
 }
 
 function ImpressaoAdmin() {
+  const { user } = useSession();
   const { data: roles } = useRoles(user?.id);
+  const queryClient = useQueryClient();
   const isAdmin = roles?.includes("admin");
   const { data: fila } = useQuery({
     queryKey: ["fila-impressao"],

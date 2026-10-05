@@ -315,7 +315,7 @@ const cupom = imp.textoCupom({
   prevista: "20:24 - 20:54",
 });
 t("comanda PARA ENTREGA no topo", cupom.includes("PARA ENTREGA"));
-t("comanda pedido em destaque", cupom.includes("Pedido 293"));
+t("comanda pedido em destaque", cupom.includes("Pedido #293"));
 t("comanda item com preço à direita", cupom.includes("(50)") && cupom.includes("R$ 50,00"));
 t("comanda pontilhado entre itens", cupom.includes(".........................................."));
 t("comanda cobra do cliente", cupom.includes("Cobrar do cliente"));

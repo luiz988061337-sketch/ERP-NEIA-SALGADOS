@@ -55,7 +55,7 @@ export async function getComboCategorias(): Promise<ComboCategoria[]> {
     const result: ComboCategoria[] = [];
     for (const cat of data) {
       const count = countPorCat.get(cat.id) ?? 0;
-      if (count === 0) continue; -- só categorias com produtos combo_50
+      if (count === 0) continue; // só categorias com produtos combo_50
       const media = (precoPorCat.get(cat.id) ?? 0) / count;
       result.push({
         slug: cat.slug,
