@@ -38,6 +38,7 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
         imagem: produto.imagem_url,
         produtoId: produto.id,
         combo: ehCombo,
+        estoque: produto.estoque,
       },
       ehCombo ? MINIMO_COMBO : 1,
     );

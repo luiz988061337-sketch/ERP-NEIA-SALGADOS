@@ -60,6 +60,22 @@ export function tipoVendaProduto(p: Produto, slug?: string): TipoVenda {
   return "combo_50";
 }
 
+/** Disponibilidade central: catalogo, carrinho e checkout usam a mesma regra. */
+export function getDisponibilidadeProduto(p: Produto, slug?: string) {
+  const tipo = tipoVendaProduto(p, slug);
+  const estoque = Math.max(0, Number(p.estoque ?? 0) || 0);
+  const disponivel = p.disponivel !== false && estoque > 0;
+  const limiteCompra =
+    tipo === "combo_50" ? Math.max(0, Math.floor(estoque / 50) * 50) : estoque;
+  return {
+    disponivel,
+    estoqueDisponivel: estoque,
+    limiteCompra,
+    tipo,
+    motivo: p.disponivel === false ? "Produto indisponível" : estoque <= 0 ? "Esgotado" : undefined,
+  };
+}
+
 export function isPromoAtiva(p: Produto, hoje = new Date()): boolean {
   if (p.preco_promocional == null) return false;
   if (p.promo_ativo === false) return false;

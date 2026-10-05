@@ -37,6 +37,23 @@ function Carrinho() {
   const { data: todosItens } = useTodosItens(sugAtivas && items.length > 0);
   const { data: produtos } = useProdutos();
 const { data: categorias } = useCategorias();
+  useEffect(() => {
+    if (!produtos || produtos.length === 0 || items.length === 0) return;
+    const porId = new Map(produtos.map((p) => [p.id, p]));
+    for (const it of items) {
+      if (!it.produtoId || it.combo) continue;
+      const p = porId.get(it.produtoId);
+      if (!p) continue;
+      const limite = Math.max(0, Math.floor(p.estoque ?? 0));
+      if (limite <= 0) {
+        toast.warning(`${it.nome} ficou sem estoque. Remova o item para continuar.`);
+      } else if (it.quantidade > limite) {
+        toast.warning(`O estoque de ${it.nome} foi atualizado. Você pode comprar somente ${limite} agora.`);
+        setQuantidade(it.id, limite);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtos]);
   const { data: cupons } = useQuery({
     queryKey: ["cupons-ativos-carrinho"],
     queryFn: async () => {

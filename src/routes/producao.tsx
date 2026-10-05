@@ -18,9 +18,9 @@ import { useRoles, useSession } from "@/lib/session";
 export const Route = createFileRoute("/producao")({
   head: () => ({
     meta: [
-      { title: "Painel de produção — Néia Salgados" },
+      { title: "Painel de Preparo — Néia Salgados" },
       { name: "description", content: "Fila de pedidos para preparo na cozinha." },
-      { property: "og:title", content: "Painel de produção — Néia Salgados" },
+      { property: "og:title", content: "Painel de Preparo — Néia Salgados" },
       { property: "og:description", content: "Fila de pedidos para preparo na cozinha." },
     ],
   }),
@@ -151,10 +151,80 @@ function Producao() {
   }, [previsao, consolidado]);
   const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+  const aguardandoLista = pedidosValidos.filter((p: any) => p.status === "recebido");
+  const preparoLista = pedidosValidos.filter((p: any) => p.status === "em_producao");
+  const prontosEntrega = pedidosValidos.filter((p: any) => p.status === "pronto" && p.tipo_entrega !== "retirada");
+  const prontosRetirada = pedidosValidos.filter((p: any) => p.status === "pronto" && p.tipo_entrega === "retirada");
+
+  function cardPedido(p: any) {
+    return (
+      <article key={p.id} className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
+        <div className="flex items-center gap-2">
+          <h2 className="font-display text-lg">#{p.numero}</h2>
+          <StatusBadge status={p.status} />
+          <span className="ml-auto text-xs text-muted-foreground">{hora(p.created_at)}</span>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {p.cliente_nome}
+          {p.tipo_entrega === "retirada" ? " • 🏪 RETIRADA" : " • 🚚 ENTREGA"}
+          {p.agendado_para ? ` • 📅 ${new Date(p.agendado_para).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+        </p>
+        <ul className="mt-3 space-y-0.5 text-sm">
+          {(p.pedido_itens ?? []).map((i: any) => (
+            <li key={i.id}>
+              <span className="font-semibold">{i.quantidade}x</span> {i.nome}
+            </li>
+          ))}
+        </ul>
+        {p.observacoes ? (
+          <p className="mt-2 rounded bg-muted p-2 text-xs">Obs.: {p.observacoes}</p>
+        ) : null}
+        <p className="mt-2 text-sm font-display text-primary">{brl(p.total)}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Preparo est: {formatarTempo(tempoFrituraPedido(((p.pedido_itens ?? []) as any[]).map((i: any) => ({ quantidade: Number(i.quantidade ?? 0), seg50: i.produtos?.tempo_fritura_s ?? null }))))}{p.tipo_entrega !== "retirada" && p.endereco ? ` • ${p.endereco}` : ""}
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {p.status === "recebido" ? (
+            <Button size="sm" onClick={() => mudarStatus(p, "em_producao", "produzindo")}>
+              Iniciar preparo
+            </Button>
+          ) : null}
+          {p.status === "em_producao" ? (
+            <Button size="sm" onClick={() => mudarStatus(p, "pronto", "finalizado")}>
+              Marcar como pronto
+            </Button>
+          ) : null}
+          {p.status === "pronto" ? (
+            <Button size="sm" variant="outline" onClick={() => mudarStatus(p, "aguardando_motoboy", "finalizado")}>
+              Chamar motoboy
+            </Button>
+          ) : null}
+          <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
+            <Printer className="mr-1 size-4" /> Imprimir direto
+          </Button>
+        </div>
+      </article>
+    );
+  }
+
+  function secao(titulo: string, lista: any[]) {
+    if (lista.length === 0) return null;
+    return (
+      <section className="mt-6">
+        <h2 className="font-display text-xl">{titulo} ({lista.length})</h2>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
+          {lista.map((p: any) => cardPedido(p))}
+        </div>
+      </section>
+    );
+  }
+
   async function mudarStatus(pedido: any, status: OrderStatus, producao_status: ProdStatus) {
     const { error } = await supabase.from("pedidos").update({ status, producao_status }).eq("id", pedido.id);
     if (error) {
-      toast.error("Não foi possível atualizar o pedido.");
+      console.error("Erro ao atualizar status do pedido:", error);
+      toast.error(error.message || "Não foi possível atualizar o pedido.");
       return;
     }
     void avisarStatus(supabase, pedido, status, mensagemStatus(status, pedido.cliente_nome, pedido.numero));
@@ -228,16 +298,16 @@ function Producao() {
   }, [JSON.stringify((pedidos ?? []).map((p: any) => p.id + p.status)), sonsAtivos]);
 
   if (roles && !autorizado) {
-    return <p className="p-10 text-center text-muted-foreground">Você não tem acesso ao painel de produção.</p>;
+    return <p className="p-10 text-center text-muted-foreground">Você não tem acesso ao painel de Preparo.</p>;
   }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="font-display text-3xl">Painel de produção</h1>
+      <h1 className="font-display text-3xl">Painel de Preparo</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {isLoading
           ? "Carregando fila..."
-          : `${pedidos?.length ?? 0} na fila • ${aguardando} aguardando • ${produzindo} produzindo • ${prontos} prontos`}
+          : `${pedidos?.length ?? 0} na fila • ${aguardando} aguardando • ${produzindo} em preparo • ${prontos} prontos`}
       </p>
 
       <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4 text-sm">
@@ -249,9 +319,9 @@ function Producao() {
       </div>
 
       <section className="mt-4 rounded-xl border border-border bg-card p-4" aria-label="Consolidação">
-        <h2 className="font-display text-xl">Produção consolidada — {totalGeral} un no total</h2>
+        <h2 className="font-display text-xl">Salgados consolidados — {totalGeral} un no total</h2>
         {consolidado.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">Nada a produzir.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Nada a preparar.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {consolidado.map((c) => (
@@ -260,7 +330,7 @@ function Producao() {
                   <span className="font-semibold">{c.nome}</span>
                   <span className="ml-auto font-display text-primary">{c.total} un</span>
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">Pendente: {c.pendente} • Em produção: {c.emProducao} • Pronto: {c.pronto}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Pendente: {c.pendente} • Em preparo: {c.emProducao} • Pronto: {c.pronto}</p>
                 <details className="mt-1 text-xs">
                   <summary className="cursor-pointer text-muted-foreground underline">Ver pedidos ({c.pedidos.length})</summary>
                   <ul className="mt-1 space-y-0.5">
@@ -277,7 +347,7 @@ function Producao() {
       </section>
 
       <section className="mt-4 rounded-xl border border-border bg-card p-4" aria-label="Previsão">
-        <h2 className="font-display text-xl">Previsão de produção (estimativa)</h2>
+        <h2 className="font-display text-xl">Previsão de preparo (estimativa)</h2>
         <p className="text-xs text-muted-foreground">Média histórica do dia da semana (90 dias). Estimativa ≠ pedido real.</p>
         <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
           {DOW.map((d, i) => (
@@ -314,57 +384,10 @@ function Producao() {
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        {pedidosValidos.map((p: any) => (
-          <article key={p.id} className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]">
-            <div className="flex items-center gap-2">
-              <h2 className="font-display text-lg">Nº {p.numero}</h2>
-              <StatusBadge status={p.status} />
-              <span className="ml-auto text-xs text-muted-foreground">{hora(p.created_at)}</span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {p.cliente_nome} • {p.bairro}
-              {p.agendado_para ? ` • 📅 ${new Date(p.agendado_para).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
-              {p.tipo_evento ? ` • ${p.tipo_evento}` : ""}
-            </p>
-            <ul className="mt-3 space-y-0.5 text-sm">
-              {(p.pedido_itens ?? []).map((i: any) => (
-                <li key={i.id}>
-                  <span className="font-semibold">{i.quantidade}x</span> {i.nome}
-                </li>
-              ))}
-            </ul>
-            {p.observacoes ? (
-              <p className="mt-2 rounded bg-muted p-2 text-xs">Obs.: {p.observacoes}</p>
-            ) : null}
-            <p className="mt-2 text-sm font-display text-primary">{brl(p.total)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Fritura est: {formatarTempo(tempoFrituraPedido(((p.pedido_itens ?? []) as any[]).map((i: any) => ({ quantidade: Number(i.quantidade ?? 0), seg50: i.produtos?.tempo_fritura_s ?? null }))))} • Próximo lote: {(p.pedido_itens ?? [])[0]?.nome ?? "—"}
-            </p>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {p.status === "recebido" ? (
-                <Button size="sm" onClick={() => mudarStatus(p, "em_producao", "produzindo")}>
-                  Iniciar produção
-                </Button>
-              ) : null}
-              {p.status === "em_producao" ? (
-                <Button size="sm" onClick={() => mudarStatus(p, "pronto", "finalizado")}>
-                  Marcar como pronto
-                </Button>
-              ) : null}
-              {p.status === "pronto" ? (
-                <Button size="sm" variant="outline" onClick={() => mudarStatus(p, "aguardando_motoboy", "finalizado")}>
-                  Chamar motoboy
-                </Button>
-              ) : null}
-              <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
-                <Printer className="mr-1 size-4" /> Imprimir direto
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
+      {secao("⏳ Aguardando preparo", aguardandoLista)}
+      {secao("🔥 Em preparo", preparoLista)}
+      {secao("🚚 Prontos para entrega", prontosEntrega)}
+      {secao("🏪 Prontos para retirada", prontosRetirada)}
 
       {pedidosValidos.length === 0 ? (
         <p className="mt-10 text-center text-muted-foreground">Nenhum pedido na fila para este filtro.</p>

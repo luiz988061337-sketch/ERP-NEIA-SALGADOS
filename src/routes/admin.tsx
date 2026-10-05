@@ -769,7 +769,7 @@ function Admin() {
                 <div key={p.id} className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-display">Nº {p.numero}</span>
 <StatusBadge status={p.status} />
-              {p.tipo_entrega === "retirada" ? <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-semibold">Retirada na loja</span> : null}
+              <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-semibold">{p.tipo_entrega === "retirada" ? "🏪 Retirada" : "🚚 Entrega"}</span>
               <PagamentoStatusBadge status={p.pagamento_status} />
                   <span className="text-muted-foreground">{p.cliente_nome} • {hora(p.created_at)}</span>
                   <span className="ml-auto font-semibold text-primary">{brl(p.total)}</span>
@@ -1254,8 +1254,8 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
-            {Object.entries(STATUS_LABEL).map(([v, l]) => (
-              <SelectItem key={v} value={v}>{l}</SelectItem>
+            {["recebido", "em_producao", "pronto", "aguardando_motoboy", "em_rota", "entregue", "cancelado"].map((v) => (
+              <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -1279,8 +1279,8 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
           <SelectTrigger className="ml-auto w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
-            {Object.entries(STATUS_LABEL).map(([v, l]) => (
-              <SelectItem key={v} value={v}>{l}</SelectItem>
+            {["recebido", "em_producao", "pronto", "aguardando_motoboy", "em_rota", "entregue", "cancelado"].map((v) => (
+              <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -1308,7 +1308,7 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
                 <SelectContent>
                   {[...statusFlow(p.tipo_entrega), "cancelado"]
                     .map((v) => (
-                      <SelectItem key={v} value={v}>{STATUS_LABEL[v]}</SelectItem>
+                      <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
                     ))}
                 </SelectContent>
               </Select>
