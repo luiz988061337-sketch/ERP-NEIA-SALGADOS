@@ -48,7 +48,9 @@ DECLARE
   v_base_qtd integer;
   v_tempo integer;
 BEGIN
-  SELECT tempo_fritura_base_segundos, unidade_base_tempo_fritura
+  -- NOTA 0052: prefere tempo_fritura_s (campo do admin, 0036).
+  SELECT COALESCE(tempo_fritura_s, tempo_fritura_base_segundos, 210),
+         COALESCE(unidade_base_tempo_fritura, 50)
   INTO v_base_seg, v_base_qtd
   FROM public.produtos
   WHERE id = p_produto_id;

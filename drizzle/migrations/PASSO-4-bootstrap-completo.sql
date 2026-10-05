@@ -2807,7 +2807,9 @@ DECLARE
   v_base_qtd integer;
   v_tempo integer;
 BEGIN
-  SELECT tempo_fritura_base_segundos, unidade_base_tempo_fritura
+  -- NOTA 0052: prefere tempo_fritura_s (campo do admin, 0036).
+  SELECT COALESCE(tempo_fritura_s, tempo_fritura_base_segundos, 210),
+         COALESCE(unidade_base_tempo_fritura, 50)
   INTO v_base_seg, v_base_qtd
   FROM public.produtos
   WHERE id = p_produto_id;
@@ -4144,9 +4146,12 @@ $mig$;
 -- ----------------------------------------------------------------------------
 DO $mig$
 BEGIN
-  EXECUTE $body$-- 0052: tempo de fritura em BLOCOS (igual ao app).
+  EXECUTE $body$-- 0052: tempo de fritura em BLOCOS (igual ao app) + usa o campo do admin.
 -- A 0043 calculava linear (qtd/base*qtd*seg): 1 salgado = 5 segundos, o que
 -- não existe em fritadeira — e divergia do src/lib/cozinha.ts (1 lote = 210s).
+-- Além disso a 0043 lia tempo_fritura_base_segundos (coluna sem UI!), então o
+-- "Fritura 50un em seg" que o admin preenche (tempo_fritura_s, 0036) nunca
+-- chegava à fila. Agora: tempo_fritura_s > base > 210.
 -- Modelo único: teto da quantidade em lotes de unidade_base (mínimo 1 lote).
 -- Idempotente. Rode APÓS 0051. (Arquivo 0043 sincronizado p/ fresh.)
 
@@ -4156,7 +4161,8 @@ DECLARE
   v_base_seg integer;
   v_base_qtd integer;
 BEGIN
-  SELECT tempo_fritura_base_segundos, unidade_base_tempo_fritura
+  SELECT COALESCE(tempo_fritura_s, tempo_fritura_base_segundos, 210),
+         COALESCE(unidade_base_tempo_fritura, 50)
   INTO v_base_seg, v_base_qtd
   FROM public.produtos
   WHERE id = p_produto_id;

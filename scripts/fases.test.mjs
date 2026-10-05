@@ -117,8 +117,10 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
   t("fritura 1 linha por pedido+produto", /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f43) && /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f49));
   t("ajuda sem duplicar reaplicando", /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f28) && /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f49));
   // Fritura em BLOCOS no SQL (0052) igual ao app — o linear dava 5s p/ 1un.
+  // E usa o campo do admin (tempo_fritura_s, 0036), não a coluna sem UI.
   const f52 = readFileSync("drizzle/migrations/0052_tempo_fritura_blocos.sql", "utf8");
   t("SQL frita em blocos", /CEIL\s*\(\s*GREATEST/i.test(f52) && !/\/\s*v_base_qtd\s*\*\s*v_base_seg/i.test(f52));
+  t("SQL usa tempo do admin", /COALESCE\s*\(\s*tempo_fritura_s/i.test(f52));
   // Estoque: regra única 0030x0042 (0050) — sem ela, produtos.estoque caía 2x
   // por venda (checkout + confirmação) e o cancel restaurava errado.
   const f50 = readFileSync("drizzle/migrations/0050_estoque_unico.sql", "utf8");
