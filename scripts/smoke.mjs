@@ -19,8 +19,13 @@ const ROTAS = [
   { rota: "/calculadora", termos: ["Orçamento de salgados", "Fornecemos somente os salgados", "Copiar orçamento"] },
   { rota: "/combo", termos: ["Monte seu combo"] },
   { rota: "/carrinho", termos: [] },
+  { rota: "/checkout", termos: ["Finalizar", "Pagamento"] },
+  { rota: "/conta", termos: ["Pedido"] },
   { rota: "/auth", termos: [] },
   { rota: "/orcamentos", termos: [] },
+  { rota: "/producao", termos: [] },
+  { rota: "/motoboy", termos: ["otoboy"] },
+  { rota: "/fiscal", termos: ["Fiscal"] },
   { rota: "/admin", termos: [] },
 ];
 
