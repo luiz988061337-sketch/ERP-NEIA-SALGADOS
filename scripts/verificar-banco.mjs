@@ -113,3 +113,40 @@ for (const [mig, tabela, coluna] of SONDAS) {
   const r = await sondar(tabela, coluna);
   console.log(`${mig}  ${alvo.padEnd(38)} ${r.estado}${r.detalhe ? ` — ${r.detalhe}` : ""}`);
 }
+
+// Parte 2 — prontidão fiscal (nota: 404 aqui pode ser cache do PostgREST;
+// o PASSO-7 no SQL Editor é o veredito definitivo).
+console.log("\n-- Prontidão fiscal --");
+try {
+  const resp = await fetch(`${URL}/rest/v1/produtos?select=id,nome,ncm,cfop_padrao,cst,csosn&limit=1000`, {
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}` },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!resp.ok) {
+    console.log(`produtos: HTTP ${resp.status} (sem leitura pública? confira RLS)`);
+  } else {
+    const prods = await resp.json();
+    const semNcm = prods.filter((p) => !p.ncm);
+    const semCfop = prods.filter((p) => !p.cfop_padrao);
+    const semTrib = prods.filter((p) => !p.cst && !p.csosn);
+    console.log(`produtos: ${prods.length} | sem NCM: ${semNcm.length} | sem CFOP: ${semCfop.length} | sem CST/CSOSN: ${semTrib.length}`);
+    for (const p of semNcm.slice(0, 15)) console.log(`   sem NCM: ${p.nome}`);
+    if (semNcm.length > 15) console.log(`   ... e mais ${semNcm.length - 15}`);
+  }
+} catch (e) {
+  console.log(`produtos: ERRO ${e instanceof Error ? e.message : String(e)}`);
+}
+
+for (const fn of ["fiscal-emitir", "resgatar-fidelidade", "enviar-lembretes"]) {
+  try {
+    const resp = await fetch(`${URL}/functions/v1/${fn}`, {
+      method: "OPTIONS",
+      signal: AbortSignal.timeout(15000),
+    });
+    const corpo = (await resp.text()).slice(0, 80).replace(/\s+/g, " ");
+    const deployada = resp.status !== 404 || !/not found/i.test(corpo);
+    console.log(`função ${fn}: ${deployada ? `responde HTTP ${resp.status} (deployada?)` : "HTTP 404 (NÃO deployada)"}`);
+  } catch (e) {
+    console.log(`função ${fn}: ERRO ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
