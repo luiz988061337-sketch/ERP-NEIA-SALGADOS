@@ -74,7 +74,7 @@ export function textoCupom(p: {
   L.push(centro("Neia Salgados"));
   if (p.agendadoEm) L.push(centro(`Agendado em ${p.agendadoEm}`));
   if (p.agendadoPara) L.push(centro(`Agendado para ${p.agendadoPara}`));
-  L.push(BARRA, centro(`Pedido ${p.numero}`), TRACO, "Itens");
+  L.push(BARRA, centro(`Pedido #${p.numero}`), TRACO, "Itens");
   p.itens.forEach((i) => {
     const nome = tituloCaso(i.nome);
     if (i.precoUnit != null) {

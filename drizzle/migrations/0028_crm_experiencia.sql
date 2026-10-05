@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS public.parceiros (
 -- Ajuda (central + busca por categoria)
 CREATE TABLE IF NOT EXISTS public.ajuda_artigos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  categoria text NOT NULL, titulo text NOT NULL, corpo text NOT NULL, ativo boolean NOT NULL DEFAULT true
+  categoria text NOT NULL, titulo text NOT NULL, corpo text NOT NULL, ativo boolean NOT NULL DEFAULT true,
+  UNIQUE (categoria, titulo)
 );
 
 -- Alta demanda (avisos progressivos 10/7/3d, nunca inventar sem config)
@@ -113,4 +114,4 @@ INSERT INTO public.ajuda_artigos (categoria, titulo, corpo) VALUES
  ('entrega','Entrega ou retirada?','Entrega tem taxa e vai com motoboy. Retirada é na loja, sem taxa, com endereço e mapa no pedido.'),
  ('pagamento','Como pago?','PIX com QR/Copia e Cola, dinheiro, crédito ou débito. O pagamento começa pendente e a loja confirma.'),
  ('agendamento','Posso agendar?','Sim, Seg–Sáb 08–12h e 13–22h (nunca 12–13h, Dom fechado), com 30min de antecedência.')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (categoria, titulo) DO NOTHING;

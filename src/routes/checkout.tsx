@@ -413,7 +413,7 @@ function Checkout() {
       if (erroItens) console.error(erroItens);
 
       // Reserva atômica (0030): lock por produto, nunca vende acima do estoque.
-      // Combos montados (sem produtoId) não reservam aqui — sãoacks montagem.
+      // Combos montados (sem produtoId) não reservam aqui — são montagem.
       const itensReservaveis = itensValidados.filter((i) => i.produtoId);
       let rpcIndisponivel = false;
       const falhasEstoque: string[] = [];

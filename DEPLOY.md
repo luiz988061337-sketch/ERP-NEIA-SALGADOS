@@ -13,9 +13,10 @@ Mobile-first, cores vermelha/amarela/branca, PT-BR.
 | Auth | Supabase Auth (e-mail/senha + OTP WhatsApp + recovery) + JWT | equivale ao JWT pedido |
 | Storage | Supabase Storage (imagens via URL; fallback local em `src/assets`) | equivale ao pedido |
 | Mapas | Google Maps JS (geocode, marcadores, rota/navegação) | integração pedida |
-| Pagamento | PIX chave + QR Code dinâmico por valor | integração pedida |
+| Pagamento | PIX BR-Code EMV real (gerado local, `src/lib/pix.ts`) + QR por valor; chave em `/admin` → Loja | integração pedida |
 | Notificações | WhatsApp deep-link `wa.me` com templates por status | integração pedida |
-| Impressão | `window.print()` no produção/admin (impressora térmica via diálogo do SO) | impressão pedida |
+| Impressão | Fila `fila_impressao` + agente Windows (`print-agent/`) na Tanca TP-550; `window.print()` só como fallback | impressão pedida |
+| Fiscal | NF-e/NFC-e via Edge Function `fiscal-emitir` + provedor (Focus/Nuvem Fiscal); NCM/CFOP por produto com o contador | emissão fiscal |
 
 > Não foi feito rewrite para Next/Express: o projeto já estava em TanStack Start + Supabase,
 > que entrega o mesmo resultado com menos infra. A estrutura abaixo cobre 100% dos módulos pedidos.
@@ -90,8 +91,9 @@ Env (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_LOVABLE_CONNECT
 - **Banco**: Supabase → SQL Editor → rode `0000_neia_salgados_schema.sql` (se projeto novo) e `seed-demo.sql`.
 - **Realtime**: já habilitado para `pedidos` (`ALTER PUBLICATION ... ADD TABLE`).
 - **WhatsApp OTP**: Auth → Providers → Phone → ativar + canal WhatsApp (Twilio/Vonage) para o login por WhatsApp funcionar de ponta a ponta; sem isso, use e-mail (fallback já tratado com toast).
-- **Impressão automática**: no painel produção/admin, “Imprimir” abre o diálogo do SO; para térmica automática, configure a impressora como padrão + impressão silenciosa no navegador do caixa.
-- **PIX**: chave em `src/routes/checkout.tsx` (`PIX_CHAVE`); QR gerado por valor via qrserver; troque pela sua chave e, se quiser BR-Code real, gere o payload EMV no backend.
+- **Impressão automática**: pedidos entram em `fila_impressao` (migration `0025`); o `print-agent/` no notebook da loja imprime na Tanca TP-550 via USB. `window.print()` é só fallback.
+- **PIX**: BR-Code EMV real gerado no navegador (`src/lib/pix.ts`, sem serviço externo); chave Pix em `/admin` → Loja (tabela `loja_config`).
+- **Fiscal**: `supabase functions deploy fiscal-emitir` + secrets `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; configurar empresa + provedor em `/fiscal` e NCM/CFOP dos produtos com o contador antes de emitir (migrations `0033`+`0046`).
 
 ## Testes manuais sugeridos
 

@@ -12,6 +12,8 @@
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
     "teste:fases": "node scripts/fases.test.mjs",
+    "teste:rls": "node scripts/auditoria-rls.mjs",
+    "verificar:banco": "node scripts/verificar-banco.mjs",
     "format": "prettier --write ."
   },
   "overrides": {

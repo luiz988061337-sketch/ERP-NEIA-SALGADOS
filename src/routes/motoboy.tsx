@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
-import { mensagemPortaria, MOTIVO_ATRASO, ordenarRota } from "@/lib/entrega";
+import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 
@@ -483,17 +483,7 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
   );
 }
 
-const MOTIVO_LABEL: Record<string, string> = {
-  transito: "Trânsito",
-  chuva_via: "Chuva / via",
-  problema_veiculo: "Problema no veículo",
-  endereco_dificil: "Endereço difícil",
-  problema_endereco: "Problema no endereço",
-  cliente_ausente: "Cliente ausente",
-  espera: "Espera",
-  acidente_bloqueio: "Acidente / bloqueio",
-  outro: "Outro (descrever)",
-};
+const MOTIVO_LABEL: Record<string, string> = MOTIVO_ATRASO_LABEL;
 
 function AtrasoForm({ id }: { id: string }) {
   const queryClient = useQueryClient();

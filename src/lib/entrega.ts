@@ -13,15 +13,26 @@ export const MOTOBOY_STATUS = [
 
 export const MOTIVO_ATRASO = [
   "transito",
-  "chuva_via",
-  "problema_veiculo",
-  "endereco_dificil",
-  "problema_endereco",
+  "chuva",
+  "veiculo",
+  "endereco",
   "cliente_ausente",
   "espera",
   "acidente_bloqueio",
   "outro",
 ] as const;
+
+/** Rótulos PT-BR (espelham o enum atraso_motivo da migration 0044). */
+export const MOTIVO_ATRASO_LABEL: Record<string, string> = {
+  transito: "Trânsito",
+  chuva: "Chuva",
+  veiculo: "Problema no veículo",
+  endereco: "Endereço difícil",
+  cliente_ausente: "Cliente ausente",
+  espera: "Espera",
+  acidente_bloqueio: "Acidente / bloqueio",
+  outro: "Outro (descrever)",
+};
 
 export function mensagemPortaria(podeSubir: boolean): string {
   if (podeSubir) return "";

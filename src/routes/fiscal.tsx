@@ -46,6 +46,66 @@ function Fiscal() {
       return (data ?? []) as any[];
     },
   });
+  const provedorCfg = useQuery({
+    queryKey: ["provedor-fiscal"], enabled: !!isAdmin,
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("fiscal_provedor_config").select("*").eq("id", true).maybeSingle();
+        return (data ?? null) as any;
+      } catch { return null; }
+    },
+  });
+
+  async function salvarProvedor(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const payload: Record<string, unknown> = {
+      id: true,
+      provedor: String(f.get("provedor_tipo") ?? "focus"),
+      ambiente: String(f.get("ambiente") ?? "homologacao"),
+      homologacao_url: String(f.get("homologacao_url") ?? ""),
+      homologacao_token: String(f.get("homologacao_token") ?? ""),
+      producao_url: String(f.get("producao_url") ?? ""),
+      producao_token: String(f.get("producao_token") ?? ""),
+      timeout_segundos: Number(f.get("timeout_segundos") ?? 30) || 30,
+      contingencia_habilitada: f.get("contingencia_habilitada") === "on",
+    };
+    const { error } = await supabase.from("fiscal_provedor_config").upsert(payload, { onConflict: "id" });
+    if (error) toast.error("Não salvou. Rode a migration 0046.");
+    else { toast.success("Provedor fiscal salvo. Teste em homologação antes de virar produção."); qc.invalidateQueries({ queryKey: ["provedor-fiscal"] }); }
+  }
+
+  const [emitindo, setEmitindo] = useState<string | null>(null);
+  const pedidos = useQuery({
+    queryKey: ["pedidos-fiscal"], enabled: !!isAdmin,
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("pedidos").select("id, numero, cliente_nome, total, status").order("created_at", { ascending: false }).limit(30);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+
+  async function emitir(pedidoId: string, forcar = false) {
+    if (!cfg.ok) { toast.error(`Configure a empresa fiscal primeiro: faltam ${cfg.faltando.join(", ")}.`); return; }
+    if (emitindo) return;
+    setEmitindo(pedidoId);
+    try {
+      const { data, error } = await supabase.functions.invoke("fiscal-emitir", { body: { pedido_id: pedidoId, forcar } });
+      if (error) { toast.error(error.message || "Falha ao chamar a emissão fiscal."); return; }
+      if ((data as any)?.sucesso) {
+        toast.success(`Documento ${(data as any).documento?.numero ?? ""} autorizado. Protocolo ${(data as any).documento?.protocolo ?? ""}.`);
+      } else {
+        toast.error((data as any)?.erro || "Emissão rejeitada. Veja o detalhe do documento.");
+      }
+      qc.invalidateQueries({ queryKey: ["docs-fiscais"] });
+      qc.invalidateQueries({ queryKey: ["pedidos-fiscal"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao emitir.");
+    } finally {
+      setEmitindo(null);
+    }
+  }
 
   async function salvarEmpresa(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,11 +116,17 @@ function Fiscal() {
       nome_fantasia: String(f.get("nome_fantasia") ?? ""),
       cnpj: String(f.get("cnpj") ?? "").replace(/\D/g, ""),
       inscricao_estadual: String(f.get("ie") ?? ""),
+      inscricao_municipal: String(f.get("im") ?? ""),
+      endereco: String(f.get("endereco") ?? ""),
+      numero: String(f.get("numero") ?? ""),
+      complemento: String(f.get("complemento") ?? ""),
+      bairro: String(f.get("bairro") ?? ""),
       cidade: String(f.get("cidade") ?? ""),
       uf: String(f.get("uf") ?? "SP"),
-      cep: String(f.get("cep") ?? ""),
+      cep: String(f.get("cep") ?? "").replace(/\D/g, ""),
       regime_tributario: String(f.get("regime") ?? ""),
       serie: String(f.get("serie") ?? ""),
+      numero_inicial: Number(f.get("numero_inicial") ?? 1) || 1,
       ambiente: String(f.get("ambiente") ?? "homologacao"),
       modelo_padrao: String(f.get("modelo") ?? ""),
       provedor: String(f.get("provedor") ?? ""),
@@ -117,11 +183,17 @@ function Fiscal() {
           <div className="space-y-1.5"><Label>Nome fantasia</Label><Input name="nome_fantasia" defaultValue={emp.nome_fantasia ?? ""} /></div>
           <div className="space-y-1.5"><Label>CNPJ *</Label><Input name="cnpj" defaultValue={emp.cnpj ?? ""} inputMode="numeric" /></div>
           <div className="space-y-1.5"><Label>Inscrição estadual</Label><Input name="ie" defaultValue={emp.inscricao_estadual ?? ""} /></div>
+          <div className="space-y-1.5"><Label>Inscrição municipal</Label><Input name="im" defaultValue={emp.inscricao_municipal ?? ""} /></div>
+          <div className="space-y-1.5"><Label>Endereço (rua/av) *</Label><Input name="endereco" defaultValue={emp.endereco ?? ""} /></div>
+          <div className="space-y-1.5"><Label>Número</Label><Input name="numero" defaultValue={emp.numero ?? ""} /></div>
+          <div className="space-y-1.5"><Label>Complemento</Label><Input name="complemento" defaultValue={emp.complemento ?? ""} /></div>
+          <div className="space-y-1.5"><Label>Bairro</Label><Input name="bairro" defaultValue={emp.bairro ?? ""} /></div>
           <div className="space-y-1.5"><Label>Cidade</Label><Input name="cidade" defaultValue={emp.cidade ?? ""} /></div>
           <div className="space-y-1.5"><Label>UF</Label><Input name="uf" defaultValue={emp.uf ?? "SP"} maxLength={2} /></div>
           <div className="space-y-1.5"><Label>CEP</Label><Input name="cep" defaultValue={emp.cep ?? ""} /></div>
           <div className="space-y-1.5"><Label>Regime tributário</Label><Input name="regime" defaultValue={emp.regime_tributario ?? ""} placeholder="Definido pelo contador" /></div>
           <div className="space-y-1.5"><Label>Série</Label><Input name="serie" defaultValue={emp.serie ?? ""} /></div>
+          <div className="space-y-1.5"><Label>Número inicial</Label><Input name="numero_inicial" type="number" min={1} defaultValue={emp.numero_inicial ?? 1} /></div>
           <div className="space-y-1.5"><Label>Ambiente *</Label>
             <select name="ambiente" defaultValue={emp.ambiente ?? "homologacao"} className="w-full rounded-md border border-input bg-background px-3 py-2">
               <option value="homologacao">🔵 Homologação</option>
@@ -141,6 +213,57 @@ function Fiscal() {
           <Button type="submit" size="sm" className="sm:col-span-3 w-fit">Salvar</Button>
         </form>
         <p className="mt-2 text-xs text-muted-foreground">Certificado digital e senhas ficam no provedor/cofre — nunca no código nem no frontend.</p>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="font-display text-xl">Provedor fiscal (transmissão SEFAZ)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Sem provedor configurado a emissão para em “rejeitada”. Comece por homologação; o certificado A1 fica no provedor/cofre, nunca aqui.</p>
+        <form onSubmit={salvarProvedor} className="mt-3 grid gap-3 sm:grid-cols-3 text-sm">
+          <div className="space-y-1.5"><Label>Provedor</Label>
+            <select name="provedor_tipo" defaultValue={(provedorCfg.data as any)?.provedor ?? "focus"} className="w-full rounded-md border border-input bg-background px-3 py-2">
+              <option value="focus">Focus NFe</option>
+              <option value="nuvem_fiscal">Nuvem Fiscal</option>
+              <option value="tecnospeed">TecnoSpeed</option>
+              <option value="sefaz_direto">SEFAZ direto</option>
+            </select>
+          </div>
+          <div className="space-y-1.5"><Label>Ambiente do provedor</Label>
+            <select name="ambiente" defaultValue={(provedorCfg.data as any)?.ambiente ?? "homologacao"} className="w-full rounded-md border border-input bg-background px-3 py-2">
+              <option value="homologacao">🔵 Homologação</option>
+              <option value="producao">🔴 Produção</option>
+            </select>
+          </div>
+          <div className="space-y-1.5"><Label>Timeout (seg)</Label><Input name="timeout_segundos" type="number" min={5} max={120} defaultValue={(provedorCfg.data as any)?.timeout_segundos ?? 30} /></div>
+          <div className="space-y-1.5 sm:col-span-3"><Label>URL homologação</Label><Input name="homologacao_url" defaultValue={(provedorCfg.data as any)?.homologacao_url ?? ""} placeholder="https://…" /></div>
+          <div className="space-y-1.5 sm:col-span-3"><Label>Token homologação</Label><Input name="homologacao_token" type="password" autoComplete="off" defaultValue={(provedorCfg.data as any)?.homologacao_token ?? ""} /></div>
+          <div className="space-y-1.5 sm:col-span-3"><Label>URL produção</Label><Input name="producao_url" defaultValue={(provedorCfg.data as any)?.producao_url ?? ""} placeholder="https://…" /></div>
+          <div className="space-y-1.5 sm:col-span-3"><Label>Token produção</Label><Input name="producao_token" type="password" autoComplete="off" defaultValue={(provedorCfg.data as any)?.producao_token ?? ""} /></div>
+          <label className="flex items-center gap-2 text-sm sm:col-span-3"><input type="checkbox" name="contingencia_habilitada" defaultChecked={(provedorCfg.data as any)?.contingencia_habilitada ?? false} /> Contingência habilitada (só com orientação do contador)</label>
+          <Button type="submit" size="sm" className="sm:col-span-3 w-fit">Salvar provedor</Button>
+        </form>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="font-display text-xl">Emitir (pedidos sem documento)</h2>
+        <p className="mt-1 text-xs text-muted-foreground">A emissão valida empresa + NCM/CFOP/CST com o banco antes de chamar o provedor. Sem NCM do contador ou com combo avulso, ela bloqueia com o motivo — nunca emite com tributo inventado.</p>
+        {(() => {
+          const comDoc = new Set((docs.data ?? []).map((d: any) => d.pedido_id));
+          const pendentes = (pedidos.data ?? []).filter((p: any) => !comDoc.has(p.id));
+          if (pendentes.length === 0) return <p className="mt-2 text-sm text-muted-foreground">Nenhum pedido recente sem documento.</p>;
+          return (
+            <ul className="mt-2 space-y-2 text-sm">
+              {pendentes.map((p: any) => (
+                <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+                  <span className="font-display">Pedido #{p.numero}</span>
+                  <span className="text-xs text-muted-foreground">{p.cliente_nome ?? ""} • {p.status}</span>
+                  <Button size="sm" className="ml-auto" disabled={emitindo === p.id} onClick={() => emitir(p.id)}>
+                    {emitindo === p.id ? "Emitindo…" : "Emitir NF-e/NFC-e"}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          );
+        })()}
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
@@ -165,6 +288,11 @@ function Fiscal() {
                   {d.protocolo ? <p>Protocolo: {d.protocolo}</p> : null}
                   {d.status === "rejeitada" ? <p className="text-destructive">Rejeição {d.codigo_rejeicao}: {d.mensagem_rejeicao}</p> : null}
                   <div className="flex flex-wrap gap-1 pt-1">
+                    {["pendente", "rejeitada", "erro_comunicacao", "nao_emitida"].includes(d.status) ? (
+                      <Button size="sm" variant="outline" disabled={emitindo === d.pedido_id} onClick={() => emitir(d.pedido_id, true)}>
+                        {emitindo === d.pedido_id ? "Emitindo…" : "Reemitir via provedor"}
+                      </Button>
+                    ) : null}
                     <Button size="sm" variant="ghost" onClick={() => mudarStatus(d, "cancelada")}>Cancelar</Button>
                     <Button size="sm" variant="ghost" onClick={() => mudarStatus(d, "contingencia")}>Contingência</Button>
                   </div>

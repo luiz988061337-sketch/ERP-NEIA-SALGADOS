@@ -49,7 +49,27 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 37. `0036_fritura_produto.sql` — `produtos.tempo_fritura_s` (NULL = 210s padrão).
 38. `0037_pedidos_cep.sql` — `pedidos.cep` (comanda + fiscal futuro).
 39. `0038_cardapio_sabores.sql` — 26 sabores em frito + congelado (sem duplicar; sem doguinho).
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0033 — rode esses separado).
+40. `0039_tipo_venda_produto.sql` — `produtos.tipo_venda` (`combo_50`|`unidade`), destaque, custo, embalagem.
+41. `0040_pedido_cidade_status.sql` — `pedidos.cidade` + `agendado_para` + `confirmado_em` + `pago_em`.
+42. `0041_status_transicoes_rls.sql` — transições de status permitidas + RLS de `pedido_itens` por dono/papel.
+43. `0042_estoque_reserva_fefo.sql` — `estoque_movimentacoes` + reserva atômica FEFO.
+44. `0043_fritura_fila.sql` — `fritura_fila` com tempo proporcional por produto/qtd (trigger ao confirmar).
+45. `0044_motoboy_rotas.sql` — `motoboy_status` enum, `rotas`, `rota_pedidos`, `motoboy_historico`, `entrega_atrasos`.
+46. `0045_entrega_apartamento.sql` — endereço apto/bloco/torre/andar/interfone, triggers saída/entrega, msg condomínio.
+47. `0046_fiscal_integracao.sql` — `fiscal_provedor_config`, `fiscal_certificados` (só referência ao cofre), `documento_fiscal_itens`, trigger de validação NCM/CFOP na emissão.
+48. `0047_reconciliacao_entrega.sql` — CORRETIVA, não pule: normaliza motivos de atraso legados + CHECK novo, resolve motoboy via `user_id` nos triggers de saída/entrega, restringe validação de endereço a colunas de endereço (status de pedido legado volta a transitar).
+49. `0048_combo_sem_produto.sql` — CORRETIVA, não pule: reserva FEFO (0042) e fila de fritura (0043) ignoram itens sem produto. Sem ela, confirmar **qualquer combo** abortava e o fluxo principal travava.
+50. `0049_dedup_uniques.sql` — CORRETIVA: `UNIQUE(pedido_id, produto_id)` na fritura (reconfirmar não frita em dobro) + `UNIQUE(categoria, titulo)` nos artigos de ajuda (reaplicar não duplica). Deduplica antes de criar.
+51. `0050_estoque_unico.sql` — CORRETIVA, não pule: regra única 0030×0042 (checkout + confirmação debitavam `produtos.estoque` 2x; cancel sem RPC vazava). 0030 dona de `produtos.estoque`; 0042 move lotes; no cancel a 0042 chama a 0030 antes dos lotes.
+52. `0051_grants_faltantes.sql` — CORRETIVA: GRANTs que faltavam em 0043–0046 (RLS+policy sem GRANT = PostgREST nega tudo; a seção Provedor do `/fiscal` nascia quebrada) + RLS na tabela de transições.
+53. `0052_tempo_fritura_blocos.sql` — CORRETIVA: tempo proporcional linear dava 5s p/ 1 salgado e divergia do app; agora blocos (teto, mín. 1 lote), igual a `cozinha.ts`, usando o campo do admin.
+54. `0053_historico_dono.sql` — CORRETIVA: o nascimento do pedido via checkout caía em RLS silenciosa (só staff inseria); agora o dono registra no próprio pedido (métricas de ciclo recuperam a origem).
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0053 — rode esses separado).
+
+Nota: `0002_secure_loyalty_and_partners.sql` (endurecimento Lovable: `search_path`,
+candidatura de parceiros, travas de pontos + RPCs `creditar_pontos_pedido` /
+`resgatar_fidelidade`) roda entre 0001 e 0002 na ordem — já incluído no PASSO-4.
+O app usa os RPCs; nunca débito direto em `profiles.pontos` (o trigger bloqueia).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
@@ -79,8 +99,15 @@ SELECT tablename FROM pg_tables WHERE schemaname='public'
     'pedido_notas','campanha_cliques','metas','admin_logs','despesas','estoque_mov',
     'hero_carousel','calculadora_config','motoboys');
 
--- 0015-0018 aplicados?
-SELECT count(*) AS hero_ativos FROM hero_carousel WHERE ativo;
+ -- 0044/0046/0047 aplicados?
+ SELECT * FROM pg_type WHERE typname IN ('motoboy_status','atraso_motivo');
+ SELECT tablename FROM pg_tables WHERE schemaname='public'
+   AND tablename IN ('fritura_fila','motoboy_historico','entrega_atrasos','fiscal_provedor_config','fiscal_certificados','documento_fiscal_itens');
+ SELECT conname FROM pg_constraint WHERE conname='pedidos_atraso_motivo_check';
+ SELECT tgname FROM pg_trigger WHERE tgname IN ('trigger_saida_motoboy','trigger_entrega_motoboy','trigger_validar_endereco','trigger_validar_fiscal_emissao');
+
+ -- 0015-0018 aplicados?
+ SELECT count(*) AS hero_ativos FROM hero_carousel WHERE ativo;
 SELECT * FROM calculadora_config;               -- deve retornar 1 linha
 SELECT count(*) AS motoboys_cadastrados FROM motoboys;
 SELECT conname FROM pg_constraint WHERE conname='pedidos_tipo_entrega_check';
@@ -94,8 +121,10 @@ SELECT id, public FROM storage.buckets WHERE id = 'hero';
 Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
 `drizzle/migrations/`:
 
-- `PASSO-4-bootstrap-completo.sql` — `0000`→`0020` em ordem, cada arquivo em sub-transação
-  própria: o que falhar aparece como `WARNING` e o resto continua.
+- `PASSO-4-bootstrap-completo.sql` — `0000`→`0053` em ordem (regenerado por
+  `node scripts/gerar-bootstrap.mjs`; rode o gerador de novo se criar migration
+  nova), cada arquivo em sub-transação própria: o que falhar aparece como
+  `WARNING` e o resto continua.
 - `PASSO-5a-enum.sql` — completa `app_role` (`atendente`, `financeiro`). **Precisa rodar
   sozinho**: `ALTER TYPE ... ADD VALUE` não funciona na mesma transação que cria o enum.
 - `PASSO-5b`…`PASSO-5f` — migrations que faltaram, **uma por New query**.
@@ -118,6 +147,7 @@ slide na aba **Hero** do admin para o carrossel aparecer.
 
 - Localize seu usuário → `user_roles` (via Table Editor) → adicione `admin`.
 - Para a equipe: adicione `atendente`, `producao`, `motoboy`, `financeiro` conforme a função.
+- Motoboy: pode cadastrar em `/admin` → Motoboys, mas o vínculo com o login (`user_id`, usado nos triggers de saída/entrega) se forma sozinho quando ele abre `/motoboy` e troca o status pela 1ª vez. Peça para cada motoboy fazer isso no 1º acesso.
 - Nunca deixe zero admins. Não remova seu próprio `admin` pelo painel (há trava no código, mas confira).
 
 ## 3. Auth e provedores (Dashboard → Authentication)
@@ -132,7 +162,9 @@ slide na aba **Hero** do admin para o carrossel aparecer.
 - Google Maps: restrinja a chave por HTTP referrer do domínio.
 - O `.env` local está ignorado no git; as chaves antigas já estão no histórico — considere rotacionar a chave do Maps.
 
-## 5. Edge Function do resgate (opcional, recomendado)
+## 5. Edge Functions
+
+### 5a. Resgate fidelidade (opcional, recomendado)
 
 ```bash
 supabase functions deploy resgatar-fidelidade
@@ -141,7 +173,39 @@ supabase functions deploy resgatar-fidelidade
 Depois do deploy, troque o fluxo client-side da conta para chamar a função.
 Sem deploy, o fluxo atual (limitado pela policy `0010`) continua valendo.
 
+### 5b. Emissão fiscal (obrigatório para NF-e/NFC-e)
+
+```bash
+supabase functions deploy fiscal-emitir
+```
+
+Configure `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` nos secrets da função
+(Dashboard → Edge Functions → Secrets) e mantenha a verificação JWT ligada: a
+função autoriza `admin`/`financeiro` via `has_role` (a anon key é pública, então
+chamada direta sem papel recebe 403). Depois preencha em `/fiscal`:
+1. **Empresa** — razão social, CNPJ, IE, endereço completo, regime (com o
+   contador), série, número inicial, modelo (55/65);
+2. **Provedor** (seção própria na página) — tipo, ambiente, URL + token de
+   **homologação** primeiro (produção só após DANFE testada);
+3. **Produtos** — `/admin` → Produtos → “Dados fiscais”: NCM + CFOP + origem
+   obrigatórios, CST (lucro real/presumido) ou CSOSN (Simples). A lista marca
+   “⚠️ sem NCM” até completar.
+
+⚠️ Fail-closed até o contador liberar: sem NCM/CFOP/CST por produto, sem
+cMun IBGE e com combo avulso (produto_id NULL), a emissão bloqueia com o
+motivo na tela — nenhum documento é marcado `autorizada` sem retorno válido
+do provedor (cStat 100/150). Só vire `producao` com certificado A1 válido no
+provedor/cofre e DANFE testada em homologação.
+
 ## 6. Smoke test obrigatório (com o banco migrado)
+
+Localmente exige `.env` com `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY`
+(o script aborta na hora sem isso — sem env o SSR retorna 500 por desenho).
+
+Decisão documentada (§7 do prompt): **checkout exige login** (`/auth?redirect=/checkout`).
+Guest checkout não existe porque a RLS (`pedidos insert own`) só aceita
+`authenticated` com `user_id = auth.uid()`. Implementar guest exigiria policy
+anon + CRM por telefone sem conta — decisão do dono, fora do go-live.
 
 1. Cardápio → combo 50/100 (ok) → tentativa 49/51 no carrinho (bloqueia).
 2. Checkout R$40 + R$6 = **R$46**; confirma; confere admin + WhatsApp com o mesmo total.
@@ -157,7 +221,7 @@ Sem deploy, o fluxo atual (limitado pela policy `0010`) continua valendo.
 
 ## 8. Rollback
 
-- Código: `git` (este trabalho está sem commit — commite antes do deploy).
+- Código: `git` (histórico por fase no `master`; para voltar: `git revert` do commit da fase).
 - Banco: as migrações são aditivas (`IF NOT EXISTS`, `DROP+CREATE` de policies/trigger).
   Para reverter o trigger anti-fraude: `DROP TRIGGER pedidos_guard_update_trg ON public.pedidos;`
 - Se algo quebrar após migração, o app tem fallbacks que avisam via toast (funciona sem as colunas novas).
