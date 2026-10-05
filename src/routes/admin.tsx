@@ -61,6 +61,7 @@ import { CentralOperacao } from "@/components/central-operacao";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, PAGAMENTO_STATUS_LABEL, STATUS_EXIBICAO, STATUS_LABEL, whatsappLink, type OrderStatus } from "@/lib/format";
+import { notificarPush } from "@/lib/push";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
@@ -594,6 +595,7 @@ function Admin() {
       try { await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", p.id).eq("status", "ativa"); } catch { /* sem migration */ }
     }
     const { error } = await supabase.from("pedidos").update({ status }).eq("id", p.id);
+    if (!error) void notificarPush(supabase, p.id, status);
     if (error) toast.error("Não foi possível atualizar.");
     else {
       toast.success(`Pedido nº ${p.numero} → ${STATUS_LABEL[status]}`);

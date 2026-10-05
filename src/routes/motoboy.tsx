@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
+import { notificarPush } from "@/lib/push";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 
@@ -156,7 +157,10 @@ function Motoboy() {
       .eq("id", p.id)
       .is("motoboy_id", null);
     if (error) toast.error("Entrega já foi aceita por outro motoboy.");
-    else toast.success(`Você aceitou o pedido nº ${p.numero}. Taxa ${brl(p.taxa_motoboy)}. Toque em Iniciar para sair.`);
+    else {
+      toast.success(`Você aceitou o pedido nº ${p.numero}. Taxa ${brl(p.taxa_motoboy)}. Toque em Iniciar para sair.`);
+      void notificarPush(supabase, p.id, "aguardando_motoboy");
+    }
     refresh();
   }
 
@@ -176,6 +180,7 @@ function Motoboy() {
     else {
       toast.success(`Entrega nº ${p.numero} iniciada. Cliente avisado no WhatsApp.`);
       window.open(whatsappLink(p.telefone, mensagemStatus("em_rota", p.cliente_nome, p.numero)), "_blank", "noopener");
+      void notificarPush(supabase, p.id, "em_rota");
     }
     refresh();
   }
@@ -186,6 +191,7 @@ function Motoboy() {
     else {
       toast.success(`Pedido nº ${p.numero} entregue! +${brl(p.taxa_motoboy)}`);
       window.open(whatsappLink(p.telefone, mensagemStatus("entregue", p.cliente_nome, p.numero)), "_blank", "noopener");
+      void notificarPush(supabase, p.id, "entregue");
       // Se não há mais pendentes, vira RETORNANDO À BASE automaticamente + avisa o admin
       try {
         const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("motoboy_id", user!.id).in("status", ["aguardando_motoboy", "em_rota"]);

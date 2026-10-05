@@ -64,7 +64,8 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 52. `0051_grants_faltantes.sql` — CORRETIVA: GRANTs que faltavam em 0043–0046 (RLS+policy sem GRANT = PostgREST nega tudo; a seção Provedor do `/fiscal` nascia quebrada) + RLS na tabela de transições.
 53. `0052_tempo_fritura_blocos.sql` — CORRETIVA: tempo proporcional linear dava 5s p/ 1 salgado e divergia do app; agora blocos (teto, mín. 1 lote), igual a `cozinha.ts`, usando o campo do admin.
 54. `0053_historico_dono.sql` — CORRETIVA: o nascimento do pedido via checkout caía em RLS silenciosa (só staff inseria); agora o dono registra no próprio pedido (métricas de ciclo recuperam a origem).
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0053 — rode esses separado).
+55. `0054_push_subscriptions.sql` — Web Push (notificação de status sem WhatsApp): 1 linha por aparelho, dono gerencia as próprias.
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0054 — rode esses separado).
 
 Nota: `0002_secure_loyalty_and_partners.sql` (endurecimento Lovable: `search_path`,
 candidatura de parceiros, travas de pontos + RPCs `creditar_pontos_pedido` /
@@ -121,7 +122,7 @@ SELECT id, public FROM storage.buckets WHERE id = 'hero';
 Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
 `drizzle/migrations/`:
 
-- `PASSO-4-bootstrap-completo.sql` — `0000`→`0053` em ordem (regenerado por
+- `PASSO-4-bootstrap-completo.sql` — `0000`→`0054` em ordem (regenerado por
   `node scripts/gerar-bootstrap.mjs`; rode o gerador de novo se criar migration
   nova), cada arquivo em sub-transação própria: o que falhar aparece como
   `WARNING` e o resto continua.
@@ -196,6 +197,25 @@ cMun IBGE e com combo avulso (produto_id NULL), a emissão bloqueia com o
 motivo na tela — nenhum documento é marcado `autorizada` sem retorno válido
 do provedor (cStat 100/150). Só vire `producao` com certificado A1 válido no
 provedor/cofre e DANFE testada em homologação.
+
+### 5c. Push notifications (status sem WhatsApp)
+
+```bash
+supabase functions deploy push-enviar
+```
+
+Secrets da função: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (iguais às
+demais) + `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` (a privada
+está em `.secrets-vapid.txt` local, ignorado pelo git — cole no Dashboard,
+nunca no código). A pública já está no `.env` (`VITE_VAPID_PUBLIC_KEY`).
+
+Como funciona: o cliente ativa em `/pedido/$id` ("Ativar notificações",
+opt-in por aparelho); a cada troca de status (checkout, produção, motoboy,
+admin) o app chama a função, que envia via Web Push criptografado e limpa
+inscrições mortas (404/410). Sem inscritos, nada acontece (melhor esforço,
+nunca quebra o fluxo). iPhone exige o site instalado na tela inicial (PWA) —
+limitação da Apple. Teste: ative num Android/PC, mude o status pelo admin e
+confira a notificação com o site fechado.
 
 ## 6. Smoke test obrigatório (com o banco migrado)
 

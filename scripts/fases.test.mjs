@@ -21,6 +21,7 @@ const beb = await import("@/lib/bebidas.ts");
 const imp = await import("@/lib/impressao.ts");
 const estoque = await import("@/lib/estoque.ts");
 const fiscal = await import("@/lib/fiscal.ts");
+const push = await import("@/lib/push.ts");
 
 let pass = 0, fail = 0;
 function t(nome, cond) {
@@ -99,6 +100,18 @@ t("fiscal empresa sem modelo", fiscal.empresaConfigurada({ razao_social: "X", cn
 // Entrega: motivos alinhados ao enum atraso_motivo do banco (0044/0047)
 t("motivos cabem no enum", entrega.MOTIVO_ATRASO.every((m) => ["transito","chuva","veiculo","endereco","cliente_ausente","espera","acidente_bloqueio","outro"].includes(m)));
 t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOTIVO_ATRASO_LABEL[m])));
+
+// Push: base64url, extração de chaves e estado sem suporte (node = sem SW)
+{
+  const bytes = push.base64UrlParaBytes("SGVsbG8td29ybGRf"); // "Hello-world_"
+  t("push base64url decodifica", bytes.length === 12 && bytes[0] === 72 && bytes[5] === 45);
+  const fake = { endpoint: "https://fcm/end", getKey: (n) => new Uint8Array(n === "p256dh" ? [4, 1, 2] : [9]).buffer };
+  const insc = push.extrairInscricao(fake);
+  t("push extrai chaves", insc !== null && insc.endpoint === "https://fcm/end" && insc.p256dh.length > 0 && insc.auth.length > 0);
+  t("push sem getKey é nulo", push.extrairInscricao({ endpoint: "x" }) === null);
+  t("push sem endpoint é nulo", push.extrairInscricao({ endpoint: "", getKey: () => new ArrayBuffer(1) }) === null);
+  t("push node sem suporte", push.suportePush() === false && push.estadoPush() === "nao-suportado");
+}
 
 // Banco: loops de itens (0042 reserva, 0043 fritura) ignoram combo avulso
 // (produto_id NULL) — sem isso, confirmar QUALQUER combo abortava.

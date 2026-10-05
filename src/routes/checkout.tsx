@@ -14,6 +14,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useCart, isComboItem } from "@/lib/cart";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, whatsappLink, mensagemStatus } from "@/lib/format";
+import { notificarPush } from "@/lib/push";
 import { calcTotals, isMultiploCombo } from "@/lib/totals";
 import { validarCupom } from "@/lib/cupons";
 import { pontosGanhos as calcPontos } from "@/lib/fidelidade";
@@ -514,6 +515,7 @@ function Checkout() {
       } catch { /* pedido segue mesmo sem pontos */ }
 
       clear();
+      void notificarPush(supabase, (pedido as any).id, "recebido");
       toast.success(`Pedido nº ${(pedido as any).numero} recebido! +${pts} pts fidelidade`);
       const linhas = itensValidados.map((i) => `* ${i.quantidade}x ${i.nome} — ${brl(i.preco * i.quantidade)}`).join("\n");
       const quandoTxt = quando === "agendar" && agendadoPara

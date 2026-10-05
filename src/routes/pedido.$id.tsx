@@ -10,6 +10,8 @@ import { MapView } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, dataHora, PAGAMENTO_LABEL } from "@/lib/format";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, lojaTemEndereco, pontoDaLoja, useLojaConfig } from "@/lib/loja";
+import { useSession } from "@/lib/session";
+import { ativarPush, estadoPush } from "@/lib/push";
 
 export const Route = createFileRoute("/pedido/$id")({
   head: () => ({
@@ -48,6 +50,50 @@ function MarketingEspera({ status, loja }: { status: string; loja: any }) {
         ) : null}
       </div>
     </section>
+  );
+}
+
+/**
+ * Push opt-in: avisa "saiu para entrega/entregue" mesmo com o site fechado,
+ * sem WhatsApp. Só para o dono logado (a inscrição é por usuário).
+ */
+function AvisoPush({ pedido }: { pedido: any }) {
+  const { user } = useSession();
+  const [estado, setEstado] = useState(() => estadoPush());
+  const [salvando, setSalvando] = useState(false);
+  if (!pedido || ["entregue", "retirado", "cancelado"].includes(pedido.status)) return null;
+  if (!user?.id || pedido.user_id !== user.id) return null;
+  if (estado === "nao-suportado" || estado === "negado") return null;
+  if (estado === "ativo") {
+    return (
+      <p className="rounded-xl border border-border bg-card p-3 text-center text-xs text-muted-foreground">
+        🔔 Notificações ativas neste aparelho — avisamos cada etapa por aqui.
+      </p>
+    );
+  }
+  async function ativar() {
+    setSalvando(true);
+    const r = await ativarPush(supabase, user!.id);
+    setSalvando(false);
+    if (r.ok) {
+      setEstado("ativo");
+      toast.success("Notificações ativadas!");
+    } else if (r.motivo === "denied" || r.motivo === "negado") {
+      setEstado("negado");
+      toast.error("Permissão negada no navegador.");
+    } else {
+      toast.error("Não foi possível ativar neste aparelho.");
+    }
+    setEstado(estadoPush());
+  }
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 text-center text-sm">
+      <p className="font-semibold">🔔 Avisar quando mudar de etapa?</p>
+      <p className="mt-1 text-xs text-muted-foreground">Funciona mesmo com o site fechado. Sem WhatsApp, sem cadastro extra.</p>
+      <Button size="sm" className="mt-2" disabled={salvando} onClick={ativar}>
+        {salvando ? "Ativando…" : "Ativar notificações"}
+      </Button>
+    </div>
   );
 }
 
@@ -166,6 +212,7 @@ function Acompanhar() {
         <StatusSteps status={pedido.status} tipoEntrega={pedido.tipo_entrega} />
       </section>
 
+      <AvisoPush pedido={pedido} />
       <MarketingEspera status={pedido.status} loja={loja} />
       <ConviteGoogle status={pedido.status} loja={loja} numero={pedido.numero} />
 

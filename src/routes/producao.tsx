@@ -12,6 +12,7 @@ import { brl, dataHora, hora, mensagemStatus, whatsappLink, type OrderStatus, ty
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
 import { tempoFritura, tempoFrituraPedido, formatarTempo, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
 import { impressaoDireta, fichaDireta } from "@/lib/impressao";
+import { notificarPush } from "@/lib/push";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/producao")({
@@ -156,6 +157,7 @@ function Producao() {
       toast.error("Não foi possível atualizar o pedido.");
       return;
     }
+    void notificarPush(supabase, pedido.id, status);
     try {
       await supabase.from("pedido_status_historico").insert({ pedido_id: pedido.id, de_status: pedido.status, para_status: status });
     } catch { /* sem migration — segue */ }
