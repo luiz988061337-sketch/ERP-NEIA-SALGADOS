@@ -497,6 +497,31 @@ async function registrarEvento(supabase: any, documentoId: string, evento: strin
   });
 }
 
+/**
+ * A anon key é pública (vai no bundle do site): qualquer um poderia chamar a
+ * função direto. Por isso a autorização é explícita aqui — só admin/financeiro
+ * (via has_role, SECURITY DEFINER) emite ou reemite.
+ */
+async function exigirPapelFiscal(supabase: any, req: Request): Promise<string> {
+  const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!jwt) {
+    throw Object.assign(new Error("Não autenticado. Entre com usuário admin/financeiro."), { status: 401 });
+  }
+  const { data, error } = await supabase.auth.getUser(jwt);
+  const userId = (data as any)?.user?.id;
+  if (error || !userId) {
+    throw Object.assign(new Error("Sessão inválida."), { status: 401 });
+  }
+  const [{ data: okAdmin }, { data: okFin }] = await Promise.all([
+    supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    supabase.rpc("has_role", { _user_id: userId, _role: "financeiro" }),
+  ]);
+  if (!okAdmin && !okFin) {
+    throw Object.assign(new Error("Emissão fiscal restrita a admin/financeiro."), { status: 403 });
+  }
+  return userId;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -528,9 +553,22 @@ serve(async (req) => {
       .eq("pedido_id", pedido_id)
       .maybeSingle();
 
+    const autorId = await exigirPapelFiscal(supabase, req);
+
     if (docExistente && !forcar) {
       return new Response(JSON.stringify({
         erro: "Documento fiscal já existe para este pedido. Use forcar=true para reemitir.",
+        documento: docExistente,
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Documento final não se reemite (evita bitributação do mesmo pedido).
+    if (docExistente?.status === "autorizada") {
+      return new Response(JSON.stringify({
+        erro: `Documento #${docExistente.numero} já autorizado (protocolo ${docExistente.protocolo ?? "—"}). Cancele na SEFAZ antes de emitir outro.`,
         documento: docExistente,
       }), {
         status: 409,
@@ -544,6 +582,14 @@ serve(async (req) => {
       getProvedorConfig(supabase),
       getPedidoCompleto(supabase, pedido_id),
     ]);
+
+    // URL do ambiente ativa precisa existir (senão o fetch falharia genérico).
+    const urlAlvo = provedor.ambiente === "producao"
+      ? (provedor.producao_url || provedor.url_base)
+      : (provedor.homologacao_url || provedor.url_base);
+    if (!urlAlvo) {
+      throw new Error(`Provedor sem URL de ${provedor.ambiente}. Configure em /fiscal → Provedor fiscal.`);
+    }
 
     // Verifica modelo
     const modelo = empresa.modelo_padrao as "55" | "65";
@@ -640,7 +686,7 @@ serve(async (req) => {
       if (eItens) throw new Error(`Documento criado, mas itens fiscais falharam: ${eItens.message}`);
     }
 
-    await registrarEvento(supabase, documentoId, "emissao_iniciada", `Tentativa de emissão ${modelo} #${proximoNumero}`);
+    await registrarEvento(supabase, documentoId, "emissao_iniciada", `Tentativa de emissão ${modelo} #${proximoNumero}`, autorId);
 
     // Transição validada pelo trigger 0046 (empresa + NCM/CFOP por item).
     // Se o banco rejeitar aqui, o erro sobe com a mensagem do trigger.
@@ -663,7 +709,7 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       }).eq("id", documentoId);
 
-      await registrarEvento(supabase, documentoId, "autorizada", `Protocolo: ${resultado.protocolo}`);
+      await registrarEvento(supabase, documentoId, "autorizada", `Protocolo: ${resultado.protocolo}`, autorId);
 
       return new Response(JSON.stringify({
         sucesso: true,
@@ -681,7 +727,7 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       }).eq("id", documentoId);
 
-      await registrarEvento(supabase, documentoId, "rejeitada", resultado.erro || "Erro desconhecido");
+      await registrarEvento(supabase, documentoId, "rejeitada", resultado.erro || "Erro desconhecido", autorId);
 
       return new Response(JSON.stringify({
         sucesso: false,
@@ -694,8 +740,9 @@ serve(async (req) => {
     }
   } catch (e) {
     console.error("Erro em fiscal-emitir:", e);
+    const status = Number((e as any)?.status) || 500;
     return new Response(JSON.stringify({ erro: e instanceof Error ? e.message : String(e) }), {
-      status: 500,
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

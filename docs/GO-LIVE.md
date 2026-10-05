@@ -168,7 +168,9 @@ supabase functions deploy fiscal-emitir
 ```
 
 Configure `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` nos secrets da função
-(Dashboard → Edge Functions → Secrets). Depois preencha em `/fiscal`:
+(Dashboard → Edge Functions → Secrets) e mantenha a verificação JWT ligada: a
+função autoriza `admin`/`financeiro` via `has_role` (a anon key é pública, então
+chamada direta sem papel recebe 403). Depois preencha em `/fiscal`:
 1. **Empresa** — razão social, CNPJ, IE, endereço completo, regime (com o
    contador), série, número inicial, modelo (55/65);
 2. **Provedor** (seção própria na página) — tipo, ambiente, URL + token de
