@@ -221,11 +221,13 @@ function Checkout() {
     if (!user) return;
     const form = new FormData(e.currentTarget);
     const parsed = schema.safeParse({
-      cliente_nome: form.get("cliente_nome"),
-      telefone: form.get("telefone"),
-      endereco: form.get("endereco"),
-      bairro: form.get("bairro"),
-      cidade: form.get("cidade"),
+      // Na retirada os inputs de endereço nem existem no DOM (form.get = null):
+      // normaliza para "" aqui (a obrigatoriedade p/ entrega é checada abaixo).
+      cliente_nome: form.get("cliente_nome") ?? "",
+      telefone: form.get("telefone") ?? "",
+      endereco: form.get("endereco") ?? "",
+      bairro: form.get("bairro") ?? "",
+      cidade: form.get("cidade") ?? "",
       cep: form.get("cep") ?? "",
       complemento: form.get("complemento") ?? "",
       referencia: form.get("referencia") ?? "",
