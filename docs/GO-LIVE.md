@@ -206,9 +206,10 @@ supabase functions deploy push-enviar
 ```
 
 Secrets da função: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (iguais às
-demais) + `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` (a privada
-está em `.secrets-vapid.txt` local, ignorado pelo git — cole no Dashboard,
-nunca no código). A pública já está no `.env` (`VITE_VAPID_PUBLIC_KEY`).
+demais) + `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` — no
+Lovable já estão configurados (par gerado no publish; `push-enviar` responde).
+Se migrar de provedor, gere outro par (`npm run gerar:vapid`) e atualize os
+secrets. A pública vai no `.env` (`VITE_VAPID_PUBLIC_KEY`).
 
 Como funciona: o cliente ativa em `/pedido/$id` ("Ativar notificações",
 opt-in por aparelho); a cada troca de status (checkout, produção, motoboy,

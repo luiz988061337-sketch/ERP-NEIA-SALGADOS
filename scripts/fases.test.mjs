@@ -101,6 +101,21 @@ t("fiscal empresa sem modelo", fiscal.empresaConfigurada({ razao_social: "X", cn
 t("motivos cabem no enum", entrega.MOTIVO_ATRASO.every((m) => ["transito","chuva","veiculo","endereco","cliente_ausente","espera","acidente_bloqueio","outro"].includes(m)));
 t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOTIVO_ATRASO_LABEL[m])));
 
+// Edge Functions Deno: quem chama serve( precisa importar (node --check não
+// pega; sem import a função quebra no boot — foi assim que a push-enviar
+// nasceu, e o bot precisou completar).
+{
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const dir = "supabase/functions";
+  for (const f of readdirSync(dir)) {
+    let src = "";
+    try { src = readFileSync(`${dir}/${f}/index.ts`, "utf8"); } catch { continue; }
+    if (/[^.]serve\s*\(/.test(src)) {
+      t(`edge ${f} importa serve`, /import\s*\{\s*serve\s*\}/.test(src));
+    }
+  }
+}
+
 // Push: base64url, extração de chaves e estado sem suporte (node = sem SW)
 {
   const bytes = push.base64UrlParaBytes("SGVsbG8td29ybGRf"); // "Hello-world_"
