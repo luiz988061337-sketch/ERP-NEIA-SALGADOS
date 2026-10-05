@@ -185,6 +185,9 @@ provedor/cofre e DANFE testada em homologação.
 
 ## 6. Smoke test obrigatório (com o banco migrado)
 
+Localmente exige `.env` com `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY`
+(o script aborta na hora sem isso — sem env o SSR retorna 500 por desenho).
+
 1. Cardápio → combo 50/100 (ok) → tentativa 49/51 no carrinho (bloqueia).
 2. Checkout R$40 + R$6 = **R$46**; confirma; confere admin + WhatsApp com o mesmo total.
 3. Admin muda status → WhatsApp abre; motoboy aceita/inicia/entrega.
