@@ -49,7 +49,9 @@ serve(async (req) => {
     return new Response("Pontos insuficientes.", { status: 400 });
   }
 
-  const codigo = `FID-${Date.now().toString(36).toUpperCase().slice(-4)}${Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0")}`;
+  const aleatorio = Array.from(crypto.getRandomValues(new Uint8Array(6)))
+    .map((b) => b.toString(36).toUpperCase().padStart(2, "0")).join("").slice(-6);
+  const codigo = `FID-${Date.now().toString(36).toUpperCase().slice(-4)}${aleatorio}`;
   const fim = new Date(Date.now() + 30 * 86400000).toISOString();
   const { error: e1 } = await admin.from("cupons").insert({
     codigo, tipo: "valor", valor: recompensa, minimo: 0, ativo: true,
@@ -57,10 +59,16 @@ serve(async (req) => {
   });
   if (e1) return new Response("Falha ao gerar cupom.", { status: 500 });
 
-  const { error: e2 } = await admin.from("profiles").update({ pontos: (perfil.pontos ?? 0) - meta }).eq("id", user.id);
-  if (e2) {
+  // Débito condicional: duas chamadas concorrentes não geram 2 cupons com 1 saldo
+  // (o UPDATE só afeta a linha se o saldo AINDA cobre a meta neste instante).
+  const { data: debitado, error: e2 } = await admin.from("profiles")
+    .update({ pontos: (perfil.pontos ?? 0) - meta })
+    .eq("id", user.id)
+    .gte("pontos", meta)
+    .select("id");
+  if (e2 || !debitado || debitado.length === 0) {
     await admin.from("cupons").update({ ativo: false }).eq("codigo", codigo);
-    return new Response("Falha ao debitar pontos.", { status: 500 });
+    return new Response("Pontos insuficientes.", { status: 400 });
   }
   return Response.json({ codigo, valor: recompensa, validade_fim: fim });
 });
