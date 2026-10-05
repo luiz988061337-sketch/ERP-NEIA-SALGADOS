@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASSO 4 - BOOTSTRAP COMPLETO (gerado por scripts/gerar-bootstrap.mjs)
--- Aplica drizzle/migrations/0000..0052 nessa ordem.
+-- Aplica drizzle/migrations/0000..0053 nessa ordem.
 -- Cada arquivo roda em uma sub-transacao propria: se um falhar, os OUTROS
 -- continuam e o erro aparece como WARNING no painel de mensagens.
 -- Pode rodar quantas vezes quiser.
@@ -1517,8 +1517,10 @@ CREATE POLICY "hist dono/staff" ON public.pedido_status_historico FOR SELECT USI
   EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND (p.user_id = auth.uid() OR public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente') OR public.has_role(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'motoboy')))
 );
 DROP POLICY IF EXISTS "hist staff insert" ON public.pedido_status_historico;
+-- NOTA 0053: dono insere no próprio pedido (nascimento via checkout); 0053 repete p/ bancos já criados.
 CREATE POLICY "hist staff insert" ON public.pedido_status_historico FOR INSERT WITH CHECK (
-  public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente')
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'atendente')
+  OR EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND p.user_id = auth.uid())
 );
 
 DROP POLICY IF EXISTS "lotes staff" ON public.lotes;
@@ -4182,6 +4184,37 @@ $body$;
   RAISE NOTICE 'APLICADO 0052_tempo_fritura_blocos.sql';
 EXCEPTION WHEN others THEN
   RAISE WARNING 'FALHOU 0052_tempo_fritura_blocos.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0053_historico_dono.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0053: dono do pedido pode registrar o próprio histórico de status.
+-- O checkout (cliente, sem papel staff) insere o nascimento recebido→recebido
+-- em pedido_status_historico, mas a policy 0023 só permitia staff: a linha era
+-- barrada em silêncio (catch vazio) e as métricas de ciclo (separação) perdiam
+-- a origem. Agora o dono insere no PRÓPRIO pedido; staff como antes.
+-- Idempotente. Rode APÓS 0052. (Arquivo 0023 sincronizado p/ fresh.)
+
+DROP POLICY IF EXISTS "hist staff insert" ON public.pedido_status_historico;
+CREATE POLICY "hist staff insert" ON public.pedido_status_historico FOR INSERT TO authenticated WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'atendente')
+  OR EXISTS (
+    SELECT 1 FROM public.pedidos p
+    WHERE p.id = pedido_id AND p.user_id = auth.uid()
+  )
+);
+
+COMMENT ON TABLE public.pedido_status_historico IS '0053: dono insere no próprio pedido (nascimento via checkout); staff como antes.';
+$body$;
+  RAISE NOTICE 'APLICADO 0053_historico_dono.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0053_historico_dono.sql -> %', SQLERRM;
 END
 $mig$;
 

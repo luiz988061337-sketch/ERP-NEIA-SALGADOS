@@ -74,8 +74,10 @@ CREATE POLICY "hist dono/staff" ON public.pedido_status_historico FOR SELECT USI
   EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND (p.user_id = auth.uid() OR public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente') OR public.has_role(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'motoboy')))
 );
 DROP POLICY IF EXISTS "hist staff insert" ON public.pedido_status_historico;
+-- NOTA 0053: dono insere no próprio pedido (nascimento via checkout); 0053 repete p/ bancos já criados.
 CREATE POLICY "hist staff insert" ON public.pedido_status_historico FOR INSERT WITH CHECK (
-  public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente')
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'atendente')
+  OR EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND p.user_id = auth.uid())
 );
 
 DROP POLICY IF EXISTS "lotes staff" ON public.lotes;

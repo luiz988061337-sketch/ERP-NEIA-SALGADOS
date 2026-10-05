@@ -121,6 +121,11 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
   const f52 = readFileSync("drizzle/migrations/0052_tempo_fritura_blocos.sql", "utf8");
   t("SQL frita em blocos", /CEIL\s*\(\s*GREATEST/i.test(f52) && !/\/\s*v_base_qtd\s*\*\s*v_base_seg/i.test(f52));
   t("SQL usa tempo do admin", /COALESCE\s*\(\s*tempo_fritura_s/i.test(f52));
+  // Histórico: dono insere no próprio pedido (0053) — sem isso o nascimento
+  // via checkout caía no catch silencioso e o ciclo perdia a origem.
+  const f53 = readFileSync("drizzle/migrations/0053_historico_dono.sql", "utf8");
+  const f23 = readFileSync("drizzle/migrations/0023_base_operacional.sql", "utf8");
+  t("dono registra próprio histórico", /p\.user_id\s*=\s*auth\.uid\(\)/.test(f53) && /p\.user_id\s*=\s*auth\.uid\(\)/.test(f23));
   // Estoque: regra única 0030x0042 (0050) — sem ela, produtos.estoque caía 2x
   // por venda (checkout + confirmação) e o cancel restaurava errado.
   const f50 = readFileSync("drizzle/migrations/0050_estoque_unico.sql", "utf8");
