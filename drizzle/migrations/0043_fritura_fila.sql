@@ -65,10 +65,13 @@ DECLARE
   v_tempo integer;
 BEGIN
   IF NEW.status = 'em_producao' AND OLD.status = 'recebido' THEN
+    -- Só itens com produto (combo montado tem produto_id NULL: sem este filtro
+    -- o INSERT violava NOT NULL e a confirmação de QUALQUER combo abortava).
     FOR v_item IN
       SELECT pi.produto_id, pi.quantidade
       FROM public.pedido_itens pi
       WHERE pi.pedido_id = NEW.id
+        AND pi.produto_id IS NOT NULL
     LOOP
       v_tempo := public.calcular_tempo_fritura(v_item.produto_id, v_item.quantidade);
       INSERT INTO public.fritura_fila (pedido_id, produto_id, quantidade, tempo_previsto_segundos)

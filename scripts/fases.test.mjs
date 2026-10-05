@@ -98,5 +98,16 @@ t("fiscal empresa sem modelo", fiscal.empresaConfigurada({ razao_social: "X", cn
 t("motivos cabem no enum", entrega.MOTIVO_ATRASO.every((m) => ["transito","chuva","veiculo","endereco","cliente_ausente","espera","acidente_bloqueio","outro"].includes(m)));
 t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOTIVO_ATRASO_LABEL[m])));
 
+// Banco: loops de itens (0042 reserva, 0043 fritura) ignoram combo avulso
+// (produto_id NULL) — sem isso, confirmar QUALQUER combo abortava.
+{
+  const { readFileSync } = await import("node:fs");
+  for (const f of ["0042_estoque_reserva_fefo.sql", "0043_fritura_fila.sql", "0048_combo_sem_produto.sql"]) {
+    const sql = readFileSync(`drizzle/migrations/${f}`, "utf8");
+    const loops = [...sql.matchAll(/FOR\s+v_item\s+IN[\s\S]*?LOOP/gi)];
+    t(`${f} filtra produto nulo (${loops.length} loop(s))`, loops.length > 0 && loops.every((m) => /produto_id\s+IS\s+NOT\s+NULL/i.test(m[0])));
+  }
+}
+
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

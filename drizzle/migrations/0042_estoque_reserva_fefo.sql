@@ -4,6 +4,7 @@
 -- =============================================
 -- 1. Tabela de movimentações de estoque
 -- =============================================
+DO $$ BEGIN
 CREATE TYPE public.tipo_mov_estoque AS ENUM (
   'entrada_producao',
   'entrada_manual',
@@ -17,6 +18,8 @@ CREATE TYPE public.tipo_mov_estoque AS ENUM (
   'devolucao',
   'degustacao'
 );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.estoque_movimentacoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,11 +106,14 @@ BEGIN
     RAISE EXCEPTION 'Pedido não encontrado ou não está em status "em_producao": %', p_pedido_id;
   END IF;
 
-  -- Para cada item do pedido
+  -- Para cada item do pedido COM produto (combo montado tem produto_id NULL:
+  -- é montagem, não baixa de lote — sem este filtro a confirmação de QUALQUER
+  -- combo abortava com "estoque insuficiente para produto (null)").
   FOR v_item IN
     SELECT pi.produto_id, pi.quantidade
     FROM public.pedido_itens pi
     WHERE pi.pedido_id = p_pedido_id
+      AND pi.produto_id IS NOT NULL
   LOOP
     v_qtd_restante := v_item.quantidade;
 
