@@ -73,6 +73,7 @@ import {
   whatsappLink,
   type OrderStatus,
 } from "@/lib/format";
+import { avisarStatus } from "@/lib/push";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
@@ -81,6 +82,7 @@ import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { DEFAULT_LOJA_CONFIG, enderecoLoja, type LojaConfig } from "@/lib/loja";
+import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
 import { useRoles, useSession } from "@/lib/session";
 import type { Role } from "@/lib/session";
@@ -505,6 +507,15 @@ function Admin() {
     void refetchCalc();
   }
 
+  async function moderarAvaliacao(id: string, aprovada: boolean) {
+    const { error } = await supabase.from("avaliacoes").update({ aprovada }).eq("id", id);
+    if (error) toast.error("Não foi possível moderar.");
+    else {
+      toast.success(aprovada ? "Avaliação publicada." : "Avaliação despublicada.");
+      queryClient.invalidateQueries({ queryKey: ["admin-avaliacoes"] });
+    }
+  }
+
   function refreshAll() {
     for (const k of ["admin-pedidos", "admin-produtos", "admin-categorias", "admin-cupons", "admin-profiles", "admin-avaliacoes", "admin-all-roles", "admin-metas"])
       queryClient.invalidateQueries({ queryKey: [k] });
@@ -589,12 +600,18 @@ function Admin() {
   }
 
   async function mudarStatusPedido(p: any, status: OrderStatus) {
+    // Cancelar devolve estoque primeiro (0030); o trigger 0042 reconcilia o resto.
+    // Sem isso, produtos.estoque ficava debitado para sempre (vazamento).
+    if (status === "cancelado") {
+      try { await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: p.id }); } catch { /* sem migration — trigger 0042 assume */ }
+      try { await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", p.id).eq("status", "ativa"); } catch { /* sem migration */ }
+    }
     const { error } = await supabase.from("pedidos").update({ status }).eq("id", p.id);
     if (error) toast.error(error?.message || "Não foi possível atualizar.");
     else {
       toast.success(`Pedido nº ${p.numero} → ${STATUS_LABEL[status]}`);
       void logAdmin("pedido_status", `#${p.numero} → ${status}`);
-      window.open(whatsappLink(p.telefone, mensagemStatus(status, p.cliente_nome, p.numero)), "_blank", "noopener");
+      void avisarStatus(supabase, p, status, mensagemStatus(status, p.cliente_nome, p.numero));
     }
     queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
   }
@@ -636,7 +653,7 @@ function Admin() {
       </div>
 
       <Tabs value={aba} onValueChange={setAba} className="mt-6">
-        <TabsList className="no-scrollbar flex w-full justify-start gap-1 overflow-x-auto">
+        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
           <TabsTrigger value="dashboard"><LayoutDashboard className="mr-1 size-4" />Dashboard</TabsTrigger>
           <TabsTrigger value="pedidos"><ClipboardList className="mr-1 size-4" />Pedidos</TabsTrigger>
           <TabsTrigger value="produtos"><Package className="mr-1 size-4" />Produtos</TabsTrigger>
@@ -648,6 +665,7 @@ function Admin() {
           <TabsTrigger value="cupons"><Tag className="mr-1 size-4" />Cupons</TabsTrigger>
           <TabsTrigger value="metas"><Target className="mr-1 size-4" />Metas</TabsTrigger>
           <TabsTrigger value="financeiro"><Wallet className="mr-1 size-4" />Financeiro</TabsTrigger>
+          <TabsTrigger value="impressao"><Printer className="mr-1 size-4" />Impressão</TabsTrigger>
           <TabsTrigger value="comercial"><Crown className="mr-1 size-4" />Comercial</TabsTrigger>
           <TabsTrigger value="usuarios"><KeyRound className="mr-1 size-4" />Usuários</TabsTrigger>
           <TabsTrigger value="logs"><ScrollText className="mr-1 size-4" />Logs</TabsTrigger>
@@ -847,6 +865,10 @@ function Admin() {
           <FinanceiroAdmin pedidos={pedidos ?? []} />
         </TabsContent>
 
+        <TabsContent value="impressao" className="mt-4">
+          <ImpressaoAdmin />
+        </TabsContent>
+
         <TabsContent value="comercial" className="mt-4">
           <ComercialAdmin pedidos={pedidos ?? []} clientes={clientesStats ?? []} />
         </TabsContent>
@@ -998,6 +1020,43 @@ function Admin() {
                 <p className="text-xs text-muted-foreground">Também serve como contato do orçamento quando a Calculadora está vazia.</p>
               </div>
               <div className="space-y-1">
+                <Label htmlFor="loja-instagram">Instagram (link)</Label>
+                <Input
+                  id="loja-instagram"
+                  placeholder="https://instagram.com/..."
+                  value={lojaAtual.instagram ?? ""}
+                  onChange={(e) => setLoja("instagram", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-facebook">Facebook (link)</Label>
+                <Input
+                  id="loja-facebook"
+                  placeholder="https://facebook.com/..."
+                  value={lojaAtual.facebook ?? ""}
+                  onChange={(e) => setLoja("facebook", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-site">Site (link)</Label>
+                <Input
+                  id="loja-site"
+                  placeholder="https://..."
+                  value={lojaAtual.site ?? ""}
+                  onChange={(e) => setLoja("site", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="loja-google">Avaliação Google (link)</Label>
+                <Input
+                  id="loja-google"
+                  placeholder="Link do perfil para avaliar"
+                  value={lojaAtual.google_avaliacao ?? ""}
+                  onChange={(e) => setLoja("google_avaliacao", e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Aparece no pedido entregue. Nunca condicione benefício à nota.</p>
+              </div>
+              <div className="space-y-1">
                 <Label htmlFor="loja-complemento">Complemento</Label>
                 <Input
                   id="loja-complemento"
@@ -1078,6 +1137,12 @@ function Admin() {
                     <span className="ml-auto text-xs text-muted-foreground">{dataHora(a.created_at)}</span>
                   </p>
                   {a.comentario && <p className="mt-1 text-muted-foreground">“{a.comentario}”</p>}
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                    {a.autoriza_publicar ? <span className="text-muted-foreground">✔ autorizou publicar</span> : <span className="text-muted-foreground">não autorizou publicar</span>}
+                    {a.aprovada ? <span className="text-success">● publicada</span> : <span className="text-muted-foreground">○ pendente</span>}
+                    {!a.aprovada ? <Button size="sm" variant="outline" onClick={() => moderarAvaliacao(a.id, true)}>Aprovar e publicar</Button> : null}
+                    {a.aprovada ? <Button size="sm" variant="ghost" onClick={() => moderarAvaliacao(a.id, false)}>Despublicar</Button> : null}
+                  </p>
                 </li>
               ))}
               {(avaliacoes ?? []).length === 0 && <li className="text-muted-foreground">Sem avaliações.</li>}
@@ -1148,6 +1213,14 @@ function BuscaGlobal({ termo, onTermo, pedidos, produtos, profiles, onIrPedido, 
 }
 
 function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { pedidos: any[]; onStatus: (p: any, s: OrderStatus) => void; onPagamento?: (p: any, s: string) => void; foco?: string; onLimparFoco?: () => void }) {
+  async function imprimirDireto(p: any) {
+    try {
+      await impressaoDireta(supabase, p);
+      toast.success(`Pedido nº ${p.numero} enviado para a Tanca.`);
+    } catch {
+      toast.error("Não entrou na fila. Confira em /impressao.");
+    }
+  }
   const [filtro, setFiltro] = useState("todos");
   const [fEvento, setFEvento] = useState("todos");
   const [soAgendados, setSoAgendados] = useState(false);
@@ -1252,8 +1325,8 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
               <Button size="sm" variant="outline" onClick={() => window.open(whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)), "_blank")}>
                 <MessageCircle className="mr-1 size-3.5" /> WhatsApp
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => window.print()}>
-                <Printer className="mr-1 size-3.5" /> Imprimir
+              <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
+                <Printer className="mr-1 size-3.5" /> Imprimir direto
               </Button>
             </div>
           </article>
@@ -1284,6 +1357,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
       estoque: Number(f.get("estoque") ?? 0),
       estoque_minimo: Number(f.get("estoque_minimo") ?? 0),
       custo: f.get("custo") ? Number(f.get("custo")) : null,
+      tempo_fritura_s: f.get("tempo_fritura_s") ? Number(f.get("tempo_fritura_s")) : null,
       disponivel: f.get("disponivel") === "on",
       imagem_url: String(f.get("imagem_url") ?? "") || null,
       tipo_venda: String(f.get("tipo_venda") ?? "combo_50"),
@@ -1291,13 +1365,21 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
       promo_inicio: String(f.get("promo_inicio") ?? "") || null,
       promo_fim: String(f.get("promo_fim") ?? "") || null,
       promo_ativo: f.get("promo_ativo") === "on",
+      descricao_fiscal: String(f.get("descricao_fiscal") ?? "") || null,
+      ncm: String(f.get("ncm") ?? "").replace(/\D/g, "") || null,
+      cest: String(f.get("cest") ?? "").replace(/\D/g, "") || null,
+      cfop_padrao: String(f.get("cfop_padrao") ?? "").replace(/\D/g, "") || null,
+      cst: String(f.get("cst") ?? "") || null,
+      csosn: String(f.get("csosn") ?? "") || null,
+      origem_mercadoria: String(f.get("origem_mercadoria") ?? "") || null,
+      gtin: String(f.get("gtin") ?? "").replace(/\D/g, "") || null,
     };
     let { error } = id
       ? await supabase.from("produtos").update(fullPayload).eq("id", id)
       : await supabase.from("produtos").insert(fullPayload);
     if (error && String(error.message ?? "").includes("column")) {
-      // Banco ainda sem migrações 0001/0003/0004 — salva campos legados
-      const { tipo_venda: _tv, destaque: _d, promo_inicio: _pi, promo_fim: _pf, promo_ativo: _pa, estoque_minimo: _em, custo: _cu, ...legacy } = fullPayload;
+      // Banco ainda sem migrações 0001/0003/0004/0033 — salva campos legados
+      const { tipo_venda: _tv, destaque: _d, promo_inicio: _pi, promo_fim: _pf, promo_ativo: _pa, estoque_minimo: _em, custo: _cu, tempo_fritura_s: _tf, descricao_fiscal: _df, ncm: _ncm, cest: _ce, cfop_padrao: _cf, cst: _cs, csosn: _so, origem_mercadoria: _om, gtin: _gt, ...legacy } = fullPayload;
       const retry = id
         ? await supabase.from("produtos").update(legacy).eq("id", id)
         : await supabase.from("produtos").insert(legacy);
@@ -1370,7 +1452,28 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
           <div className="space-y-1"><Label>Estoque</Label><Input name="estoque" type="number" defaultValue={editando?.estoque ?? 100} /></div>
           <div className="space-y-1"><Label>Estoque mínimo (alerta)</Label><Input name="estoque_minimo" type="number" defaultValue={editando?.estoque_minimo ?? 0} /></div>
           <div className="space-y-1"><Label>Custo (margem estimada, opcional)</Label><Input name="custo" type="number" step="0.01" defaultValue={editando?.custo ?? ""} /></div>
+          <div className="space-y-1"><Label>Fritura 50un em seg (padrão 210)</Label><Input name="tempo_fritura_s" type="number" min={0} placeholder="210" defaultValue={editando?.tempo_fritura_s ?? ""} /></div>
           <div className="space-y-1"><Label>Imagem URL (opcional)</Label><Input name="imagem_url" defaultValue={editando?.imagem_url ?? ""} /></div>
+          <details className="sm:col-span-2 rounded-lg border border-border p-3">
+            <summary className="cursor-pointer text-sm font-semibold">Dados fiscais (contador) — sem NCM a NF-e bloqueia</summary>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2"><Label>Descrição fiscal (opcional)</Label><Input name="descricao_fiscal" defaultValue={editando?.descricao_fiscal ?? ""} /></div>
+              <div className="space-y-1"><Label>NCM *</Label><Input name="ncm" inputMode="numeric" maxLength={8} defaultValue={editando?.ncm ?? ""} placeholder="Ex: 19059090" /></div>
+              <div className="space-y-1"><Label>CEST (opcional)</Label><Input name="cest" inputMode="numeric" defaultValue={editando?.cest ?? ""} /></div>
+              <div className="space-y-1"><Label>CFOP padrão *</Label><Input name="cfop_padrao" inputMode="numeric" maxLength={4} defaultValue={editando?.cfop_padrao ?? ""} placeholder="Ex: 5102" /></div>
+              <div className="space-y-1"><Label>Origem *</Label>
+                <select name="origem_mercadoria" defaultValue={editando?.origem_mercadoria ?? ""} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">—</option>
+                  <option value="0">0 - Nacional</option>
+                  <option value="1">1 - Importada direta</option>
+                  <option value="2">2 - Importada no mercado interno</option>
+                </select>
+              </div>
+              <div className="space-y-1"><Label>CST (lucro real/presumido)</Label><Input name="cst" inputMode="numeric" maxLength={2} defaultValue={editando?.cst ?? ""} placeholder="Ex: 00" /></div>
+              <div className="space-y-1"><Label>CSOSN (Simples Nacional)</Label><Input name="csosn" inputMode="numeric" maxLength={3} defaultValue={editando?.csosn ?? ""} placeholder="Ex: 102" /></div>
+              <div className="space-y-1 sm:col-span-2"><Label>GTIN/EAN (opcional)</Label><Input name="gtin" inputMode="numeric" defaultValue={editando?.gtin ?? ""} /></div>
+            </div>
+          </details>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="disponivel" defaultChecked={editando?.disponivel ?? true} /> Disponível</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="destaque" defaultChecked={editando?.destaque ?? false} /> ⭐ Destaque (Mais pedidos)</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="promo_ativo" defaultChecked={editando?.promo_ativo ?? true} /> Promo ativa</label>
@@ -1388,7 +1491,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
           <div key={p.id}>
           <div className={cn("flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm", !p.disponivel && "opacity-60")}>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold">{p.nome} <span className="text-xs text-muted-foreground">• {p.categorias?.nome} • {p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}{p.destaque ? " • ⭐" : ""}</span></p>
+              <p className="font-semibold">{p.nome} <span className="text-xs text-muted-foreground">• {p.categorias?.nome} • {p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}{p.destaque ? " • ⭐" : ""}{p.ncm ? "" : " • ⚠️ sem NCM"}</span></p>
               <p className="text-xs text-muted-foreground">{brl(p.preco_promocional ?? p.preco)} • Estoque: {p.estoque}{baixo ? " ⚠️ abaixo do mínimo" : ""} {p.preco_promocional ? "• PROMO" : ""}</p>
             </div>
             <Switch checked={p.disponivel} onCheckedChange={async (v) => {
@@ -1872,6 +1975,118 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
           {(despesas ?? []).length === 0 ? <li className="text-muted-foreground">Nenhuma despesa no mês.</li> : null}
         </ul>
       </section>
+    </div>
+  );
+}
+
+function ImpressaoAdmin() {
+  const { user } = useSession();
+  const { data: roles } = useRoles(user?.id);
+  const queryClient = useQueryClient();
+  const isAdmin = roles?.includes("admin");
+  const { data: fila } = useQuery({
+    queryKey: ["fila-impressao"],
+    enabled: !!isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fila_impressao").select("*").order("created_at", { ascending: false }).limit(50);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const { data: pedidos } = useQuery({
+    queryKey: ["admin-pedidos-impressao"],
+    enabled: !!isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pedidos").select("id, numero, status, impresso, created_at").order("created_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function testar() {
+    const uuid = `teste:${Date.now()}`;
+    const { error } = await supabase.from("fila_impressao").insert({
+      trabalho_uuid: uuid,
+      tipo: "teste",
+      payload: `NÉIA SALGADOS\nTESTE DE IMPRESSÃO\nTANCA TP-550\n${new Date().toLocaleString("pt-BR")}\n\nSistema OK ✅`,
+      impressora: "Tanca TP-550",
+    });
+    if (error) {
+      toast.error("Erro ao enviar teste. Rode o PASSO-11 no Supabase.");
+    } else {
+      toast.success("Teste enviado. O agente imprime em segundos.");
+      queryClient.invalidateQueries({ queryKey: ["fila-impressao"] });
+    }
+  }
+
+  async function reimprimir(job: { id: string; payload: string; pedido_id: string | null; reimpressoes: number }) {
+    try {
+      await supabase.from("fila_impressao").insert({
+        trabalho_uuid: `reimp:${job.id}:${Date.now()}`,
+        pedido_id: job.pedido_id,
+        tipo: "pedido",
+        payload: job.payload,
+        impressora: "Tanca TP-550",
+        motivo_reimpressao: "manual",
+      });
+      await supabase.from("fila_impressao").update({ reimpressoes: (job.reimpressoes ?? 0) + 1 }).eq("id", job.id);
+      toast.success("Reimpressão na fila.");
+      queryClient.invalidateQueries({ queryKey: ["fila-impressao"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao reimprimir");
+    }
+  }
+
+  async function cancelarJob(job: { id: string }) {
+    if (!window.confirm("Cancelar este trabalho de impressão?")) return;
+    try {
+      await supabase.from("fila_impressao").update({ status: "cancelado", updated_at: new Date().toISOString() }).eq("id", job.id);
+      toast.success("Trabalho cancelado.");
+      queryClient.invalidateQueries({ queryKey: ["fila-impressao"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha");
+    }
+  }
+
+  if (!isAdmin) return <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>;
+
+  const trabalhos = ((fila ?? []) as any[]);
+  const pendentes = trabalhos.filter((j) => j.status === "pendente" || j.status === "enviando");
+  const maisAntigo = pendentes.reduce<number | null>((acc, j) => {
+    const t = +new Date(j.created_at);
+    return acc == null || t < acc ? t : acc;
+  }, null);
+  const idadeMin = maisAntigo == null ? 0 : Math.round((Date.now() - maisAntigo) / 60000);
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
+      <h1 className="font-display text-3xl">Fila de Impressão</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Tanca TP-550 via agente Windows. Anti-duplicidade por uuid.</p>
+      {pendentes.length > 0 && idadeMin >= 3 ? (
+        <p className="mt-2 rounded-lg bg-destructive/10 p-2.5 text-sm text-destructive">
+          ⚠️ {pendentes.length} trabalho(s) parado(s) há {idadeMin} min. O agente pode estar offline (notebook desligado?). A fila é mantida — nada será perdido nem duplicado.
+        </p>
+      ) : null}
+      <div className="flex flex-wrap gap-2 mt-4">
+        <Button onClick={testar} className="mt-4">🖨️ Testar Impressora</Button>
+      </div>
+      <div className="mt-6 space-y-2">
+        {trabalhos.map((j: { id: string; trabalho_uuid: string; status: string; tentativa: number; payload: string; pedido_id: string | null; reimpressoes: number; ultimo_erro?: string | null }) => (
+          <div key={j.id} className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-3 text-sm">
+            <div className="min-w-0">
+              <div className="truncate font-mono text-xs" title={j.trabalho_uuid}>{j.trabalho_uuid}</div>
+              <div className="text-muted-foreground">{j.status} • tentativas {j.tentativa} • reimp {j.reimpressoes}</div>
+              {j.status === "erro" && j.ultimo_erro ? <div className="mt-1 break-all text-xs text-destructive">{j.ultimo_erro}</div> : null}
+            </div>
+            <div className="flex shrink-0 gap-1">
+              {j.status === "erro" ? <Button variant="outline" size="sm" onClick={() => { /* tentar novamente - implementar se necessário */ }}>↻ Tentar</Button> : null}
+              {(j.status === "pendente" || j.status === "erro") ? <Button variant="ghost" size="sm" onClick={() => cancelarJob(j)}>✕</Button> : null}
+              <Button variant="outline" size="sm" onClick={() => reimprimir(j)}>🔁 Reimprimir</Button>
+            </div>
+          </div>
+        ))}
+        {trabalhos.length === 0 ? <p className="text-sm text-muted-foreground">Fila vazia.</p> : null}
+      </div>
     </div>
   );
 }

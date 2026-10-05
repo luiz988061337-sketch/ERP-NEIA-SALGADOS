@@ -639,6 +639,292 @@ export type Database = {
         }
         Relationships: []
       }
+      documento_eventos: {
+        Row: {
+          actor: string | null
+          created_at: string
+          detalhe: string
+          documento_id: string
+          evento: string
+          id: string
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          detalhe?: string
+          documento_id: string
+          evento: string
+          id?: string
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          detalhe?: string
+          documento_id?: string
+          evento?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_eventos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_fiscal_itens: {
+        Row: {
+          cest: string | null
+          cfop: string | null
+          codigo_produto: string
+          cofins_aliquota: number | null
+          cofins_cst: string | null
+          cofins_valor: number | null
+          created_at: string
+          descricao: string
+          documento_id: string
+          icms_aliquota: number | null
+          icms_base: number | null
+          icms_csosn: string | null
+          icms_cst: string | null
+          icms_origem: string | null
+          icms_valor: number | null
+          id: string
+          inf_adicionais: string | null
+          ipi_aliquota: number | null
+          ipi_cst: string | null
+          ipi_valor: number | null
+          n_item: number
+          ncm: string | null
+          pis_aliquota: number | null
+          pis_cst: string | null
+          pis_valor: number | null
+          produto_id: string | null
+          quantidade: number
+          unidade: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          cest?: string | null
+          cfop?: string | null
+          codigo_produto: string
+          cofins_aliquota?: number | null
+          cofins_cst?: string | null
+          cofins_valor?: number | null
+          created_at?: string
+          descricao: string
+          documento_id: string
+          icms_aliquota?: number | null
+          icms_base?: number | null
+          icms_csosn?: string | null
+          icms_cst?: string | null
+          icms_origem?: string | null
+          icms_valor?: number | null
+          id?: string
+          inf_adicionais?: string | null
+          ipi_aliquota?: number | null
+          ipi_cst?: string | null
+          ipi_valor?: number | null
+          n_item: number
+          ncm?: string | null
+          pis_aliquota?: number | null
+          pis_cst?: string | null
+          pis_valor?: number | null
+          produto_id?: string | null
+          quantidade: number
+          unidade?: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Update: {
+          cest?: string | null
+          cfop?: string | null
+          codigo_produto?: string
+          cofins_aliquota?: number | null
+          cofins_cst?: string | null
+          cofins_valor?: number | null
+          created_at?: string
+          descricao?: string
+          documento_id?: string
+          icms_aliquota?: number | null
+          icms_base?: number | null
+          icms_csosn?: string | null
+          icms_cst?: string | null
+          icms_origem?: string | null
+          icms_valor?: number | null
+          id?: string
+          inf_adicionais?: string | null
+          ipi_aliquota?: number | null
+          ipi_cst?: string | null
+          ipi_valor?: number | null
+          n_item?: number
+          ncm?: string | null
+          pis_aliquota?: number | null
+          pis_cst?: string | null
+          pis_valor?: number | null
+          produto_id?: string | null
+          quantidade?: number
+          unidade?: string
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_fiscal_itens_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_fiscal_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_fiscais: {
+        Row: {
+          ambiente: string
+          chave_acesso: string | null
+          codigo_rejeicao: string | null
+          created_at: string
+          danfe_url: string | null
+          id: string
+          mensagem_rejeicao: string | null
+          modelo: string
+          numero: number | null
+          pedido_id: string
+          protocolo: string | null
+          serie: string
+          status: string
+          updated_at: string
+          xml: string | null
+        }
+        Insert: {
+          ambiente?: string
+          chave_acesso?: string | null
+          codigo_rejeicao?: string | null
+          created_at?: string
+          danfe_url?: string | null
+          id?: string
+          mensagem_rejeicao?: string | null
+          modelo?: string
+          numero?: number | null
+          pedido_id: string
+          protocolo?: string | null
+          serie?: string
+          status?: string
+          updated_at?: string
+          xml?: string | null
+        }
+        Update: {
+          ambiente?: string
+          chave_acesso?: string | null
+          codigo_rejeicao?: string | null
+          created_at?: string
+          danfe_url?: string | null
+          id?: string
+          mensagem_rejeicao?: string | null
+          modelo?: string
+          numero?: number | null
+          pedido_id?: string
+          protocolo?: string | null
+          serie?: string
+          status?: string
+          updated_at?: string
+          xml?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_fiscais_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa_fiscal: {
+        Row: {
+          ambiente: string
+          atualizado_em: string
+          bairro: string
+          cep: string
+          cidade: string
+          cnpj: string
+          complemento: string
+          csc_id: string
+          endereco: string
+          id: boolean
+          info_adicionais: string
+          inscricao_estadual: string
+          inscricao_municipal: string
+          modelo_padrao: string
+          nome_fantasia: string
+          numero: string
+          numero_inicial: number
+          provedor: string
+          razao_social: string
+          regime_tributario: string
+          serie: string
+          uf: string
+        }
+        Insert: {
+          ambiente?: string
+          atualizado_em?: string
+          bairro?: string
+          cep?: string
+          cidade?: string
+          cnpj?: string
+          complemento?: string
+          csc_id?: string
+          endereco?: string
+          id?: boolean
+          info_adicionais?: string
+          inscricao_estadual?: string
+          inscricao_municipal?: string
+          modelo_padrao?: string
+          nome_fantasia?: string
+          numero?: string
+          numero_inicial?: number
+          provedor?: string
+          razao_social?: string
+          regime_tributario?: string
+          serie?: string
+          uf?: string
+        }
+        Update: {
+          ambiente?: string
+          atualizado_em?: string
+          bairro?: string
+          cep?: string
+          cidade?: string
+          cnpj?: string
+          complemento?: string
+          csc_id?: string
+          endereco?: string
+          id?: boolean
+          info_adicionais?: string
+          inscricao_estadual?: string
+          inscricao_municipal?: string
+          modelo_padrao?: string
+          nome_fantasia?: string
+          numero?: string
+          numero_inicial?: number
+          provedor?: string
+          razao_social?: string
+          regime_tributario?: string
+          serie?: string
+          uf?: string
+        }
+        Relationships: []
+      }
       enderecos: {
         Row: {
           bairro: string
@@ -672,6 +958,54 @@ export type Database = {
         }
         Relationships: []
       }
+      entrega_atrasos: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          descricao_outro: string | null
+          id: string
+          motivo: Database["public"]["Enums"]["atraso_motivo"]
+          motoboy_id: string | null
+          pedido_id: string
+          resolvido_em: string | null
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          descricao_outro?: string | null
+          id?: string
+          motivo: Database["public"]["Enums"]["atraso_motivo"]
+          motoboy_id?: string | null
+          pedido_id: string
+          resolvido_em?: string | null
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          descricao_outro?: string | null
+          id?: string
+          motivo?: Database["public"]["Enums"]["atraso_motivo"]
+          motoboy_id?: string | null
+          pedido_id?: string
+          resolvido_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entrega_atrasos_motoboy_id_fkey"
+            columns: ["motoboy_id"]
+            isOneToOne: false
+            referencedRelation: "motoboys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrega_atrasos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_mov: {
         Row: {
           created_at: string
@@ -703,6 +1037,66 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "estoque_mov_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_movimentacoes: {
+        Row: {
+          created_at: string
+          id: string
+          lote_id: string | null
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          referencia_id: string | null
+          referencia_tipo: string | null
+          saldo_anterior: number
+          saldo_posterior: number
+          tipo: Database["public"]["Enums"]["tipo_mov_estoque"]
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          observacao?: string | null
+          produto_id: string
+          quantidade: number
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          saldo_anterior: number
+          saldo_posterior: number
+          tipo: Database["public"]["Enums"]["tipo_mov_estoque"]
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lote_id?: string | null
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          saldo_anterior?: number
+          saldo_posterior?: number
+          tipo?: Database["public"]["Enums"]["tipo_mov_estoque"]
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentacoes_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentacoes_produto_id_fkey"
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
@@ -849,6 +1243,182 @@ export type Database = {
           },
         ]
       }
+      fiscal_certificados: {
+        Row: {
+          ambiente: string
+          atualizado_em: string
+          cnpj_titular: string
+          created_at: string
+          empresa_id: boolean
+          id: string
+          nome: string
+          ref_cofre: string
+          senha_ref_cofre: string | null
+          status: string
+          tipo: string
+          validade_fim: string | null
+          validade_inicio: string | null
+        }
+        Insert: {
+          ambiente?: string
+          atualizado_em?: string
+          cnpj_titular: string
+          created_at?: string
+          empresa_id?: boolean
+          id?: string
+          nome: string
+          ref_cofre: string
+          senha_ref_cofre?: string | null
+          status?: string
+          tipo: string
+          validade_fim?: string | null
+          validade_inicio?: string | null
+        }
+        Update: {
+          ambiente?: string
+          atualizado_em?: string
+          cnpj_titular?: string
+          created_at?: string
+          empresa_id?: boolean
+          id?: string
+          nome?: string
+          ref_cofre?: string
+          senha_ref_cofre?: string | null
+          status?: string
+          tipo?: string
+          validade_fim?: string | null
+          validade_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_certificados_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresa_fiscal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_provedor_config: {
+        Row: {
+          ambiente: string
+          atualizado_em: string
+          certificado_ref: string | null
+          certificado_senha_ref: string | null
+          contingencia_habilitada: boolean
+          contingencia_tipo: string | null
+          csc_id: string | null
+          csc_token: string | null
+          homologacao_token: string | null
+          homologacao_url: string | null
+          id: boolean
+          producao_token: string | null
+          producao_url: string | null
+          provedor: string
+          timeout_segundos: number
+          token: string
+          url_base: string
+        }
+        Insert: {
+          ambiente?: string
+          atualizado_em?: string
+          certificado_ref?: string | null
+          certificado_senha_ref?: string | null
+          contingencia_habilitada?: boolean
+          contingencia_tipo?: string | null
+          csc_id?: string | null
+          csc_token?: string | null
+          homologacao_token?: string | null
+          homologacao_url?: string | null
+          id?: boolean
+          producao_token?: string | null
+          producao_url?: string | null
+          provedor?: string
+          timeout_segundos?: number
+          token?: string
+          url_base?: string
+        }
+        Update: {
+          ambiente?: string
+          atualizado_em?: string
+          certificado_ref?: string | null
+          certificado_senha_ref?: string | null
+          contingencia_habilitada?: boolean
+          contingencia_tipo?: string | null
+          csc_id?: string | null
+          csc_token?: string | null
+          homologacao_token?: string | null
+          homologacao_url?: string | null
+          id?: boolean
+          producao_token?: string | null
+          producao_url?: string | null
+          provedor?: string
+          timeout_segundos?: number
+          token?: string
+          url_base?: string
+        }
+        Relationships: []
+      }
+      fritura_fila: {
+        Row: {
+          created_at: string
+          fim: string | null
+          funcionario_id: string | null
+          id: string
+          inicio: string | null
+          observacao: string | null
+          pedido_id: string
+          produto_id: string
+          quantidade: number
+          status: string
+          tempo_previsto_segundos: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fim?: string | null
+          funcionario_id?: string | null
+          id?: string
+          inicio?: string | null
+          observacao?: string | null
+          pedido_id: string
+          produto_id: string
+          quantidade: number
+          status?: string
+          tempo_previsto_segundos: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fim?: string | null
+          funcionario_id?: string | null
+          id?: string
+          inicio?: string | null
+          observacao?: string | null
+          pedido_id?: string
+          produto_id?: string
+          quantidade?: number
+          status?: string
+          tempo_previsto_segundos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fritura_fila_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fritura_fila_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hero_carousel: {
         Row: {
           ativo: boolean
@@ -969,13 +1539,17 @@ export type Database = {
           cidade: string
           complemento: string
           endereco: string
+          facebook: string
+          google_avaliacao: string
           id: boolean
+          instagram: string
           instrucoes_retirada: string
           mapa_lat: number | null
           mapa_lng: number | null
           nome: string
           pix_chave: string
           referencia: string
+          site: string
           telefone: string
         }
         Insert: {
@@ -984,13 +1558,17 @@ export type Database = {
           cidade?: string
           complemento?: string
           endereco?: string
+          facebook?: string
+          google_avaliacao?: string
           id?: boolean
+          instagram?: string
           instrucoes_retirada?: string
           mapa_lat?: number | null
           mapa_lng?: number | null
           nome?: string
           pix_chave?: string
           referencia?: string
+          site?: string
           telefone?: string
         }
         Update: {
@@ -999,13 +1577,17 @@ export type Database = {
           cidade?: string
           complemento?: string
           endereco?: string
+          facebook?: string
+          google_avaliacao?: string
           id?: boolean
+          instagram?: string
           instrucoes_retirada?: string
           mapa_lat?: number | null
           mapa_lng?: number | null
           nome?: string
           pix_chave?: string
           referencia?: string
+          site?: string
           telefone?: string
         }
         Relationships: []
@@ -1081,6 +1663,64 @@ export type Database = {
         }
         Relationships: []
       }
+      motoboy_historico: {
+        Row: {
+          created_at: string
+          detalhe: string | null
+          evento: string
+          id: string
+          localizacao_lat: number | null
+          localizacao_lng: number | null
+          motoboy_id: string
+          pedido_id: string | null
+          rota_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string | null
+          evento: string
+          id?: string
+          localizacao_lat?: number | null
+          localizacao_lng?: number | null
+          motoboy_id: string
+          pedido_id?: string | null
+          rota_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string | null
+          evento?: string
+          id?: string
+          localizacao_lat?: number | null
+          localizacao_lng?: number | null
+          motoboy_id?: string
+          pedido_id?: string | null
+          rota_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motoboy_historico_motoboy_id_fkey"
+            columns: ["motoboy_id"]
+            isOneToOne: false
+            referencedRelation: "motoboys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motoboy_historico_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "motoboy_historico_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "rotas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       motoboys: {
         Row: {
           ativo: boolean
@@ -1088,9 +1728,13 @@ export type Database = {
           id: string
           nome: string
           observacao: string
+          placa: string | null
           status: string
           telefone: string
+          ultima_atualizacao: string
           ultima_base_em: string | null
+          user_id: string | null
+          veiculo: string | null
         }
         Insert: {
           ativo?: boolean
@@ -1098,9 +1742,13 @@ export type Database = {
           id?: string
           nome?: string
           observacao?: string
+          placa?: string | null
           status?: string
           telefone?: string
+          ultima_atualizacao?: string
           ultima_base_em?: string | null
+          user_id?: string | null
+          veiculo?: string | null
         }
         Update: {
           ativo?: boolean
@@ -1108,9 +1756,13 @@ export type Database = {
           id?: string
           nome?: string
           observacao?: string
+          placa?: string | null
           status?: string
           telefone?: string
+          ultima_atualizacao?: string
           ultima_base_em?: string | null
+          user_id?: string | null
+          veiculo?: string | null
         }
         Relationships: []
       }
@@ -1422,12 +2074,28 @@ export type Database = {
           },
         ]
       }
+      pedido_status_transicoes: {
+        Row: {
+          de_status: Database["public"]["Enums"]["order_status"]
+          para_status: Database["public"]["Enums"]["order_status"]
+        }
+        Insert: {
+          de_status: Database["public"]["Enums"]["order_status"]
+          para_status: Database["public"]["Enums"]["order_status"]
+        }
+        Update: {
+          de_status?: Database["public"]["Enums"]["order_status"]
+          para_status?: Database["public"]["Enums"]["order_status"]
+        }
+        Relationships: []
+      }
       pedidos: {
         Row: {
           aceito_em: string | null
           agendado_para: string | null
           agendamento_janela: string | null
           agendamento_obs: string
+          andar: string | null
           apartamento: string | null
           atrasado: boolean
           atraso_descricao: string | null
@@ -1435,9 +2103,12 @@ export type Database = {
           bairro: string
           bloco: string | null
           campanha_origem: string
+          cep: string | null
           cidade: string
           cliente_nome: string
           complemento: string
+          confirmado_em: string | null
+          cpf_cnpj: string | null
           created_at: string
           cupom: string | null
           desconto: number
@@ -1454,11 +2125,14 @@ export type Database = {
           motoboy_id: string | null
           motoboy_lat: number | null
           motoboy_lng: number | null
+          nome_fiscal: string | null
           numero: number
           observacoes: string
+          origem_cliente: string | null
           origem_parceiro_id: string | null
           pagamento_em: string | null
           pagamento_status: string
+          pago_em: string | null
           pode_subir: boolean | null
           preparo_em: string | null
           problema: string | null
@@ -1475,6 +2149,7 @@ export type Database = {
           tipo_entrega: string
           tipo_evento: string
           tipo_imovel: string | null
+          torre: string | null
           total: number
           user_id: string | null
         }
@@ -1483,6 +2158,7 @@ export type Database = {
           agendado_para?: string | null
           agendamento_janela?: string | null
           agendamento_obs?: string
+          andar?: string | null
           apartamento?: string | null
           atrasado?: boolean
           atraso_descricao?: string | null
@@ -1490,9 +2166,12 @@ export type Database = {
           bairro?: string
           bloco?: string | null
           campanha_origem?: string
+          cep?: string | null
           cidade?: string
           cliente_nome: string
           complemento?: string
+          confirmado_em?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           cupom?: string | null
           desconto?: number
@@ -1509,11 +2188,14 @@ export type Database = {
           motoboy_id?: string | null
           motoboy_lat?: number | null
           motoboy_lng?: number | null
+          nome_fiscal?: string | null
           numero?: number
           observacoes?: string
+          origem_cliente?: string | null
           origem_parceiro_id?: string | null
           pagamento_em?: string | null
           pagamento_status?: string
+          pago_em?: string | null
           pode_subir?: boolean | null
           preparo_em?: string | null
           problema?: string | null
@@ -1530,6 +2212,7 @@ export type Database = {
           tipo_entrega?: string
           tipo_evento?: string
           tipo_imovel?: string | null
+          torre?: string | null
           total?: number
           user_id?: string | null
         }
@@ -1538,6 +2221,7 @@ export type Database = {
           agendado_para?: string | null
           agendamento_janela?: string | null
           agendamento_obs?: string
+          andar?: string | null
           apartamento?: string | null
           atrasado?: boolean
           atraso_descricao?: string | null
@@ -1545,9 +2229,12 @@ export type Database = {
           bairro?: string
           bloco?: string | null
           campanha_origem?: string
+          cep?: string | null
           cidade?: string
           cliente_nome?: string
           complemento?: string
+          confirmado_em?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           cupom?: string | null
           desconto?: number
@@ -1564,11 +2251,14 @@ export type Database = {
           motoboy_id?: string | null
           motoboy_lat?: number | null
           motoboy_lng?: number | null
+          nome_fiscal?: string | null
           numero?: number
           observacoes?: string
+          origem_cliente?: string | null
           origem_parceiro_id?: string | null
           pagamento_em?: string | null
           pagamento_status?: string
+          pago_em?: string | null
           pode_subir?: boolean | null
           preparo_em?: string | null
           problema?: string | null
@@ -1585,6 +2275,7 @@ export type Database = {
           tipo_entrega?: string
           tipo_evento?: string
           tipo_imovel?: string | null
+          torre?: string | null
           total?: number
           user_id?: string | null
         }
@@ -1655,71 +2346,136 @@ export type Database = {
         }
         Relationships: []
       }
+      pontos_creditos: {
+        Row: {
+          created_at: string
+          pedido_id: string
+          pontos: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          pedido_id: string
+          pontos: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          pedido_id?: string
+          pontos?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_creditos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           categoria_id: string
+          cest: string | null
+          cfop_padrao: string | null
           created_at: string
+          csosn: string | null
+          cst: string | null
           custo: number | null
           descricao: string
+          descricao_fiscal: string | null
           destaque: boolean
           disponivel: boolean
+          embalagem_custo: number | null
           estoque: number
           estoque_maximo: number | null
           estoque_minimo: number
+          gtin: string | null
           id: string
           imagem_url: string | null
+          ncm: string | null
           nome: string
+          origem_mercadoria: string | null
           preco: number
           preco_promocional: number | null
           promo_ativo: boolean
           promo_fim: string | null
           promo_inicio: string | null
           tempo_fritura_50s: number
+          tempo_fritura_base_segundos: number | null
+          tempo_fritura_s: number | null
           tipo_venda: string
+          unidade_base_tempo_fritura: number | null
           unidade_medida: string
         }
         Insert: {
           categoria_id: string
+          cest?: string | null
+          cfop_padrao?: string | null
           created_at?: string
+          csosn?: string | null
+          cst?: string | null
           custo?: number | null
           descricao?: string
+          descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
+          embalagem_custo?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
+          gtin?: string | null
           id?: string
           imagem_url?: string | null
+          ncm?: string | null
           nome: string
+          origem_mercadoria?: string | null
           preco: number
           preco_promocional?: number | null
           promo_ativo?: boolean
           promo_fim?: string | null
           promo_inicio?: string | null
           tempo_fritura_50s?: number
+          tempo_fritura_base_segundos?: number | null
+          tempo_fritura_s?: number | null
           tipo_venda?: string
+          unidade_base_tempo_fritura?: number | null
           unidade_medida?: string
         }
         Update: {
           categoria_id?: string
+          cest?: string | null
+          cfop_padrao?: string | null
           created_at?: string
+          csosn?: string | null
+          cst?: string | null
           custo?: number | null
           descricao?: string
+          descricao_fiscal?: string | null
           destaque?: boolean
           disponivel?: boolean
+          embalagem_custo?: number | null
           estoque?: number
           estoque_maximo?: number | null
           estoque_minimo?: number
+          gtin?: string | null
           id?: string
           imagem_url?: string | null
+          ncm?: string | null
           nome?: string
+          origem_mercadoria?: string | null
           preco?: number
           preco_promocional?: number | null
           promo_ativo?: boolean
           promo_fim?: string | null
           promo_inicio?: string | null
           tempo_fritura_50s?: number
+          tempo_fritura_base_segundos?: number | null
+          tempo_fritura_s?: number | null
           tipo_venda?: string
+          unidade_base_tempo_fritura?: number | null
           unidade_medida?: string
         }
         Relationships: [
@@ -1753,6 +2509,36 @@ export type Database = {
           nome?: string
           pontos?: number
           telefone?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string
+          user_id: string | null
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string
+          user_id?: string | null
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1837,6 +2623,41 @@ export type Database = {
             columns: ["rota_id"]
             isOneToOne: false
             referencedRelation: "rotas_entrega"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rotas: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          id: string
+          motoboy_id: string
+          observacao: string | null
+          status: string
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          id?: string
+          motoboy_id: string
+          observacao?: string | null
+          status?: string
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          id?: string
+          motoboy_id?: string
+          observacao?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotas_motoboy_id_fkey"
+            columns: ["motoboy_id"]
+            isOneToOne: false
+            referencedRelation: "motoboys"
             referencedColumns: ["id"]
           },
         ]
@@ -1934,6 +2755,12 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_tempo_fritura: {
+        Args: { p_produto_id: string; p_quantidade: number }
+        Returns: number
+      }
+      creditar_pontos_pedido: { Args: { p_pedido_id: string }; Returns: number }
+      gerar_msg_apartamento: { Args: { p_pedido_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1945,10 +2772,47 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: number
       }
+      liberar_reserva_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
+      registrar_mov_estoque:
+        | {
+            Args: {
+              p_lote_id?: string
+              p_observacao?: string
+              p_produto_id: string
+              p_quantidade: number
+              p_referencia_id?: string
+              p_referencia_tipo?: string
+              p_tipo: Database["public"]["Enums"]["tipo_mov_estoque"]
+              p_usuario_id?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_atualizar_estoque?: boolean
+              p_lote_id?: string
+              p_observacao?: string
+              p_produto_id: string
+              p_quantidade: number
+              p_referencia_id?: string
+              p_referencia_tipo?: string
+              p_tipo: Database["public"]["Enums"]["tipo_mov_estoque"]
+              p_usuario_id?: string
+            }
+            Returns: undefined
+          }
       reservar_estoque_atomica: {
         Args: { p_pedido_id: string; p_produto_id: string; p_qtd: number }
         Returns: boolean
       }
+      reservar_estoque_pedido: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
+      resgatar_fidelidade: { Args: { p_telefone: string }; Returns: string }
     }
     Enums: {
       app_role:
@@ -1958,6 +2822,22 @@ export type Database = {
         | "cliente"
         | "atendente"
         | "financeiro"
+      atraso_motivo:
+        | "transito"
+        | "chuva"
+        | "veiculo"
+        | "endereco"
+        | "cliente_ausente"
+        | "espera"
+        | "acidente_bloqueio"
+        | "outro"
+      motoboy_status:
+        | "disponivel_base"
+        | "preparando_saida"
+        | "em_rota"
+        | "retornando_base"
+        | "aguardando_nova_rota"
+        | "offline"
       order_status:
         | "recebido"
         | "em_producao"
@@ -1968,6 +2848,19 @@ export type Database = {
         | "cancelado"
       pagamento: "pix" | "dinheiro" | "credito" | "debito"
       prod_status: "aguardando" | "produzindo" | "finalizado"
+      tipo_mov_estoque:
+        | "entrada_producao"
+        | "entrada_manual"
+        | "venda"
+        | "reserva"
+        | "liberacao"
+        | "cancelamento"
+        | "perda"
+        | "vencimento"
+        | "ajuste"
+        | "devolucao"
+        | "degustacao"
+      tipo_venda: "combo_50" | "unidade"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2103,6 +2996,24 @@ export const Constants = {
         "atendente",
         "financeiro",
       ],
+      atraso_motivo: [
+        "transito",
+        "chuva",
+        "veiculo",
+        "endereco",
+        "cliente_ausente",
+        "espera",
+        "acidente_bloqueio",
+        "outro",
+      ],
+      motoboy_status: [
+        "disponivel_base",
+        "preparando_saida",
+        "em_rota",
+        "retornando_base",
+        "aguardando_nova_rota",
+        "offline",
+      ],
       order_status: [
         "recebido",
         "em_producao",
@@ -2114,6 +3025,20 @@ export const Constants = {
       ],
       pagamento: ["pix", "dinheiro", "credito", "debito"],
       prod_status: ["aguardando", "produzindo", "finalizado"],
+      tipo_mov_estoque: [
+        "entrada_producao",
+        "entrada_manual",
+        "venda",
+        "reserva",
+        "liberacao",
+        "cancelamento",
+        "perda",
+        "vencimento",
+        "ajuste",
+        "devolucao",
+        "degustacao",
+      ],
+      tipo_venda: ["combo_50", "unidade"],
     },
   },
 } as const

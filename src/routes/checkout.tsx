@@ -14,18 +14,23 @@ import type { Database } from "@/integrations/supabase/types";
 import { useCart, isComboItem } from "@/lib/cart";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, whatsappLink, mensagemStatus } from "@/lib/format";
+import { notificarPush } from "@/lib/push";
 import { calcTotals, isMultiploCombo } from "@/lib/totals";
 import { validarCupom } from "@/lib/cupons";
 import { pontosGanhos as calcPontos } from "@/lib/fidelidade";
 import { useCrmSettings } from "@/lib/crm";
 import { registrarEventoCarrinho } from "@/lib/inteligencia";
-import { gerarPix, urlQrPix } from "@/lib/pix";
+import { gerarPix } from "@/lib/pix";
+import { QrPixLocal } from "@/components/qr-pix-local";
+import { textoCupom } from "@/lib/impressao";
+import { tempoFritura } from "@/lib/cozinha";
 import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
-import { validarAgendamento, mensagemLotado } from "@/lib/horario";
+import { validarAgendamento, mensagemLotado, janelaLotada } from "@/lib/horario";
 
+/** Fallback quando loja_config.pix_chave ainda não foi preenchida (migration 0029). Preferir sempre loja.pix_chave. */
 export const PIX_CHAVE = "24913937000116";
 
 export const Route = createFileRoute("/checkout")({
@@ -44,8 +49,20 @@ const schema = z.object({
   endereco: z.string().trim().max(200).optional().default(""),
   bairro: z.string().trim().max(100).optional().default(""),
   cidade: z.string().trim().max(100).optional().default(""),
+  cep: z.string().trim().max(9).optional().default(""),
   complemento: z.string().trim().max(100).optional().default(""),
   referencia: z.string().trim().max(150).optional().default(""),
+  tipo_imovel: z.enum(["casa", "apartamento"]).optional().default("casa"),
+  apartamento: z.string().trim().max(20).optional().default(""),
+  bloco: z.string().trim().max(20).optional().default(""),
+  andar: z.string().trim().max(10).optional().default(""),
+  torre: z.string().trim().max(20).optional().default(""),
+  interfone: z.string().trim().max(30).optional().default(""),
+  pode_subir: z.string().optional().default(""),
+  cpf_cnpj: z.string().trim().max(14).optional().default(""),
+  nome_fiscal: z.string().trim().max(100).optional().default(""),
+  origem_cliente: z.string().trim().max(30).optional().default(""),
+  origem_indicador: z.string().trim().max(100).optional().default(""),
   observacoes: z.string().trim().max(300).optional().default(""),
   troco: z.string().trim().max(20).optional().default(""),
 });
@@ -62,6 +79,7 @@ function Checkout() {
   const [enviando, setEnviando] = useState(false);
   const [enderecoId, setEnderecoId] = useState<string>("");
   const [tipoEntrega, setTipoEntrega] = useState<"entrega" | "retirada">("entrega");
+  const [tipoImovel, setTipoImovel] = useState("casa");
   const [quando, setQuando] = useState<"agora" | "agendar">("agora");
   const { data: settings } = useCrmSettings();
   const { data: lojaConfig } = useLojaConfig();
@@ -92,6 +110,41 @@ function Checkout() {
     },
   });
 
+  const { data: qtdPedidos } = useQuery({
+    queryKey: ["pedidos-count", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("user_id", user!.id);
+      return count ?? 0;
+    },
+  });
+  const primeiroPedido = (qtdPedidos ?? 1) === 0;
+  const [origem, setOrigem] = useState("");
+  const [agDt, setAgDt] = useState("");
+
+  const { data: demandas } = useQuery({
+    queryKey: ["datas-demanda-checkout"],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("datas_demanda").select("*").eq("ativo", true).order("data").limit(20);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+  const avisoDemanda = (() => {
+    if (quando !== "agendar" || !agDt) return null;
+    const alvo = new Date(agDt).getTime();
+    if (Number.isNaN(alvo)) return null;
+    for (const d of demandas ?? []) {
+      const dd = new Date(`${d.data}T12:00:00`).getTime();
+      const dias = Math.ceil((dd - alvo) / 86400000);
+      if (dias >= 0 && dias <= Number(d.antecedencia_dias ?? 10)) {
+        return `${d.ocasiao}${d.mensagem ? ` — ${d.mensagem}` : ""} Peça com antecedência!`;
+      }
+    }
+    return null;
+  })();
+
   useEffect(() => {
     if (staffOnly && painel) navigate({ to: painel, replace: true });
   }, [staffOnly, painel, navigate]);
@@ -114,12 +167,12 @@ function Checkout() {
     metaPontos: settings?.fid_meta_pontos ?? 200,
     recompensaValor: settings?.fid_recompensa_valor ?? 20,
   });
+  const pixChaveEfetiva = (loja.pix_chave || PIX_CHAVE).trim();
   const pix = gerarPix({
-    chave: loja.pix_chave || PIX_CHAVE,
+    chave: pixChaveEfetiva,
     valor: totalFinalUI,
-    descricao: "Pedido Néia Salgados",
+    descricao: "Pedido Neia Salgados",
   });
-  const pixQR = pix ? urlQrPix(pix.copiaECola) : "";
 
   if (staffOnly) {
     return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
@@ -168,13 +221,27 @@ function Checkout() {
     if (!user) return;
     const form = new FormData(e.currentTarget);
     const parsed = schema.safeParse({
-      cliente_nome: form.get("cliente_nome"),
-      telefone: form.get("telefone"),
-      endereco: form.get("endereco"),
-      bairro: form.get("bairro"),
-      cidade: form.get("cidade"),
+      // Na retirada os inputs de endereço nem existem no DOM (form.get = null):
+      // normaliza para "" aqui (a obrigatoriedade p/ entrega é checada abaixo).
+      cliente_nome: form.get("cliente_nome") ?? "",
+      telefone: form.get("telefone") ?? "",
+      endereco: form.get("endereco") ?? "",
+      bairro: form.get("bairro") ?? "",
+      cidade: form.get("cidade") ?? "",
+      cep: form.get("cep") ?? "",
       complemento: form.get("complemento") ?? "",
       referencia: form.get("referencia") ?? "",
+      cpf_cnpj: String(form.get("cpf_cnpj") ?? "").replace(/\D/g, "").slice(0, 14),
+      nome_fiscal: form.get("nome_fiscal") ?? "",
+      origem_cliente: form.get("origem_cliente") ?? "",
+      origem_indicador: form.get("origem_indicador") ?? "",
+      tipo_imovel: form.get("tipo_imovel") ?? "casa",
+      apartamento: form.get("apartamento") ?? "",
+      bloco: form.get("bloco") ?? "",
+      andar: form.get("andar") ?? "",
+      torre: form.get("torre") ?? "",
+      interfone: form.get("interfone") ?? "",
+      pode_subir: form.get("pode_subir") ?? "",
       observacoes: form.get("observacoes") ?? "",
       troco: form.get("troco") ?? "",
     });
@@ -208,13 +275,19 @@ function Checkout() {
         toast.error(v.motivo);
         return;
       }
-      // Capacidade da janela (best-effort): soma unidades já agendadas ±30min
+      // Capacidade da janela por UNIDADES (não por nº de pedidos): soma itens ±30min vs teto
       try {
         const dt = new Date(dtRaw);
         const ini = new Date(dt.getTime() - 30 * 60000).toISOString();
         const fim = new Date(dt.getTime() + 30 * 60000).toISOString();
-        const { data: vizinhos } = await supabase.from("pedidos").select("id").gte("agendado_para", ini).lte("agendado_para", fim).neq("status", "cancelado").limit(200);
-        if ((vizinhos ?? []).length >= 20) {
+        const { data: vizinhos } = await supabase.from("pedidos").select("id, pedido_itens(quantidade)").gte("agendado_para", ini).lte("agendado_para", fim).neq("status", "cancelado").limit(200);
+        let teto = 2000;
+        try {
+          const { data: hc } = await supabase.from("horario_config").select("teto_unidades_janela").eq("id", true).maybeSingle();
+          if (Number((hc as any)?.teto_unidades_janela) > 0) teto = Number((hc as any).teto_unidades_janela);
+        } catch { /* teto padrão */ }
+        const un = ((vizinhos ?? []) as any[]).reduce((s, p) => s + ((p.pedido_itens ?? []) as any[]).reduce((a, i) => a + Number(i.quantidade ?? 0), 0), 0);
+        if (janelaLotada(un, teto)) {
           toast.error(mensagemLotado());
           return;
         }
@@ -263,10 +336,21 @@ function Checkout() {
         endereco: isRetirada ? (enderecoLojaTexto || "Retirada na loja") : `${parsed.data.endereco} — ${parsed.data.cidade}`,
         bairro: isRetirada ? "-" : parsed.data.bairro,
         cidade: isRetirada ? "-" : parsed.data.cidade,
+        cep: isRetirada ? null : (String(parsed.data.cep ?? "").replace(/\D/g, "").slice(0, 8) || null),
         complemento: isRetirada ? "" : (parsed.data.complemento ?? ""),
         referencia: isRetirada ? "" : (parsed.data.referencia ?? ""),
+        tipo_imovel: isRetirada ? null : (parsed.data.tipo_imovel ?? "casa"),
+        apartamento: isRetirada ? null : (parsed.data.apartamento ?? ""),
+        bloco: isRetirada ? null : (parsed.data.bloco ?? ""),
+        andar: isRetirada ? null : (parsed.data.andar ?? ""),
+        torre: isRetirada ? null : (parsed.data.torre ?? ""),
+        interfone: isRetirada ? null : (parsed.data.interfone ?? ""),
+        pode_subir: isRetirada ? null : (String(parsed.data.pode_subir ?? "") === "on"),
+        cpf_cnpj: parsed.data.cpf_cnpj || null,
+        nome_fiscal: parsed.data.nome_fiscal || null,
+        origem_cliente: primeiroPedido ? (parsed.data.origem_cliente || null) : null,
+        observacoes: parsed.data.origem_indicador ? `${obsFinal ?? ""} [Indicado por: ${parsed.data.origem_indicador}]`.trim() : (obsFinal ?? ""),
         tipo_entrega: tipoEntrega,
-        observacoes: obsFinal ?? "",
         forma_pagamento: pagamento,
         // Pagamento começa SEMPRE pendente. Nunca marcar como pago aqui:
         // a loja confirma. Status do pedido e status do pagamento são separados.
@@ -296,6 +380,17 @@ function Checkout() {
             campanha_origem: _co,
             tipo_entrega: _te2,
             pagamento_status: _ps,
+            tipo_imovel: _ti,
+            apartamento: _ap,
+            bloco: _bl,
+            andar: _an,
+            torre: _to,
+            interfone: _in,
+            pode_subir: _ps2,
+            cpf_cnpj: _cp,
+            nome_fiscal: _nf,
+            origem_cliente: _oc,
+            cep: _cep,
             ...legacy
           } = insertBody;
           const retry = await supabase.from("pedidos").insert(legacy).select("id, numero, cliente_nome, telefone").single();
@@ -320,14 +415,49 @@ function Checkout() {
       );
       if (erroItens) console.error(erroItens);
 
-      const linhasCupom = itensValidados.map((i) => `${i.quantidade}x ${i.nome}`).join("\n");
-      // Reserva estoque (best-effort, tabelas 0023/0026 — nunca bloqueia a venda)
-      try {
-        const reservas = itensValidados
-          .filter((i) => i.produtoId)
-          .map((i) => ({ pedido_id: (pedido as any).id, produto_id: i.produtoId, quantidade: i.quantidade, status: "ativa" }));
-        if (reservas.length > 0) await supabase.from("reservas_estoque").insert(reservas);
-      } catch { /* sem migration — segue sem reserva */ }
+      // Reserva atômica (0030): lock por produto, nunca vende acima do estoque.
+      // Combos montados (sem produtoId) não reservam aqui — são montagem.
+      const itensReservaveis = itensValidados.filter((i) => i.produtoId);
+      let rpcIndisponivel = false;
+      const falhasEstoque: string[] = [];
+      for (const i of itensReservaveis) {
+        try {
+          const { data, error } = await supabase.rpc("reservar_estoque_atomica", {
+            p_pedido_id: (pedido as any).id,
+            p_produto_id: i.produtoId as string,
+            p_qtd: Math.floor(i.quantidade),
+          });
+          if (error) {
+            // Migration 0030 ainda não aplicada — cai para best-effort legado abaixo.
+            rpcIndisponivel = true;
+            break;
+          }
+          if (data !== true) falhasEstoque.push(i.nome);
+        } catch {
+          rpcIndisponivel = true;
+          break;
+        }
+      }
+      if (rpcIndisponivel) {
+        // Fallback legado: insert direto (sem garantia contra concorrência).
+        try {
+          const reservas = itensReservaveis.map((i) => ({ pedido_id: (pedido as any).id, produto_id: i.produtoId, quantidade: i.quantidade, status: "ativa" }));
+          if (reservas.length > 0) await supabase.from("reservas_estoque").insert(reservas);
+        } catch { /* sem migration — segue sem reserva */ }
+      } else if (falhasEstoque.length > 0) {
+        // Sem estoque: desfaz reservas parciais, cancela pedido e avisa com alternativa.
+        try { await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: (pedido as any).id }); } catch { /* best-effort */ }
+        try { await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", (pedido as any).id); } catch { /* best-effort */ }
+        try {
+          await supabase.from("pedido_status_historico").insert({
+            pedido_id: (pedido as any).id,
+            de_status: "recebido",
+            para_status: "cancelado",
+            motivo: `estoque insuficiente: ${falhasEstoque.join(", ")}`,
+          });
+        } catch { /* sem migration — segue */ }
+        throw new Error(`Temos apenas estoque parcial. Faltou: ${falhasEstoque.join(", ")}. Reduza a quantidade ou escolha uma alternativa da mesma categoria.`);
+      }
       try {
         await supabase.from("pedido_status_historico").insert({
           pedido_id: (pedido as any).id,
@@ -337,35 +467,68 @@ function Checkout() {
         });
       } catch { /* sem migration — segue */ }
       try {
+        const totalUnidades = itensValidados.reduce((a, i) => a + i.quantidade, 0);
+        const prepMin = Math.ceil(tempoFritura(totalUnidades) / 60) + 40;
+        const fmtH = (d: Date) => d.toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const iniPrev = new Date(Date.now() + prepMin * 60000);
+        const fimPrev = new Date(iniPrev.getTime() + 30 * 60000);
+        const payloadCozinha = textoCupom({
+          numero: (pedido as any).numero,
+          dataHora: new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+          cliente: parsed.data.cliente_nome,
+          telefone: parsed.data.telefone,
+          itens: itensValidados.map((i) => ({ qtd: i.quantidade, nome: i.nome, precoUnit: i.preco })),
+          totalUnidades,
+          entregaRetirada: isRetirada ? "RETIRADA NA LOJA" : "ENTREGA",
+          horario: agendadoPara ? new Date(agendadoPara).toLocaleString("pt-BR") : "o mais rapido possivel",
+          endereco: isRetirada ? (enderecoLojaTexto || "Retirada na loja") : `${parsed.data.endereco} — ${parsed.data.cidade}`,
+          pagamento: PAGAMENTO_LABEL[pagamento] ?? pagamento,
+          observacoes: obsFinal ?? "",
+          status: "PENDENTE_PGTO",
+          bairro: isRetirada ? null : parsed.data.bairro,
+          cidade: isRetirada ? null : parsed.data.cidade,
+          cep: isRetirada ? null : (parsed.data.cep || null),
+          complemento: isRetirada ? null : (parsed.data.complemento || null),
+          referencia: isRetirada ? null : (parsed.data.referencia || null),
+          subtotal: subtotalValidado,
+          taxaEntrega: taxaEntregaFinal,
+          total: totalFinal,
+          pedidosCliente: (qtdPedidos ?? 0) + 1,
+          motoboy: null,
+          prevista: `${fmtH(iniPrev)} - ${fmtH(fimPrev)}`,
+          agendadoEm: quando === "agendar" ? new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null,
+          agendadoPara: agendadoPara ? new Date(agendadoPara).toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(/\./g, "") + "h" : null,
+        });
         await supabase.from("fila_impressao").insert({
           trabalho_uuid: `${(pedido as any).id}:confirmado`,
           pedido_id: (pedido as any).id,
           tipo: "pedido",
-          payload: `NEIA SALGADOS\nPEDIDO #${(pedido as any).numero}\n${linhasCupom}\nTotal ${totalFinal}`,
+          payload: payloadCozinha,
           impressora: "Tanca TP-550",
           imprimir_apos: quando === "agendar" ? agendadoPara : null,
         });
       } catch { /* sem fila — pedido segue, cozinha avisa */ }
 
-      // Fidelidade configurável (1 ponto a cada X reais)
-      const pts = calcPontos(totalFinal, {
-        ativo: settings?.fid_ativo ?? true,
-        reaisPorPonto: settings?.fid_reais_por_ponto ?? 5,
-        metaPontos: settings?.fid_meta_pontos ?? 200,
-        recompensaValor: settings?.fid_recompensa_valor ?? 20,
-      });
-      if (pts > 0) {
-        await supabase.from("profiles").update({ pontos: (perfil?.pontos ?? 0) + pts }).eq("id", user.id);
-      }
+      // Fidelidade: pontos calculados e creditados no servidor (uma vez por pedido)
+      let pts = 0;
+      try {
+        const { data: creditados } = await supabase.rpc("creditar_pontos_pedido", { p_pedido_id: (pedido as any).id });
+        pts = Number(creditados ?? 0);
+      } catch { /* pedido segue mesmo sem pontos */ }
 
       clear();
+      void notificarPush(supabase, (pedido as any).id, "recebido");
       toast.success(`Pedido nº ${(pedido as any).numero} recebido! +${pts} pts fidelidade`);
       const linhas = itensValidados.map((i) => `* ${i.quantidade}x ${i.nome} — ${brl(i.preco * i.quantidade)}`).join("\n");
       const quandoTxt = quando === "agendar" && agendadoPara
         ? `\n\nReceber em: ${new Date(agendadoPara).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${agendamentoObs ? ` (${agendamentoObs})` : ""}`
         : "\n\nReceber: o mais rápido possível";
       const eventoTxt = tipoEvento ? `\nTipo de evento: ${tipoEvento}` : "";
-      const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\n${isRetirada ? "Retirada na loja" : "Entrega"}: ${brl(taxaEntregaFinal)}\nTotal: ${brl(totalFinal)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\n${isRetirada ? "🏪 Retirada na loja" : `Endereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}\nRef.: ${parsed.data.referencia || "-"}`}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
+      const ehApto = !isRetirada && parsed.data.tipo_imovel === "apartamento";
+      const condTxt = ehApto
+        ? `\nApto: ${parsed.data.apartamento || "-"}${parsed.data.bloco ? ` • Bloco/Torre: ${parsed.data.bloco}` : ""}${parsed.data.andar ? ` • Andar: ${parsed.data.andar}` : ""}${parsed.data.interfone ? ` • Interfone: ${parsed.data.interfone}` : ""}${String(parsed.data.pode_subir ?? "") === "on" ? " • autorizado subir" : ""}`
+        : "";
+      const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\n${isRetirada ? "Retirada na loja" : "Entrega"}: ${brl(taxaEntregaFinal)}\nTotal: ${brl(totalFinal)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\n${isRetirada ? "🏪 Retirada na loja" : `Endereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}${condTxt}\nRef.: ${parsed.data.referencia || "-"}`}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
       window.open(whatsappLink((pedido as any).telefone, msgWhats), "_blank", "noopener");
       navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
 } catch (err) {
@@ -426,9 +589,40 @@ function Checkout() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-1.5"><Label htmlFor="bairro">Bairro *</Label><Input id="bairro" name="bairro" required /></div>
                 <div className="space-y-1.5"><Label htmlFor="cidade">Cidade *</Label><Input id="cidade" name="cidade" placeholder="Sua cidade" required autoComplete="address-level2" /></div>
-                <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Apto, bloco..." /></div>
+                <div className="space-y-1.5"><Label htmlFor="cep">CEP</Label><Input id="cep" name="cep" inputMode="numeric" placeholder="18000-000" maxLength={9} /></div>
+                <div className="space-y-1.5"><Label htmlFor="complemento">Complemento</Label><Input id="complemento" name="complemento" placeholder="Casa, fundos..." /></div>
               </div>
               <div className="space-y-1.5"><Label htmlFor="referencia">Ponto de referência</Label><Input id="referencia" name="referencia" placeholder="Próximo à praça" /></div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label htmlFor="tipo_imovel">Tipo de imóvel</Label>
+                  <select id="tipo_imovel" name="tipo_imovel" value={tipoImovel} onChange={(e) => setTipoImovel(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option value="casa">Casa</option>
+                    <option value="apartamento">Apartamento / condomínio</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5"><Label htmlFor="interfone">Interfone (se houver)</Label><Input id="interfone" name="interfone" placeholder="Ex: 1234" maxLength={30} /></div>
+              </div>
+              {tipoImovel === "apartamento" ? (
+                <>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="space-y-1.5"><Label htmlFor="apartamento">Apto *</Label><Input id="apartamento" name="apartamento" placeholder="Ex: 42" maxLength={20} /></div>
+                    <div className="space-y-1.5"><Label htmlFor="bloco">Bloco / torre</Label><Input id="bloco" name="bloco" placeholder="Ex: B" maxLength={20} /></div>
+                    <div className="space-y-1.5"><Label htmlFor="andar">Andar</Label><Input id="andar" name="andar" placeholder="Ex: 4" maxLength={10} /></div>
+                  </div>
+                  <input type="hidden" name="torre" value="" />
+                  <label className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input type="checkbox" name="pode_subir" className="size-4" /> Autorizo o motoboy a subir até o apartamento
+                  </label>
+                  <p className="text-xs text-muted-foreground">Se possível, aguarde o motoboy na portaria no momento da chegada. 😊</p>
+                </>
+              ) : (
+                <>
+                  <input type="hidden" name="apartamento" value="" />
+                  <input type="hidden" name="bloco" value="" />
+                  <input type="hidden" name="andar" value="" />
+                  <input type="hidden" name="torre" value="" />
+                </>
+              )}
             </>
           ) : (
             <div className="space-y-1.5 rounded-lg bg-muted p-3 text-sm">
@@ -449,6 +643,32 @@ function Checkout() {
             </div>
           )}
           <div className="space-y-1.5"><Label htmlFor="observacoes">Observações</Label><Textarea id="observacoes" name="observacoes" placeholder="Ex: troco, ponto de entrega..." /></div>
+          {primeiroPedido ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="origem_cliente">👋 Como você conheceu a Néia Salgados?</Label>
+                <select id="origem_cliente" name="origem_cliente" value={origem} onChange={(e) => setOrigem(e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="">
+                  <option value="">Prefiro não dizer</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="google">Google</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="indicacao">Indicação</option>
+                  <option value="parceiro">Parceiro</option>
+                  <option value="anuncio">Anúncio</option>
+                  <option value="ja_conhecia">Já conhecia</option>
+                  <option value="pessoalmente">Pessoalmente</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              {origem === "indicacao" ? <div className="space-y-1.5"><Label htmlFor="origem_indicador">Quem indicou?</Label><Input id="origem_indicador" name="origem_indicador" placeholder="Nome de quem indicou" maxLength={100} /></div> : <input type="hidden" name="origem_indicador" value="" />}
+            </div>
+          ) : null}
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted-foreground">Nota fiscal (opcional — só se precisar)</summary>
+            <div className="mt-2 grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="cpf_cnpj">CPF / CNPJ</Label><Input id="cpf_cnpj" name="cpf_cnpj" inputMode="numeric" maxLength={14} /></div>
+              <div className="space-y-1.5"><Label htmlFor="nome_fiscal">Nome / razão social</Label><Input id="nome_fiscal" name="nome_fiscal" maxLength={100} /></div>
+            </div>
+          </details>
         </section>
 
         <section className="space-y-3 rounded-xl border border-border bg-card p-5">
@@ -463,10 +683,11 @@ function Checkout() {
           </div>
           {quando === "agendar" ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label htmlFor="agendamento_para">Data e horário *</Label><Input id="agendamento_para" name="agendamento_para" type="datetime-local" required={quando === "agendar"} /></div>
+              <div className="space-y-1.5"><Label htmlFor="agendamento_para">Data e horário *</Label><Input id="agendamento_para" name="agendamento_para" type="datetime-local" required={quando === "agendar"} value={agDt} onChange={(e) => setAgDt(e.target.value)} /></div>
               <div className="space-y-1.5"><Label htmlFor="agendamento_obs">Observação do agendamento</Label><Input id="agendamento_obs" name="agendamento_obs" placeholder="Ex: festa às 15h" maxLength={200} /></div>
             </div>
           ) : null}
+          {avisoDemanda ? <p className="rounded-lg bg-secondary/30 p-2.5 text-xs">📅 {avisoDemanda}</p> : null}
           <div className="space-y-1.5">
             <Label htmlFor="tipo_evento">Tipo de evento (opcional)</Label>
             <select id="tipo_evento" name="tipo_evento" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="">
@@ -499,8 +720,9 @@ function Checkout() {
               {pix ? (
                 <>
                   <div className="mt-2 flex flex-col items-center gap-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={pixQR} alt={`QR Code PIX de ${brl(totalFinalUI)}`} width={220} height={220} className="rounded-lg border border-border bg-white p-2" loading="lazy" />
+                    <div className="rounded-lg border border-border bg-white p-2">
+                      <QrPixLocal copiaECola={pix.copiaECola} tamanho={220} />
+                    </div>
                     <p className="text-xs font-semibold">{brl(totalFinalUI)}</p>
                     <p className="text-center text-xs text-muted-foreground">
                       Abra o app do banco, escolha Pix &gt; Ler QR Code e aponte a câmera.
@@ -528,7 +750,7 @@ function Checkout() {
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Chave:</span>
-                    <code className="min-w-0 flex-1 truncate text-xs">{PIX_CHAVE}</code>
+                    <code className="min-w-0 flex-1 truncate text-xs">{pixChaveEfetiva}</code>
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     O pagamento é conferido pela loja. Envie o comprovante pelo WhatsApp depois de finalizar.
@@ -553,7 +775,7 @@ function Checkout() {
           </div>
           <ul className="space-y-1 text-sm">
             {items.map((i) => (
-              <li key={i.id} className="flex justify-between gap-2"><span className="text-muted-foreground">{i.quantidade}x {i.nome}{i.observacao ? ` (${i.observacao})` : ""}</span><span className="shrink-0">{brl(i.preco * i.quantidade)}</span></li>
+              <li key={i.id} className="flex justify-between gap-2"><span className="min-w-0 break-words text-muted-foreground">{i.quantidade}x {i.nome}{i.observacao ? ` (${i.observacao})` : ""}</span><span className="shrink-0">{brl(i.preco * i.quantidade)}</span></li>
             ))}
           </ul>
           <div className="space-y-1 border-t border-border pt-2 text-sm">

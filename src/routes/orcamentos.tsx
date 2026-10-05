@@ -306,34 +306,39 @@ function Orcamentos() {
             {["rascunho", "enviado", "aprovado"].includes(atual.status) ? <Button size="sm" onClick={() => converter(atual)}>Converter em pedido</Button> : null}
           </div>
           <p className="text-xs text-muted-foreground">A conversão recalcula preços e disponibilidade — nunca confirma sozinha.</p>
-          <DegustacaoBox orcamento={atual} />
+          {["enviado", "aprovado", "convertido"].includes(atual.status) ? <DegustacaoBox orcamento={atual} userId={isStaff ? null : (user?.id ?? null)} /> : null}
         </section>
       ) : null}
     </div>
   );
 }
 
-function DegustacaoBox({ orcamento }: { orcamento: any }) {
+function DegustacaoBox({ orcamento, userId }: { orcamento: any; userId: string | null }) {
   const totalQtd = ((orcamento.mix ?? []) as any[]).reduce((s, i) => s + Number(i.quantidade ?? 0), 0);
   const [regras, setRegras] = useState<any>(null);
+  const [minha, setMinha] = useState<any>(null);
   const [enviado, setEnviado] = useState(false);
   useEffect(() => {
     supabase.from("degustacao_regras").select("*").eq("id", true).maybeSingle().then(({ data }: any) => setRegras(data));
-  }, []);
+    supabase.from("degustacoes").select("id,status").eq("orcamento_id", orcamento.id).order("created_at", { ascending: false }).limit(1).maybeSingle().then(({ data }: any) => setMinha(data ?? null));
+  }, [orcamento.id]);
   const elegivel = regras
-    ? totalQtd >= Number(regras.qtd_minima ?? 500) && Number(orcamento.total ?? 0) >= Number(regras.valor_minimo ?? 500)
+    ? totalQtd >= Number(regras.qtd_minima ?? 500)
+      && Number(orcamento.total ?? 0) >= Number(regras.valor_minimo ?? 500)
+      && Number(orcamento.pessoas ?? 0) >= Number(regras.pessoas_minimas ?? 0)
     : totalQtd >= 500;
   async function solicitar() {
-    const { error } = await supabase.from("degustacoes").insert({ orcamento_id: orcamento.id, status: "solicitada" });
-    if (error) toast.error("Rode o PASSO-11 no Supabase.");
+    const { error } = await supabase.from("degustacoes").insert({ orcamento_id: orcamento.id, user_id: userId, status: "solicitada" });
+    if (error) toast.error("Não foi possível solicitar. Fale no WhatsApp.");
     else { setEnviado(true); toast.success("Degustação solicitada! Vamos analisar e avisar."); }
   }
+  if (minha) return <p className="rounded-lg bg-muted p-3 text-sm">Degustação {String(minha.status).toUpperCase()} — acompanhe por aqui ou no WhatsApp.</p>;
   if (enviado) return <p className="rounded-lg bg-muted p-3 text-sm">Degustação SOLICITADA — acompanhe por aqui ou no WhatsApp.</p>;
-  if (!elegivel) return <p className="text-xs text-muted-foreground">Degustação disponível para orçamentos a partir de {regras?.qtd_minima ?? 500} un / R$ {regras?.valor_minimo ?? 500}.</p>;
+  if (!elegivel) return <p className="text-xs text-muted-foreground">Degustação disponível para orçamentos a partir de {regras?.qtd_minima ?? 500} un / R$ {regras?.valor_minimo ?? 500}{regras?.pessoas_minimas ? ` / ${regras.pessoas_minimas} pessoas` : ""}.</p>;
   return (
     <div className="rounded-lg border border-border p-3 text-sm">
       <p className="font-semibold">Que tal provar antes? 🎉</p>
-      <p className="text-muted-foreground">Seu orçamento é elegível para degustação. Opcional, sem bloquear o pedido.</p>
+      <p className="text-muted-foreground">Seu orçamento concluído é elegível para degustação. Opcional, sem bloquear o pedido.</p>
       <Button size="sm" className="mt-2" onClick={solicitar}>Solicitar degustação</Button>
     </div>
   );

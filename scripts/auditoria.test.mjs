@@ -272,6 +272,19 @@ t("descrição sem acento não quebra tamanho", (() => {
   const p = pixlib.gerarPix({ chave: "neiasalgados@pix.com.br", valor: 10, descricao: "Pedido Ação de Graças" });
   return p.copiaECola.includes("Acao de Gracas");
 })());
+t("txid *** preservado (banco rejeita txid vazio)", pix.copiaECola.includes("62070503***"));
+t("CNPJ gera subcampo 01 com 14 dígitos", (() => {
+  const p = pixlib.gerarPix({ chave: "24913937000116", valor: 46 });
+  return p.copiaECola.includes("011424913937000116");
+})());
+
+// ---------- FRITURA: tempo por produto, pedido = lote mais longo ----------
+const coz = await import("@/lib/cozinha.ts");
+t("50un padrão = 210s", coz.tempoFritura(50) === 210);
+t("100un = 420s", coz.tempoFritura(100) === 420);
+t("pedido misto usa o lote mais longo", coz.tempoFrituraPedido([{ quantidade: 50, seg50: 210 }, { quantidade: 50, seg50: 300 }]) === 300);
+t("seg50 nulo cai no padrão", coz.tempoFrituraPedido([{ quantidade: 50, seg50: null }]) === 210);
+t("janela lotada por unidades", (await import("@/lib/horario.ts")).janelaLotada(2000, 2000) === true);
 
 // ---------- MENSAGENS DE ERRO PARA O CLIENTE (§19) ----------
 const erros = await import("@/lib/erros.ts");
@@ -289,6 +302,27 @@ t("produto indisponível passa intacto", M(new Error("Produto Coxinha indisponí
 t("erro humano curto passa intacto", M(new Error("Sua sessão expirou. Entre novamente.")) === "Sua sessão expirou. Entre novamente.");
 t("não-Error cai no padrão", M("qualquer coisa") === "Não foi possível concluir agora. Tente novamente.");
 t("nenhuma mensagem tecnicaknown", ["constraint", "undefined", "NaN", "uuid", "PGRST"].every((t2) => !M(new Error(`${t2} falha`)).includes(t2)));
+
+// ---------- COMANDA 80mm: modelo da casa, visível, só ASCII ----------
+const imp = await import("@/lib/impressao.ts");
+const cupom = imp.textoCupom({
+  numero: 293, dataHora: "01/10/2026 19:24", cliente: "José da Silva", telefone: "(15) 99692-6064",
+  itens: [{ qtd: 50, nome: "Mini Esfiha De Carne", precoUnit: 1 }, { qtd: 25, nome: "Risoles" }], totalUnidades: 75,
+  entregaRetirada: "ENTREGA", horario: "20:24 - 20:54", endereco: "Rua Julio Cirino Silva, N 235",
+  pagamento: "Cartao (Visa Credito)", observacoes: "", status: "PENDENTE_PGTO",
+  bairro: "Jardim Wanel Ville V", cidade: "Sorocaba", cep: "18057057",
+  subtotal: 177.5, taxaEntrega: 18, total: 195.5, pedidosCliente: 5,
+  prevista: "20:24 - 20:54",
+});
+t("comanda PARA ENTREGA no topo", cupom.includes("PARA ENTREGA"));
+t("comanda pedido em destaque", cupom.includes("Pedido #293"));
+t("comanda item com preço à direita", cupom.includes("(50)") && cupom.includes("R$ 50,00"));
+t("comanda pontilhado entre itens", cupom.includes(".........................................."));
+t("comanda cobra do cliente", cupom.includes("Cobrar do cliente"));
+t("comanda totais com R$", cupom.includes("Subtotal:") && cupom.includes("R$ 195,50"));
+t("comanda sem acentos (driver térmico)", /^[\x20-\x7E\n]*$/.test(cupom));
+t("comanda linhas curtas p/ 80mm", cupom.split("\n").every((l) => l.length <= 42));
+t("moeda com vírgula", imp.moedaCupom(177.5) === "R$ 177,50");
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

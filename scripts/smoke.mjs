@@ -7,6 +7,9 @@
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync } from "node:fs";
 
 const PORTA = Number(process.env.SMOKE_PORT ?? 4199);
 const BASE = `http://127.0.0.1:${PORTA}`;
@@ -16,8 +19,13 @@ const ROTAS = [
   { rota: "/calculadora", termos: ["Orçamento de salgados", "Fornecemos somente os salgados", "Copiar orçamento"] },
   { rota: "/combo", termos: ["Monte seu combo"] },
   { rota: "/carrinho", termos: [] },
+  { rota: "/checkout", termos: ["Finalizar", "Pagamento"] },
+  { rota: "/conta", termos: ["Pedido"] },
   { rota: "/auth", termos: [] },
   { rota: "/orcamentos", termos: [] },
+  { rota: "/producao", termos: [] },
+  { rota: "/motoboy", termos: ["otoboy"] },
+  { rota: "/fiscal", termos: ["Fiscal"] },
   { rota: "/admin", termos: [] },
 ];
 
@@ -36,15 +44,45 @@ async function esperarServidor(tentativas = 40) {
   return false;
 }
 
-const servidor = spawn("npx.cmd", ["vite", "dev", "--port", String(PORTA), "--host", "127.0.0.1"], {
-  stdio: "ignore",
-  shell: true,
+// Sobe o vite local sem depender de PATH (npx.cmd nem sempre resolve no
+// Windows) e sem shell (kill limpo, sem órfãos).
+const raiz = dirname(dirname(fileURLToPath(import.meta.url)));
+
+// Preflight: sem as chaves o SSR inteiro retorna 500 (o client recusa subir
+// sem env de propósito). Falha rápido com instrução em vez de esperar 40s.
+{
+  let envTexto = "";
+  try {
+    if (existsSync(join(raiz, ".env"))) envTexto = readFileSync(join(raiz, ".env"), "utf8");
+  } catch { /* sem .env */ }
+  const temUrl = Boolean(process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL)
+    || /VITE_SUPABASE_URL\s*=\s*"?https?:\/\//.test(envTexto);
+  const temKey = Boolean(process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY)
+    || /VITE_SUPABASE_PUBLISHABLE_KEY\s*=\s*"?\S+/.test(envTexto);
+  if (!temUrl || !temKey) {
+    console.error("✗ smoke abortado: .env sem VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY.");
+    console.error("  Copie .env.example para .env e preencha (chaves do Dashboard Supabase). Sem isso o SSR retorna 500.");
+    process.exit(2);
+  }
+}
+const viteBin = join(raiz, "node_modules", "vite", "bin", "vite.js");
+const servidor = spawn(process.execPath, [viteBin, "dev", "--port", String(PORTA), "--host", "127.0.0.1"], {
+  cwd: raiz,
+  stdio: ["ignore", "ignore", "pipe"],
+});
+let saidaErro = "";
+servidor.stderr?.on("data", (d) => {
+  saidaErro += String(d);
+});
+servidor.on("error", (err) => {
+  saidaErro += `\n[spawn] ${err.message}`;
 });
 
 let falhas = 0;
 try {
   if (!(await esperarServidor())) {
     console.error(`\n✗ dev server não respondeu na porta ${PORTA}`);
+    if (saidaErro.trim()) console.error(`--- stderr do vite ---\n${saidaErro.trim().slice(-3000)}`);
     process.exit(1);
   }
 

@@ -10,6 +10,8 @@ import { MapView } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, dataHora, PAGAMENTO_LABEL } from "@/lib/format";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, lojaTemEndereco, pontoDaLoja, useLojaConfig } from "@/lib/loja";
+import { useSession } from "@/lib/session";
+import { ativarPush, estadoPush } from "@/lib/push";
 
 export const Route = createFileRoute("/pedido/$id")({
   head: () => ({
@@ -22,6 +24,94 @@ export const Route = createFileRoute("/pedido/$id")({
   }),
   component: Acompanhar,
 });
+
+/** §75: marketing separado da comunicação operacional, só durante a espera. */
+function MarketingEspera({ status, loja }: { status: string; loja: any }) {
+  if (["entregue", "retirado", "cancelado"].includes(status)) return null;
+  const links = [
+    loja.instagram ? { nome: "Instagram", href: loja.instagram } : null,
+    loja.facebook ? { nome: "Facebook", href: loja.facebook } : null,
+    loja.site ? { nome: "Site", href: loja.site } : null,
+  ].filter(Boolean) as { nome: string; href: string }[];
+  if (links.length === 0 && !loja.telefone) return null;
+  return (
+    <section className="rounded-xl border border-border bg-card p-5 text-sm">
+      <h2 className="font-display text-xl">😊 Enquanto preparamos seu pedido...</h2>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {links.map((l) => (
+          <Button key={l.nome} size="sm" variant="outline" asChild>
+            <a href={l.href} target="_blank" rel="noopener noreferrer">{l.nome}</a>
+          </Button>
+        ))}
+        {loja.telefone ? (
+          <Button size="sm" variant="outline" asChild>
+            <a href={`https://wa.me/55${String(loja.telefone).replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Push opt-in: avisa "saiu para entrega/entregue" mesmo com o site fechado,
+ * sem WhatsApp. Só para o dono logado (a inscrição é por usuário).
+ */
+function AvisoPush({ pedido }: { pedido: any }) {
+  const { user } = useSession();
+  const [estado, setEstado] = useState(() => estadoPush());
+  const [salvando, setSalvando] = useState(false);
+  if (!pedido || ["entregue", "retirado", "cancelado"].includes(pedido.status)) return null;
+  if (!user?.id || pedido.user_id !== user.id) return null;
+  if (estado === "nao-suportado" || estado === "negado") return null;
+  if (estado === "ativo") {
+    return (
+      <p className="rounded-xl border border-border bg-card p-3 text-center text-xs text-muted-foreground">
+        🔔 Notificações ativas neste aparelho — avisamos cada etapa por aqui.
+      </p>
+    );
+  }
+  async function ativar() {
+    setSalvando(true);
+    const r = await ativarPush(supabase, user!.id);
+    setSalvando(false);
+    if (r.ok) {
+      setEstado("ativo");
+      toast.success("Notificações ativadas!");
+    } else if (r.motivo === "denied" || r.motivo === "negado") {
+      setEstado("negado");
+      toast.error("Permissão negada no navegador.");
+    } else {
+      toast.error("Não foi possível ativar neste aparelho.");
+    }
+    setEstado(estadoPush());
+  }
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 text-center text-sm">
+      <p className="font-semibold">🔔 Avisar quando mudar de etapa?</p>
+      <p className="mt-1 text-xs text-muted-foreground">Funciona mesmo com o site fechado. Sem WhatsApp, sem cadastro extra.</p>
+      <Button size="sm" className="mt-2" disabled={salvando} onClick={ativar}>
+        {salvando ? "Ativando…" : "Ativar notificações"}
+      </Button>
+    </div>
+  );
+}
+
+/** §66: convite Google pós-entrega. Nunca condiciona benefício à nota. */
+function ConviteGoogle({ status, loja, numero }: { status: string; loja: any; numero: number }) {
+  if (!["entregue", "retirado"].includes(status)) return null;
+  return (
+    <section className="rounded-xl border border-border bg-card p-5 text-sm">
+      <h2 className="font-display text-xl">Gostou do pedido nº {numero}?</h2>
+      <p className="mt-1 text-muted-foreground">Avalie os produtos em <Link to="/conta">Minha conta</Link> e, se quiser, deixe sua avaliação pública no Google. Obrigado! ❤️</p>
+      {loja.google_avaliacao ? (
+        <Button size="sm" className="mt-2" asChild>
+          <a href={loja.google_avaliacao} target="_blank" rel="noopener noreferrer">Avaliar no Google</a>
+        </Button>
+      ) : null}
+    </section>
+  );
+}
 
 function Acompanhar() {
   const { id } = Route.useParams();
@@ -70,7 +160,10 @@ function Acompanhar() {
     if (!window.confirm(`Cancelar o pedido nº ${pedido.numero}?`)) return;
     setCancelando(true);
     const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", pedido.id);
-    // Libera reservas (best-effort, tabela 0023)
+    // Libera reservas e devolve estoque (0030). Fallback legado se RPC não existir.
+    try {
+      await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: pedido.id });
+    } catch { /* sem migration — segue para fallback */ }
     try {
       await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", pedido.id).eq("status", "ativa");
     } catch { /* sem migration — segue */ }
@@ -118,6 +211,10 @@ function Acompanhar() {
       <section className="rounded-xl border border-border bg-card p-5">
         <StatusSteps status={pedido.status} tipoEntrega={pedido.tipo_entrega} />
       </section>
+
+      <AvisoPush pedido={pedido} />
+      <MarketingEspera status={pedido.status} loja={loja} />
+      <ConviteGoogle status={pedido.status} loja={loja} numero={pedido.numero} />
 
       <NotasCliente pedidoId={pedido.id} />
 
@@ -199,10 +296,17 @@ function Acompanhar() {
             ) : null}
           </>
         ) : (
+          <>
           <p className="mt-1 text-muted-foreground">
             {pedido.endereco}
             {pedido.complemento ? `, ${pedido.complemento}` : ""} — {pedido.bairro}
           </p>
+          {pedido.tipo_imovel === "apartamento" || pedido.apartamento ? (
+            <p className="mt-1 text-muted-foreground">
+              Apto {pedido.apartamento || "—"}{pedido.bloco ? ` • Bloco/Torre ${pedido.bloco}` : ""}{pedido.andar ? ` • Andar ${pedido.andar}` : ""}{pedido.interfone ? ` • Interfone ${pedido.interfone}` : ""}{pedido.pode_subir ? " • autorizado subir" : ""}
+            </p>
+          ) : null}
+          </>
         )}
         <p className="mt-1 flex items-center gap-1.5 text-muted-foreground">
           <Phone className="size-3.5" /> {pedido.telefone}

@@ -237,11 +237,11 @@ function Conta() {
       </section>
 
       <Tabs value={aba} onValueChange={setAba} className="mt-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
-          <TabsTrigger value="favoritos">Favoritos</TabsTrigger>
-          <TabsTrigger value="enderecos">Endereços</TabsTrigger>
-          <TabsTrigger value="avaliar">Avaliar</TabsTrigger>
+        <TabsList className="no-scrollbar flex w-full justify-start gap-1 overflow-x-auto">
+          <TabsTrigger value="pedidos" className="shrink-0">Pedidos</TabsTrigger>
+          <TabsTrigger value="favoritos" className="shrink-0">Favoritos</TabsTrigger>
+          <TabsTrigger value="enderecos" className="shrink-0">Endereços</TabsTrigger>
+          <TabsTrigger value="avaliar" className="shrink-0">Avaliar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="pedidos" className="mt-4">
@@ -364,31 +364,9 @@ function ResgateFidelidade({ pontos, userId, telefoneAtual, cfg }: { pontos: num
     if (!confirm(`Resgatar ${cfg.metaPontos} pontos por um cupom de ${brl(cfg.recompensaValor)}?`)) return;
     setEnviando(true);
     try {
-      const fim = new Date(Date.now() + 30 * 86400000).toISOString();
-      let codigo = "";
-      let ok = false;
-      for (let t = 0; t < 3 && !ok; t++) {
-        codigo = `FID-${Date.now().toString(36).toUpperCase().slice(-4)}${Math.floor(Math.random() * 36 ** 2).toString(36).toUpperCase().padStart(2, "0")}`;
-        const { error } = await supabase.from("cupons").insert({
-          codigo,
-          tipo: "valor",
-          valor: cfg.recompensaValor,
-          minimo: 0,
-          ativo: true,
-          cliente_telefone: telDig,
-          validade_fim: fim,
-          max_usos: 1,
-          produtos_ids: [],
-        });
-        if (!error) {
-          ok = true;
-        } else if (!String(error.message ?? "").toLowerCase().includes("duplicate")) {
-          throw error;
-        }
-      }
-      if (!ok) throw new Error("Não foi possível gerar o cupom. Tente de novo.");
-      const { error: e2 } = await supabase.from("profiles").update({ pontos: pontos - cfg.metaPontos }).eq("id", userId);
-      if (e2) console.error(e2);
+      const { data: codigoGerado, error } = await supabase.rpc("resgatar_fidelidade", { p_telefone: telDig });
+      if (error) throw error;
+      const codigo = String(codigoGerado ?? "");
       if (telefone !== telefoneAtual) {
         await supabase.from("profiles").update({ telefone }).eq("id", userId);
       }
@@ -486,6 +464,7 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
   const [prazos, setPrazos] = useState<Record<string, number>>({});
   const [atends, setAtends] = useState<Record<string, number>>({});
   const [coment, setComent] = useState<Record<string, string>>({});
+  const [autoriza, setAutoriza] = useState<Record<string, boolean>>({});
 
   const comprados = [...new Set((pedidos ?? []).flatMap((p: any) => (p.pedido_itens ?? []).map((i: any) => i.produto_id).filter(Boolean)))];
   const paraAvaliar = produtos.filter((p) => comprados.includes(p.id));
@@ -520,10 +499,11 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
       comentario: coment[produtoId] ?? "",
       prazo: prazos[produtoId] ?? null,
       atendimento: atends[produtoId] ?? null,
+      autoriza_publicar: !!autoriza[produtoId],
     };
     let { error } = await supabase.from("avaliacoes").upsert(payload, { onConflict: "produto_id,user_id" });
     if (error && String(error.message ?? "").includes("column")) {
-      const { prazo: _pz, atendimento: _at, ...legacy } = payload;
+      const { prazo: _pz, atendimento: _at, autoriza_publicar: _ap, ...legacy } = payload;
       const retry = await supabase.from("avaliacoes").upsert(legacy, { onConflict: "produto_id,user_id" });
       error = retry.error;
       if (!error) toast.warning("Avaliação salva sem prazo/atendimento — rode a migração 0004.");
@@ -560,6 +540,10 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
             className="mt-2"
             maxLength={200}
           />
+          <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" checked={!!autoriza[p.id]} onChange={(e) => setAutoriza((s) => ({ ...s, [p.id]: e.target.checked }))} className="size-4" />
+            Autorizo publicar minha avaliação (nome abreviado, após aprovação da loja)
+          </label>
           <Button size="sm" className="mt-2" onClick={() => enviar(p.id)}>Enviar avaliação</Button>
         </li>
       ))}

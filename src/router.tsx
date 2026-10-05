@@ -13,8 +13,9 @@ function recarregarUmaVez() {
   window.location.reload();
 }
 if (typeof window !== "undefined") {
-  window.addEventListener("vite:preloadError", (e) => {
-    e.preventDefault();
+  // Do NOT preventDefault: that makes the failed import resolve to undefined,
+  // which crashes the router ("reading 'component'"). Just reload.
+  window.addEventListener("vite:preloadError", () => {
     recarregarUmaVez();
   });
   window.addEventListener("unhandledrejection", (e) => {

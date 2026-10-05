@@ -4,11 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 type OAuthResult = { data: any; error: { message: string } | null };
-const oauth = (supabase.auth as any).oauth as {
+type OAuthApi = {
   getAuthorizationDetails: (id: string) => Promise<OAuthResult>;
   approveAuthorization: (id: string) => Promise<OAuthResult>;
   denyAuthorization: (id: string) => Promise<OAuthResult>;
 };
+// Lazy de propósito: acesso em nível de módulo derrubava o SSR da árvore
+// inteira quando o env não está configurado (o throw do client é intencional
+// e continua acontecendo no uso real).
+function getOauth(): OAuthApi {
+  return (supabase.auth as any).oauth as OAuthApi;
+}
 
 export const Route = createFileRoute("/.lovable/oauth/consent")({
   ssr: false,
@@ -23,7 +29,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
   },
   loader: async ({ location }) => {
     const id = new URLSearchParams(location.search).get("authorization_id")!;
-    const { data, error } = await oauth.getAuthorizationDetails(id);
+    const { data, error } = await getOauth().getAuthorizationDetails(id);
     if (error) throw new Error(error.message);
     const immediate = data?.redirect_url ?? data?.redirect_to;
     if (immediate && !data?.client) throw redirect({ href: immediate });
@@ -47,8 +53,8 @@ function Consent() {
   async function decidir(aprovar: boolean) {
     setBusy(true);
     const { data, error } = aprovar
-      ? await oauth.approveAuthorization(authorization_id)
-      : await oauth.denyAuthorization(authorization_id);
+      ? await getOauth().approveAuthorization(authorization_id)
+      : await getOauth().denyAuthorization(authorization_id);
     if (error) { setBusy(false); setErro(error.message); return; }
     const alvo = data?.redirect_url ?? data?.redirect_to;
     if (!alvo) { setBusy(false); setErro("O servidor não retornou um endereço de retorno."); return; }

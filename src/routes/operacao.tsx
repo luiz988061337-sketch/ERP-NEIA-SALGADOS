@@ -62,12 +62,16 @@ function Operacao() {
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
       <h1 className="font-display text-3xl">O que precisa de atenção?</h1>
+      <p className="text-sm"><a href="/fiscal" className="underline">Administração → Fiscal</a> • <a href="/impressao" className="underline">Impressão</a></p>
       <ul className="rounded-xl border border-border bg-card p-4 text-sm">
         {oQuePrecisaAtencao(lista, criticos).map((a) => <li key={a}>• {a}</li>)}
         {oQuePrecisaAtencao(lista, criticos).length === 0 ? <li>Tudo sob controle. ✅</li> : null}
       </ul>
       <p className="text-sm text-muted-foreground">{acontecendoAgora(lista, 0, 0)}</p>
       <LembretesBox />;
+      <AvisosBox />
+      <DemandaBox />
+      <GargaloBox />
 
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-display text-xl">O que preciso preparar agora?</h2>
@@ -97,6 +101,145 @@ function Operacao() {
         <NovoLote onOk={() => qc.invalidateQueries({ queryKey: ["op-lotes"] })} />
       </section>
     </div>
+  );
+}
+
+function AvisosBox() {
+  const qc2 = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["op-avisos"], refetchInterval: 15000,
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("notificacoes").select("*").order("created_at", { ascending: false }).limit(20);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+  async function ler(id: string) {
+    await supabase.from("notificacoes").update({ lida: true }).eq("id", id);
+    qc2.invalidateQueries({ queryKey: ["op-avisos"] });
+  }
+  const novas = (data ?? []).filter((n) => !n.lida);
+  if (!data || data.length === 0) return null;
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 text-sm">
+      <h2 className="font-display text-xl">Avisos ({novas.length} novos)</h2>
+      <ul className="mt-2 space-y-2">
+        {data.map((n: any) => (
+          <li key={n.id} className="flex flex-wrap items-center gap-2">
+            <span className={n.lida ? "text-muted-foreground" : "font-semibold"}>{n.titulo} — {n.detalhe}</span>
+            {!n.lida ? <Button size="sm" variant="ghost" onClick={() => ler(n.id)}>Marcar lida</Button> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function DemandaBox() {
+  const qc3 = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["op-demanda"],
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.from("datas_demanda").select("*").order("data").limit(30);
+        return (data ?? []) as any[];
+      } catch { return []; }
+    },
+  });
+  async function salvar(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const { error } = await supabase.from("datas_demanda").insert({
+      ocasiao: String(f.get("ocasiao") ?? ""),
+      data: String(f.get("data") ?? ""),
+      mensagem: String(f.get("mensagem") ?? ""),
+      antecedencia_dias: Number(f.get("ant") ?? 10),
+      nivel: String(f.get("nivel") ?? "alta"),
+      ativo: true,
+    });
+    if (error) toast.error("Não salvou. Rode a migration 0028.");
+    else { toast.success("Data de alta demanda salva."); (e.target as HTMLFormElement).reset(); qc3.invalidateQueries({ queryKey: ["op-demanda"] }); }
+  }
+  async function alternar(d: any) {
+    await supabase.from("datas_demanda").update({ ativo: !d.ativo }).eq("id", d.id);
+    qc3.invalidateQueries({ queryKey: ["op-demanda"] });
+  }
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 text-sm">
+      <h2 className="font-display text-xl">Datas de alta demanda</h2>
+      <form onSubmit={salvar} className="mt-2 flex flex-wrap gap-2">
+        <Input name="ocasiao" placeholder="Ocasião (ex: Dia das Mães)" required className="w-44" />
+        <Input name="data" type="date" required className="w-36" />
+        <Input name="mensagem" placeholder="Aviso ao cliente" className="w-52" />
+        <Input name="ant" type="number" defaultValue={10} title="Antecedência (dias)" className="w-20" />
+        <Button type="submit" size="sm">+ Data</Button>
+      </form>
+      <ul className="mt-2 space-y-1">
+        {(data ?? []).map((d: any) => (
+          <li key={d.id} className="flex flex-wrap items-center gap-2">
+            <span className={d.ativo ? "" : "text-muted-foreground line-through"}>{d.ocasiao} • {d.data}{d.mensagem ? ` — ${d.mensagem}` : ""}</span>
+            <Button size="sm" variant="ghost" onClick={() => alternar(d)}>{d.ativo ? "Desativar" : "Ativar"}</Button>
+          </li>
+        ))}
+        {(data ?? []).length === 0 ? <li className="text-muted-foreground">Nenhuma data configurada.</li> : null}
+      </ul>
+    </section>
+  );
+}
+
+/** §80: gargalos medidos no histórico real (separação/fritura+montagem/entrega). */
+function GargaloBox() {
+  const { data } = useQuery({
+    queryKey: ["op-gargalo"],
+    queryFn: async () => {
+      try {
+        const corte = new Date(Date.now() - 7 * 86400000).toISOString();
+        const { data } = await supabase.from("pedido_status_historico").select("pedido_id, de_status, para_status, created_at").gte("created_at", corte).order("created_at").limit(500);
+        const porPedido = new Map<string, { de: string | null; para: string; em: number }[]>();
+        for (const h of (data ?? []) as any[]) {
+          const arr = porPedido.get(h.pedido_id) ?? [];
+          arr.push({ de: h.de_status, para: h.para_status, em: +new Date(h.created_at) });
+          porPedido.set(h.pedido_id, arr);
+        }
+        const chaves = ["separacao", "fritura_montagem", "entrega"] as const;
+        const soma: Record<string, number> = { separacao: 0, fritura_montagem: 0, entrega: 0 };
+        const n: Record<string, number> = { separacao: 0, fritura_montagem: 0, entrega: 0 };
+        for (const evs of porPedido.values()) {
+          for (let i = 1; i < evs.length; i++) {
+            const prev = evs[i - 1] as { de: string | null; para: string; em: number };
+            const cur = evs[i] as { de: string | null; para: string; em: number };
+            const dt = (cur.em - prev.em) / 60000;
+            if (dt < 0 || dt > 24 * 60) continue;
+            let k: string | null = null;
+            if (prev.para === "recebido" && cur.para === "em_producao") k = "separacao";
+            else if (prev.para === "em_producao" && cur.para === "pronto") k = "fritura_montagem";
+            else if (prev.para === "pronto" && ["entregue", "em_rota", "aguardando_motoboy"].includes(cur.para)) k = "entrega";
+            if (k) { soma[k] = (soma[k] ?? 0) + dt; n[k] = (n[k] ?? 0) + 1; }
+          }
+        }
+        const media: Record<string, number> = {};
+        for (const k of chaves) media[k] = (n[k] ?? 0) ? Math.round((soma[k] ?? 0) / (n[k] ?? 1)) : 0;
+        return { media, amostras: n };
+      } catch { return null; }
+    },
+  });
+  if (!data) return null;
+  const pares = (Object.entries(data.media) as [string, number][]).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
+  const top = pares[0] ?? ["separacao", 0];
+  const topNome = top[0] ?? "separacao";
+  const topVal = top[1] ?? 0;
+  const nome: Record<string, string> = { separacao: "Separação", fritura_montagem: "Fritura/montagem", entrega: "Entrega" };
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 text-sm">
+      <h2 className="font-display text-xl">Gargalos (7 dias)</h2>
+      <p className="mt-1">Maior tempo médio: <strong>{nome[topNome] ?? topNome} ({topVal} min)</strong></p>
+      <ul className="mt-1 space-y-0.5 text-muted-foreground">
+        {pares.map(([k, v]) => (
+          <li key={k}>{nome[k] ?? k}: {v} min médias ({(data.amostras[k] ?? 0)} amostras)</li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

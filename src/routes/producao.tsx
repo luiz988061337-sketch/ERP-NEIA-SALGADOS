@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-steps";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
-import { brl, dataHora, hora, mensagemStatus, whatsappLink, type OrderStatus, type ProdStatus } from "@/lib/format";
+import { brl, dataHora, hora, mensagemStatus, type OrderStatus, type ProdStatus } from "@/lib/format";
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
-import { tempoFritura, formatarTempo, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
+import { tempoFritura, tempoFrituraPedido, formatarTempo, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
+import { impressaoDireta, fichaDireta } from "@/lib/impressao";
+import { avisarStatus } from "@/lib/push";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/producao")({
@@ -44,13 +46,23 @@ function Producao() {
     enabled: !!autorizado,
     refetchInterval: 15000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("pedidos")
-        .select("*, pedido_itens(*)")
-        .in("status", ["recebido", "em_producao", "pronto"])
-        .order("created_at");
-      if (error) throw error;
-      return data ?? [];
+      try {
+        const { data, error } = await supabase
+          .from("pedidos")
+          .select("*, pedido_itens(*, produtos(tempo_fritura_s))")
+          .in("status", ["recebido", "em_producao", "pronto"])
+          .order("created_at");
+        if (error) throw error;
+        return data ?? [];
+      } catch {
+        const { data, error } = await supabase
+          .from("pedidos")
+          .select("*, pedido_itens(*)")
+          .in("status", ["recebido", "em_producao", "pronto"])
+          .order("created_at");
+        if (error) throw error;
+        return data ?? [];
+      }
     },
   });
 
@@ -145,15 +157,19 @@ function Producao() {
       toast.error("Não foi possível atualizar o pedido.");
       return;
     }
+    void avisarStatus(supabase, pedido, status, mensagemStatus(status, pedido.cliente_nome, pedido.numero));
     try {
       await supabase.from("pedido_status_historico").insert({ pedido_id: pedido.id, de_status: pedido.status, para_status: status });
     } catch { /* sem migration — segue */ }
-    try {
-      const totalUn = (pedido.pedido_itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0);
-      await supabase.from("fila_fritura").insert({
-        pedido_id: pedido.id, quantidade: totalUn, tempo_est_s: tempoFritura(totalUn), status: status === "pronto" ? "pronto" : "aguardando",
-      });
-    } catch { /* sem migration — segue */ }
+    if (status === "em_producao") {
+      try {
+        const itens = (pedido.pedido_itens ?? []).map((i: any) => ({ quantidade: Number(i.quantidade ?? 0), seg50: i.produtos?.tempo_fritura_s ?? null }));
+        const totalUn = itens.reduce((s: number, i: { quantidade: number }) => s + i.quantidade, 0);
+        await supabase.from("fila_fritura").insert({
+          pedido_id: pedido.id, quantidade: totalUn, tempo_est_s: tempoFrituraPedido(itens), status: "aguardando",
+        });
+      } catch { /* sem migration — segue */ }
+    }
     try {
       await supabase.from("fila_impressao").insert({
         trabalho_uuid: `${pedido.id}:${status}:${Date.now()}`,
@@ -163,11 +179,24 @@ function Producao() {
       });
     } catch { /* fila opcional */ }
     queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
-    window.open(
-      whatsappLink(pedido.telefone, mensagemStatus(status, pedido.cliente_nome, pedido.numero)),
-      "_blank",
-      "noopener",
-    );
+  }
+
+  async function imprimirDireto(pedido: any) {
+    try {
+      await impressaoDireta(supabase, pedido);
+      toast.success(`Pedido nº ${pedido.numero} enviado para a Tanca.`);
+    } catch {
+      toast.error("Não entrou na fila. Confira em /impressao.");
+    }
+  }
+
+  async function imprimirFicha() {
+    try {
+      await fichaDireta(supabase, consolidado.map((c) => ({ nome: c.nome, qtd: c.total })));
+      toast.success("Ficha enviada para a Tanca.");
+    } catch {
+      toast.error("Não entrou na fila. Confira em /impressao.");
+    }
   }
 
   function bip() {
@@ -244,7 +273,7 @@ function Producao() {
             ))}
           </ul>
         )}
-        <Button size="sm" variant="outline" className="mt-3" onClick={() => window.print()}><Printer className="mr-1 size-4" /> Imprimir ficha</Button>
+        <Button size="sm" variant="outline" className="mt-3" onClick={imprimirFicha}><Printer className="mr-1 size-4" /> Imprimir ficha direto</Button>
       </section>
 
       <section className="mt-4 rounded-xl border border-border bg-card p-4" aria-label="Previsão">
@@ -310,7 +339,7 @@ function Producao() {
             ) : null}
             <p className="mt-2 text-sm font-display text-primary">{brl(p.total)}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Fritura est: {formatarTempo(tempoFritura((p.pedido_itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0)))} • Próximo lote: {(p.pedido_itens ?? [])[0]?.nome ?? "—"}
+              Fritura est: {formatarTempo(tempoFrituraPedido(((p.pedido_itens ?? []) as any[]).map((i: any) => ({ quantidade: Number(i.quantidade ?? 0), seg50: i.produtos?.tempo_fritura_s ?? null }))))} • Próximo lote: {(p.pedido_itens ?? [])[0]?.nome ?? "—"}
             </p>
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -329,8 +358,8 @@ function Producao() {
                   Chamar motoboy
                 </Button>
               ) : null}
-              <Button size="sm" variant="ghost" onClick={() => window.print()}>
-                <Printer className="mr-1 size-4" /> Imprimir
+              <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
+                <Printer className="mr-1 size-4" /> Imprimir direto
               </Button>
             </div>
           </article>
