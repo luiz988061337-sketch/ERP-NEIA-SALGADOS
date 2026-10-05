@@ -2038,7 +2038,8 @@ function ImpressaoAdmin() {
 
   if (!isAdmin) return <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>;
 
-  const pendentes = ((fila.data ?? []) as any[]).filter((j) => j.status === "pendente" || j.status === "enviando");
+  const trabalhos = ((fila ?? []) as any[]);
+  const pendentes = trabalhos.filter((j) => j.status === "pendente" || j.status === "enviando");
   const maisAntigo = pendentes.reduce<number | null>((acc, j) => {
     const t = +new Date(j.created_at);
     return acc == null || t < acc ? t : acc;
@@ -2058,7 +2059,7 @@ function ImpressaoAdmin() {
         <Button onClick={testar} className="mt-4">🖨️ Testar Impressora</Button>
       </div>
       <div className="mt-6 space-y-2">
-        {(fila.data ?? []).map((j: { id: string; trabalho_uuid: string; status: string; tentativa: number; payload: string; pedido_id: string | null; reimpressoes: number; ultimo_erro?: string | null }) => (
+        {trabalhos.map((j: { id: string; trabalho_uuid: string; status: string; tentativa: number; payload: string; pedido_id: string | null; reimpressoes: number; ultimo_erro?: string | null }) => (
           <div key={j.id} className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-3 text-sm">
             <div className="min-w-0">
               <div className="truncate font-mono text-xs" title={j.trabalho_uuid}>{j.trabalho_uuid}</div>
@@ -2072,7 +2073,7 @@ function ImpressaoAdmin() {
             </div>
           </div>
         ))}
-        {(fila.data ?? []).length === 0 ? <p className="text-sm text-muted-foreground">Fila vazia.</p> : null}
+        {trabalhos.length === 0 ? <p className="text-sm text-muted-foreground">Fila vazia.</p> : null}
       </div>
     </div>
   );
