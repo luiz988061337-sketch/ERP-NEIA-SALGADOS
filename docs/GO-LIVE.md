@@ -140,6 +140,7 @@ slide na aba **Hero** do admin para o carrossel aparecer.
 
 - Localize seu usuário → `user_roles` (via Table Editor) → adicione `admin`.
 - Para a equipe: adicione `atendente`, `producao`, `motoboy`, `financeiro` conforme a função.
+- Motoboy: pode cadastrar em `/admin` → Motoboys, mas o vínculo com o login (`user_id`, usado nos triggers de saída/entrega) se forma sozinho quando ele abre `/motoboy` e troca o status pela 1ª vez. Peça para cada motoboy fazer isso no 1º acesso.
 - Nunca deixe zero admins. Não remova seu próprio `admin` pelo painel (há trava no código, mas confira).
 
 ## 3. Auth e provedores (Dashboard → Authentication)
