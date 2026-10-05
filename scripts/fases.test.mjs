@@ -114,6 +114,12 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
   const f28 = readFileSync("drizzle/migrations/0028_crm_experiencia.sql", "utf8");
   t("fritura 1 linha por pedido+produto", /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f43) && /UNIQUE\s*\(\s*pedido_id\s*,\s*produto_id\s*\)/i.test(f49));
   t("ajuda sem duplicar reaplicando", /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f28) && /UNIQUE\s*\(\s*categoria\s*,\s*titulo\s*\)/i.test(f49));
+  // Estoque: regra única 0030x0042 (0050) — sem ela, produtos.estoque caía 2x
+  // por venda (checkout + confirmação) e o cancel restaurava errado.
+  const f50 = readFileSync("drizzle/migrations/0050_estoque_unico.sql", "utf8");
+  t("0050 chama 0030 antes dos lotes", /liberar_reserva_atomica\s*\(\s*p_pedido_id\s*\)/.test(f50));
+  t("0050 trilha sem rebaixar (0030 dona)", /p_atualizar_estoque\s+boolean\s+DEFAULT\s+true/i.test(f50) && /NOT\s+v_(ja|tem)_0030/.test(f50));
+  t("0050 tolera 0030 ausente (legado)", /EXCEPTION\s+WHEN\s+undefined_(function|table)/i.test(f50));
 }
 
 console.log(`\n${pass} passaram, ${fail} falharam`);

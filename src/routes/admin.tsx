@@ -587,6 +587,12 @@ function Admin() {
   }
 
   async function mudarStatusPedido(p: any, status: OrderStatus) {
+    // Cancelar devolve estoque primeiro (0030); o trigger 0042 reconcilia o resto.
+    // Sem isso, produtos.estoque ficava debitado para sempre (vazamento).
+    if (status === "cancelado") {
+      try { await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: p.id }); } catch { /* sem migration — trigger 0042 assume */ }
+      try { await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", p.id).eq("status", "ativa"); } catch { /* sem migration */ }
+    }
     const { error } = await supabase.from("pedidos").update({ status }).eq("id", p.id);
     if (error) toast.error("Não foi possível atualizar.");
     else {
