@@ -57,7 +57,8 @@ Rode cada arquivo em `drizzle/migrations/` na ordem e confira a mensagem de suce
 45. `0044_motoboy_rotas.sql` — `motoboy_status` enum, `rotas`, `rota_pedidos`, `motoboy_historico`, `entrega_atrasos`.
 46. `0045_entrega_apartamento.sql` — endereço apto/bloco/torre/andar/interfone, triggers saída/entrega, msg condomínio.
 47. `0046_fiscal_integracao.sql` — `fiscal_provedor_config`, `fiscal_certificados` (só referência ao cofre), `documento_fiscal_itens`, trigger de validação NCM/CFOP na emissão.
-Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0046 — rode esses separado).
+48. `0047_reconciliacao_entrega.sql` — CORRETIVA, não pule: normaliza motivos de atraso legados + CHECK novo, resolve motoboy via `user_id` nos triggers de saída/entrega, restringe validação de endereço a colunas de endereço (status de pedido legado volta a transitar).
+Atalho: `PASSO-11-fases-2-9.sql` = 0023→0028 em um arquivo só (NÃO inclui 0029→0047 — rode esses separado).
 
 Todas idempotentes: podem ser reexecutadas sem efeito colateral. O app degrada sozinho
 se alguma faltar (a home usa o hero estático, o checkout avisa que não gravou o tipo de entrega
@@ -87,8 +88,15 @@ SELECT tablename FROM pg_tables WHERE schemaname='public'
     'pedido_notas','campanha_cliques','metas','admin_logs','despesas','estoque_mov',
     'hero_carousel','calculadora_config','motoboys');
 
--- 0015-0018 aplicados?
-SELECT count(*) AS hero_ativos FROM hero_carousel WHERE ativo;
+ -- 0044/0046/0047 aplicados?
+ SELECT * FROM pg_type WHERE typname IN ('motoboy_status','atraso_motivo');
+ SELECT tablename FROM pg_tables WHERE schemaname='public'
+   AND tablename IN ('fritura_fila','motoboy_historico','entrega_atrasos','fiscal_provedor_config','fiscal_certificados','documento_fiscal_itens');
+ SELECT conname FROM pg_constraint WHERE conname='pedidos_atraso_motivo_check';
+ SELECT tgname FROM pg_trigger WHERE tgname IN ('trigger_saida_motoboy','trigger_entrega_motoboy','trigger_validar_endereco','trigger_validar_fiscal_emissao');
+
+ -- 0015-0018 aplicados?
+ SELECT count(*) AS hero_ativos FROM hero_carousel WHERE ativo;
 SELECT * FROM calculadora_config;               -- deve retornar 1 linha
 SELECT count(*) AS motoboys_cadastrados FROM motoboys;
 SELECT conname FROM pg_constraint WHERE conname='pedidos_tipo_entrega_check';
@@ -159,8 +167,13 @@ supabase functions deploy fiscal-emitir
 
 Configure `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` nos secrets da função
 (Dashboard → Edge Functions → Secrets). Depois preencha em `/fiscal`:
-empresa (CNPJ, IE, regime com o contador), modelo (55/65), provedor
-(Focus/Nuvem Fiscal) com URL + token de **homologação** primeiro.
+1. **Empresa** — razão social, CNPJ, IE, endereço completo, regime (com o
+   contador), série, número inicial, modelo (55/65);
+2. **Provedor** (seção própria na página) — tipo, ambiente, URL + token de
+   **homologação** primeiro (produção só após DANFE testada);
+3. **Produtos** — `/admin` → Produtos → “Dados fiscais”: NCM + CFOP + origem
+   obrigatórios, CST (lucro real/presumido) ou CSOSN (Simples). A lista marca
+   “⚠️ sem NCM” até completar.
 
 ⚠️ Fail-closed até o contador liberar: sem NCM/CFOP/CST por produto, sem
 cMun IBGE e com combo avulso (produto_id NULL), a emissão bloqueia com o

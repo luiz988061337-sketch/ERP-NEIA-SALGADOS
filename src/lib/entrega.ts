@@ -22,6 +22,18 @@ export const MOTIVO_ATRASO = [
   "outro",
 ] as const;
 
+/** Rótulos PT-BR (espelham o enum atraso_motivo da migration 0044). */
+export const MOTIVO_ATRASO_LABEL: Record<string, string> = {
+  transito: "Trânsito",
+  chuva: "Chuva",
+  veiculo: "Problema no veículo",
+  endereco: "Endereço difícil",
+  cliente_ausente: "Cliente ausente",
+  espera: "Espera",
+  acidente_bloqueio: "Acidente / bloqueio",
+  outro: "Outro (descrever)",
+};
+
 export function mensagemPortaria(podeSubir: boolean): string {
   if (podeSubir) return "";
   return "🛵 Seu pedido já saiu para entrega! Se possível, pedimos que aguarde o motoboy na portaria no momento da chegada. 😊 Isso ajuda a agilizar sua entrega e também as próximas entregas da nossa rota. Obrigado pela compreensão! ❤️";

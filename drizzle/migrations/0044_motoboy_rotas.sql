@@ -4,6 +4,8 @@
 -- =============================================
 -- 1. Enum para status do motoboy
 -- =============================================
+-- DO block = reexecutável (0047 repete por segurança).
+DO $$ BEGIN
 CREATE TYPE public.motoboy_status AS ENUM (
   'disponivel_base',
   'preparando_saida',
@@ -12,6 +14,8 @@ CREATE TYPE public.motoboy_status AS ENUM (
   'aguardando_nova_rota',
   'offline'
 );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =============================================
 -- 2. Tabela de motoboys (estende papel existente)
@@ -87,6 +91,7 @@ CREATE INDEX IF NOT EXISTS motoboy_hist_evento_idx ON public.motoboy_historico (
 -- =============================================
 -- 6. Enum para motivos de atraso
 -- =============================================
+DO $$ BEGIN
 CREATE TYPE public.atraso_motivo AS ENUM (
   'transito',
   'chuva',
@@ -97,6 +102,8 @@ CREATE TYPE public.atraso_motivo AS ENUM (
   'acidente_bloqueio',
   'outro'
 );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- =============================================
 -- 7. Atrasos de entrega

@@ -1347,13 +1347,21 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
       promo_inicio: String(f.get("promo_inicio") ?? "") || null,
       promo_fim: String(f.get("promo_fim") ?? "") || null,
       promo_ativo: f.get("promo_ativo") === "on",
+      descricao_fiscal: String(f.get("descricao_fiscal") ?? "") || null,
+      ncm: String(f.get("ncm") ?? "").replace(/\D/g, "") || null,
+      cest: String(f.get("cest") ?? "").replace(/\D/g, "") || null,
+      cfop_padrao: String(f.get("cfop_padrao") ?? "").replace(/\D/g, "") || null,
+      cst: String(f.get("cst") ?? "") || null,
+      csosn: String(f.get("csosn") ?? "") || null,
+      origem_mercadoria: String(f.get("origem_mercadoria") ?? "") || null,
+      gtin: String(f.get("gtin") ?? "").replace(/\D/g, "") || null,
     };
     let { error } = id
       ? await supabase.from("produtos").update(fullPayload).eq("id", id)
       : await supabase.from("produtos").insert(fullPayload);
     if (error && String(error.message ?? "").includes("column")) {
-      // Banco ainda sem migrações 0001/0003/0004 — salva campos legados
-      const { tipo_venda: _tv, destaque: _d, promo_inicio: _pi, promo_fim: _pf, promo_ativo: _pa, estoque_minimo: _em, custo: _cu, tempo_fritura_s: _tf, ...legacy } = fullPayload;
+      // Banco ainda sem migrações 0001/0003/0004/0033 — salva campos legados
+      const { tipo_venda: _tv, destaque: _d, promo_inicio: _pi, promo_fim: _pf, promo_ativo: _pa, estoque_minimo: _em, custo: _cu, tempo_fritura_s: _tf, descricao_fiscal: _df, ncm: _ncm, cest: _ce, cfop_padrao: _cf, cst: _cs, csosn: _so, origem_mercadoria: _om, gtin: _gt, ...legacy } = fullPayload;
       const retry = id
         ? await supabase.from("produtos").update(legacy).eq("id", id)
         : await supabase.from("produtos").insert(legacy);
@@ -1428,6 +1436,26 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
           <div className="space-y-1"><Label>Custo (margem estimada, opcional)</Label><Input name="custo" type="number" step="0.01" defaultValue={editando?.custo ?? ""} /></div>
           <div className="space-y-1"><Label>Fritura 50un em seg (padrão 210)</Label><Input name="tempo_fritura_s" type="number" min={0} placeholder="210" defaultValue={editando?.tempo_fritura_s ?? ""} /></div>
           <div className="space-y-1"><Label>Imagem URL (opcional)</Label><Input name="imagem_url" defaultValue={editando?.imagem_url ?? ""} /></div>
+          <details className="sm:col-span-2 rounded-lg border border-border p-3">
+            <summary className="cursor-pointer text-sm font-semibold">Dados fiscais (contador) — sem NCM a NF-e bloqueia</summary>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2"><Label>Descrição fiscal (opcional)</Label><Input name="descricao_fiscal" defaultValue={editando?.descricao_fiscal ?? ""} /></div>
+              <div className="space-y-1"><Label>NCM *</Label><Input name="ncm" inputMode="numeric" maxLength={8} defaultValue={editando?.ncm ?? ""} placeholder="Ex: 19059090" /></div>
+              <div className="space-y-1"><Label>CEST (opcional)</Label><Input name="cest" inputMode="numeric" defaultValue={editando?.cest ?? ""} /></div>
+              <div className="space-y-1"><Label>CFOP padrão *</Label><Input name="cfop_padrao" inputMode="numeric" maxLength={4} defaultValue={editando?.cfop_padrao ?? ""} placeholder="Ex: 5102" /></div>
+              <div className="space-y-1"><Label>Origem *</Label>
+                <select name="origem_mercadoria" defaultValue={editando?.origem_mercadoria ?? ""} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option value="">—</option>
+                  <option value="0">0 - Nacional</option>
+                  <option value="1">1 - Importada direta</option>
+                  <option value="2">2 - Importada no mercado interno</option>
+                </select>
+              </div>
+              <div className="space-y-1"><Label>CST (lucro real/presumido)</Label><Input name="cst" inputMode="numeric" maxLength={2} defaultValue={editando?.cst ?? ""} placeholder="Ex: 00" /></div>
+              <div className="space-y-1"><Label>CSOSN (Simples Nacional)</Label><Input name="csosn" inputMode="numeric" maxLength={3} defaultValue={editando?.csosn ?? ""} placeholder="Ex: 102" /></div>
+              <div className="space-y-1 sm:col-span-2"><Label>GTIN/EAN (opcional)</Label><Input name="gtin" inputMode="numeric" defaultValue={editando?.gtin ?? ""} /></div>
+            </div>
+          </details>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="disponivel" defaultChecked={editando?.disponivel ?? true} /> Disponível</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="destaque" defaultChecked={editando?.destaque ?? false} /> ⭐ Destaque (Mais pedidos)</label>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="promo_ativo" defaultChecked={editando?.promo_ativo ?? true} /> Promo ativa</label>
@@ -1445,7 +1473,7 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
           <div key={p.id}>
           <div className={cn("flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm", !p.disponivel && "opacity-60")}>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold">{p.nome} <span className="text-xs text-muted-foreground">• {p.categorias?.nome} • {p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}{p.destaque ? " • ⭐" : ""}</span></p>
+              <p className="font-semibold">{p.nome} <span className="text-xs text-muted-foreground">• {p.categorias?.nome} • {p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}{p.destaque ? " • ⭐" : ""}{p.ncm ? "" : " • ⚠️ sem NCM"}</span></p>
               <p className="text-xs text-muted-foreground">{brl(p.preco_promocional ?? p.preco)} • Estoque: {p.estoque}{baixo ? " ⚠️ abaixo do mínimo" : ""} {p.preco_promocional ? "• PROMO" : ""}</p>
             </div>
             <Switch checked={p.disponivel} onCheckedChange={async (v) => {

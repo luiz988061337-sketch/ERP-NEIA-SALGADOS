@@ -94,8 +94,9 @@ t("fiscal produto sem tributo", fiscal.produtoFiscalOk({ ncm: "19059090" }) === 
 t("fiscal empresa incompleta", fiscal.empresaConfigurada(null).ok === false);
 t("fiscal empresa sem modelo", fiscal.empresaConfigurada({ razao_social: "X", cnpj: "Y", modelo_padrao: "", provedor: "Z" }).ok === false);
 
-// Entrega: motivos alinhados ao enum atraso_motivo do banco (0044)
+// Entrega: motivos alinhados ao enum atraso_motivo do banco (0044/0047)
 t("motivos cabem no enum", entrega.MOTIVO_ATRASO.every((m) => ["transito","chuva","veiculo","endereco","cliente_ausente","espera","acidente_bloqueio","outro"].includes(m)));
+t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOTIVO_ATRASO_LABEL[m])));
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

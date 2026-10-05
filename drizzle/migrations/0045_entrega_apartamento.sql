@@ -16,25 +16,33 @@ ALTER TABLE public.pedidos
 -- =============================================
 -- 2. Trigger: ao sair para entrega, atualiza status motoboy + histórico
 -- =============================================
+-- NOTA 0047: pedidos.motoboy_id é auth.users.id (0000 + motoboy.tsx), então o
+-- vínculo resolve via motoboys.user_id. Sem vínculo: troca o status sem
+-- histórico (nunca aborta a entrega por FK).
 CREATE OR REPLACE FUNCTION public.trigger_saida_motoboy()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_mb uuid;
 BEGIN
-  IF NEW.status = 'em_rota' AND OLD.status = 'aguardando_motoboy' THEN
-    -- Atualiza motoboy
-    UPDATE public.motoboys
-    SET status = 'em_rota',
-        ultima_atualizacao = now()
-    WHERE id = NEW.motoboy_id;
+  IF NEW.status = 'em_rota' AND OLD.status = 'aguardando_motoboy' AND NEW.motoboy_id IS NOT NULL THEN
+    SELECT id INTO v_mb FROM public.motoboys WHERE user_id = NEW.motoboy_id;
+    IF v_mb IS NOT NULL THEN
+      -- Atualiza motoboy
+      UPDATE public.motoboys
+      SET status = 'em_rota',
+          ultima_atualizacao = now()
+      WHERE id = v_mb;
 
-    -- Histórico
-    INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
-    VALUES (
-      NEW.motoboy_id,
-      NULL,
-      NEW.id,
-      'saida_base',
-      'Iniciou rota de entrega para pedido #' || NEW.numero
-    );
+      -- Histórico
+      INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+      VALUES (
+        v_mb,
+        NULL,
+        NEW.id,
+        'saida_base',
+        'Iniciou rota de entrega para pedido #' || NEW.numero
+      );
+    END IF;
   END IF;
   RETURN NEW;
 END;
@@ -45,44 +53,50 @@ $$;
 -- =============================================
 CREATE OR REPLACE FUNCTION public.trigger_entrega_motoboy()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_mb uuid;
+  v_restam integer;
 BEGIN
-  IF NEW.status = 'entregue' AND OLD.status = 'em_rota' THEN
-    -- Atualiza motoboy
-    UPDATE public.motoboys
-    SET status = 'retornando_base',
-        ultima_atualizacao = now()
-    WHERE id = NEW.motoboy_id;
-
-    -- Histórico
-    INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
-    VALUES (
-      NEW.motoboy_id,
-      NULL,
-      NEW.id,
-      'entrega_realizada',
-      'Entregue pedido #' || NEW.numero || ' para ' || NEW.cliente_nome
-    );
-
-    -- Verifica se motoboy tem mais pedidos em rota
-    IF NOT EXISTS (
-      SELECT 1 FROM public.pedidos
-      WHERE motoboy_id = NEW.motoboy_id
-        AND status IN ('em_rota', 'aguardando_motoboy')
-    ) THEN
-      -- Se não tem mais, marca como aguardando nova rota
+  IF NEW.status = 'entregue' AND OLD.status = 'em_rota' AND NEW.motoboy_id IS NOT NULL THEN
+    SELECT id INTO v_mb FROM public.motoboys WHERE user_id = NEW.motoboy_id;
+    IF v_mb IS NOT NULL THEN
+      -- Atualiza motoboy
       UPDATE public.motoboys
-      SET status = 'aguardando_nova_rota',
+      SET status = 'retornando_base',
           ultima_atualizacao = now()
-      WHERE id = NEW.motoboy_id;
+      WHERE id = v_mb;
 
+      -- Histórico
       INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
       VALUES (
-        NEW.motoboy_id,
+        v_mb,
         NULL,
         NEW.id,
-        'retorno_base',
-        'Retornando à base - sem mais pedidos em rota'
+        'entrega_realizada',
+        'Entregue pedido #' || NEW.numero || ' para ' || NEW.cliente_nome
       );
+
+      -- Verifica se motoboy tem mais pedidos em rota
+      SELECT count(*) INTO v_restam FROM public.pedidos
+      WHERE motoboy_id = NEW.motoboy_id
+        AND status IN ('em_rota', 'aguardando_motoboy');
+
+      IF v_restam = 0 THEN
+        -- Se não tem mais, marca como aguardando nova rota
+        UPDATE public.motoboys
+        SET status = 'aguardando_nova_rota',
+            ultima_atualizacao = now()
+        WHERE id = v_mb;
+
+        INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+        VALUES (
+          v_mb,
+          NULL,
+          NEW.id,
+          'retorno_base',
+          'Retornando à base - sem mais pedidos em rota'
+        );
+      END IF;
     END IF;
   END IF;
   RETURN NEW;
@@ -183,9 +197,12 @@ BEGIN
 END;
 $$;
 
+-- NOTA 0047: escopo restrito a colunas de endereço — troca de status (motoboy,
+-- admin) nunca é barrada por endereço legado sem cidade.
 DROP TRIGGER IF EXISTS trigger_validar_endereco ON public.pedidos;
 CREATE TRIGGER trigger_validar_endereco
-  BEFORE INSERT OR UPDATE ON public.pedidos
+  BEFORE INSERT OR UPDATE OF tipo_entrega, endereco, bairro, cidade, tipo_imovel, apartamento
+  ON public.pedidos
   FOR EACH ROW
   EXECUTE FUNCTION public.validar_endereco_entrega();
 
