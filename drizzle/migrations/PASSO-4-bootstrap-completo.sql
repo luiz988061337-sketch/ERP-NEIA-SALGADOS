@@ -1,6 +1,6 @@
 -- ============================================================================
 -- PASSO 4 - BOOTSTRAP COMPLETO (gerado por scripts/gerar-bootstrap.mjs)
--- Aplica drizzle/migrations/0000..0018 nessa ordem.
+-- Aplica drizzle/migrations/0000..0047 nessa ordem.
 -- Cada arquivo roda em uma sub-transacao propria: se um falhar, os OUTROS
 -- continuam e o erro aparece como WARNING no painel de mensagens.
 -- Pode rodar quantas vezes quiser.
@@ -313,6 +313,31 @@ END
 $mig$;
 
 -- ----------------------------------------------------------------------------
+-- 0001_migration.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$ALTER FUNCTION public.liberar_reserva_atomica(uuid) SET search_path = '';
+ALTER FUNCTION public.reservar_estoque_atomica(uuid,uuid,integer) SET search_path = '';
+
+DROP POLICY IF EXISTS "lotes public read" ON public.lotes;
+
+DROP POLICY IF EXISTS "parceiros read" ON public.parceiros;
+CREATE POLICY "parceiros admin read" ON public.parceiros
+  FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+
+CREATE OR REPLACE VIEW public.parceiros_publicos AS
+  SELECT id, nome, categoria, cidade, bairro, instagram, site, descricao, logo_url
+  FROM public.parceiros
+  WHERE status = 'aprovado' AND autoriza_divulgacao;
+GRANT SELECT ON public.parceiros_publicos TO anon, authenticated;$body$;
+  RAISE NOTICE 'APLICADO 0001_migration.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0001_migration.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
 -- 0001_neia_tipos_crm.sql
 -- ----------------------------------------------------------------------------
 DO $mig$
@@ -478,9 +503,11 @@ BEGIN
 
 -- ---------- papéis ----------
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'app_role' AND e.enumlabel = 'atendente') THEN-- [gerador] ALTER TYPE ADD VALUE removido: app_role ja e criado com todos os valores em 0000
+  IF NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'app_role' AND e.enumlabel = 'atendente') THEN
+-- [gerador] ALTER TYPE ADD VALUE removido: app_role ja e criado com todos os valores em 0000
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'app_role' AND e.enumlabel = 'financeiro') THEN-- [gerador] ALTER TYPE ADD VALUE removido: app_role ja e criado com todos os valores em 0000
+  IF NOT EXISTS (SELECT 1 FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'app_role' AND e.enumlabel = 'financeiro') THEN
+-- [gerador] ALTER TYPE ADD VALUE removido: app_role ja e criado com todos os valores em 0000
   END IF;
 END $$;
 
@@ -1406,6 +1433,2240 @@ COMMENT ON COLUMN public.pedidos.pagamento_em IS
   RAISE NOTICE 'APLICADO 0022_pagamento_status.sql';
 EXCEPTION WHEN others THEN
   RAISE WARNING 'FALHOU 0022_pagamento_status.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0023_base_operacional.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0023: base operacional — histórico, lotes FEFO, reservas, horário/capacidade
+-- Idempotente. Rode no SQL Editor APÓS 0022.
+
+-- Histórico/timeline de status (override auditado: quem, quando, de, para, motivo)
+CREATE TABLE IF NOT EXISTS public.pedido_status_historico (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  de_status text,
+  para_status text NOT NULL,
+  actor uuid REFERENCES auth.users(id),
+  motivo text,
+  override boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS pedido_hist_pedido_idx ON public.pedido_status_historico (pedido_id);
+
+-- Flags operacionais no pedido (atraso é ALERTA, não apaga estágio real)
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS atrasado boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS problema text,
+  ADD COLUMN IF NOT EXISTS agendamento_janela text,
+  ADD COLUMN IF NOT EXISTS preparo_em timestamptz,
+  ADD COLUMN IF NOT EXISTS pronto_em timestamptz,
+  ADD COLUMN IF NOT EXISTS saiu_em timestamptz;
+
+-- Lotes e validade (FEFO)
+CREATE TABLE IF NOT EXISTS public.lotes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  produto_id uuid NOT NULL REFERENCES public.produtos(id) ON DELETE CASCADE,
+  codigo text NOT NULL,
+  quantidade integer NOT NULL DEFAULT 0,
+  restante integer NOT NULL DEFAULT 0,
+  produzido_em date,
+  validade date,
+  status text NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo','esgotado','vencido')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (produto_id, codigo)
+);
+CREATE INDEX IF NOT EXISTS lotes_prod_validade_idx ON public.lotes (produto_id, validade);
+
+-- Reservas de estoque (confirmação reserva, cancelamento libera)
+CREATE TABLE IF NOT EXISTS public.reservas_estoque (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  produto_id uuid REFERENCES public.produtos(id) ON DELETE SET NULL,
+  lote_id uuid REFERENCES public.lotes(id) ON DELETE SET NULL,
+  quantidade integer NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'ativa' CHECK (status IN ('ativa','liberada','consumida','cancelada')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS reservas_pedido_idx ON public.reservas_estoque (pedido_id);
+
+-- Movimentações: garantir tipos novos nunca quebram CHECK antigo -> sem CHECK, só texto
+-- (estoque_mov.tipo já é texto livre nas migrations)
+
+-- Config de horário/capacidade (singleton id=true)
+CREATE TABLE IF NOT EXISTS public.horario_config (
+  id boolean PRIMARY KEY DEFAULT true,
+  antecedencia_min integer NOT NULL DEFAULT 30,
+  teto_unidades_janela integer NOT NULL DEFAULT 2000,
+  tempo_fritura_50s integer NOT NULL DEFAULT 210,
+  CONSTRAINT horario_config_single CHECK (id = true)
+);
+INSERT INTO public.horario_config (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
+
+-- RLS
+ALTER TABLE public.pedido_status_historico ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lotes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reservas_estoque ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.horario_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "hist dono/staff" ON public.pedido_status_historico;
+CREATE POLICY "hist dono/staff" ON public.pedido_status_historico FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND (p.user_id = auth.uid() OR public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente') OR public.has_role(auth.uid(), 'financeiro') OR public.has_role(auth.uid(), 'motoboy')))
+);
+DROP POLICY IF EXISTS "hist staff insert" ON public.pedido_status_historico;
+CREATE POLICY "hist staff insert" ON public.pedido_status_historico FOR INSERT WITH CHECK (
+  public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente')
+);
+
+DROP POLICY IF EXISTS "lotes staff" ON public.lotes;
+CREATE POLICY "lotes staff" ON public.lotes FOR ALL USING (
+  public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente')
+);
+DROP POLICY IF EXISTS "lotes public read" ON public.lotes;
+CREATE POLICY "lotes public read" ON public.lotes FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "reservas staff" ON public.reservas_estoque;
+CREATE POLICY "reservas staff" ON public.reservas_estoque FOR ALL USING (
+  public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente') OR public.has_role(auth.uid(), 'financeiro')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'producao') OR public.has_role(auth.uid(), 'atendente') OR public.has_role(auth.uid(), 'financeiro')
+);
+
+DROP POLICY IF EXISTS "horario public read" ON public.horario_config;
+CREATE POLICY "horario public read" ON public.horario_config FOR SELECT USING (true);
+DROP POLICY IF EXISTS "horario admin write" ON public.horario_config;
+CREATE POLICY "horario admin write" ON public.horario_config FOR ALL USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+
+-- Grants (evita 42501 mesmo com RLS ok)
+GRANT ALL ON public.pedido_status_historico TO authenticated;
+GRANT ALL ON public.lotes TO authenticated;
+GRANT ALL ON public.reservas_estoque TO authenticated;
+GRANT ALL ON public.horario_config TO authenticated;
+GRANT SELECT ON public.pedido_status_historico, public.lotes, public.horario_config TO anon;
+$body$;
+  RAISE NOTICE 'APLICADO 0023_base_operacional.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0023_base_operacional.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0024_entrega.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0024: entrega — status motoboy, rotas, atrasos, endereço estruturado
+-- Idempotente. Rode APÓS 0023.
+
+CREATE TABLE IF NOT EXISTS public.rotas_entrega (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  motoboy_id uuid REFERENCES public.motoboys(id) ON DELETE SET NULL,
+  status text NOT NULL DEFAULT 'preparando' CHECK (status IN ('preparando','em_rota','concluida','cancelada')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  saiu_em timestamptz,
+  chegou_em timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS public.rota_pedidos (
+  rota_id uuid NOT NULL REFERENCES public.rotas_entrega(id) ON DELETE CASCADE,
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  ordem integer NOT NULL DEFAULT 1,
+  PRIMARY KEY (rota_id, pedido_id)
+);
+
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS atraso_motivo text,
+  ADD COLUMN IF NOT EXISTS atraso_descricao text,
+  ADD COLUMN IF NOT EXISTS pode_subir boolean,
+  ADD COLUMN IF NOT EXISTS tipo_imovel text,
+  ADD COLUMN IF NOT EXISTS bloco text,
+  ADD COLUMN IF NOT EXISTS apartamento text,
+  ADD COLUMN IF NOT EXISTS interfone text,
+  ADD COLUMN IF NOT EXISTS rota_id uuid REFERENCES public.rotas_entrega(id) ON DELETE SET NULL;
+
+ALTER TABLE public.motoboys
+  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'disponivel_base',
+  ADD COLUMN IF NOT EXISTS ultima_base_em timestamptz;
+
+ALTER TABLE public.pedidos DROP CONSTRAINT IF EXISTS pedidos_atraso_motivo_check;
+ALTER TABLE public.pedidos ADD CONSTRAINT pedidos_atraso_motivo_check CHECK (
+  atraso_motivo IS NULL OR atraso_motivo IN ('transito','chuva_via','problema_veiculo','endereco_dificil','problema_endereco','cliente_ausente','espera','acidente_bloqueio','outro')
+);
+
+ALTER TABLE public.rotas_entrega ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rota_pedidos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "rotas staff" ON public.rotas_entrega;
+CREATE POLICY "rotas staff" ON public.rotas_entrega FOR ALL USING (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente') OR public.has_role(auth.uid(),'motoboy') OR public.has_role(auth.uid(),'producao')
+) WITH CHECK (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente') OR public.has_role(auth.uid(),'motoboy') OR public.has_role(auth.uid(),'producao')
+);
+DROP POLICY IF EXISTS "rota_pedidos staff" ON public.rota_pedidos;
+CREATE POLICY "rota_pedidos staff" ON public.rota_pedidos FOR ALL USING (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente') OR public.has_role(auth.uid(),'motoboy') OR public.has_role(auth.uid(),'producao')
+) WITH CHECK (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente') OR public.has_role(auth.uid(),'motoboy') OR public.has_role(auth.uid(),'producao')
+);
+GRANT ALL ON public.rotas_entrega, public.rota_pedidos TO authenticated;
+$body$;
+  RAISE NOTICE 'APLICADO 0024_entrega.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0024_entrega.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0025_impressao.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0025: impressão — fila, logs, anti-duplicidade, status de impressão
+-- Idempotente. Rode APÓS 0024.
+
+CREATE TABLE IF NOT EXISTS public.fila_impressao (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  trabalho_uuid text NOT NULL UNIQUE,
+  pedido_id uuid REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  tipo text NOT NULL DEFAULT 'pedido' CHECK (tipo IN ('pedido','teste','ficha_cozinha')),
+  payload text NOT NULL DEFAULT '',
+  impressora text NOT NULL DEFAULT 'Tanca TP-550',
+  status text NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente','enviando','impresso','erro','cancelado')),
+  tentativa integer NOT NULL DEFAULT 0,
+  ultimo_erro text,
+  reimpressoes integer NOT NULL DEFAULT 0,
+  motivo_reimpressao text,
+  imprimir_apos timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS fila_status_idx ON public.fila_impressao (status);
+
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS impresso boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.fila_impressao ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "fila staff" ON public.fila_impressao;
+CREATE POLICY "fila staff" ON public.fila_impressao FOR ALL USING (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'atendente')
+);
+GRANT ALL ON public.fila_impressao TO authenticated;
+$body$;
+  RAISE NOTICE 'APLICADO 0025_impressao.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0025_impressao.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0026_cozinha.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0026: cozinha — fritura, sons/config, tempo por produto
+-- Idempotente. Rode APÓS 0025.
+
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS tempo_fritura_50s integer NOT NULL DEFAULT 210;
+
+CREATE TABLE IF NOT EXISTS public.fila_fritura (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id uuid REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  produto_id uuid REFERENCES public.produtos(id) ON DELETE SET NULL,
+  quantidade integer NOT NULL DEFAULT 50,
+  tempo_est_s integer NOT NULL DEFAULT 210,
+  inicio timestamptz,
+  fim timestamptz,
+  tempo_real_s integer,
+  status text NOT NULL DEFAULT 'aguardando' CHECK (status IN ('aguardando','fritando','pronto','cancelado')),
+  funcionario text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS fritura_status_idx ON public.fila_fritura (status);
+
+ALTER TABLE public.fila_fritura ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "fritura staff" ON public.fila_fritura;
+CREATE POLICY "fritura staff" ON public.fila_fritura FOR ALL USING (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'atendente')
+);
+GRANT ALL ON public.fila_fritura TO authenticated;
+$body$;
+  RAISE NOTICE 'APLICADO 0026_cozinha.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0026_cozinha.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0027_lembretes.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0027: comunicação — lembretes de pedidos futuros, sem auto-cancelar
+-- Idempotente. Rode APÓS 0026.
+
+CREATE TABLE IF NOT EXISTS public.pedido_lembretes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  tipo text NOT NULL CHECK (tipo IN ('7d','3d','24h','dia')),
+  status text NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente','enviado','confirmado','alterado','cancelado')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (pedido_id, tipo)
+);
+ALTER TABLE public.pedido_lembretes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "lembretes staff" ON public.pedido_lembretes;
+CREATE POLICY "lembretes staff" ON public.pedido_lembretes FOR ALL USING (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente') OR public.has_role(auth.uid(),'producao')
+) WITH CHECK (
+  public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente') OR public.has_role(auth.uid(),'producao')
+);
+GRANT ALL ON public.pedido_lembretes TO authenticated;
+$body$;
+  RAISE NOTICE 'APLICADO 0027_lembretes.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0027_lembretes.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0028_crm_experiencia.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0028: CRM/fidelidade — jornada, indicação, parceiros, degustação, avaliações públicas, ajuda, alta demanda
+-- Idempotente. Rode APÓS 0027.
+
+-- Jornada (um evento por linha, sem vigilância invasiva: só eventos do funil)
+CREATE TABLE IF NOT EXISTS public.jornada_eventos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  etapa text NOT NULL CHECK (etapa IN ('visitou','visualizou','favoritou','adicionou_carrinho','iniciou_checkout','comprou','recebeu','avaliou','voltou')),
+  pedido_id uuid REFERENCES public.pedidos(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Origem só no primeiro pedido (coluna já existe campanha_origem; garantir parceiro/indicador)
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS origem_parceiro_id uuid;
+ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS indicado_por uuid REFERENCES auth.users(id);
+
+-- Indicações (código por cliente)
+CREATE TABLE IF NOT EXISTS public.indicacoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  indicador_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  codigo text NOT NULL UNIQUE,
+  novo_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  pontos_indicador integer NOT NULL DEFAULT 0,
+  pontos_novo integer NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente','valida','fraude','cancelada')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Degustação: SÓ depois do orçamento (§4), elegibilidade configurável
+CREATE TABLE IF NOT EXISTS public.degustacoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  orcamento_id uuid REFERENCES public.orcamentos(id) ON DELETE SET NULL,
+  pedido_id uuid REFERENCES public.pedidos(id) ON DELETE SET NULL,
+  status text NOT NULL DEFAULT 'solicitada' CHECK (status IN ('solicitada','em_analise','aprovada','agendada','preparar','pronta','realizada','recusada','cancelada','nao_compareceu')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS public.degustacao_regras (
+  id boolean PRIMARY KEY DEFAULT true,
+  qtd_minima integer NOT NULL DEFAULT 500,
+  valor_minimo numeric NOT NULL DEFAULT 500,
+  pessoas_minimas integer NOT NULL DEFAULT 30,
+  CONSTRAINT deg_single CHECK (id = true)
+);
+INSERT INTO public.degustacao_regras (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
+
+-- Parceiros (sem comissão automática; indicação futura)
+CREATE TABLE IF NOT EXISTS public.parceiros (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome text NOT NULL, categoria text NOT NULL, cidade text, bairro text,
+  instagram text, site text, whatsapp text, descricao text, logo_url text,
+  status text NOT NULL DEFAULT 'nova' CHECK (status IN ('nova','em_analise','aprovada','recusada','contatada','convertida')),
+  responsavel text, email text, cnpj text, proposta text, autoriza_divulgacao boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Ajuda (central + busca por categoria)
+CREATE TABLE IF NOT EXISTS public.ajuda_artigos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  categoria text NOT NULL, titulo text NOT NULL, corpo text NOT NULL, ativo boolean NOT NULL DEFAULT true
+);
+
+-- Alta demanda (avisos progressivos 10/7/3d, nunca inventar sem config)
+CREATE TABLE IF NOT EXISTS public.datas_demanda (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ocasiao text NOT NULL, data date NOT NULL, mensagem text, antecedencia_dias integer NOT NULL DEFAULT 10,
+  nivel text NOT NULL DEFAULT 'alta', ativo boolean NOT NULL DEFAULT true
+);
+
+-- Avaliações públicas: flag de moderação (coluna nova, default exige aprovação)
+ALTER TABLE public.avaliacoes ADD COLUMN IF NOT EXISTS autoriza_publicar boolean NOT NULL DEFAULT false;
+ALTER TABLE public.avaliacoes ADD COLUMN IF NOT EXISTS aprovada boolean NOT NULL DEFAULT false;
+
+-- RLS mínimo
+ALTER TABLE public.jornada_eventos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.indicacoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.degustacoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.degustacao_regras ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.parceiros ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ajuda_artigos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.datas_demanda ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "jornada own/admin" ON public.jornada_eventos;
+CREATE POLICY "jornada own/admin" ON public.jornada_eventos FOR ALL USING (user_id = auth.uid() OR public.has_role(auth.uid(),'admin')) WITH CHECK (user_id = auth.uid() OR public.has_role(auth.uid(),'admin'));
+DROP POLICY IF EXISTS "indicacoes own/admin" ON public.indicacoes;
+CREATE POLICY "indicacoes own/admin" ON public.indicacoes FOR ALL USING (indicador_id = auth.uid() OR public.has_role(auth.uid(),'admin')) WITH CHECK (indicador_id = auth.uid() OR public.has_role(auth.uid(),'admin'));
+DROP POLICY IF EXISTS "degustacoes own/staff" ON public.degustacoes;
+CREATE POLICY "degustacoes own/staff" ON public.degustacoes FOR ALL USING (user_id = auth.uid() OR public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente')) WITH CHECK (user_id = auth.uid() OR public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente'));
+DROP POLICY IF EXISTS "regras read" ON public.degustacao_regras;
+CREATE POLICY "regras read" ON public.degustacao_regras FOR SELECT USING (true);
+DROP POLICY IF EXISTS "regras admin" ON public.degustacao_regras;
+CREATE POLICY "regras admin" ON public.degustacao_regras FOR ALL USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
+DROP POLICY IF EXISTS "parceiros read" ON public.parceiros;
+CREATE POLICY "parceiros read" ON public.parceiros FOR SELECT USING (true);
+DROP POLICY IF EXISTS "parceiros write" ON public.parceiros;
+CREATE POLICY "parceiros write" ON public.parceiros FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "ajuda read" ON public.ajuda_artigos;
+CREATE POLICY "ajuda read" ON public.ajuda_artigos FOR SELECT USING (true);
+DROP POLICY IF EXISTS "ajuda admin" ON public.ajuda_artigos;
+CREATE POLICY "ajuda admin" ON public.ajuda_artigos FOR ALL USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
+DROP POLICY IF EXISTS "datas read" ON public.datas_demanda;
+CREATE POLICY "datas read" ON public.datas_demanda FOR SELECT USING (true);
+DROP POLICY IF EXISTS "datas admin" ON public.datas_demanda;
+CREATE POLICY "datas admin" ON public.datas_demanda FOR ALL USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
+
+GRANT ALL ON public.jornada_eventos, public.indicacoes, public.degustacoes, public.degustacao_regras, public.parceiros, public.ajuda_artigos, public.datas_demanda TO authenticated;
+GRANT SELECT ON public.parceiros, public.ajuda_artigos, public.datas_demanda TO anon;
+
+-- Seed ajuda mínima (categorias do §41)
+INSERT INTO public.ajuda_artigos (categoria, titulo, corpo) VALUES
+ ('pedidos','Como acompanhar meu pedido?','Abra Conta → Meus pedidos ou o link do pedido. Os status mostram preparação, saída e entrega.'),
+ ('combos','Por que combos são de 50 em 50?','Combos de festa são produzidos em caixas de 50. O carrinho arredonda para 50, 100, 150… Congelados e bebidas vendem por unidade.'),
+ ('entrega','Entrega ou retirada?','Entrega tem taxa e vai com motoboy. Retirada é na loja, sem taxa, com endereço e mapa no pedido.'),
+ ('pagamento','Como pago?','PIX com QR/Copia e Cola, dinheiro, crédito ou débito. O pagamento começa pendente e a loja confirma.'),
+ ('agendamento','Posso agendar?','Sim, Seg–Sáb 08–12h e 13–22h (nunca 12–13h, Dom fechado), com 30min de antecedência.')
+ON CONFLICT DO NOTHING;
+$body$;
+  RAISE NOTICE 'APLICADO 0028_crm_experiencia.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0028_crm_experiencia.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0029_loja_pix.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0029: loja pix_chave (tira hardcoded do frontend)
+ALTER TABLE public.loja_config ADD COLUMN IF NOT EXISTS pix_chave text NOT NULL DEFAULT '24913937000116';
+UPDATE public.loja_config SET pix_chave = '24913937000116' WHERE pix_chave IS NULL OR pix_chave = '';
+$body$;
+  RAISE NOTICE 'APLICADO 0029_loja_pix.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0029_loja_pix.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0030_reserva_atomica.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0030: reserva atômica — impede estoque negativo por concorrência.
+-- Dois clientes simultâneos nunca vendem acima do estoque: lock por produto.
+-- Idempotente.
+
+CREATE OR REPLACE FUNCTION public.reservar_estoque_atomica(
+  p_pedido_id uuid, p_produto_id uuid, p_qtd integer
+) RETURNS boolean AS $$
+DECLARE
+  v_estoque integer;
+BEGIN
+  IF p_qtd IS NULL OR p_qtd <= 0 THEN RETURN false; END IF;
+  -- Lock da linha do produto: serializa reservas concorrentes
+  SELECT estoque INTO v_estoque FROM public.produtos WHERE id = p_produto_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN false; END IF;
+  IF v_estoque < p_qtd THEN RETURN false; END IF;
+  UPDATE public.produtos SET estoque = estoque - p_qtd WHERE id = p_produto_id;
+  INSERT INTO public.reservas_estoque (pedido_id, produto_id, quantidade, status)
+  VALUES (p_pedido_id, p_produto_id, p_qtd, 'ativa');
+  INSERT INTO public.estoque_mov (produto_id, tipo, quantidade, motivo)
+  VALUES (p_produto_id, 'reserva', p_qtd, 'pedido:' || p_pedido_id::text);
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.liberar_reserva_atomica(p_pedido_id uuid) RETURNS integer AS $$
+DECLARE
+  r record; n integer := 0;
+BEGIN
+  FOR r IN SELECT * FROM public.reservas_estoque WHERE pedido_id = p_pedido_id AND status = 'ativa' FOR UPDATE LOOP
+    UPDATE public.produtos SET estoque = estoque + r.quantidade WHERE id = r.produto_id;
+    UPDATE public.reservas_estoque SET status = 'liberada' WHERE id = r.id;
+    INSERT INTO public.estoque_mov (produto_id, tipo, quantidade, motivo)
+    VALUES (r.produto_id, 'liberacao_reserva', r.quantidade, 'pedido:' || p_pedido_id::text);
+    n := n + 1;
+  END LOOP;
+  RETURN n;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+$body$;
+  RAISE NOTICE 'APLICADO 0030_reserva_atomica.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0030_reserva_atomica.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0031_reserva_grants.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0031: grants das funções de reserva atômica (checkout chama via RPC).
+-- Idempotente. Rode no SQL Editor APÓS 0030.
+
+GRANT EXECUTE ON FUNCTION public.reservar_estoque_atomica(uuid, uuid, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.reservar_estoque_atomica(uuid, uuid, integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.liberar_reserva_atomica(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.liberar_reserva_atomica(uuid) TO service_role;
+$body$;
+  RAISE NOTICE 'APLICADO 0031_reserva_grants.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0031_reserva_grants.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0032_entrega_fase3.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0032: entrega fase 3 — vínculo motoboy×usuário, endereço completo, avisos.
+-- Idempotente. Rode no SQL Editor APÓS 0031.
+
+-- 1) motoboys.user_id: o app grava status por usuário logado (retornando_base etc.)
+ALTER TABLE public.motoboys ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS motoboys_user_idx ON public.motoboys (user_id);
+
+DROP POLICY IF EXISTS "motoboys self read" ON public.motoboys;
+CREATE POLICY "motoboys self read" ON public.motoboys FOR SELECT TO authenticated
+  USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "motoboys self insert" ON public.motoboys;
+CREATE POLICY "motoboys self insert" ON public.motoboys FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "motoboys self status" ON public.motoboys;
+CREATE POLICY "motoboys self status" ON public.motoboys FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+-- 2) endereço apartamento/condomínio completo (§59)
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS andar text,
+  ADD COLUMN IF NOT EXISTS torre text;
+
+-- 3) avisos: motoboy precisa inserir (retorno à base); staff lê; grants faltavam
+GRANT ALL ON public.notificacoes TO authenticated;
+
+DROP POLICY IF EXISTS "notificacoes motoboy insert" ON public.notificacoes;
+CREATE POLICY "notificacoes motoboy insert" ON public.notificacoes FOR INSERT TO authenticated
+  WITH CHECK (
+    public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente')
+    OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'motoboy')
+    OR public.has_role(auth.uid(),'financeiro')
+  );
+
+DROP POLICY IF EXISTS "notificacoes motoboy read" ON public.notificacoes;
+CREATE POLICY "notificacoes motoboy read" ON public.notificacoes FOR SELECT TO authenticated
+  USING (
+    public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente')
+    OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'motoboy')
+    OR public.has_role(auth.uid(),'financeiro')
+  );
+$body$;
+  RAISE NOTICE 'APLICADO 0032_entrega_fase3.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0032_entrega_fase3.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0033_fiscal_base.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0033: fiscal base — empresa, documentos, eventos, dados fiscais de produto/cliente.
+-- NENHUM valor tributário é preenchido: tudo nullable, "configuração fiscal pendente".
+-- Idempotente. Rode no SQL Editor APÓS 0032.
+
+-- Empresa (singleton id=true). Ambiente separa homologação de produção.
+CREATE TABLE IF NOT EXISTS public.empresa_fiscal (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id = true),
+  razao_social text NOT NULL DEFAULT '',
+  nome_fantasia text NOT NULL DEFAULT '',
+  cnpj text NOT NULL DEFAULT '',
+  inscricao_estadual text NOT NULL DEFAULT '',
+  inscricao_municipal text NOT NULL DEFAULT '',
+  endereco text NOT NULL DEFAULT '',
+  numero text NOT NULL DEFAULT '',
+  complemento text NOT NULL DEFAULT '',
+  bairro text NOT NULL DEFAULT '',
+  cidade text NOT NULL DEFAULT '',
+  uf text NOT NULL DEFAULT 'SP',
+  cep text NOT NULL DEFAULT '',
+  regime_tributario text NOT NULL DEFAULT '',
+  serie text NOT NULL DEFAULT '',
+  numero_inicial integer NOT NULL DEFAULT 1,
+  ambiente text NOT NULL DEFAULT 'homologacao' CHECK (ambiente IN ('homologacao','producao')),
+  modelo_padrao text NOT NULL DEFAULT '' CHECK (modelo_padrao IN ('','55','65')),
+  provedor text NOT NULL DEFAULT '',
+  csc_id text NOT NULL DEFAULT '',
+  info_adicionais text NOT NULL DEFAULT '',
+  atualizado_em timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO public.empresa_fiscal (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
+
+-- Documentos fiscais: UM por pedido (UNIQUE = idempotência fiscal).
+CREATE TABLE IF NOT EXISTS public.documentos_fiscais (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id uuid NOT NULL UNIQUE REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  modelo text NOT NULL DEFAULT '' CHECK (modelo IN ('','55','65')),
+  serie text NOT NULL DEFAULT '',
+  numero integer,
+  ambiente text NOT NULL DEFAULT 'homologacao' CHECK (ambiente IN ('homologacao','producao')),
+  status text NOT NULL DEFAULT 'nao_emitida' CHECK (status IN ('nao_emitida','em_processamento','autorizada','rejeitada','cancelada','inutilizada','contingencia','pendente','erro_comunicacao')),
+  chave_acesso text,
+  protocolo text,
+  codigo_rejeicao text,
+  mensagem_rejeicao text,
+  xml text,
+  danfe_url text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS docs_pedido_idx ON public.documentos_fiscais (pedido_id);
+CREATE INDEX IF NOT EXISTS docs_status_idx ON public.documentos_fiscais (status);
+
+-- Histórico de tentativas (nunca apagar)
+CREATE TABLE IF NOT EXISTS public.documento_eventos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  documento_id uuid NOT NULL REFERENCES public.documentos_fiscais(id) ON DELETE CASCADE,
+  evento text NOT NULL,
+  detalhe text NOT NULL DEFAULT '',
+  actor uuid REFERENCES auth.users(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS docev_doc_idx ON public.documento_eventos (documento_id);
+
+-- Dados fiscais do produto (preenchidos pelo contador; NULL = pendente)
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS descricao_fiscal text,
+  ADD COLUMN IF NOT EXISTS ncm text,
+  ADD COLUMN IF NOT EXISTS cest text,
+  ADD COLUMN IF NOT EXISTS cfop_padrao text,
+  ADD COLUMN IF NOT EXISTS cst text,
+  ADD COLUMN IF NOT EXISTS csosn text,
+  ADD COLUMN IF NOT EXISTS origem_mercadoria text,
+  ADD COLUMN IF NOT EXISTS gtin text;
+
+-- Destinatário (checkout opcional, §47) + origem do cliente (§61, só 1º pedido)
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS cpf_cnpj text,
+  ADD COLUMN IF NOT EXISTS nome_fiscal text,
+  ADD COLUMN IF NOT EXISTS origem_cliente text;
+
+-- RLS: fiscal é administrativo
+ALTER TABLE public.empresa_fiscal ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.documentos_fiscais ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.documento_eventos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "fiscal admin" ON public.empresa_fiscal;
+CREATE POLICY "fiscal admin" ON public.empresa_fiscal FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'))
+  WITH CHECK (public.has_role(auth.uid(),'admin'));
+
+DROP POLICY IF EXISTS "fiscal docs admin" ON public.documentos_fiscais;
+CREATE POLICY "fiscal docs admin" ON public.documentos_fiscais FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'))
+  WITH CHECK (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'));
+
+DROP POLICY IF EXISTS "fiscal docs own read" ON public.documentos_fiscais;
+CREATE POLICY "fiscal docs own read" ON public.documentos_fiscais FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND p.user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "fiscal ev staff" ON public.documento_eventos;
+CREATE POLICY "fiscal ev staff" ON public.documento_eventos FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'))
+  WITH CHECK (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'));
+
+GRANT ALL ON public.empresa_fiscal, public.documentos_fiscais, public.documento_eventos TO authenticated;
+$body$;
+  RAISE NOTICE 'APLICADO 0033_fiscal_base.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0033_fiscal_base.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0034_fila_cliente.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0034: impressão automática — cliente enfileira o próprio pedido.
+-- O checkout insere em fila_impressao como o cliente logado; a policy 0025
+-- só permitia staff, então o insert caía em silêncio e nada imprimia.
+-- Regra mínima: só o dono, só tipo pedido, só pendente, só uuid do evento confirmado.
+-- Idempotente.
+
+DROP POLICY IF EXISTS "fila dono insert" ON public.fila_impressao;
+CREATE POLICY "fila dono insert" ON public.fila_impressao FOR INSERT TO authenticated
+  WITH CHECK (
+    tipo = 'pedido'
+    AND status = 'pendente'
+    AND trabalho_uuid = pedido_id::text || ':confirmado'
+    AND EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND p.user_id = auth.uid())
+  );
+
+-- Histórico do nascimento do pedido (recebido): mesmo motivo, mesmo remédio.
+DROP POLICY IF EXISTS "hist dono insert" ON public.pedido_status_historico;
+CREATE POLICY "hist dono insert" ON public.pedido_status_historico FOR INSERT TO authenticated
+  WITH CHECK (
+    de_status IS NULL
+    AND para_status = 'recebido'
+    AND EXISTS (SELECT 1 FROM public.pedidos p WHERE p.id = pedido_id AND p.user_id = auth.uid())
+  );
+$body$;
+  RAISE NOTICE 'APLICADO 0034_fila_cliente.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0034_fila_cliente.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0035_loja_social.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0035: loja social — links usados no "enquanto preparamos" e no convite Google.
+-- Tudo opcional: a UI só mostra o que estiver preenchido. Idempotente.
+ALTER TABLE public.loja_config
+  ADD COLUMN IF NOT EXISTS instagram text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS facebook text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS site text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS google_avaliacao text NOT NULL DEFAULT '';
+$body$;
+  RAISE NOTICE 'APLICADO 0035_loja_social.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0035_loja_social.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0036_fritura_produto.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0036: fritura por produto — tempo de 50un configurável (padrão 210s = 3:30).
+-- NULL = usa o padrão. Idempotente.
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS tempo_fritura_s integer;
+$body$;
+  RAISE NOTICE 'APLICADO 0036_fritura_produto.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0036_fritura_produto.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0037_pedidos_cep.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0037: CEP do endereço de entrega (comanda + fiscal futuro). Idempotente.
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS cep text;
+$body$;
+  RAISE NOTICE 'APLICADO 0037_pedidos_cep.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0037_pedidos_cep.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0038_cardapio_sabores.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0038: cardápio completo — 26 sabores em frito (combo_50) + congelado (unidade).
+-- Idempotente: só insere o que ainda não existe (mesmo nome + tipo_venda).
+-- REGRA DE PREÇO (revisar no /admin → Produtos se necessário):
+--   fritos novos = mesmo preço dos irmãos da categoria (bolinhas 1.60, resto 2.30, pizzas 3.70);
+--   congelados = 50x o preço unitário do frito (ex: 1.60 -> 80.00).
+-- Doguinho NÃO incluído (substituído por enroladinho de salsicha, que já existe).
+
+-- ---------- FRITOS (combo_50) que faltavam ----------
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Bolinha de calabresa 25un', 1.60, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'bolinha de calabresa 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Bolinha de milho 25un', 1.60, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'bolinha de milho 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Bolinha de azeitona 25un', 1.60, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'bolinha de azeitona 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Trouxinha de milho com catupiry 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'trouxinha de milho com catupiry 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Trouxinha de calabresa 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'trouxinha de calabresa 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Trouxinha de ricota com zaatar 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'trouxinha de ricota com zaatar 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Hamburguinho 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'hamburguinho 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'e08980d5-ea59-4195-a535-b3f48275ea45', 'Pastel de palmito 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'pastel de palmito 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'f2302053-a296-43d0-8733-bb3caaf6871b', 'Esfiha de frango 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'esfiha de frango 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'f2302053-a296-43d0-8733-bb3caaf6871b', 'Esfiha de brocolis 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'esfiha de brocolis 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'aaefb477-bb46-4f7e-8ac8-8de1e79daf18', 'Enroladinho de presunto e queijo 25un', 2.30, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'enroladinho de presunto e queijo 25un' AND tipo_venda = 'combo_50');
+
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT '74dc1431-b9c1-4146-a1fb-f670227225cd', 'Mini pizza de presunto e queijo 25un', 3.70, 'combo_50', true, 200
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos WHERE lower(nome) = 'mini pizza de presunto e queijo 25un' AND tipo_venda = 'combo_50');
+
+-- ---------- CONGELADOS (unidade, Mini Congelados) ----------
+INSERT INTO public.produtos (categoria_id, nome, preco, tipo_venda, disponivel, estoque)
+SELECT 'a0fe8d5a-8275-4656-b2c6-5a7beadd9297', n.nome, n.preco, 'unidade', true, 100
+FROM (VALUES
+  ('Coxinha Congelada 50un', 80.00),
+  ('Bolinha de queijo Congelada 50un', 80.00),
+  ('Risole de carne Congelado 50un', 80.00),
+  ('Bolinha de calabresa Congelada 50un', 80.00),
+  ('Bolinha de milho Congelada 50un', 80.00),
+  ('Bolinha de azeitona Congelada 50un', 80.00),
+  ('Trouxinha de milho com catupiry Congelada 50un', 115.00),
+  ('Kibe Congelado 50un', 80.00),
+  ('Croquete de frango Congelado 50un', 80.00),
+  ('Pastel de carne Congelado 50un', 115.00),
+  ('Pastel de queijo Congelado 50un', 115.00),
+  ('Pastel de pizza Congelado 50un', 115.00),
+  ('Pastel de palmito Congelado 50un', 115.00),
+  ('Esfiha de carne Congelada 50un', 115.00),
+  ('Esfiha de frango Congelada 50un', 115.00),
+  ('Esfiha de brocolis Congelada 50un', 115.00),
+  ('Enroladinho de presunto e queijo Congelado 50un', 115.00),
+  ('Trouxinha de calabresa Congelada 50un', 115.00),
+  ('Hamburguinho Congelado 50un', 115.00),
+  ('Enroladinho de salsicha Congelado 50un', 115.00),
+  ('Trouxinha de ricota com zaatar Congelada 50un', 115.00),
+  ('Mini pizza de calabresa Congelada 50un', 185.00),
+  ('Mini pizza de mussarela Congelada 50un', 185.00),
+  ('Mini pizza de presunto e queijo Congelada 50un', 185.00),
+  ('Empadinha de frango Congelada 50un', 120.00),
+  ('Empadinha de palmito Congelada 50un', 120.00)
+) AS n(nome, preco)
+WHERE NOT EXISTS (SELECT 1 FROM public.produtos p WHERE lower(p.nome) = lower(n.nome) AND p.tipo_venda = 'unidade');
+$body$;
+  RAISE NOTICE 'APLICADO 0038_cardapio_sabores.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0038_cardapio_sabores.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0039_tipo_venda_produto.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0039: tipo_venda, destaque, custo, embalagem_custo em produtos
+-- Idempotente. Rode APÓS 0038.
+
+-- Enum para tipo_venda
+DO $t$
+BEGIN
+  CREATE TYPE public.tipo_venda AS ENUM ('combo_50', 'unidade');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$t$;
+
+-- Colunas novas
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS tipo_venda public.tipo_venda NOT NULL DEFAULT 'combo_50',
+  ADD COLUMN IF NOT EXISTS destaque boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS custo numeric(10,2),
+  ADD COLUMN IF NOT EXISTS embalagem_custo numeric(10,2);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS produtos_tipo_venda_idx ON public.produtos (tipo_venda);
+CREATE INDEX IF NOT EXISTS produtos_destaque_idx ON public.produtos (destaque) WHERE destaque = true;
+
+-- Classificação inicial baseada na categoria atual
+-- congelados, bebidas, kits = unidade | demais = combo_50
+UPDATE public.produtos p
+SET tipo_venda = CASE
+  WHEN c.slug IN ('mini-congelados', 'bebidas', 'kits-para-festa') THEN 'unidade'::public.tipo_venda
+  ELSE 'combo_50'::public.tipo_venda
+END
+FROM public.categorias c
+WHERE p.categoria_id = c.id
+  AND p.tipo_venda = 'combo_50'; -- só atualiza os que ainda estão no default
+
+-- Comentários
+COMMENT ON COLUMN public.produtos.tipo_venda IS 'combo_50 = múltiplos de 50; unidade = venda avulsa';
+COMMENT ON COLUMN public.produtos.destaque IS 'Aparece na seção Destaques do cardápio';
+COMMENT ON COLUMN public.produtos.custo IS 'Custo unitário do produto (para rentabilidade)';
+COMMENT ON COLUMN public.produtos.embalagem_custo IS 'Custo de embalagem por unidade';$body$;
+  RAISE NOTICE 'APLICADO 0039_tipo_venda_produto.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0039_tipo_venda_produto.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0040_pedido_cidade_status.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0040: cidade em pedidos + status estendidos + agendado_para + confirmado_em
+-- Idempotente. Rode APÓS 0039.
+
+-- Nova coluna cidade em pedidos
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS cidade text NOT NULL DEFAULT '';
+
+-- Estender enum order_status com novos status
+-- Nota: não podemos alterar enum diretamente, criamos novo e migramos
+-- Mas por enquanto adicionamos campos complementares
+
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS agendado_para timestamptz,
+  ADD COLUMN IF NOT EXISTS confirmado_em timestamptz,
+  ADD COLUMN IF NOT EXISTS pago_em timestamptz;
+
+-- Índices
+CREATE INDEX IF NOT EXISTS pedidos_cidade_idx ON public.pedidos (cidade);
+CREATE INDEX IF NOT EXISTS pedidos_agendado_para_idx ON public.pedidos (agendado_para);
+CREATE INDEX IF NOT EXISTS pedidos_confirmado_em_idx ON public.pedidos (confirmado_em);
+
+-- Comentários
+COMMENT ON COLUMN public.pedidos.cidade IS 'Cidade de entrega (obrigatória no checkout)';
+COMMENT ON COLUMN public.pedidos.agendado_para IS 'Data/hora agendada para entrega/retirada';
+COMMENT ON COLUMN public.pedidos.confirmado_em IS 'Timestamp da confirmação de pagamento/pedido';
+COMMENT ON COLUMN public.pedidos.pago_em IS 'Timestamp da confirmação de pagamento (pix/dinheiro)';$body$;
+  RAISE NOTICE 'APLICADO 0040_pedido_cidade_status.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0040_pedido_cidade_status.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0041_status_transicoes_rls.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0041: Endurecer RLS pedido_itens + transições de status
+-- Idempotente. Rode APÓS 0040.
+
+-- =============================================
+-- 1. Endurecer RLS de pedido_itens (valida ownership/papel)
+-- =============================================
+DROP POLICY IF EXISTS "itens select" ON public.pedido_itens;
+DROP POLICY IF EXISTS "itens insert" ON public.pedido_itens;
+
+CREATE POLICY "itens select" ON public.pedido_itens FOR SELECT TO authenticated USING (
+  EXISTS (
+    SELECT 1 FROM public.pedidos p
+    WHERE p.id = pedido_id
+      AND (
+        p.user_id = auth.uid()
+        OR public.has_role(auth.uid(), 'admin')
+        OR public.has_role(auth.uid(), 'producao')
+        OR (public.has_role(auth.uid(), 'motoboy') AND (p.motoboy_id = auth.uid() OR (p.motoboy_id IS NULL AND p.status IN ('pronto', 'aguardando_motoboy'))))
+      )
+  )
+);
+
+CREATE POLICY "itens insert" ON public.pedido_itens FOR INSERT TO authenticated WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.pedidos p
+    WHERE p.id = pedido_id
+      AND p.user_id = auth.uid()
+  )
+);
+
+-- =============================================
+-- 2. Tabela de transições permitidas + trigger
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.pedido_status_transicoes (
+  de_status public.order_status NOT NULL,
+  para_status public.order_status NOT NULL,
+  PRIMARY KEY (de_status, para_status)
+);
+
+-- Transições válidas padrão
+INSERT INTO public.pedido_status_transicoes (de_status, para_status) VALUES
+  -- Fluxo normal
+  ('recebido', 'em_producao'),
+  ('recebido', 'cancelado'),
+  ('em_producao', 'pronto'),
+  ('em_producao', 'cancelado'),
+  ('pronto', 'aguardando_motoboy'),
+  ('pronto', 'cancelado'),
+  ('aguardando_motoboy', 'em_rota'),
+  ('aguardando_motoboy', 'cancelado'),
+  ('em_rota', 'entregue'),
+  ('em_rota', 'cancelado'),
+  -- Retirada
+  ('pronto', 'entregue'),
+  -- Permitir voltar um passo (override admin com justificativa)
+  ('em_producao', 'recebido'),
+  ('pronto', 'em_producao'),
+  ('aguardando_motoboy', 'pronto'),
+  ('em_rota', 'aguardando_motoboy')
+ON CONFLICT DO NOTHING;
+
+-- Trigger para validar transição
+CREATE OR REPLACE FUNCTION public.validar_transicao_status()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  eh_admin boolean := public.has_role(auth.uid(), 'admin');
+BEGIN
+  -- Se não mudou, ignora
+  IF NEW.status = OLD.status THEN
+    RETURN NEW;
+  END IF;
+
+  -- Admin pode tudo (com auditoria posterior)
+  IF eh_admin THEN
+    RETURN NEW;
+  END IF;
+
+  -- Verifica se transição é permitida
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pedido_status_transicoes
+    WHERE de_status = OLD.status AND para_status = NEW.status
+  ) THEN
+    RAISE EXCEPTION 'Transição de status não permitida: % → %', OLD.status, NEW.status;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+-- Aplica trigger
+DROP TRIGGER IF EXISTS trigger_validar_transicao ON public.pedidos;
+CREATE TRIGGER trigger_validar_transicao
+  BEFORE UPDATE OF status ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validar_transicao_status();
+
+-- Comentários
+COMMENT ON TABLE public.pedido_status_transicoes IS 'Transições de status permitidas (admin ignora via role).';$body$;
+  RAISE NOTICE 'APLICADO 0041_status_transicoes_rls.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0041_status_transicoes_rls.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0042_estoque_reserva_fefo.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0042: estoque_movimentacoes + reserva atômica FEFO
+-- Idempotente. Rode APÓS 0041.
+
+-- =============================================
+-- 1. Tabela de movimentações de estoque
+-- =============================================
+DO $t$
+BEGIN
+  CREATE TYPE public.tipo_mov_estoque AS ENUM ('entrada_producao', 'entrada_manual', 'venda', 'reserva', 'liberacao', 'cancelamento', 'perda', 'vencimento', 'ajuste', 'devolucao', 'degustacao');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$t$;
+
+CREATE TABLE IF NOT EXISTS public.estoque_movimentacoes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  produto_id uuid NOT NULL REFERENCES public.produtos(id) ON DELETE CASCADE,
+  lote_id uuid REFERENCES public.lotes(id) ON DELETE SET NULL,
+  tipo public.tipo_mov_estoque NOT NULL,
+  quantidade integer NOT NULL CHECK (quantidade != 0),
+  saldo_anterior integer NOT NULL,
+  saldo_posterior integer NOT NULL,
+  referencia_id uuid, -- pedido_id, degustacao_id, etc.
+  referencia_tipo text, -- 'pedido', 'degustacao', 'lote', 'manual'
+  usuario_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  observacao text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS est_mov_produto_idx ON public.estoque_movimentacoes (produto_id);
+CREATE INDEX IF NOT EXISTS est_mov_lote_idx ON public.estoque_movimentacoes (lote_id);
+CREATE INDEX IF NOT EXISTS est_mov_tipo_idx ON public.estoque_movimentacoes (tipo);
+CREATE INDEX IF NOT EXISTS est_mov_created_idx ON public.estoque_movimentacoes (created_at);
+
+-- =============================================
+-- 2. Função helper para registrar movimentação
+-- =============================================
+CREATE OR REPLACE FUNCTION public.registrar_mov_estoque(
+  p_produto_id uuid,
+  p_tipo public.tipo_mov_estoque,
+  p_quantidade integer,
+  p_lote_id uuid DEFAULT NULL,
+  p_referencia_id uuid DEFAULT NULL,
+  p_referencia_tipo text DEFAULT NULL,
+  p_usuario_id uuid DEFAULT NULL,
+  p_observacao text DEFAULT NULL
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_saldo_anterior integer;
+  v_saldo_posterior integer;
+BEGIN
+  -- Trava o produto para evitar race condition
+  PERFORM * FROM public.produtos WHERE id = p_produto_id FOR UPDATE;
+
+  SELECT estoque INTO v_saldo_anterior FROM public.produtos WHERE id = p_produto_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Produto não encontrado: %', p_produto_id;
+  END IF;
+
+  v_saldo_posterior := v_saldo_anterior + p_quantidade;
+  IF v_saldo_posterior < 0 THEN
+    RAISE EXCEPTION 'Estoque não pode ficar negativo (produto: %, atual: %, tentando: %)',
+      p_produto_id, v_saldo_anterior, p_quantidade;
+  END IF;
+
+  -- Atualiza estoque do produto
+  UPDATE public.produtos SET estoque = v_saldo_posterior WHERE id = p_produto_id;
+
+  -- Registra movimentação
+  INSERT INTO public.estoque_movimentacoes (
+    produto_id, lote_id, tipo, quantidade,
+    saldo_anterior, saldo_posterior,
+    referencia_id, referencia_tipo, usuario_id, observacao
+  ) VALUES (
+    p_produto_id, p_lote_id, p_tipo, p_quantidade,
+    v_saldo_anterior, v_saldo_posterior,
+    p_referencia_id, p_referencia_tipo, p_usuario_id, p_observacao
+  );
+END;
+$$;
+
+-- =============================================
+-- 3. Reserva atômica FEFO para pedido confirmado
+-- =============================================
+CREATE OR REPLACE FUNCTION public.reservar_estoque_pedido(p_pedido_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_item record;
+  v_qtd_restante integer;
+  v_lote record;
+BEGIN
+  -- Valida se pedido existe e está em status confirmado
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pedidos
+    WHERE id = p_pedido_id AND status = 'em_producao'
+  ) THEN
+    RAISE EXCEPTION 'Pedido não encontrado ou não está em status "em_producao": %', p_pedido_id;
+  END IF;
+
+  -- Para cada item do pedido
+  FOR v_item IN
+    SELECT pi.produto_id, pi.quantidade
+    FROM public.pedido_itens pi
+    WHERE pi.pedido_id = p_pedido_id
+  LOOP
+    v_qtd_restante := v_item.quantidade;
+
+    -- Busca lotes FEFO (First Expire, First Out) com saldo disponível
+    FOR v_lote IN
+      SELECT id, restante
+      FROM public.lotes
+      WHERE produto_id = v_item.produto_id
+        AND status = 'ativo'
+        AND restante > 0
+        AND (validade IS NULL OR validade >= CURRENT_DATE)
+      ORDER BY validade ASC NULLS LAST, created_at ASC
+    LOOP
+      IF v_qtd_restante <= 0 THEN
+        EXIT;
+      END IF;
+
+      DECLARE
+        v_qtd_lote integer := LEAST(v_lote.restante, v_qtd_restante);
+      BEGIN
+        -- Atualiza lote
+        UPDATE public.lotes
+        SET restante = restante - v_qtd_lote
+        WHERE id = v_lote.id;
+
+        -- Registra movimentação de reserva
+        PERFORM public.registrar_mov_estoque(
+          v_item.produto_id,
+          'reserva',
+          -v_qtd_lote,
+          v_lote.id,
+          p_pedido_id,
+          'pedido',
+          NULL,
+          'Reserva FEFO para pedido #' || (
+            SELECT numero::text FROM public.pedidos WHERE id = p_pedido_id
+          )
+        );
+
+        v_qtd_restante := v_qtd_restante - v_qtd_lote;
+      END;
+    END LOOP;
+
+    IF v_qtd_restante > 0 THEN
+      RAISE EXCEPTION 'Estoque insuficiente para produto % (faltam % unidades). Lotes disponíveis: %',
+        v_item.produto_id, v_qtd_restante, (
+          SELECT COALESCE(SUM(restante), 0)
+          FROM public.lotes
+          WHERE produto_id = v_item.produto_id
+            AND status = 'ativo'
+            AND restante > 0
+        );
+    END IF;
+  END LOOP;
+END;
+$$;
+
+-- =============================================
+-- 4. Liberação de reserva (cancelamento pedido)
+-- =============================================
+CREATE OR REPLACE FUNCTION public.liberar_reserva_pedido(p_pedido_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_mov record;
+BEGIN
+  -- Busca movimentações de reserva deste pedido
+  FOR v_mov IN
+    SELECT produto_id, lote_id, ABS(quantidade) AS qtd
+    FROM public.estoque_movimentacoes
+    WHERE referencia_id = p_pedido_id
+      AND referencia_tipo = 'pedido'
+      AND tipo = 'reserva'
+  LOOP
+    -- Devolve ao lote
+    IF v_mov.lote_id IS NOT NULL THEN
+      UPDATE public.lotes
+      SET restante = restante + v_mov.qtd
+      WHERE id = v_mov.lote_id;
+    END IF;
+
+    -- Registra liberação
+    PERFORM public.registrar_mov_estoque(
+      v_mov.produto_id,
+      'liberacao',
+      v_mov.qtd,
+      v_mov.lote_id,
+      p_pedido_id,
+      'pedido',
+      NULL,
+      'Liberação de reserva por cancelamento/alteração do pedido'
+    );
+  END LOOP;
+END;
+$$;
+
+-- =============================================
+-- 5. Trigger: ao confirmar pedido (status -> em_producao), reserva estoque
+-- =============================================
+CREATE OR REPLACE FUNCTION public.trigger_reservar_estoque()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.status = 'em_producao' AND OLD.status = 'recebido' THEN
+    PERFORM public.reservar_estoque_pedido(NEW.id);
+  ELSIF NEW.status = 'recebido' AND OLD.status = 'em_producao' THEN
+    PERFORM public.liberar_reserva_pedido(NEW.id);
+  ELSIF NEW.status = 'cancelado' AND OLD.status IN ('recebido', 'em_producao') THEN
+    PERFORM public.liberar_reserva_pedido(NEW.id);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_reserva_estoque_pedido ON public.pedidos;
+CREATE TRIGGER trigger_reserva_estoque_pedido
+  AFTER UPDATE OF status ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_reservar_estoque();
+
+-- RLS
+ALTER TABLE public.estoque_movimentacoes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "est_mov staff" ON public.estoque_movimentacoes;
+CREATE POLICY "est_mov staff" ON public.estoque_movimentacoes FOR ALL USING (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'financeiro')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'financeiro')
+);
+
+COMMENT ON TABLE public.estoque_movimentacoes IS 'Todas as movimentações de estoque (FEFO, reservas, liberações, ajustes). Nunca apagar.';$body$;
+  RAISE NOTICE 'APLICADO 0042_estoque_reserva_fefo.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0042_estoque_reserva_fefo.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0043_fritura_fila.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0043: fritura_fila + tempo configurável por produto
+-- Idempotente. Rode APÓS 0042.
+
+-- =============================================
+-- 1. Tempo de fritura por produto (base 50un = 3:30)
+-- =============================================
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS tempo_fritura_base_segundos integer DEFAULT 210 CHECK (tempo_fritura_base_segundos > 0),
+  ADD COLUMN IF NOT EXISTS unidade_base_tempo_fritura integer DEFAULT 50 CHECK (unidade_base_tempo_fritura > 0);
+
+-- =============================================
+-- 2. Fila de fritura
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.fritura_fila (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  produto_id uuid NOT NULL REFERENCES public.produtos(id) ON DELETE CASCADE,
+  quantidade integer NOT NULL CHECK (quantidade > 0),
+  tempo_previsto_segundos integer NOT NULL CHECK (tempo_previsto_segundos > 0),
+  inicio timestamptz,
+  fim timestamptz,
+  status text NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'em_fritura', 'concluido', 'pausado', 'cancelado')),
+  funcionario_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  observacao text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS fritura_fila_pedido_idx ON public.fritura_fila (pedido_id);
+CREATE INDEX IF NOT EXISTS fritura_fila_status_idx ON public.fritura_fila (status);
+CREATE INDEX IF NOT EXISTS fritura_fila_funcionario_idx ON public.fritura_fila (funcionario_id);
+
+-- =============================================
+-- 3. Função para calcular tempo de fritura
+-- =============================================
+CREATE OR REPLACE FUNCTION public.calcular_tempo_fritura(p_produto_id uuid, p_quantidade integer)
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_base_seg integer;
+  v_base_qtd integer;
+  v_tempo integer;
+BEGIN
+  SELECT tempo_fritura_base_segundos, unidade_base_tempo_fritura
+  INTO v_base_seg, v_base_qtd
+  FROM public.produtos
+  WHERE id = p_produto_id;
+
+  IF NOT FOUND THEN
+    RETURN 210; -- default 3:30
+  END IF;
+
+  -- Proporcional linear: (quantidade / base_qtd) * base_seg
+  v_tempo := CEIL(p_quantidade::numeric / v_base_qtd * v_base_seg);
+  RETURN v_tempo;
+END;
+$$;
+
+-- =============================================
+-- 4. Trigger: ao confirmar pedido (em_producao), cria itens na fila de fritura
+-- =============================================
+CREATE OR REPLACE FUNCTION public.trigger_criar_fritura_fila()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_item record;
+  v_tempo integer;
+BEGIN
+  IF NEW.status = 'em_producao' AND OLD.status = 'recebido' THEN
+    FOR v_item IN
+      SELECT pi.produto_id, pi.quantidade
+      FROM public.pedido_itens pi
+      WHERE pi.pedido_id = NEW.id
+    LOOP
+      v_tempo := public.calcular_tempo_fritura(v_item.produto_id, v_item.quantidade);
+      INSERT INTO public.fritura_fila (pedido_id, produto_id, quantidade, tempo_previsto_segundos)
+      VALUES (NEW.id, v_item.produto_id, v_item.quantidade, v_tempo)
+      ON CONFLICT DO NOTHING;
+    END LOOP;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_criar_fritura_fila ON public.pedidos;
+CREATE TRIGGER trigger_criar_fritura_fila
+  AFTER UPDATE OF status ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_criar_fritura_fila();
+
+-- =============================================
+-- 5. RLS
+-- =============================================
+ALTER TABLE public.fritura_fila ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "fritura staff" ON public.fritura_fila;
+CREATE POLICY "fritura staff" ON public.fritura_fila FOR ALL USING (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+);
+
+COMMENT ON TABLE public.fritura_fila IS 'Fila de fritura por pedido/produto. Tempo calculado proporcional à quantidade (base 50un).';
+COMMENT ON COLUMN public.produtos.tempo_fritura_base_segundos IS 'Tempo base em segundos para unidade_base_tempo_fritura unidades (ex: 210s = 3:30 para 50un).';$body$;
+  RAISE NOTICE 'APLICADO 0043_fritura_fila.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0043_fritura_fila.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0044_motoboy_rotas.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0044: motoboy_estados + rotas + historico
+-- Idempotente. Rode APÓS 0043.
+
+-- =============================================
+-- 1. Enum para status do motoboy
+-- =============================================
+-- DO block = reexecutável (0047 repete por segurança).
+DO $$ BEGIN
+DO $t$
+BEGIN
+  CREATE TYPE public.motoboy_status AS ENUM ('disponivel_base', 'preparando_saida', 'em_rota', 'retornando_base', 'aguardando_nova_rota', 'offline');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$t$;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================
+-- 2. Tabela de motoboys (estende papel existente)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.motoboys (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  nome text NOT NULL,
+  telefone text,
+  status public.motoboy_status NOT NULL DEFAULT 'offline',
+  veiculo text,
+  placa text,
+  observacao text,
+  ultima_atualizacao timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS motoboys_status_idx ON public.motoboys (status);
+
+-- =============================================
+-- 3. Tabela de rotas
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.rotas (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  motoboy_id uuid NOT NULL REFERENCES public.motoboys(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'ativa' CHECK (status IN ('ativa', 'concluida', 'cancelada')),
+  observacao text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  concluida_em timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS rotas_motoboy_idx ON public.rotas (motoboy_id);
+CREATE INDEX IF NOT EXISTS rotas_status_idx ON public.rotas (status);
+
+-- =============================================
+-- 4. Pedidos na rota (ordem de entrega)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.rota_pedidos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  rota_id uuid NOT NULL REFERENCES public.rotas(id) ON DELETE CASCADE,
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  ordem integer NOT NULL DEFAULT 0,
+  UNIQUE (rota_id, pedido_id)
+);
+
+CREATE INDEX IF NOT EXISTS rota_pedidos_rota_idx ON public.rota_pedidos (rota_id);
+
+-- =============================================
+-- 5. Histórico do motoboy (saída, entrega, retorno, atrasos)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.motoboy_historico (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  motoboy_id uuid NOT NULL REFERENCES public.motoboys(id) ON DELETE CASCADE,
+  rota_id uuid REFERENCES public.rotas(id) ON DELETE SET NULL,
+  pedido_id uuid REFERENCES public.pedidos(id) ON DELETE SET NULL,
+  evento text NOT NULL CHECK (evento IN (
+    'saida_base',
+    'chegada_entrega',
+    'entrega_realizada',
+    'atraso',
+    'retorno_base',
+    'inicio_preparacao_saida',
+    'fim_preparacao_saida'
+  )),
+  detalhe text,
+  localizacao_lat double precision,
+  localizacao_lng double precision,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS motoboy_hist_motoboy_idx ON public.motoboy_historico (motoboy_id);
+CREATE INDEX IF NOT EXISTS motoboy_hist_created_idx ON public.motoboy_historico (created_at);
+CREATE INDEX IF NOT EXISTS motoboy_hist_evento_idx ON public.motoboy_historico (evento);
+
+-- =============================================
+-- 6. Enum para motivos de atraso
+-- =============================================
+DO $$ BEGIN
+DO $t$
+BEGIN
+  CREATE TYPE public.atraso_motivo AS ENUM ('transito', 'chuva', 'veiculo', 'endereco', 'cliente_ausente', 'espera', 'acidente_bloqueio', 'outro');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$t$;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================
+-- 7. Atrasos de entrega
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.entrega_atrasos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
+  motoboy_id uuid REFERENCES public.motoboys(id) ON DELETE SET NULL,
+  motivo public.atraso_motivo NOT NULL,
+  descricao_outro text,
+  criado_em timestamptz NOT NULL DEFAULT now(),
+  resolvido_em timestamptz,
+  criado_por uuid REFERENCES auth.users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS atrasos_pedido_idx ON public.entrega_atrasos (pedido_id);
+CREATE INDEX IF NOT EXISTS atrasos_motoboy_idx ON public.entrega_atrasos (motoboy_id);
+CREATE INDEX IF NOT EXISTS atrasos_criado_idx ON public.entrega_atrasos (criado_em);
+
+-- =============================================
+-- 8. RLS
+-- =============================================
+ALTER TABLE public.motoboys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rotas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rota_pedidos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.motoboy_historico ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.entrega_atrasos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "motoboys staff" ON public.motoboys;
+CREATE POLICY "motoboys staff" ON public.motoboys FOR ALL USING (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+);
+
+DROP POLICY IF EXISTS "rotas staff" ON public.rotas;
+CREATE POLICY "rotas staff" ON public.rotas FOR ALL USING (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+);
+
+DROP POLICY IF EXISTS "rota_pedidos staff" ON public.rota_pedidos;
+CREATE POLICY "rota_pedidos staff" ON public.rota_pedidos FOR ALL USING (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+);
+
+DROP POLICY IF EXISTS "motoboy_hist staff" ON public.motoboy_historico;
+CREATE POLICY "motoboy_hist staff" ON public.motoboy_historico FOR ALL USING (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+);
+
+DROP POLICY IF EXISTS "atrasos staff" ON public.entrega_atrasos;
+CREATE POLICY "atrasos staff" ON public.entrega_atrasos FOR ALL USING (
+  public.has_role(auth.uid(), 'admin')
+  OR public.has_role(auth.uid(), 'producao')
+  OR public.has_role(auth.uid(), 'atendente')
+) WITH CHECK (
+  public.has_role(auth.uid(), 'admin')
+);
+
+-- Comentários
+COMMENT ON TYPE public.motoboy_status IS 'disponivel_base, preparando_saida, em_rota, retornando_base, aguardando_nova_rota, offline';
+COMMENT ON TYPE public.atraso_motivo IS 'Motivos padronizados de atraso de entrega';$body$;
+  RAISE NOTICE 'APLICADO 0044_motoboy_rotas.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0044_motoboy_rotas.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0045_entrega_apartamento.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0045: endereco_entrega completo + tipos de imovel + mensagem condominio
+-- Idempotente. Rode APÓS 0044.
+
+-- =============================================
+-- 1. Endereço de entrega estruturado (já existe em pedidos, mas vamos garantir)
+-- =============================================
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS tipo_imovel text CHECK (tipo_imovel IN ('casa', 'apartamento')),
+  ADD COLUMN IF NOT EXISTS apartamento text,
+  ADD COLUMN IF NOT EXISTS bloco text,
+  ADD COLUMN IF NOT EXISTS torre text,
+  ADD COLUMN IF NOT EXISTS andar text,
+  ADD COLUMN IF NOT EXISTS interfone text,
+  ADD COLUMN IF NOT EXISTS pode_subir boolean DEFAULT false;
+
+-- =============================================
+-- 2. Trigger: ao sair para entrega, atualiza status motoboy + histórico
+-- =============================================
+-- NOTA 0047: pedidos.motoboy_id é auth.users.id (0000 + motoboy.tsx), então o
+-- vínculo resolve via motoboys.user_id. Sem vínculo: troca o status sem
+-- histórico (nunca aborta a entrega por FK).
+CREATE OR REPLACE FUNCTION public.trigger_saida_motoboy()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_mb uuid;
+BEGIN
+  IF NEW.status = 'em_rota' AND OLD.status = 'aguardando_motoboy' AND NEW.motoboy_id IS NOT NULL THEN
+    SELECT id INTO v_mb FROM public.motoboys WHERE user_id = NEW.motoboy_id;
+    IF v_mb IS NOT NULL THEN
+      -- Atualiza motoboy
+      UPDATE public.motoboys
+      SET status = 'em_rota',
+          ultima_atualizacao = now()
+      WHERE id = v_mb;
+
+      -- Histórico
+      INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+      VALUES (
+        v_mb,
+        NULL,
+        NEW.id,
+        'saida_base',
+        'Iniciou rota de entrega para pedido #' || NEW.numero
+      );
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- =============================================
+-- 3. Trigger: ao entregar, atualiza motoboy + histórico
+-- =============================================
+CREATE OR REPLACE FUNCTION public.trigger_entrega_motoboy()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_mb uuid;
+  v_restam integer;
+BEGIN
+  IF NEW.status = 'entregue' AND OLD.status = 'em_rota' AND NEW.motoboy_id IS NOT NULL THEN
+    SELECT id INTO v_mb FROM public.motoboys WHERE user_id = NEW.motoboy_id;
+    IF v_mb IS NOT NULL THEN
+      -- Atualiza motoboy
+      UPDATE public.motoboys
+      SET status = 'retornando_base',
+          ultima_atualizacao = now()
+      WHERE id = v_mb;
+
+      -- Histórico
+      INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+      VALUES (
+        v_mb,
+        NULL,
+        NEW.id,
+        'entrega_realizada',
+        'Entregue pedido #' || NEW.numero || ' para ' || NEW.cliente_nome
+      );
+
+      -- Verifica se motoboy tem mais pedidos em rota
+      SELECT count(*) INTO v_restam FROM public.pedidos
+      WHERE motoboy_id = NEW.motoboy_id
+        AND status IN ('em_rota', 'aguardando_motoboy');
+
+      IF v_restam = 0 THEN
+        -- Se não tem mais, marca como aguardando nova rota
+        UPDATE public.motoboys
+        SET status = 'aguardando_nova_rota',
+            ultima_atualizacao = now()
+        WHERE id = v_mb;
+
+        INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+        VALUES (
+          v_mb,
+          NULL,
+          NEW.id,
+          'retorno_base',
+          'Retornando à base - sem mais pedidos em rota'
+        );
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- Aplica triggers
+DROP TRIGGER IF EXISTS trigger_saida_motoboy ON public.pedidos;
+CREATE TRIGGER trigger_saida_motoboy
+  AFTER UPDATE OF status ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_saida_motoboy();
+
+DROP TRIGGER IF EXISTS trigger_entrega_motoboy ON public.pedidos;
+CREATE TRIGGER trigger_entrega_motoboy
+  AFTER UPDATE OF status ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_entrega_motoboy();
+
+-- =============================================
+-- 4. Função: mensagem automática para apartamento/condomínio
+-- =============================================
+CREATE OR REPLACE FUNCTION public.gerar_msg_apartamento(p_pedido_id uuid)
+RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_pedido record;
+  v_msg text;
+BEGIN
+  SELECT tipo_imovel, apartamento, bloco, torre, andar, interfone, pode_subir, cliente_nome
+  INTO v_pedido
+  FROM public.pedidos
+  WHERE id = p_pedido_id;
+
+  IF NOT FOUND OR v_pedido.tipo_imovel != 'apartamento' THEN
+    RETURN NULL;
+  END IF;
+
+  v_msg := '🛵 Seu pedido já saiu para entrega!' || E'\n\n';
+
+  IF v_pedido.pode_subir THEN
+    v_msg := v_msg || 'Você autorizou que o motoboy suba até o apartamento. ';
+  ELSE
+    v_msg := v_msg || 'Se possível, pedimos que aguarde o motoboy na portaria no momento da chegada. 😊' || E'\n\n';
+    v_msg := v_msg || 'Isso ajuda a agilizar sua entrega e também as próximas entregas da nossa rota.' || E'\n\n';
+    v_msg := v_msg || 'Obrigado pela compreensão! ❤️';
+  END IF;
+
+  -- Info extra para o motoboy
+  v_msg := v_msg || E'\n\n📍 Detalhes do local:';
+  IF v_pedido.apartamento IS NOT NULL AND v_pedido.apartamento != '' THEN
+    v_msg := v_msg || E'\n• Apartamento: ' || v_pedido.apartamento;
+  END IF;
+  IF v_pedido.bloco IS NOT NULL AND v_pedido.bloco != '' THEN
+    v_msg := v_msg || E'\n• Bloco: ' || v_pedido.bloco;
+  END IF;
+  IF v_pedido.torre IS NOT NULL AND v_pedido.torre != '' THEN
+    v_msg := v_msg || E'\n• Torre: ' || v_pedido.torre;
+  END IF;
+  IF v_pedido.andar IS NOT NULL AND v_pedido.andar != '' THEN
+    v_msg := v_msg || E'\n• Andar: ' || v_pedido.andar;
+  END IF;
+  IF v_pedido.interfone IS NOT NULL AND v_pedido.interfone != '' THEN
+    v_msg := v_msg || E'\n• Interfone: ' || v_pedido.interfone;
+  END IF;
+
+  RETURN v_msg;
+END;
+$$;
+
+-- =============================================
+-- 5. Trigger: ao criar pedido com apartamento, envia mensagem automática
+-- =============================================
+-- (O envio real é via WhatsApp no frontend/backend, esta função serve para gerar o texto)
+
+-- =============================================
+-- 6. Trigger: ao agendar, valida endereço completo
+-- =============================================
+CREATE OR REPLACE FUNCTION public.validar_endereco_entrega()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.tipo_entrega = 'entrega' THEN
+    IF NEW.endereco IS NULL OR NEW.endereco = '' THEN
+      RAISE EXCEPTION 'Endereço é obrigatório para entrega';
+    END IF;
+    IF NEW.bairro IS NULL OR NEW.bairro = '' THEN
+      RAISE EXCEPTION 'Bairro é obrigatório para entrega';
+    END IF;
+    IF NEW.cidade IS NULL OR NEW.cidade = '' THEN
+      RAISE EXCEPTION 'Cidade é obrigatória para entrega';
+    END IF;
+    IF NEW.tipo_imovel = 'apartamento' THEN
+      IF NEW.apartamento IS NULL OR NEW.apartamento = '' THEN
+        RAISE EXCEPTION 'Número do apartamento é obrigatório';
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- NOTA 0047: escopo restrito a colunas de endereço — troca de status (motoboy,
+-- admin) nunca é barrada por endereço legado sem cidade.
+DROP TRIGGER IF EXISTS trigger_validar_endereco ON public.pedidos;
+CREATE TRIGGER trigger_validar_endereco
+  BEFORE INSERT OR UPDATE OF tipo_entrega, endereco, bairro, cidade, tipo_imovel, apartamento
+  ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validar_endereco_entrega();
+
+COMMENT ON TABLE public.pedidos IS '...';
+COMMENT ON COLUMN public.pedidos.tipo_imovel IS 'casa | apartamento (para mensagem automática condominio)';
+COMMENT ON COLUMN public.pedidos.pode_subir IS 'Se true, motoboy sobe até o apto; se false, cliente aguarda na portaria';$body$;
+  RAISE NOTICE 'APLICADO 0045_entrega_apartamento.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0045_entrega_apartamento.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0046_fiscal_integracao.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0046: Fiscal provider config + certificado ref + documento_fiscal_itens
+-- Idempotente. Rode APÓS 0045.
+
+-- =============================================
+-- 1. Configuração do provedor fiscal (Focus NFe, Nuvem Fiscal, etc.)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.fiscal_provedor_config (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id = true),
+  provedor text NOT NULL DEFAULT 'focus' CHECK (provedor IN ('focus', 'nuvem_fiscal', 'tecnospeed', 'sefaz_direto')),
+  ambiente text NOT NULL DEFAULT 'homologacao' CHECK (ambiente IN ('homologacao', 'producao')),
+  url_base text NOT NULL DEFAULT '',
+  token text NOT NULL DEFAULT '',
+  timeout_segundos integer NOT NULL DEFAULT 30,
+  homologacao_url text,
+  producao_url text,
+  homologacao_token text,
+  producao_token text,
+  certificado_ref text, -- referência ao certificado no cofre (Azure Key Vault, AWS Secrets, etc.)
+  certificado_senha_ref text,
+  csc_id text,
+  csc_token text,
+  contingencia_habilitada boolean NOT NULL DEFAULT false,
+  contingencia_tipo text CHECK (contingencia_tipo IN ('SVC-AN', 'SVC-RS', 'offline')),
+  atualizado_em timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.fiscal_provedor_config (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
+
+-- =============================================
+-- 2. Certificados digitais (referência segura, nunca armazena o .pfx aqui)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.fiscal_certificados (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id boolean NOT NULL DEFAULT true REFERENCES public.empresa_fiscal(id),
+  nome text NOT NULL, -- ex: "Certificado A1 Produção"
+  tipo text NOT NULL CHECK (tipo IN ('A1', 'A3')),
+  ref_cofre text NOT NULL, -- URI/secreto no Azure Key Vault / AWS Secrets Manager / HashiCorp Vault
+  senha_ref_cofre text, -- referência separada para a senha
+  cnpj_titular text NOT NULL,
+  validade_inicio date,
+  validade_fim date,
+  status text NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'vencido', 'revogado', 'teste')),
+  ambiente text NOT NULL DEFAULT 'homologacao' CHECK (ambiente IN ('homologacao', 'producao')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  atualizado_em timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS fiscal_cert_empresa_idx ON public.fiscal_certificados (empresa_id);
+CREATE INDEX IF NOT EXISTS fiscal_cert_status_idx ON public.fiscal_certificados (status);
+
+-- =============================================
+-- 3. Itens fiscais do documento (dados por item para geração XML)
+-- =============================================
+CREATE TABLE IF NOT EXISTS public.documento_fiscal_itens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  documento_id uuid NOT NULL REFERENCES public.documentos_fiscais(id) ON DELETE CASCADE,
+  produto_id uuid REFERENCES public.produtos(id) ON DELETE SET NULL,
+  n_item integer NOT NULL, -- número sequencial do item na nota (1, 2, 3...)
+  codigo_produto text NOT NULL,
+  descricao text NOT NULL,
+  ncm text,
+  cest text,
+  cfop text,
+  unidade text NOT NULL DEFAULT 'UN',
+  quantidade numeric(10,3) NOT NULL,
+  valor_unitario numeric(10,2) NOT NULL,
+  valor_total numeric(10,2) NOT NULL,
+  -- ICMS
+  icms_origem text CHECK (icms_origem IN ('0','1','2','3','4','5','6','7','8')),
+  icms_cst text,
+  icms_csosn text,
+  icms_aliquota numeric(5,2),
+  icms_valor numeric(10,2),
+  icms_base numeric(10,2),
+  -- IPI
+  ipi_cst text,
+  ipi_aliquota numeric(5,2),
+  ipi_valor numeric(10,2),
+  -- PIS
+  pis_cst text,
+  pis_aliquota numeric(5,2),
+  pis_valor numeric(10,2),
+  -- COFINS
+  cofins_cst text,
+  cofins_aliquota numeric(5,2),
+  cofins_valor numeric(10,2),
+  -- Informações adicionais
+  inf_adicionais text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS doc_fiscal_itens_doc_idx ON public.documento_fiscal_itens (documento_id);
+CREATE INDEX IF NOT EXISTS doc_fiscal_itens_prod_idx ON public.documento_fiscal_itens (produto_id);
+
+-- =============================================
+-- 4. Trigger: valida dados fiscais obrigatórios antes de emitir
+-- =============================================
+CREATE OR REPLACE FUNCTION public.validar_dados_fiscais_emissao()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_empresa record;
+  v_item record;
+  v_faltando text[];
+BEGIN
+  -- Só valida em transição para em_processamento/autorizada
+  IF NEW.status NOT IN ('em_processamento', 'autorizada') THEN
+    RETURN NEW;
+  END IF;
+
+  -- Valida empresa
+  SELECT * INTO v_empresa FROM public.empresa_fiscal WHERE id = true;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Configuração fiscal da empresa não encontrada (execute migração 0033)';
+  END IF;
+
+  v_faltando := ARRAY[]::text[];
+  IF v_empresa.razao_social = '' THEN v_faltando := array_append(v_faltando, 'razao_social'); END IF;
+  IF v_empresa.cnpj = '' THEN v_faltando := array_append(v_faltando, 'cnpj'); END IF;
+  IF v_empresa.inscricao_estadual = '' THEN v_faltando := array_append(v_faltando, 'inscricao_estadual'); END IF;
+  IF v_empresa.endereco = '' THEN v_faltando := array_append(v_faltando, 'endereco'); END IF;
+  IF v_empresa.cidade = '' THEN v_faltando := array_append(v_faltando, 'cidade'); END IF;
+  IF v_empresa.uf = '' THEN v_faltando := array_append(v_faltando, 'uf'); END IF;
+  IF v_empresa.cep = '' THEN v_faltando := array_append(v_faltando, 'cep'); END IF;
+  IF v_empresa.regime_tributario = '' THEN v_faltando := array_append(v_faltando, 'regime_tributario'); END IF;
+  IF v_empresa.serie = '' THEN v_faltando := array_append(v_faltando, 'serie'); END IF;
+  IF v_empresa.modelo_padrao = '' THEN v_faltando := array_append(v_faltando, 'modelo_padrao (55 ou 65)'); END IF;
+  IF v_empresa.ambiente = '' THEN v_faltando := array_append(v_faltando, 'ambiente'); END IF;
+  IF v_empresa.provedor = '' THEN v_faltando := array_append(v_faltando, 'provedor'); END IF;
+
+  IF array_length(v_faltando, 1) > 0 THEN
+    RAISE EXCEPTION 'Configuração fiscal incompleta. Faltam: %', array_to_string(v_faltando, ', ');
+  END IF;
+
+  -- Itens avulsos (combo montado, produto_id NULL) não têm NCM próprio:
+  -- bloqueia com mensagem clara em vez de emitir com tributo inventado.
+  IF EXISTS (
+    SELECT 1 FROM public.pedido_itens pi
+    WHERE pi.pedido_id = NEW.pedido_id AND pi.produto_id IS NULL
+  ) THEN
+    RAISE EXCEPTION 'Pedido tem item avulso/combo sem produto vinculado. Desmembre em sabores com NCM/CFOP ou cadastre um produto kit antes de emitir.';
+  END IF;
+
+  -- Valida itens fiscais do pedido (usa NEW.pedido_id: no BEFORE INSERT a
+  -- linha ainda não existe na tabela, então subquery em documentos_fiscais
+  -- retornaria NULL e a validação seria silenciosamente pulada).
+  FOR v_item IN
+    SELECT DISTINCT p.id, p.nome, p.ncm, p.cst, p.csosn, p.cfop_padrao, p.origem_mercadoria
+    FROM public.produtos p
+    JOIN public.pedido_itens pi ON pi.produto_id = p.id
+    WHERE pi.pedido_id = NEW.pedido_id
+  LOOP
+    v_faltando := ARRAY[]::text[];
+    IF v_item.ncm IS NULL OR v_item.ncm = '' THEN v_faltando := array_append(v_faltando, 'NCM'); END IF;
+    IF v_item.cst IS NULL AND v_item.csosn IS NULL THEN v_faltando := array_append(v_faltando, 'CST/CSOSN'); END IF;
+    IF v_item.cfop_padrao IS NULL OR v_item.cfop_padrao = '' THEN v_faltando := array_append(v_faltando, 'CFOP'); END IF;
+    IF v_item.origem_mercadoria IS NULL OR v_item.origem_mercadoria = '' THEN v_faltando := array_append(v_faltando, 'origem_mercadoria'); END IF;
+
+    IF array_length(v_faltando, 1) > 0 THEN
+      RAISE EXCEPTION 'Produto "%" sem dados fiscais obrigatórios: %', v_item.nome, array_to_string(v_faltando, ', ');
+    END IF;
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_validar_fiscal_emissao ON public.documentos_fiscais;
+CREATE TRIGGER trigger_validar_fiscal_emissao
+  BEFORE INSERT OR UPDATE OF status ON public.documentos_fiscais
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validar_dados_fiscais_emissao();
+
+-- RLS
+ALTER TABLE public.fiscal_provedor_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.fiscal_certificados ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.documento_fiscal_itens ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "fiscal_provedor admin" ON public.fiscal_provedor_config;
+CREATE POLICY "fiscal_provedor admin" ON public.fiscal_provedor_config FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'))
+  WITH CHECK (public.has_role(auth.uid(),'admin'));
+
+DROP POLICY IF EXISTS "fiscal_cert admin" ON public.fiscal_certificados;
+CREATE POLICY "fiscal_cert admin" ON public.fiscal_certificados FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'))
+  WITH CHECK (public.has_role(auth.uid(),'admin'));
+
+DROP POLICY IF EXISTS "doc_fiscal_itens admin" ON public.documento_fiscal_itens;
+CREATE POLICY "doc_fiscal_itens admin" ON public.documento_fiscal_itens FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'))
+  WITH CHECK (public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'financeiro'));
+
+COMMENT ON TABLE public.fiscal_provedor_config IS 'Configuração do provedor fiscal (Focus, Nuvem Fiscal, etc.). Singleton id=true.';
+COMMENT ON TABLE public.fiscal_certificados IS 'Referências a certificados digitais no cofre seguro. NUNCA armazene .pfx ou senha aqui.';
+COMMENT ON TABLE public.documento_fiscal_itens IS 'Dados fiscais detalhados por item para geração do XML da NF-e/NFC-e.';$body$;
+  RAISE NOTICE 'APLICADO 0046_fiscal_integracao.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0046_fiscal_integracao.sql -> %', SQLERRM;
+END
+$mig$;
+
+-- ----------------------------------------------------------------------------
+-- 0047_reconciliacao_entrega.sql
+-- ----------------------------------------------------------------------------
+DO $mig$
+BEGIN
+  EXECUTE $body$-- 0047: reconciliação entrega/fiscal (pós 0044–0046).
+-- Corrige 3 problemas reais que quebrariam produção:
+--   (a) pedidos.motoboy_id guarda auth.users.id (não motoboys.id) — os triggers
+--       0045 nunca achavam o motoboy e a escrita no histórico estourava FK,
+--       abortando a saída para entrega;
+--   (b) trigger_validar_endereco disparava em QUALQUER update (inclusive mudança
+--       de status pelo motoboy) e barrava pedidos legados sem cidade;
+--   (c) o front grava motivos novos (chuva/veiculo/endereco) mas o CHECK 0024 só
+--       aceitava os nomes antigos — o atraso falhava no banco.
+-- Idempotente. Rode APÓS 0046.
+
+-- =============================================
+-- 1. Garante os enums da 0044 (reexecutável)
+-- =============================================
+DO $$ BEGIN
+  DO $t$
+BEGIN
+  CREATE TYPE public.motoboy_status AS ENUM ('disponivel_base', 'preparando_saida', 'em_rota', 'retornando_base', 'aguardando_nova_rota', 'offline');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$t$;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  DO $t$
+BEGIN
+  CREATE TYPE public.atraso_motivo AS ENUM ('transito', 'chuva', 'veiculo', 'endereco', 'cliente_ausente', 'espera', 'acidente_bloqueio', 'outro');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END
+$t$;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================
+-- 2. Normaliza motivos legados + CHECK no vocabulário atual
+-- =============================================
+UPDATE public.pedidos SET atraso_motivo = 'chuva' WHERE atraso_motivo = 'chuva_via';
+UPDATE public.pedidos SET atraso_motivo = 'veiculo' WHERE atraso_motivo = 'problema_veiculo';
+UPDATE public.pedidos SET atraso_motivo = 'endereco' WHERE atraso_motivo IN ('endereco_dificil', 'problema_endereco');
+
+ALTER TABLE public.pedidos DROP CONSTRAINT IF EXISTS pedidos_atraso_motivo_check;
+ALTER TABLE public.pedidos ADD CONSTRAINT pedidos_atraso_motivo_check CHECK (
+  atraso_motivo IS NULL OR atraso_motivo IN (
+    'transito', 'chuva', 'veiculo', 'endereco',
+    'cliente_ausente', 'espera', 'acidente_bloqueio', 'outro'
+  )
+);
+
+-- =============================================
+-- 3. Colunas do modelo 0044 que faltam em motoboys (0017)
+-- =============================================
+ALTER TABLE public.motoboys
+  ADD COLUMN IF NOT EXISTS veiculo text,
+  ADD COLUMN IF NOT EXISTS placa text,
+  ADD COLUMN IF NOT EXISTS ultima_atualizacao timestamptz NOT NULL DEFAULT now();
+
+-- =============================================
+-- 4a. validar_endereco: só em colunas de endereço (nunca em troca de status)
+-- =============================================
+CREATE OR REPLACE FUNCTION public.validar_endereco_entrega()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.tipo_entrega = 'entrega' THEN
+    IF NEW.endereco IS NULL OR NEW.endereco = '' THEN
+      RAISE EXCEPTION 'Endereço é obrigatório para entrega';
+    END IF;
+    IF NEW.bairro IS NULL OR NEW.bairro = '' THEN
+      RAISE EXCEPTION 'Bairro é obrigatório para entrega';
+    END IF;
+    IF NEW.cidade IS NULL OR NEW.cidade = '' THEN
+      RAISE EXCEPTION 'Cidade é obrigatória para entrega';
+    END IF;
+    IF NEW.tipo_imovel = 'apartamento' THEN
+      IF NEW.apartamento IS NULL OR NEW.apartamento = '' THEN
+        RAISE EXCEPTION 'Número do apartamento é obrigatório';
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_validar_endereco ON public.pedidos;
+CREATE TRIGGER trigger_validar_endereco
+  BEFORE INSERT OR UPDATE OF tipo_entrega, endereco, bairro, cidade, tipo_imovel, apartamento
+  ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validar_endereco_entrega();
+
+-- =============================================
+-- 4b. saída/entrega: resolve motoboy via user_id (pedidos.motoboy_id é
+-- auth.users.id, conforme 0000 + motoboy.tsx). Sem vínculo, só troca o
+-- status sem histórico (nunca aborta a entrega por FK).
+-- =============================================
+CREATE OR REPLACE FUNCTION public.trigger_saida_motoboy()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_mb uuid;
+BEGIN
+  IF NEW.status = 'em_rota' AND OLD.status = 'aguardando_motoboy' AND NEW.motoboy_id IS NOT NULL THEN
+    SELECT id INTO v_mb FROM public.motoboys WHERE user_id = NEW.motoboy_id;
+    IF v_mb IS NOT NULL THEN
+      UPDATE public.motoboys
+      SET status = 'em_rota',
+          ultima_atualizacao = now()
+      WHERE id = v_mb;
+
+      INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+      VALUES (
+        v_mb,
+        NULL,
+        NEW.id,
+        'saida_base',
+        'Iniciou rota de entrega para pedido #' || NEW.numero
+      );
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.trigger_entrega_motoboy()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_mb uuid;
+  v_restam integer;
+BEGIN
+  IF NEW.status = 'entregue' AND OLD.status = 'em_rota' AND NEW.motoboy_id IS NOT NULL THEN
+    SELECT id INTO v_mb FROM public.motoboys WHERE user_id = NEW.motoboy_id;
+    IF v_mb IS NOT NULL THEN
+      UPDATE public.motoboys
+      SET status = 'retornando_base',
+          ultima_atualizacao = now()
+      WHERE id = v_mb;
+
+      INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+      VALUES (
+        v_mb,
+        NULL,
+        NEW.id,
+        'entrega_realizada',
+        'Entregue pedido #' || NEW.numero || ' para ' || NEW.cliente_nome
+      );
+
+      SELECT count(*) INTO v_restam FROM public.pedidos
+      WHERE motoboy_id = NEW.motoboy_id
+        AND status IN ('em_rota', 'aguardando_motoboy');
+
+      IF v_restam = 0 THEN
+        UPDATE public.motoboys
+        SET status = 'aguardando_nova_rota',
+            ultima_atualizacao = now()
+        WHERE id = v_mb;
+
+        INSERT INTO public.motoboy_historico (motoboy_id, rota_id, pedido_id, evento, detalhe)
+        VALUES (
+          v_mb,
+          NULL,
+          NEW.id,
+          'retorno_base',
+          'Retornando à base - sem mais pedidos em rota'
+        );
+      END IF;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_saida_motoboy ON public.pedidos;
+CREATE TRIGGER trigger_saida_motoboy
+  AFTER UPDATE OF status ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_saida_motoboy();
+
+DROP TRIGGER IF EXISTS trigger_entrega_motoboy ON public.pedidos;
+CREATE TRIGGER trigger_entrega_motoboy
+  AFTER UPDATE OF status ON public.pedidos
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trigger_entrega_motoboy();
+
+COMMENT ON TRIGGER trigger_validar_endereco ON public.pedidos IS 'Escopo restrito a colunas de endereço (0047): troca de status nunca é barrada por endereço legado.';
+$body$;
+  RAISE NOTICE 'APLICADO 0047_reconciliacao_entrega.sql';
+EXCEPTION WHEN others THEN
+  RAISE WARNING 'FALHOU 0047_reconciliacao_entrega.sql -> %', SQLERRM;
 END
 $mig$;
 

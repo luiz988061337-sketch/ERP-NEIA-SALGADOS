@@ -9,9 +9,11 @@ const files = readdirSync(dir)
 const guardType = (name, values) =>
   `DO $t$\nBEGIN\n  CREATE TYPE public.${name} AS ENUM (${values});\nEXCEPTION WHEN duplicate_object THEN NULL;\nEND\n$t$;`;
 
+const primeira = files[0];
+const ultima = files[files.length - 1];
 let out = `-- ============================================================================
 -- PASSO 4 - BOOTSTRAP COMPLETO (gerado por scripts/gerar-bootstrap.mjs)
--- Aplica drizzle/migrations/0000..0018 nessa ordem.
+-- Aplica drizzle/migrations/${primeira.slice(0, 4)}..${ultima.slice(0, 4)} nessa ordem.
 -- Cada arquivo roda em uma sub-transacao propria: se um falhar, os OUTROS
 -- continuam e o erro aparece como WARNING no painel de mensagens.
 -- Pode rodar quantas vezes quiser.

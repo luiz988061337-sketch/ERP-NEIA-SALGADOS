@@ -110,8 +110,10 @@ SELECT id, public FROM storage.buckets WHERE id = 'hero';
 Se você aplicou tudo de uma vez e alguma falhou, use os arquivos gerados em
 `drizzle/migrations/`:
 
-- `PASSO-4-bootstrap-completo.sql` — `0000`→`0020` em ordem, cada arquivo em sub-transação
-  própria: o que falhar aparece como `WARNING` e o resto continua.
+- `PASSO-4-bootstrap-completo.sql` — `0000`→`0047` em ordem (regenerado por
+  `node scripts/gerar-bootstrap.mjs`; rode o gerador de novo se criar migration
+  nova), cada arquivo em sub-transação própria: o que falhar aparece como
+  `WARNING` e o resto continua.
 - `PASSO-5a-enum.sql` — completa `app_role` (`atendente`, `financeiro`). **Precisa rodar
   sozinho**: `ALTER TYPE ... ADD VALUE` não funciona na mesma transação que cria o enum.
 - `PASSO-5b`…`PASSO-5f` — migrations que faltaram, **uma por New query**.
