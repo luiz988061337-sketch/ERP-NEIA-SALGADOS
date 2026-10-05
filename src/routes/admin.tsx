@@ -60,7 +60,19 @@ import { NotasAdmin } from "@/components/pedido-notas";
 import { CentralOperacao } from "@/components/central-operacao";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
-import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, PAGAMENTO_STATUS_LABEL, STATUS_EXIBICAO, STATUS_LABEL, whatsappLink, type OrderStatus } from "@/lib/format";
+import {
+  brl,
+  dataHora,
+  hora,
+  mensagemStatus,
+  PAGAMENTO_LABEL,
+  PAGAMENTO_STATUS_LABEL,
+  STATUS_EXIBICAO,
+  STATUS_LABEL,
+  statusFlow,
+  whatsappLink,
+  type OrderStatus,
+} from "@/lib/format";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
@@ -578,7 +590,7 @@ function Admin() {
 
   async function mudarStatusPedido(p: any, status: OrderStatus) {
     const { error } = await supabase.from("pedidos").update({ status }).eq("id", p.id);
-    if (error) toast.error("Não foi possível atualizar.");
+    if (error) toast.error(error?.message || "Não foi possível atualizar.");
     else {
       toast.success(`Pedido nº ${p.numero} → ${STATUS_LABEL[status]}`);
       void logAdmin("pedido_status", `#${p.numero} → ${status}`);
@@ -1221,10 +1233,9 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
               <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_LABEL)
-                    .filter(([v]) => !(p.tipo_entrega === "retirada" && (v === "aguardando_motoboy" || v === "em_rota")))
-                    .map(([v, l]) => (
-                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                  {[...statusFlow(p.tipo_entrega), "cancelado"]
+                    .map((v) => (
+                      <SelectItem key={v} value={v}>{STATUS_LABEL[v]}</SelectItem>
                     ))}
                 </SelectContent>
               </Select>
