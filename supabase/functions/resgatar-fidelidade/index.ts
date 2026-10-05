@@ -18,8 +18,11 @@ serve(async (req) => {
   const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!jwt) return new Response("unauthorized", { status: 401 });
 
-  const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+  // Sem SUPABASE_ANON_KEY: o JWT do usuário no header já identifica o chamador
+  // (getUser valida o token; a service key aqui só dá acesso à API).
+  const userClient = createClient(supabaseUrl, serviceKey, {
     global: { headers: { Authorization: `Bearer ${jwt}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
   });
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: { user } } = await userClient.auth.getUser();
