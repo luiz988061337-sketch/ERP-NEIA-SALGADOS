@@ -506,16 +506,12 @@ function Checkout() {
         });
       } catch { /* sem fila — pedido segue, cozinha avisa */ }
 
-      // Fidelidade configurável (1 ponto a cada X reais)
-      const pts = calcPontos(totalFinal, {
-        ativo: settings?.fid_ativo ?? true,
-        reaisPorPonto: settings?.fid_reais_por_ponto ?? 5,
-        metaPontos: settings?.fid_meta_pontos ?? 200,
-        recompensaValor: settings?.fid_recompensa_valor ?? 20,
-      });
-      if (pts > 0) {
-        await supabase.from("profiles").update({ pontos: (perfil?.pontos ?? 0) + pts }).eq("id", user.id);
-      }
+      // Fidelidade: pontos calculados e creditados no servidor (uma vez por pedido)
+      let pts = 0;
+      try {
+        const { data: creditados } = await supabase.rpc("creditar_pontos_pedido", { p_pedido_id: (pedido as any).id });
+        pts = Number(creditados ?? 0);
+      } catch { /* pedido segue mesmo sem pontos */ }
 
       clear();
       toast.success(`Pedido nº ${(pedido as any).numero} recebido! +${pts} pts fidelidade`);

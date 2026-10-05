@@ -364,31 +364,9 @@ function ResgateFidelidade({ pontos, userId, telefoneAtual, cfg }: { pontos: num
     if (!confirm(`Resgatar ${cfg.metaPontos} pontos por um cupom de ${brl(cfg.recompensaValor)}?`)) return;
     setEnviando(true);
     try {
-      const fim = new Date(Date.now() + 30 * 86400000).toISOString();
-      let codigo = "";
-      let ok = false;
-      for (let t = 0; t < 3 && !ok; t++) {
-        codigo = `FID-${Date.now().toString(36).toUpperCase().slice(-4)}${Math.floor(Math.random() * 36 ** 2).toString(36).toUpperCase().padStart(2, "0")}`;
-        const { error } = await supabase.from("cupons").insert({
-          codigo,
-          tipo: "valor",
-          valor: cfg.recompensaValor,
-          minimo: 0,
-          ativo: true,
-          cliente_telefone: telDig,
-          validade_fim: fim,
-          max_usos: 1,
-          produtos_ids: [],
-        });
-        if (!error) {
-          ok = true;
-        } else if (!String(error.message ?? "").toLowerCase().includes("duplicate")) {
-          throw error;
-        }
-      }
-      if (!ok) throw new Error("Não foi possível gerar o cupom. Tente de novo.");
-      const { error: e2 } = await supabase.from("profiles").update({ pontos: pontos - cfg.metaPontos }).eq("id", userId);
-      if (e2) console.error(e2);
+      const { data: codigoGerado, error } = await supabase.rpc("resgatar_fidelidade", { p_telefone: telDig });
+      if (error) throw error;
+      const codigo = String(codigoGerado ?? "");
       if (telefone !== telefoneAtual) {
         await supabase.from("profiles").update({ telefone }).eq("id", userId);
       }
