@@ -1035,15 +1035,126 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
   const lista = foco
     ? listaAge.filter((p) => String(p.numero).includes(foco) || (p.cliente_nome ?? "").toLowerCase().includes(foco.toLowerCase()) || (p.telefone ?? "").includes(foco))
     : listaAge;
+  const listaTope = lista.slice(0, 60);
+  const colunas = [
+    {
+      titulo: "PENDENTE",
+      sub: "pedidos novos",
+      status: ["recebido"],
+      dot: "bg-primary",
+      ring: "border-t-primary",
+    },
+    {
+      titulo: "EM PRODUÇÃO",
+      sub: "preparando",
+      status: ["em_producao"],
+      dot: "bg-secondary",
+      ring: "border-t-secondary",
+    },
+    {
+      titulo: "DESPACHE",
+      sub: "prontos para sair",
+      status: ["pronto", "aguardando_motoboy", "em_rota"],
+      dot: "bg-success",
+      ring: "border-t-success",
+    },
+  ];
+  const naoColunados = listaTope.filter((p) => !colunas.some((c) => c.status.includes(p.status)));
+  const cartao = (p: any) => (
+    <article key={p.id} className="rounded-lg border border-border bg-card p-3 shadow-card">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-display">Nº {p.numero}</span>
+        <StatusBadge status={p.status} />
+        <span className="ml-auto font-display text-primary">{brl(p.total)}</span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {p.cliente_nome} • {p.telefone} • {dataHora(p.created_at)}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {p.endereco} — {p.bairro}
+        {(p as any).cidade ? ` • ${(p as any).cidade}` : ""}{" "}
+        {p.complemento ? `(${p.complemento})` : ""}{" "}
+        <span className="ml-1 rounded bg-muted px-1.5 py-0.5">
+          {STATUS_EXIBICAO[p.status] ?? p.status}
+        </span>
+        {(p as any).campanha_origem ? (
+          <span className="ml-1 rounded bg-muted px-1.5 py-0.5">
+            🔗 {(p as any).campanha_origem}
+          </span>
+        ) : (
+          ""
+        )}
+      </p>
+      <ul className="mt-1 text-xs">
+        {(p.pedido_itens ?? []).map((i: any) => (
+          <li key={i.id}>
+            {i.quantidade}x {i.nome}
+          </li>
+        ))}
+      </ul>
+      {p.observacoes && <p className="mt-1 rounded bg-muted p-1.5 text-xs">Obs: {p.observacoes}</p>}
+      <NotasAdmin pedidoId={p.id} numero={p.numero} />
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[...statusFlow(p.tipo_entrega), "cancelado"].map((v) => (
+              <SelectItem key={v} value={v}>
+                {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {onPagamento ? (
+          <Select value={p.pagamento_status ?? "pendente"} onValueChange={(s) => onPagamento(p, s)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(PAGAMENTO_STATUS_LABEL).map(([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            window.open(
+              whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)),
+              "_blank",
+            )
+          }
+        >
+          <MessageCircle className="mr-1 size-3.5" /> WhatsApp
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
+          <Printer className="mr-1 size-3.5" /> Imprimir direto
+        </Button>
+      </div>
+    </article>
+  );
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-display text-xl">Gestão de pedidos</h2>
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input type="checkbox" checked={soAgendados} onChange={(e) => setSoAgendados(e.target.checked)} /> Só agendados
+          <input
+            type="checkbox"
+            checked={soAgendados}
+            onChange={(e) => setSoAgendados(e.target.checked)}
+          />{" "}
+          Só agendados
         </label>
         <Select value={fEvento} onValueChange={setFEvento}>
-          <SelectTrigger className="ml-auto w-44"><SelectValue placeholder="Evento" /></SelectTrigger>
+          <SelectTrigger className="ml-auto w-44">
+            <SelectValue placeholder="Evento" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os eventos</SelectItem>
             <SelectItem value="sem_evento">Sem evento</SelectItem>
@@ -1056,22 +1167,54 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
           </SelectContent>
         </Select>
         <Select value={filtro} onValueChange={setFiltro}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
-            {["recebido", "em_producao", "pronto", "aguardando_motoboy", "em_rota", "entregue", "cancelado"].map((v) => (
-              <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
+            {[
+              "recebido",
+              "em_producao",
+              "pronto",
+              "aguardando_motoboy",
+              "em_rota",
+              "entregue",
+              "cancelado",
+            ].map((v) => (
+              <SelectItem key={v} value={v}>
+                {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Button
-          size="sm" variant="outline" className="ml-auto"
-          onClick={() => downloadCSV(`pedidos-${new Date().toISOString().slice(0, 10)}.csv`, lista.slice(0, 500).map((p: any) => ({
-            numero: p.numero, data: p.created_at, cliente: p.cliente_nome, telefone: p.telefone,
-            endereco: p.endereco, bairro: p.bairro, pagamento: p.forma_pagamento, subtotal: p.subtotal,
-            entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega", taxa_entrega: p.taxa_entrega, desconto: p.desconto, total: p.total, status: p.status, evento: p.tipo_evento,
-            itens: ((p.pedido_itens ?? []) as any[]).map((i) => `${i.quantidade}x ${i.nome}`).join(" | "),
-          })))}
+          size="sm"
+          variant="outline"
+          className="ml-auto"
+          onClick={() =>
+            downloadCSV(
+              `pedidos-${new Date().toISOString().slice(0, 10)}.csv`,
+              lista.slice(0, 500).map((p: any) => ({
+                numero: p.numero,
+                data: p.created_at,
+                cliente: p.cliente_nome,
+                telefone: p.telefone,
+                endereco: p.endereco,
+                bairro: p.bairro,
+                pagamento: p.forma_pagamento,
+                subtotal: p.subtotal,
+                entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega",
+                taxa_entrega: p.taxa_entrega,
+                desconto: p.desconto,
+                total: p.total,
+                status: p.status,
+                evento: p.tipo_evento,
+                itens: ((p.pedido_itens ?? []) as any[])
+                  .map((i) => `${i.quantidade}x ${i.nome}`)
+                  .join(" | "),
+              })),
+            )
+          }
         >
           Exportar CSV
         </Button>
@@ -1080,64 +1223,49 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
             Foco: “{foco}” ✕
           </Button>
         ) : null}
-        <Select value={filtro} onValueChange={setFiltro}>
-          <SelectTrigger className="ml-auto w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            {["recebido", "em_producao", "pronto", "aguardando_motoboy", "em_rota", "entregue", "cancelado"].map((v) => (
-              <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
-      <div className="mt-4 space-y-3">
-        {lista.slice(0, 60).map((p) => (
-          <article key={p.id} className="rounded-lg border border-border p-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-display">Nº {p.numero}</span>
-              <StatusBadge status={p.status} />
-              <span className="text-muted-foreground">{p.cliente_nome} • {p.telefone} • {dataHora(p.created_at)}</span>
-              <span className="ml-auto font-display text-primary">{brl(p.total)}</span>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        {colunas.map((c) => {
+          const itens = listaTope.filter((p) => c.status.includes(p.status));
+          return (
+            <div
+              key={c.titulo}
+              className={`flex min-h-[18rem] flex-col rounded-xl border border-border border-t-4 ${c.ring} bg-muted/30`}
+            >
+              <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+                <span className={`size-2.5 shrink-0 rounded-full ${c.dot}`} />
+                <h3 className="font-display text-sm font-semibold tracking-wide">{c.titulo}</h3>
+                <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+                  {itens.length}
+                </span>
+              </div>
+              <p className="px-3 pt-2 text-xs text-muted-foreground">{c.sub}</p>
+              <div className="no-scrollbar flex max-h-[70vh] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+                {itens.map(cartao)}
+                {itens.length === 0 && (
+                  <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                    Nenhum pedido.
+                  </p>
+                )}
+              </div>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">{p.endereco} — {p.bairro}{(p as any).cidade ? ` • ${(p as any).cidade}` : ""} {p.complemento ? `(${p.complemento})` : ""} <span className="ml-1 rounded bg-muted px-1.5 py-0.5">{STATUS_EXIBICAO[p.status] ?? p.status}</span>{(p as any).campanha_origem ? <span className="ml-1 rounded bg-muted px-1.5 py-0.5">🔗 {(p as any).campanha_origem}</span> : ""}</p>
-            <ul className="mt-1 text-xs">
-              {(p.pedido_itens ?? []).map((i: any) => (
-                <li key={i.id}>{i.quantidade}x {i.nome}</li>
-              ))}
-            </ul>
-            {p.observacoes && <p className="mt-1 rounded bg-muted p-1.5 text-xs">Obs: {p.observacoes}</p>}
-            <NotasAdmin pedidoId={p.id} numero={p.numero} />
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
-                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[...statusFlow(p.tipo_entrega), "cancelado"]
-                    .map((v) => (
-                      <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {onPagamento ? (
-                <Select value={p.pagamento_status ?? "pendente"} onValueChange={(s) => onPagamento(p, s)}>
-                  <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PAGAMENTO_STATUS_LABEL).map(([v, l]) => (
-                      <SelectItem key={v} value={v}>{l}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
-              <Button size="sm" variant="outline" onClick={() => window.open(whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)), "_blank")}>
-                <MessageCircle className="mr-1 size-3.5" /> WhatsApp
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
-                <Printer className="mr-1 size-3.5" /> Imprimir direto
-              </Button>
-            </div>
-          </article>
-        ))}
-        {lista.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>}
+          );
+        })}
       </div>
+
+      {naoColunados.length > 0 ? (
+        <details className="mt-4 rounded-xl border border-border bg-muted/30">
+          <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">
+            Histórico — {naoColunados.length} pedido(s) fora das colunas (entregues / cancelados)
+          </summary>
+          <div className="flex flex-col gap-2.5 p-3">{naoColunados.map(cartao)}</div>
+        </details>
+      ) : null}
+
+      {lista.length === 0 && (
+        <p className="mt-4 text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>
+      )}
     </section>
   );
 }
