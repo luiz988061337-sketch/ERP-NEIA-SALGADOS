@@ -48,7 +48,7 @@ function imprimirTexto(texto: string): void {
   try {
     execSync(
       `powershell -ExecutionPolicy Bypass -File "${IMPRIMIR_PS1}" "${arq}" "${PRINTER}"`,
-      { stdio: "ignore" },
+      { stdio: "inherit" },
     );
     return;
   } catch { /* cai no fallback */ }
@@ -58,6 +58,7 @@ function imprimirTexto(texto: string): void {
   } catch {
     execSync(`powershell -Command "Get-Content '${arq}' | Out-Printer"`, { stdio: "inherit" });
   }
+  throw new Error("Falha ao imprimir: texto enviado mas impressora não respondeu");
 }
 
 async function tick(): Promise<void> {
