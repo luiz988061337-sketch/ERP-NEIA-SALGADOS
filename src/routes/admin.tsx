@@ -4,26 +4,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   BarChart3,
-  Bike,
-  ClipboardList,
   Crown,
-  LayoutDashboard,
   Package,
   Printer,
   Star,
-  Store,
-  Tag,
   Trash2,
   Users,
   Pencil,
   Plus,
   MessageCircle,
-  Target,
-  KeyRound,
-  ScrollText,
-  Wallet,
-  ImageIcon,
-  Calculator,
 } from "lucide-react";
 import {
   BarChart,
@@ -43,7 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -81,7 +70,9 @@ import { novoEstoque, type TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
-import { DEFAULT_LOJA_CONFIG, enderecoLoja, type LojaConfig } from "@/lib/loja";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { LojaPanel } from "@/components/admin/loja-panel";
+import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
 import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
 import { useRoles, useSession } from "@/lib/session";
@@ -641,37 +632,8 @@ function Admin() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="flex flex-wrap items-center gap-3">
-        <div>
-          <h1 className="font-display text-3xl">Administração</h1>
-          <p className="text-sm text-muted-foreground">Gestão completa da operação Néia Salgados.</p>
-        </div>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={refreshAll}>
-          Atualizar dados
-        </Button>
-      </div>
-
-      <Tabs value={aba} onValueChange={setAba} className="mt-6">
-        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
-          <TabsTrigger value="dashboard"><LayoutDashboard className="mr-1 size-4" />Dashboard</TabsTrigger>
-          <TabsTrigger value="pedidos"><ClipboardList className="mr-1 size-4" />Pedidos</TabsTrigger>
-          <TabsTrigger value="produtos"><Package className="mr-1 size-4" />Produtos</TabsTrigger>
-          <TabsTrigger value="clientes"><Users className="mr-1 size-4" />Clientes</TabsTrigger>
-          <TabsTrigger value="motoboys"><Bike className="mr-1 size-4" />Motoboys</TabsTrigger>
-<TabsTrigger value="hero"><ImageIcon className="mr-1 size-4" />Hero</TabsTrigger>
-<TabsTrigger value="calculadora"><Calculator className="mr-1 size-4" />Calculadora</TabsTrigger>
-          <TabsTrigger value="loja"><Store className="mr-1 size-4" />Loja</TabsTrigger>
-          <TabsTrigger value="cupons"><Tag className="mr-1 size-4" />Cupons</TabsTrigger>
-          <TabsTrigger value="metas"><Target className="mr-1 size-4" />Metas</TabsTrigger>
-          <TabsTrigger value="financeiro"><Wallet className="mr-1 size-4" />Financeiro</TabsTrigger>
-          <TabsTrigger value="impressao"><Printer className="mr-1 size-4" />Impressão</TabsTrigger>
-          <TabsTrigger value="comercial"><Crown className="mr-1 size-4" />Comercial</TabsTrigger>
-          <TabsTrigger value="usuarios"><KeyRound className="mr-1 size-4" />Usuários</TabsTrigger>
-          <TabsTrigger value="logs"><ScrollText className="mr-1 size-4" />Logs</TabsTrigger>
-          <TabsTrigger value="avaliacoes"><Star className="mr-1 size-4" />Avaliações</TabsTrigger>
-        </TabsList>
-
+    <AdminShell aba={aba} onAba={setAba} onRefresh={refreshAll}>
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsContent value="dashboard" className="mt-4 space-y-4">
           <BuscaGlobal
             termo={buscaGlobal}
@@ -951,176 +913,19 @@ function Admin() {
           </section>
         </TabsContent>
 
-<TabsContent value="loja" className="mt-4">
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="font-display text-xl">Dados da loja</h2>
-            <p className="text-xs text-muted-foreground">
-              Endereço, telefone e ponto no mapa. Aparecem para o cliente quando ele escolhe{" "}
-              <strong>retirada na loja</strong> no checkout e no acompanhamento do pedido.
-            </p>
-            <p className="mt-2 rounded-lg bg-muted p-2.5 text-xs text-muted-foreground">
-              Como o cliente vê: {enderecoLoja(lojaAtual) || "endereço ainda não cadastrado"}
-            </p>
-
-            <form onSubmit={salvarLoja} className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="loja-cep">CEP</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Input
-                    id="loja-cep"
-                    inputMode="numeric"
-                    placeholder="00000-000"
-                    value={cepLoja}
-                    onChange={(e) => setCepLoja(mascararCep(e.target.value))}
-                    className="w-40"
-                  />
-                  <Button type="button" variant="outline" onClick={aplicarCep} disabled={buscandoCep}>
-                    {buscandoCep ? "Buscando…" : "Buscar endereço"}
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={localizarNoMapa} disabled={localizando}>
-                    {localizando ? "Localizando…" : "Achar no mapa"}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  O CEP preenche rua, bairro e cidade (base do Correio). "Achar no mapa" geocodifica o endereço
-                  completo e preenche a latitude/longitude.
-                </p>
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="loja-endereco">Endereço e número</Label>
-                <Input
-                  id="loja-endereco"
-                  value={lojaAtual.endereco}
-                  onChange={(e) => setLoja("endereco", e.target.value)}
-                  placeholder="Rua das Flores, 123"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-bairro">Bairro</Label>
-                <Input id="loja-bairro" value={lojaAtual.bairro} onChange={(e) => setLoja("bairro", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-cidade">Cidade</Label>
-                <Input id="loja-cidade" value={lojaAtual.cidade} onChange={(e) => setLoja("cidade", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-nome">Nome</Label>
-                <Input id="loja-nome" value={lojaAtual.nome} onChange={(e) => setLoja("nome", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-telefone">WhatsApp da loja</Label>
-                <Input
-                  id="loja-telefone"
-                  inputMode="tel"
-                  placeholder="11999999999"
-                  value={lojaAtual.telefone}
-                  onChange={(e) => setLoja("telefone", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Também serve como contato do orçamento quando a Calculadora está vazia.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-instagram">Instagram (link)</Label>
-                <Input
-                  id="loja-instagram"
-                  placeholder="https://instagram.com/..."
-                  value={lojaAtual.instagram ?? ""}
-                  onChange={(e) => setLoja("instagram", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-facebook">Facebook (link)</Label>
-                <Input
-                  id="loja-facebook"
-                  placeholder="https://facebook.com/..."
-                  value={lojaAtual.facebook ?? ""}
-                  onChange={(e) => setLoja("facebook", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-site">Site (link)</Label>
-                <Input
-                  id="loja-site"
-                  placeholder="https://..."
-                  value={lojaAtual.site ?? ""}
-                  onChange={(e) => setLoja("site", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-google">Avaliação Google (link)</Label>
-                <Input
-                  id="loja-google"
-                  placeholder="Link do perfil para avaliar"
-                  value={lojaAtual.google_avaliacao ?? ""}
-                  onChange={(e) => setLoja("google_avaliacao", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Aparece no pedido entregue. Nunca condicione benefício à nota.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-complemento">Complemento</Label>
-                <Input
-                  id="loja-complemento"
-                  placeholder="Loja 2, sala 5…"
-                  value={lojaAtual.complemento}
-                  onChange={(e) => setLoja("complemento", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-referencia">Ponto de referência</Label>
-                <Input
-                  id="loja-referencia"
-                  placeholder="Próximo à praça central"
-                  value={lojaAtual.referencia}
-                  onChange={(e) => setLoja("referencia", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="loja-instrucoes">Instruções para retirada</Label>
-                <Textarea
-                  id="loja-instrucoes"
-                  rows={3}
-                  placeholder={"Ex: retirada das 8h às 19h.\nEstacionamento na esquina."}
-                  value={lojaAtual.instrucoes_retirada}
-                  onChange={(e) => setLoja("instrucoes_retirada", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Aparece no checkout e no acompanhamento do pedido.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-lat">Latitude</Label>
-                <Input
-                  id="loja-lat"
-                  inputMode="decimal"
-                  placeholder="-23.550520"
-                  value={lojaAtual.mapa_lat ?? ""}
-                  onChange={(e) => setLoja("mapa_lat", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-lng">Longitude</Label>
-                <Input
-                  id="loja-lng"
-                  inputMode="decimal"
-                  placeholder="-46.633308"
-                  value={lojaAtual.mapa_lng ?? ""}
-                  onChange={(e) => setLoja("mapa_lng", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Sem coordenadas, a loja aparece no mapa só se você usar "Achar no mapa".
-                </p>
-              </div>
-
-              <div className="sm:col-span-2">
-                <Button type="submit" disabled={!lojaForm}>Salvar dados da loja</Button>
-              </div>
-              {Number(lojaAtual.mapa_lat) && Number(lojaAtual.mapa_lng) ? (
-                <div className="space-y-1 sm:col-span-2">
-                  <Label>Como a loja aparece para o cliente</Label>
-                  <MapView pontos={[{ lat: Number(lojaAtual.mapa_lat), lng: Number(lojaAtual.mapa_lng), label: lojaAtual.nome || "Loja" }]} />
-                  <p className="text-xs text-muted-foreground">Esse é o marcador do pedido de retirada. Ajuste o endereço e use "Achar no mapa" de novo se ele estiver no lugar errado.</p>
-                </div>
-              ) : null}
-            </form>
-          </section>
+        <TabsContent value="loja">
+          <LojaPanel
+            lojaAtual={lojaAtual}
+            podeSalvar={!!lojaForm}
+            cepLoja={cepLoja}
+            setCepLoja={setCepLoja}
+            buscandoCep={buscandoCep}
+            localizando={localizando}
+            setLoja={setLoja}
+            aplicarCep={aplicarCep}
+            localizarNoMapa={localizarNoMapa}
+            salvarLoja={salvarLoja}
+          />
         </TabsContent>
         <TabsContent value="avaliacoes" className="mt-4">
           <section className="rounded-xl border border-border bg-card p-5">
@@ -1150,7 +955,7 @@ function Admin() {
           </section>
         </TabsContent>
       </Tabs>
-    </div>
+    </AdminShell>
   );
 }
 
