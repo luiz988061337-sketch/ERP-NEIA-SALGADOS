@@ -35,8 +35,13 @@ try {
   $doc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(6, 6, 6, 6)
 
   $estado = @{ texto = $texto; colunas = $Colunas }
-  $h = Register-ObjectEvent -InputObject $doc -EventName PrintPage -Action {
-    $e = $Event.SourceEventArgs
+
+  # Handler .NET (add_PrintPage) e OBRIGATORIO: com Register-ObjectEvent -Action a acao
+  # roda ASSINCRONA em outra runspace, o $doc.Print() retorna antes do desenho, o
+  # $e.Graphics ja esta invalidado e a pagina sai EM BRANCO (spool de 244 bytes).
+  # Com add_PrintPage o desenho roda sincrono dentro do $doc.Print().
+  $handler = [System.Drawing.Printing.PrintPageEventHandler] {
+    param($sender, $e)
     $g = $e.Graphics
     # MarginBounds = caixa REALMENTE imprimivel ja com as margens aplicadas.
     $mb = $e.MarginBounds
@@ -54,8 +59,13 @@ try {
     $f.Dispose()
     $e.HasMorePages = $false
   }
+  $doc.add_PrintPage($handler)
 
-  $doc.Print()
+  try {
+    $doc.Print()
+  } finally {
+    $doc.remove_PrintPage($handler)
+  }
 } catch {
   if ($doc) { try { $doc.Dispose() } catch { } }
   exit 1
