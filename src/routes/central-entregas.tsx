@@ -16,6 +16,7 @@ import {
   Search,
   CheckCircle,
   XCircle,
+  Satellite,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -490,11 +491,25 @@ function CentralEntregas() {
     const rotaInfo = p.rota_id ? ` (Rota: ${p.rota_id.slice(0, 8)})` : "";
     const destaque = casaBusca(p);
 
+    // GPS status for this delivery
+    const isEmRota = p.status === "em_rota";
+    const hasGps = p.motoboy_lat && p.motoboy_lng;
+    const lastUpdate = p.motoboy_atualizado_em ? new Date(p.motoboy_atualizado_em) : null;
+    const isGpsStale = lastUpdate && (Date.now() - lastUpdate.getTime()) > 60000;
+
+    const getGpsBadge = () => {
+      if (!isEmRota) return null;
+      if (!hasGps) return <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"><Satellite className="size-3" /> GPS aguardando</span>;
+      if (isGpsStale) return <span className="inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-1 text-xs"><AlertCircle className="size-3" /> GPS desatualizado</span>;
+      return <span className="inline-flex items-center gap-1 rounded-full bg-success/20 text-success px-2 py-1 text-xs"><Satellite className="size-3" /> GPS ativo</span>;
+    };
+
     return (
       <article key={p.id} className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]${destaque ? " ring-2 ring-primary" : ""}`}>
         <div className="flex items-center gap-2 mb-3">
           <span className="font-display text-lg">Pedido Nº {p.numero}</span>
           <StatusBadge status={p.status} />
+          {isEmRota && getGpsBadge()}
           {ocAbertas.length > 0 && (
             <span
               className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive"

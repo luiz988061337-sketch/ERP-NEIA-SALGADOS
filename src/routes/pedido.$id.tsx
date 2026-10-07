@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bike, Phone } from "lucide-react";
 import { toast } from "sonner";
@@ -200,6 +200,44 @@ function Acompanhar() {
       : null,
   ].filter(Boolean) as { lat: number; lng: number; label: string }[];
 
+  // ETA calculation based on straight-line distance
+  const [eta, setEta] = useState<string>("Calculando...");
+  useEffect(() => {
+    if (!pedido.motoboy_lat || !pedido.motoboy_lng || !pedido.destino_lat || !pedido.destino_lng) {
+      setEta("Calculando...");
+      return;
+    }
+
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(pedido.destino_lat - pedido.motoboy_lat);
+    const dLng = toRad(pedido.destino_lng - pedido.motoboy_lng);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(pedido.motoboy_lat)) * Math.cos(toRad(pedido.destino_lat)) *
+      Math.sin(toRad(pedido.destino_lng - pedido.motoboy_lng) / 2) * Math.sin(toRad(pedido.destino_lng - pedido.motoboy_lng) / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distanceKm = R * c;
+
+    // Average urban delivery speed: ~30 km/h
+    const avgSpeedKmh = 30;
+    const timeHours = distanceKm / avgSpeedKmh;
+    const timeMinutes = Math.round(timeHours * 60);
+
+    if (timeMinutes < 1) {
+      setEta("Chegando...");
+    } else if (timeMinutes < 60) {
+      setEta(`~${timeMinutes} min`);
+    } else {
+      const hours = Math.floor(timeMinutes / 60);
+      const mins = timeMinutes % 60;
+      setEta(`~${hours}h ${mins}min`);
+    }
+  }, [pedido.motoboy_lat, pedido.motoboy_lng, pedido.destino_lat, pedido.destino_lng]);
+
+  function toRad(deg: number): number {
+    return deg * (Math.PI / 180);
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <div>
@@ -224,7 +262,41 @@ function Acompanhar() {
             <Bike className="size-5" /> Entrega a caminho
           </h2>
           {pontos.length > 0 ? (
-            <MapView pontos={pontos} />
+            <>
+              <MapView pontos={pontos} className="h-64" />
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-muted-foreground">Motoboy</p>
+                  <p className="flex items-center gap-1.5">
+                    <Bike className="size-4 text-success" />
+                    <span className="font-medium">Compartilhando localização</span>
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-success/20 text-success px-2 py-0.5 text-xs">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                      </span>
+                      GPS ativo
+                    </span>
+                  </p>
+                  {pedido.motoboy_atualizado_em && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Última atualização: {new Date(pedido.motoboy_atualizado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-lg border border-border bg-card p-3">
+                  <p className="text-xs text-muted-foreground">Tempo estimado</p>
+                  <p className="flex items-center gap-1.5">
+                    <Bike className="size-4 text-primary" />
+                    <span className="font-medium text-primary">{eta}</span>
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Baseado na distância em linha reta (estimativa aproximada)
+                  </p>
+                </div>
+              </div>
+              <MapView pontos={pontos} className="h-64" />
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">
               O motoboy está a caminho. A localização ao vivo aparece aqui assim que o GPS for compartilhado.
