@@ -329,6 +329,14 @@ function Checkout() {
         ? null
         : await geocodificarEndereco(`${parsed.data.endereco}, ${parsed.data.bairro}, ${parsed.data.cidade}`).catch(() => null);
 
+      // Determinar modalidade de pagamento: online vs na_entrega
+      // - dinheiro: sempre na_entrega (não existe pagamento online em dinheiro)
+      // - pix/credito/debito: online por padrão (confirmação posterior)
+      // - retirada: sempre online (pagamento no balcão/online)
+      const pagamento_modalidade = tipoEntrega === "retirada" ? "online"
+        : pagamento === "dinheiro" ? "na_entrega"
+        : "online";
+
       const insertBody: Record<string, any> = {
         user_id: user.id,
         cliente_nome: parsed.data.cliente_nome,
@@ -352,6 +360,7 @@ function Checkout() {
         observacoes: parsed.data.origem_indicador ? `${obsFinal ?? ""} [Indicado por: ${parsed.data.origem_indicador}]`.trim() : (obsFinal ?? ""),
         tipo_entrega: tipoEntrega,
         forma_pagamento: pagamento,
+        pagamento_modalidade,
         // Pagamento começa SEMPRE pendente. Nunca marcar como pago aqui:
         // a loja confirma. Status do pedido e status do pagamento são separados.
         pagamento_status: "pendente",
@@ -380,6 +389,7 @@ function Checkout() {
             campanha_origem: _co,
             tipo_entrega: _te2,
             pagamento_status: _ps,
+            pagamento_modalidade: _pm,
             tipo_imovel: _ti,
             apartamento: _ap,
             bloco: _bl,

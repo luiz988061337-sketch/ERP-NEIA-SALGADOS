@@ -155,6 +155,14 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
       }
       if (itens.length === 0) throw new Error("Nenhum item disponível no momento.");
       const calcF = calcTotals({ subtotal: sub, taxaEntrega: entrega === "entrega" ? TAXA_ENTREGA : 0, desconto });
+      // Determinar modalidade de pagamento: online vs na_entrega
+      // - dinheiro: sempre na_entrega
+      // - pix/credito/debito: online por padrão
+      // - retirada: sempre online
+      const pagamento_modalidade = entrega === "retirada" ? "online"
+        : pagamento === "dinheiro" ? "na_entrega"
+        : "online";
+
       const insertBody: Record<string, any> = {
         user_id: user.id,
         cliente_nome: nome.trim(),
@@ -166,6 +174,7 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
         referencia: "",
         observacoes: obs.trim(),
         forma_pagamento: pagamento,
+        pagamento_modalidade,
         subtotal: sub,
         taxa_entrega: calcF.taxaEntrega,
         desconto: calcF.desconto,
@@ -180,7 +189,7 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
       {
         const res = await supabase.from("pedidos").insert(insertBody).select("id, numero").single();
         if (res.error && String(res.error.message ?? "").includes("column")) {
-          const { agendado_para: _a, agendamento_obs: _b, tipo_evento: _c, cidade: _d, ...legacy } = insertBody;
+          const { agendado_para: _a, agendamento_obs: _b, tipo_evento: _c, cidade: _d, pagamento_modalidade: _pm, ...legacy } = insertBody;
           const retry = await supabase.from("pedidos").insert(legacy).select("id, numero").single();
           if (retry.error || !retry.data) throw retry.error ?? new Error("insert falhou");
           pedidoId = (retry.data as any).id;
