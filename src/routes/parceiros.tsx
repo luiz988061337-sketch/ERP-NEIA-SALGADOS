@@ -21,7 +21,7 @@ function Parceiros() {
     queryKey: ["parceiros-aprovados"],
     queryFn: async () => {
       try {
-        const { data } = await supabase.from("parceiros").select("*").eq("status", "aprovada").order("nome");
+        const { data } = await supabase.from("parceiros_publicos").select("*").order("nome");
         return (data ?? []) as any[];
       } catch { return []; }
     },
