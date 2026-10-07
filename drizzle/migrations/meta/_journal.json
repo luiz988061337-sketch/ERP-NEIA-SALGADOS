@@ -22,6 +22,13 @@
       "when": 1791200887571,
       "tag": "0002_secure_loyalty_and_partners",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791343332426,
+      "tag": "0003_pin_search_path_stock_functions",
+      "breakpoints": true
     }
   ]
 }
