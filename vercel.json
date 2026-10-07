@@ -1,6 +1,5 @@
 {
-  "frameworkPreset": "tanstack-start",
   "buildCommand": "vite build",
-  "outputDirectory": ".next",
+  "outputDirectory": "dist",
   "nodeVersion": "20"
 }
