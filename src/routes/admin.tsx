@@ -4,26 +4,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   BarChart3,
-  Bike,
-  ClipboardList,
   Crown,
-  LayoutDashboard,
   Package,
   Printer,
   Star,
-  Store,
-  Tag,
   Trash2,
   Users,
   Pencil,
   Plus,
   MessageCircle,
-  Target,
-  KeyRound,
-  ScrollText,
-  Wallet,
-  ImageIcon,
-  Calculator,
 } from "lucide-react";
 import {
   BarChart,
@@ -43,7 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -81,7 +70,9 @@ import { novoEstoque, type TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
-import { DEFAULT_LOJA_CONFIG, enderecoLoja, type LojaConfig } from "@/lib/loja";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { LojaPanel } from "@/components/admin/loja-panel";
+import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
 import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
 import { useRoles, useSession } from "@/lib/session";
@@ -641,37 +632,8 @@ function Admin() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="flex flex-wrap items-center gap-3">
-        <div>
-          <h1 className="font-display text-3xl">Administração</h1>
-          <p className="text-sm text-muted-foreground">Gestão completa da operação Néia Salgados.</p>
-        </div>
-        <Button variant="outline" size="sm" className="ml-auto" onClick={refreshAll}>
-          Atualizar dados
-        </Button>
-      </div>
-
-      <Tabs value={aba} onValueChange={setAba} className="mt-6">
-        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
-          <TabsTrigger value="dashboard"><LayoutDashboard className="mr-1 size-4" />Dashboard</TabsTrigger>
-          <TabsTrigger value="pedidos"><ClipboardList className="mr-1 size-4" />Pedidos</TabsTrigger>
-          <TabsTrigger value="produtos"><Package className="mr-1 size-4" />Produtos</TabsTrigger>
-          <TabsTrigger value="clientes"><Users className="mr-1 size-4" />Clientes</TabsTrigger>
-          <TabsTrigger value="motoboys"><Bike className="mr-1 size-4" />Motoboys</TabsTrigger>
-<TabsTrigger value="hero"><ImageIcon className="mr-1 size-4" />Hero</TabsTrigger>
-<TabsTrigger value="calculadora"><Calculator className="mr-1 size-4" />Calculadora</TabsTrigger>
-          <TabsTrigger value="loja"><Store className="mr-1 size-4" />Loja</TabsTrigger>
-          <TabsTrigger value="cupons"><Tag className="mr-1 size-4" />Cupons</TabsTrigger>
-          <TabsTrigger value="metas"><Target className="mr-1 size-4" />Metas</TabsTrigger>
-          <TabsTrigger value="financeiro"><Wallet className="mr-1 size-4" />Financeiro</TabsTrigger>
-          <TabsTrigger value="impressao"><Printer className="mr-1 size-4" />Impressão</TabsTrigger>
-          <TabsTrigger value="comercial"><Crown className="mr-1 size-4" />Comercial</TabsTrigger>
-          <TabsTrigger value="usuarios"><KeyRound className="mr-1 size-4" />Usuários</TabsTrigger>
-          <TabsTrigger value="logs"><ScrollText className="mr-1 size-4" />Logs</TabsTrigger>
-          <TabsTrigger value="avaliacoes"><Star className="mr-1 size-4" />Avaliações</TabsTrigger>
-        </TabsList>
-
+    <AdminShell aba={aba} onAba={setAba} onRefresh={refreshAll}>
+      <Tabs value={aba} onValueChange={setAba}>
         <TabsContent value="dashboard" className="mt-4 space-y-4">
           <BuscaGlobal
             termo={buscaGlobal}
@@ -951,176 +913,19 @@ function Admin() {
           </section>
         </TabsContent>
 
-<TabsContent value="loja" className="mt-4">
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="font-display text-xl">Dados da loja</h2>
-            <p className="text-xs text-muted-foreground">
-              Endereço, telefone e ponto no mapa. Aparecem para o cliente quando ele escolhe{" "}
-              <strong>retirada na loja</strong> no checkout e no acompanhamento do pedido.
-            </p>
-            <p className="mt-2 rounded-lg bg-muted p-2.5 text-xs text-muted-foreground">
-              Como o cliente vê: {enderecoLoja(lojaAtual) || "endereço ainda não cadastrado"}
-            </p>
-
-            <form onSubmit={salvarLoja} className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="loja-cep">CEP</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Input
-                    id="loja-cep"
-                    inputMode="numeric"
-                    placeholder="00000-000"
-                    value={cepLoja}
-                    onChange={(e) => setCepLoja(mascararCep(e.target.value))}
-                    className="w-40"
-                  />
-                  <Button type="button" variant="outline" onClick={aplicarCep} disabled={buscandoCep}>
-                    {buscandoCep ? "Buscando…" : "Buscar endereço"}
-                  </Button>
-                  <Button type="button" variant="ghost" onClick={localizarNoMapa} disabled={localizando}>
-                    {localizando ? "Localizando…" : "Achar no mapa"}
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  O CEP preenche rua, bairro e cidade (base do Correio). "Achar no mapa" geocodifica o endereço
-                  completo e preenche a latitude/longitude.
-                </p>
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="loja-endereco">Endereço e número</Label>
-                <Input
-                  id="loja-endereco"
-                  value={lojaAtual.endereco}
-                  onChange={(e) => setLoja("endereco", e.target.value)}
-                  placeholder="Rua das Flores, 123"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-bairro">Bairro</Label>
-                <Input id="loja-bairro" value={lojaAtual.bairro} onChange={(e) => setLoja("bairro", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-cidade">Cidade</Label>
-                <Input id="loja-cidade" value={lojaAtual.cidade} onChange={(e) => setLoja("cidade", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-nome">Nome</Label>
-                <Input id="loja-nome" value={lojaAtual.nome} onChange={(e) => setLoja("nome", e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-telefone">WhatsApp da loja</Label>
-                <Input
-                  id="loja-telefone"
-                  inputMode="tel"
-                  placeholder="11999999999"
-                  value={lojaAtual.telefone}
-                  onChange={(e) => setLoja("telefone", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Também serve como contato do orçamento quando a Calculadora está vazia.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-instagram">Instagram (link)</Label>
-                <Input
-                  id="loja-instagram"
-                  placeholder="https://instagram.com/..."
-                  value={lojaAtual.instagram ?? ""}
-                  onChange={(e) => setLoja("instagram", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-facebook">Facebook (link)</Label>
-                <Input
-                  id="loja-facebook"
-                  placeholder="https://facebook.com/..."
-                  value={lojaAtual.facebook ?? ""}
-                  onChange={(e) => setLoja("facebook", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-site">Site (link)</Label>
-                <Input
-                  id="loja-site"
-                  placeholder="https://..."
-                  value={lojaAtual.site ?? ""}
-                  onChange={(e) => setLoja("site", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-google">Avaliação Google (link)</Label>
-                <Input
-                  id="loja-google"
-                  placeholder="Link do perfil para avaliar"
-                  value={lojaAtual.google_avaliacao ?? ""}
-                  onChange={(e) => setLoja("google_avaliacao", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Aparece no pedido entregue. Nunca condicione benefício à nota.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-complemento">Complemento</Label>
-                <Input
-                  id="loja-complemento"
-                  placeholder="Loja 2, sala 5…"
-                  value={lojaAtual.complemento}
-                  onChange={(e) => setLoja("complemento", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-referencia">Ponto de referência</Label>
-                <Input
-                  id="loja-referencia"
-                  placeholder="Próximo à praça central"
-                  value={lojaAtual.referencia}
-                  onChange={(e) => setLoja("referencia", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <Label htmlFor="loja-instrucoes">Instruções para retirada</Label>
-                <Textarea
-                  id="loja-instrucoes"
-                  rows={3}
-                  placeholder={"Ex: retirada das 8h às 19h.\nEstacionamento na esquina."}
-                  value={lojaAtual.instrucoes_retirada}
-                  onChange={(e) => setLoja("instrucoes_retirada", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Aparece no checkout e no acompanhamento do pedido.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-lat">Latitude</Label>
-                <Input
-                  id="loja-lat"
-                  inputMode="decimal"
-                  placeholder="-23.550520"
-                  value={lojaAtual.mapa_lat ?? ""}
-                  onChange={(e) => setLoja("mapa_lat", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="loja-lng">Longitude</Label>
-                <Input
-                  id="loja-lng"
-                  inputMode="decimal"
-                  placeholder="-46.633308"
-                  value={lojaAtual.mapa_lng ?? ""}
-                  onChange={(e) => setLoja("mapa_lng", e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Sem coordenadas, a loja aparece no mapa só se você usar "Achar no mapa".
-                </p>
-              </div>
-
-              <div className="sm:col-span-2">
-                <Button type="submit" disabled={!lojaForm}>Salvar dados da loja</Button>
-              </div>
-              {Number(lojaAtual.mapa_lat) && Number(lojaAtual.mapa_lng) ? (
-                <div className="space-y-1 sm:col-span-2">
-                  <Label>Como a loja aparece para o cliente</Label>
-                  <MapView pontos={[{ lat: Number(lojaAtual.mapa_lat), lng: Number(lojaAtual.mapa_lng), label: lojaAtual.nome || "Loja" }]} />
-                  <p className="text-xs text-muted-foreground">Esse é o marcador do pedido de retirada. Ajuste o endereço e use "Achar no mapa" de novo se ele estiver no lugar errado.</p>
-                </div>
-              ) : null}
-            </form>
-          </section>
+        <TabsContent value="loja">
+          <LojaPanel
+            lojaAtual={lojaAtual}
+            podeSalvar={!!lojaForm}
+            cepLoja={cepLoja}
+            setCepLoja={setCepLoja}
+            buscandoCep={buscandoCep}
+            localizando={localizando}
+            setLoja={setLoja}
+            aplicarCep={aplicarCep}
+            localizarNoMapa={localizarNoMapa}
+            salvarLoja={salvarLoja}
+          />
         </TabsContent>
         <TabsContent value="avaliacoes" className="mt-4">
           <section className="rounded-xl border border-border bg-card p-5">
@@ -1150,7 +955,7 @@ function Admin() {
           </section>
         </TabsContent>
       </Tabs>
-    </div>
+    </AdminShell>
   );
 }
 
@@ -1230,15 +1035,126 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
   const lista = foco
     ? listaAge.filter((p) => String(p.numero).includes(foco) || (p.cliente_nome ?? "").toLowerCase().includes(foco.toLowerCase()) || (p.telefone ?? "").includes(foco))
     : listaAge;
+  const listaTope = lista.slice(0, 60);
+  const colunas = [
+    {
+      titulo: "PENDENTE",
+      sub: "pedidos novos",
+      status: ["recebido"],
+      dot: "bg-primary",
+      ring: "border-t-primary",
+    },
+    {
+      titulo: "EM PRODUÇÃO",
+      sub: "preparando",
+      status: ["em_producao"],
+      dot: "bg-secondary",
+      ring: "border-t-secondary",
+    },
+    {
+      titulo: "DESPACHE",
+      sub: "prontos para sair",
+      status: ["pronto", "aguardando_motoboy", "em_rota"],
+      dot: "bg-success",
+      ring: "border-t-success",
+    },
+  ];
+  const naoColunados = listaTope.filter((p) => !colunas.some((c) => c.status.includes(p.status)));
+  const cartao = (p: any) => (
+    <article key={p.id} className="rounded-lg border border-border bg-card p-3 shadow-card">
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-display">Nº {p.numero}</span>
+        <StatusBadge status={p.status} />
+        <span className="ml-auto font-display text-primary">{brl(p.total)}</span>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {p.cliente_nome} • {p.telefone} • {dataHora(p.created_at)}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {p.endereco} — {p.bairro}
+        {(p as any).cidade ? ` • ${(p as any).cidade}` : ""}{" "}
+        {p.complemento ? `(${p.complemento})` : ""}{" "}
+        <span className="ml-1 rounded bg-muted px-1.5 py-0.5">
+          {STATUS_EXIBICAO[p.status] ?? p.status}
+        </span>
+        {(p as any).campanha_origem ? (
+          <span className="ml-1 rounded bg-muted px-1.5 py-0.5">
+            🔗 {(p as any).campanha_origem}
+          </span>
+        ) : (
+          ""
+        )}
+      </p>
+      <ul className="mt-1 text-xs">
+        {(p.pedido_itens ?? []).map((i: any) => (
+          <li key={i.id}>
+            {i.quantidade}x {i.nome}
+          </li>
+        ))}
+      </ul>
+      {p.observacoes && <p className="mt-1 rounded bg-muted p-1.5 text-xs">Obs: {p.observacoes}</p>}
+      <NotasAdmin pedidoId={p.id} numero={p.numero} />
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[...statusFlow(p.tipo_entrega), "cancelado"].map((v) => (
+              <SelectItem key={v} value={v}>
+                {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {onPagamento ? (
+          <Select value={p.pagamento_status ?? "pendente"} onValueChange={(s) => onPagamento(p, s)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(PAGAMENTO_STATUS_LABEL).map(([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            window.open(
+              whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)),
+              "_blank",
+            )
+          }
+        >
+          <MessageCircle className="mr-1 size-3.5" /> WhatsApp
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
+          <Printer className="mr-1 size-3.5" /> Imprimir direto
+        </Button>
+      </div>
+    </article>
+  );
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-display text-xl">Gestão de pedidos</h2>
         <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input type="checkbox" checked={soAgendados} onChange={(e) => setSoAgendados(e.target.checked)} /> Só agendados
+          <input
+            type="checkbox"
+            checked={soAgendados}
+            onChange={(e) => setSoAgendados(e.target.checked)}
+          />{" "}
+          Só agendados
         </label>
         <Select value={fEvento} onValueChange={setFEvento}>
-          <SelectTrigger className="ml-auto w-44"><SelectValue placeholder="Evento" /></SelectTrigger>
+          <SelectTrigger className="ml-auto w-44">
+            <SelectValue placeholder="Evento" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os eventos</SelectItem>
             <SelectItem value="sem_evento">Sem evento</SelectItem>
@@ -1251,22 +1167,54 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
           </SelectContent>
         </Select>
         <Select value={filtro} onValueChange={setFiltro}>
-          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
-            {["recebido", "em_producao", "pronto", "aguardando_motoboy", "em_rota", "entregue", "cancelado"].map((v) => (
-              <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
+            {[
+              "recebido",
+              "em_producao",
+              "pronto",
+              "aguardando_motoboy",
+              "em_rota",
+              "entregue",
+              "cancelado",
+            ].map((v) => (
+              <SelectItem key={v} value={v}>
+                {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Button
-          size="sm" variant="outline" className="ml-auto"
-          onClick={() => downloadCSV(`pedidos-${new Date().toISOString().slice(0, 10)}.csv`, lista.slice(0, 500).map((p: any) => ({
-            numero: p.numero, data: p.created_at, cliente: p.cliente_nome, telefone: p.telefone,
-            endereco: p.endereco, bairro: p.bairro, pagamento: p.forma_pagamento, subtotal: p.subtotal,
-            entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega", taxa_entrega: p.taxa_entrega, desconto: p.desconto, total: p.total, status: p.status, evento: p.tipo_evento,
-            itens: ((p.pedido_itens ?? []) as any[]).map((i) => `${i.quantidade}x ${i.nome}`).join(" | "),
-          })))}
+          size="sm"
+          variant="outline"
+          className="ml-auto"
+          onClick={() =>
+            downloadCSV(
+              `pedidos-${new Date().toISOString().slice(0, 10)}.csv`,
+              lista.slice(0, 500).map((p: any) => ({
+                numero: p.numero,
+                data: p.created_at,
+                cliente: p.cliente_nome,
+                telefone: p.telefone,
+                endereco: p.endereco,
+                bairro: p.bairro,
+                pagamento: p.forma_pagamento,
+                subtotal: p.subtotal,
+                entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega",
+                taxa_entrega: p.taxa_entrega,
+                desconto: p.desconto,
+                total: p.total,
+                status: p.status,
+                evento: p.tipo_evento,
+                itens: ((p.pedido_itens ?? []) as any[])
+                  .map((i) => `${i.quantidade}x ${i.nome}`)
+                  .join(" | "),
+              })),
+            )
+          }
         >
           Exportar CSV
         </Button>
@@ -1275,64 +1223,49 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
             Foco: “{foco}” ✕
           </Button>
         ) : null}
-        <Select value={filtro} onValueChange={setFiltro}>
-          <SelectTrigger className="ml-auto w-48"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            {["recebido", "em_producao", "pronto", "aguardando_motoboy", "em_rota", "entregue", "cancelado"].map((v) => (
-              <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
-      <div className="mt-4 space-y-3">
-        {lista.slice(0, 60).map((p) => (
-          <article key={p.id} className="rounded-lg border border-border p-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-display">Nº {p.numero}</span>
-              <StatusBadge status={p.status} />
-              <span className="text-muted-foreground">{p.cliente_nome} • {p.telefone} • {dataHora(p.created_at)}</span>
-              <span className="ml-auto font-display text-primary">{brl(p.total)}</span>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        {colunas.map((c) => {
+          const itens = listaTope.filter((p) => c.status.includes(p.status));
+          return (
+            <div
+              key={c.titulo}
+              className={`flex min-h-[18rem] flex-col rounded-xl border border-border border-t-4 ${c.ring} bg-muted/30`}
+            >
+              <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+                <span className={`size-2.5 shrink-0 rounded-full ${c.dot}`} />
+                <h3 className="font-display text-sm font-semibold tracking-wide">{c.titulo}</h3>
+                <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+                  {itens.length}
+                </span>
+              </div>
+              <p className="px-3 pt-2 text-xs text-muted-foreground">{c.sub}</p>
+              <div className="no-scrollbar flex max-h-[70vh] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+                {itens.map(cartao)}
+                {itens.length === 0 && (
+                  <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                    Nenhum pedido.
+                  </p>
+                )}
+              </div>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">{p.endereco} — {p.bairro}{(p as any).cidade ? ` • ${(p as any).cidade}` : ""} {p.complemento ? `(${p.complemento})` : ""} <span className="ml-1 rounded bg-muted px-1.5 py-0.5">{STATUS_EXIBICAO[p.status] ?? p.status}</span>{(p as any).campanha_origem ? <span className="ml-1 rounded bg-muted px-1.5 py-0.5">🔗 {(p as any).campanha_origem}</span> : ""}</p>
-            <ul className="mt-1 text-xs">
-              {(p.pedido_itens ?? []).map((i: any) => (
-                <li key={i.id}>{i.quantidade}x {i.nome}</li>
-              ))}
-            </ul>
-            {p.observacoes && <p className="mt-1 rounded bg-muted p-1.5 text-xs">Obs: {p.observacoes}</p>}
-            <NotasAdmin pedidoId={p.id} numero={p.numero} />
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
-                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[...statusFlow(p.tipo_entrega), "cancelado"]
-                    .map((v) => (
-                      <SelectItem key={v} value={v}>{v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}</SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {onPagamento ? (
-                <Select value={p.pagamento_status ?? "pendente"} onValueChange={(s) => onPagamento(p, s)}>
-                  <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PAGAMENTO_STATUS_LABEL).map(([v, l]) => (
-                      <SelectItem key={v} value={v}>{l}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
-              <Button size="sm" variant="outline" onClick={() => window.open(whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)), "_blank")}>
-                <MessageCircle className="mr-1 size-3.5" /> WhatsApp
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
-                <Printer className="mr-1 size-3.5" /> Imprimir direto
-              </Button>
-            </div>
-          </article>
-        ))}
-        {lista.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>}
+          );
+        })}
       </div>
+
+      {naoColunados.length > 0 ? (
+        <details className="mt-4 rounded-xl border border-border bg-muted/30">
+          <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">
+            Histórico — {naoColunados.length} pedido(s) fora das colunas (entregues / cancelados)
+          </summary>
+          <div className="flex flex-col gap-2.5 p-3">{naoColunados.map(cartao)}</div>
+        </details>
+      ) : null}
+
+      {lista.length === 0 && (
+        <p className="mt-4 text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>
+      )}
     </section>
   );
 }
