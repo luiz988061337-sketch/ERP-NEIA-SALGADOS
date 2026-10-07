@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.neia.pixreader">
+
+    <!-- Permissões necessárias -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+    <!-- Permissão para Service de Listener de Notificação -->
+    <permission
+        android:name="com.neia.pixreader.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+        android:protected="true"/>
+    <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"/>
+
+    <!-- Permitir que o app seja adicionado como listener de notificação -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.DEFAULT"/>
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Néia Pix Reader"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NéiaPixReader">
+
+        <!-- Activity principal -->
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:label="Néia Pix Reader">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+
+        <!-- Service de Listener de Notificação -->
+        <service
+            android:name=".services.PixNotificationListenerService"
+            android:exported="false"
+            android:permission="com.neia.pixreader.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+
+        <!-- Service de foreground para envios -->
+        <service
+            android:name=".services.SendEventService"
+            android:exported="false"
+            android:stopWithTask="true"/>
+    </application>
+</manifest>

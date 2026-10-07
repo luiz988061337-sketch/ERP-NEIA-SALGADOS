@@ -1,0 +1,14 @@
+﻿
+0058_gerar_cupom_apos_itens.sql:31:  v_tipo_entrega text;
+0058_gerar_cupom_apos_itens.sql:36:  v_taxa_entrega numeric;
+0058_gerar_cupom_apos_itens.sql:90:    v_tipo_entrega := v_pedido_row.tipo_entrega;
+0058_gerar_cupom_apos_itens.sql:94:    v_taxa_entrega := v_pedido_row.taxa_entrega;
+0058_gerar_cupom_apos_itens.sql:128:    -- Informacoes de entrega/retirada
+0058_gerar_cupom_apos_itens.sql:135:    v_payload := v_payload || 'Taxa de Entrega: R$ ' || to_char(v_taxa_entrega, 
+'999G999G990D00') || chr(10);
+0058_gerar_cupom_apos_itens.sql:138:    -- Endereco apenas para entrega
+0058_gerar_cupom_apos_itens.sql:139:    IF v_tipo_entrega = 'entrega' THEN
+0058_gerar_cupom_apos_itens.sql:140:      v_payload := v_payload || 'Tipo Entrega: ENTREGA' || chr(10);
+0058_gerar_cupom_apos_itens.sql:146:      v_payload := v_payload || 'Tipo Entrega: RETIRADA NA LOJA' || chr(10);
+
+

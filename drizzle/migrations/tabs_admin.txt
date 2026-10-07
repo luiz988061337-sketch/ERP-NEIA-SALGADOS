@@ -1,0 +1,53 @@
+﻿import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+      <Tabs value={aba} onValueChange={setAba} className="mt-6">
+        <TabsList className="flex w-full justify-start gap-1 overflow-x-auto">
+          <TabsTrigger value="dashboard"><LayoutDashboard className="mr-1 size-4" />Dashboard</TabsTrigger>
+          <TabsTrigger value="pedidos"><ClipboardList className="mr-1 size-4" />Pedidos</TabsTrigger>
+          <TabsTrigger value="produtos"><Package className="mr-1 size-4" />Produtos</TabsTrigger>
+          <TabsTrigger value="clientes"><Users className="mr-1 size-4" />Clientes</TabsTrigger>
+          <TabsTrigger value="motoboys"><Bike className="mr-1 size-4" />Motoboys</TabsTrigger>
+<TabsTrigger value="hero"><ImageIcon className="mr-1 size-4" />Hero</TabsTrigger>
+<TabsTrigger value="calculadora"><Calculator className="mr-1 size-4" />Calculadora</TabsTrigger>
+          <TabsTrigger value="loja"><Store className="mr-1 size-4" />Loja</TabsTrigger>
+          <TabsTrigger value="cupons"><Tag className="mr-1 size-4" />Cupons</TabsTrigger>
+          <TabsTrigger value="metas"><Target className="mr-1 size-4" />Metas</TabsTrigger>
+          <TabsTrigger value="financeiro"><Wallet className="mr-1 size-4" />Financeiro</TabsTrigger>
+          <TabsTrigger value="impressao"><Printer className="mr-1 size-4" />ImpressÃ£o</TabsTrigger>
+          <TabsTrigger value="comercial"><Crown className="mr-1 size-4" />Comercial</TabsTrigger>
+          <TabsTrigger value="usuarios"><KeyRound className="mr-1 size-4" />UsuÃ¡rios</TabsTrigger>
+          <TabsTrigger value="logs"><ScrollText className="mr-1 size-4" />Logs</TabsTrigger>
+          <TabsTrigger value="avaliacoes"><Star className="mr-1 size-4" />AvaliaÃ§Ãµes</TabsTrigger>
+        </TabsList>
+        <TabsContent value="dashboard" className="mt-4 space-y-4">
+        </TabsContent>
+        <TabsContent value="pedidos" className="mt-4">
+        </TabsContent>
+        <TabsContent value="produtos" className="mt-4 space-y-6">
+        </TabsContent>
+        <TabsContent value="clientes" className="mt-4">
+        </TabsContent>
+        <TabsContent value="motoboys" className="mt-4 space-y-4">
+        </TabsContent>
+        <TabsContent value="cupons" className="mt-4">
+        </TabsContent>
+        <TabsContent value="metas" className="mt-4">
+        </TabsContent>
+        <TabsContent value="financeiro" className="mt-4">
+        </TabsContent>
+        <TabsContent value="impressao" className="mt-4">
+        </TabsContent>
+        <TabsContent value="comercial" className="mt-4">
+        </TabsContent>
+        <TabsContent value="usuarios" className="mt-4">
+        </TabsContent>
+        <TabsContent value="logs" className="mt-4">
+        </TabsContent>
+        <TabsContent value="hero" className="mt-4">
+        </TabsContent>
+        <TabsContent value="calculadora" className="mt-4">
+        </TabsContent>
+<TabsContent value="loja" className="mt-4">
+        </TabsContent>
+        <TabsContent value="avaliacoes" className="mt-4">
+        </TabsContent>
+      </Tabs>

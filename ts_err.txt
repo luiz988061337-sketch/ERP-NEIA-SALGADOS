@@ -1,0 +1,16 @@
+﻿src/routes/central-entregas.tsx(236,8): error TS1003: Identifier expected.
+src/routes/central-entregas.tsx(236,44): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/routes/central-entregas.tsx(251,8): error TS1003: Identifier expected.
+src/routes/central-entregas.tsx(251,48): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/routes/central-entregas.tsx(275,8): error TS1003: Identifier expected.
+src/routes/central-entregas.tsx(275,43): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/routes/central-entregas.tsx(336,8): error TS1003: Identifier expected.
+src/routes/central-entregas.tsx(336,58): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/routes/central-entregas.tsx(382,8): error TS1003: Identifier expected.
+src/routes/central-entregas.tsx(382,47): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/routes/central-entregas.tsx(423,8): error TS1003: Identifier expected.
+src/routes/central-entregas.tsx(423,41): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/routes/checkout.tsx(524,3): error TS1472: 'catch' or 'finally' expected.
+src/routes/checkout.tsx(525,67): error TS1005: ')' expected.
+src/routes/checkout.tsx(539,3): error TS1472: 'catch' or 'finally' expected.
+src/routes/checkout.tsx(794,1): error TS1005: '}' expected.

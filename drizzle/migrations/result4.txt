@@ -1,0 +1,64 @@
+﻿
+0062_trigger_pagamento_confirmado.sql:1:-- 0062: trigger pagamento confirmado
+0062_trigger_pagamento_confirmado.sql:2:-- Trigger que dispara gera��o autom�tica de cupom quando pagamento � 
+confirmado.
+0062_trigger_pagamento_confirmado.sql:3:-- Executa quando pagamento_status muda de para 'pago'.
+0062_trigger_pagamento_confirmado.sql:4:-- Define a session app.pedido_id para a fun��o gerar_cupom_pedido().
+0062_trigger_pagamento_confirmado.sql:5:-- Chama gerar_cupom_pedido() para criar job na fila de impress�o.
+0062_trigger_pagamento_confirmado.sql:6:-- Idempotente: ON CONFLICT (trabalho_uuid) DO N�HING.
+0062_trigger_pagamento_confirmado.sql:7:--
+0062_trigger_pagamento_confirmado.sql:8:-- N��o adiciona coluna environment em pedidos.
+0062_trigger_pagamento_confirmado.sql:9:-- N��o modifica print-agent nem Tanca.
+0062_trigger_pagamento_confirmado.sql:10:--
+0062_trigger_pagamento_confirmado.sql:11:-- Como funciona:
+0062_trigger_pagamento_confirmado.sql:12:--   1. Trigger detecta cambio de pagamento_status pending -> pago
+0062_trigger_pagamento_confirmado.sql:13:--   2. Define session app.pedido_id = NEW.id
+0062_trigger_pagamento_confirmado.sql:14:--   3. Chama gerar_cupom_pedido() que l� a session e gera o cupom
+0062_trigger_pagamento_confirmado.sql:15:--   4. Ocupa o job na fila_impressao
+0062_trigger_pagamento_confirmado.sql:16:--
+0062_trigger_pagamento_confirmado.sql:17:-- Execucao manual (opcional):
+0062_trigger_pagamento_confirmado.sql:18:--   SELECT set_config('app.pedido_id', NULL, false);
+0062_trigger_pagamento_confirmado.sql:19:--   SELECT gerar_cupons_pedidos_pagos();
+0062_trigger_pagamento_confirmado.sql:20:--
+0062_trigger_pagamento_confirmado.sql:21:-- Trigger autom�tico ja criado ap�s a migration.
+0062_trigger_pagamento_confirmado.sql:23:-- =============================================
+0062_trigger_pagamento_confirmado.sql:24:-- Fun��o que dispara a gera��o de cupom no pagamento confirmado
+0062_trigger_pagamento_confirmado.sql:25:-- =============================================
+0062_trigger_pagamento_confirmado.sql:26:CREATE OR REPLACE FUNCTION public.handle_pagamento_confirmado()
+0062_trigger_pagamento_confirmado.sql:27:RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS 
+$$
+0062_trigger_pagamento_confirmado.sql:28:BEGIN
+0062_trigger_pagamento_confirmado.sql:29:  -- Zera a session variable antes
+0062_trigger_pagamento_confirmado.sql:30:  PERFORM set_config('app.pedido_id', NULL, false);
+0062_trigger_pagamento_confirmado.sql:31:  
+0062_trigger_pagamento_confirmado.sql:32:  -- Dispara somente na transi��o de para 'pago'
+0062_trigger_pagamento_confirmado.sql:33:  IF (NEW.pagamento_status = 'pago' AND OLD.pagamento_status != 'pago') THEN
+0062_trigger_pagamento_confirmado.sql:34:    -- Define o pedido_id em session para a fun��o ler
+0062_trigger_pagamento_confirmado.sql:35:    PERFORM set_config('app.pedido_id', NEW.id::text, false);
+0062_trigger_pagamento_confirmado.sql:36:    -- Chama a fun��o de gera��o de cupom
+0062_trigger_pagamento_confirmado.sql:37:    PERFORM public.gerar_cupom_pedido();
+0062_trigger_pagamento_confirmado.sql:38:  END IF;
+0062_trigger_pagamento_confirmado.sql:39:  RETURN NEW;
+0062_trigger_pagamento_confirmado.sql:40:END;
+0062_trigger_pagamento_confirmado.sql:41:$$;
+0062_trigger_pagamento_confirmado.sql:43:-- =============================================
+0062_trigger_pagamento_confirmado.sql:44:-- Trigger autom�tico em pedidos
+0062_trigger_pagamento_confirmado.sql:45:-- =============================================
+0062_trigger_pagamento_confirmado.sql:46:CREATE OR REPLACE TRIGGER trigger_pagamento_confirmado
+0062_trigger_pagamento_confirmado.sql:47:  AFTER UPDATE ON public.pedidos
+0062_trigger_pagamento_confirmado.sql:48:  FOR EACH ROW
+0062_trigger_pagamento_confirmado.sql:49:  WHEN (OLD.pagamento_status IS DISTINCT FROM NEW.pagamento_status
+0062_trigger_pagamento_confirmado.sql:50:        AND NEW.pagamento_status = 'pago')
+0062_trigger_pagamento_confirmado.sql:51:  EXECUTE FUNCTION public.handle_pagamento_confirmado;
+0062_trigger_pagamento_confirmado.sql:53:-- =============================================
+0062_trigger_pagamento_confirmado.sql:54:-- Comentario
+0062_trigger_pagamento_confirmado.sql:55:-- =============================================
+0062_trigger_pagamento_confirmado.sql:56:COMMENT ON TRIGGER trigger_pagamento_confirmado ON public.pedidos IS 'Dispara 
+gera��o autom�tica de cupom quando pagamento confirma�o (pending -> pago). Define session app.pedido_id para a fun��o 
+gerar_cupom_pedido(). Chama gerar_cupom_pedido(). Idempotente via ON CONFLICT DO NOTHING na fila_impressao. N��o 
+adiciona coluna environment em pedidos. N��o modifica print-agent nem Tanca.';
+0062_trigger_pagamento_confirmado.sql:58:COMMENT ON FUNCTION public.handle_pagamento_confirmado() IS 'Dispara gera��o 
+de cupom quando pagamento confirma�o (pending -> pago). Define session app.pedido_id para a fun��o 
+gerar_cupom_pedido(). Chama gerar_cupom_pedido(). Idempotente via ON CONFLICT DO NOTHING na fila_impressao.';
+
+

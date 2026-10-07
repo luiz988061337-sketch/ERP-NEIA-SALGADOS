@@ -1,0 +1,40 @@
+﻿
+0032_entrega_fase3.sql:1:-- 0032: entrega fase 3 — vínculo motoboy×usuário, endereço completo, avisos.
+0032_entrega_fase3.sql:2:-- Idempotente. Rode no SQL Editor APÓS 0031.
+0032_entrega_fase3.sql:4:-- 1) motoboys.user_id: o app grava status por usuário logado (retornando_base etc.)
+0032_entrega_fase3.sql:5:ALTER TABLE public.motoboys ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) 
+ON DELETE SET NULL;
+0032_entrega_fase3.sql:6:CREATE UNIQUE INDEX IF NOT EXISTS motoboys_user_idx ON public.motoboys (user_id);
+0032_entrega_fase3.sql:8:DROP POLICY IF EXISTS "motoboys self read" ON public.motoboys;
+0032_entrega_fase3.sql:9:CREATE POLICY "motoboys self read" ON public.motoboys FOR SELECT TO authenticated
+0032_entrega_fase3.sql:10:  USING (user_id = auth.uid());
+0032_entrega_fase3.sql:12:DROP POLICY IF EXISTS "motoboys self insert" ON public.motoboys;
+0032_entrega_fase3.sql:13:CREATE POLICY "motoboys self insert" ON public.motoboys FOR INSERT TO authenticated
+0032_entrega_fase3.sql:14:  WITH CHECK (user_id = auth.uid());
+0032_entrega_fase3.sql:16:DROP POLICY IF EXISTS "motoboys self status" ON public.motoboys;
+0032_entrega_fase3.sql:17:CREATE POLICY "motoboys self status" ON public.motoboys FOR UPDATE TO authenticated
+0032_entrega_fase3.sql:18:  USING (user_id = auth.uid())
+0032_entrega_fase3.sql:19:  WITH CHECK (user_id = auth.uid());
+0032_entrega_fase3.sql:21:-- 2) endereço apartamento/condomínio completo (§59)
+0032_entrega_fase3.sql:22:ALTER TABLE public.pedidos
+0032_entrega_fase3.sql:23:  ADD COLUMN IF NOT EXISTS andar text,
+0032_entrega_fase3.sql:24:  ADD COLUMN IF NOT EXISTS torre text;
+0032_entrega_fase3.sql:26:-- 3) avisos: motoboy precisa inserir (retorno à base); staff lê; grants faltavam
+0032_entrega_fase3.sql:27:GRANT ALL ON public.notificacoes TO authenticated;
+0032_entrega_fase3.sql:29:DROP POLICY IF EXISTS "notificacoes motoboy insert" ON public.notificacoes;
+0032_entrega_fase3.sql:30:CREATE POLICY "notificacoes motoboy insert" ON public.notificacoes FOR INSERT TO 
+authenticated
+0032_entrega_fase3.sql:31:  WITH CHECK (
+0032_entrega_fase3.sql:32:    public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente')
+0032_entrega_fase3.sql:33:    OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'motoboy')
+0032_entrega_fase3.sql:34:    OR public.has_role(auth.uid(),'financeiro')
+0032_entrega_fase3.sql:35:  );
+0032_entrega_fase3.sql:37:DROP POLICY IF EXISTS "notificacoes motoboy read" ON public.notificacoes;
+0032_entrega_fase3.sql:38:CREATE POLICY "notificacoes motoboy read" ON public.notificacoes FOR SELECT TO authenticated
+0032_entrega_fase3.sql:39:  USING (
+0032_entrega_fase3.sql:40:    public.has_role(auth.uid(),'admin') OR public.has_role(auth.uid(),'atendente')
+0032_entrega_fase3.sql:41:    OR public.has_role(auth.uid(),'producao') OR public.has_role(auth.uid(),'motoboy')
+0032_entrega_fase3.sql:42:    OR public.has_role(auth.uid(),'financeiro')
+0032_entrega_fase3.sql:43:  );
+
+

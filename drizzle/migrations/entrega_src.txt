@@ -1,0 +1,47 @@
+﻿/**
+ * Entrega / motoboy (Â§23-27): estados, rotas, atrasos, condomÃ­nio.
+ */
+
+export const MOTOBOY_STATUS = [
+  "disponivel_base",
+  "preparando_saida",
+  "em_rota",
+  "retornando_base",
+  "aguardando_nova_rota",
+  "offline",
+] as const;
+
+export const MOTIVO_ATRASO = [
+  "transito",
+  "chuva",
+  "veiculo",
+  "endereco",
+  "cliente_ausente",
+  "espera",
+  "acidente_bloqueio",
+  "outro",
+] as const;
+
+/** RÃ³tulos PT-BR (espelham o enum atraso_motivo da migration 0044). */
+export const MOTIVO_ATRASO_LABEL: Record<string, string> = {
+  transito: "TrÃ¢nsito",
+  chuva: "Chuva",
+  veiculo: "Problema no veÃ­culo",
+  endereco: "EndereÃ§o difÃ­cil",
+  cliente_ausente: "Cliente ausente",
+  espera: "Espera",
+  acidente_bloqueio: "Acidente / bloqueio",
+  outro: "Outro (descrever)",
+};
+
+export function mensagemPortaria(podeSubir: boolean): string {
+  if (podeSubir) return "";
+  return "ðŸ›µ Seu pedido jÃ¡ saiu para entrega! Se possÃ­vel, pedimos que aguarde o motoboy na portaria no momento da chegada. ðŸ˜Š Isso ajuda a agilizar sua entrega e tambÃ©m as prÃ³ximas entregas da nossa rota. Obrigado pela compreensÃ£o! â¤ï¸";
+}
+
+export type RotaPedido = { pedidoId: string; ordem: number; endereco: string; cliente: string };
+
+export function ordenarRota(pedidos: RotaPedido[], novaOrdem: string[]): RotaPedido[] {
+  const pos = new Map(novaOrdem.map((id, i) => [id, i]));
+  return [...pedidos].sort((a, b) => (pos.get(a.pedidoId) ?? 999) - (pos.get(b.pedidoId) ?? 999)).map((p, i) => ({ ...p, ordem: i + 1 }));
+}
