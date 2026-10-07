@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { CameraOff, Minus, Plus, RefreshCw, Search, ShoppingBag, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -26,30 +26,21 @@ function embaralhar<T>(arr: T[]): T[] {
   return a;
 }
 
-// Sugestão visual de produtos da categoria (variedade, sem repetir, sem promessa comercial).
-function sugerirProdutos(categoria: string, max = 4): PreviewProduto[] {
-  return embaralhar(PREVIEW_PRODUTOS.filter((p) => p.categoria === categoria)).slice(0, max);
-}
+// Sabores que podem compor o combo de 50 (só salgados; sem bebidas/kits).
+const SABORES_COMBO: PreviewProduto[] = PREVIEW_PRODUTOS.filter((p) => CATS_COMBO.includes(p.categoria));
 
-// Distribuição equilibrada: round-robin com início aleatório.
-function distribuicaoEquilibrada(totalCombos: number): Record<string, number> {
+// Sugestão aleatória somando 50, com variedade (sem repetir sabor quando há opção).
+function sugestaoAleatoria(): Record<string, number> {
   const dist: Record<string, number> = {};
-  for (const c of CATS_COMBO) dist[c] = 0;
-  const inicio = Math.floor(Math.random() * CATS_COMBO.length);
-  for (let i = 0; i < totalCombos; i++) {
-    const cat = CATS_COMBO[(inicio + i) % CATS_COMBO.length];
-    if (cat) dist[cat] = (dist[cat] ?? 0) + 1;
-  }
-  return dist;
-}
-
-// Distribuição surpresa: composição aleatória somando o total.
-function distribuicaoSurpresa(totalCombos: number): Record<string, number> {
-  const dist: Record<string, number> = {};
-  for (const c of CATS_COMBO) dist[c] = 0;
-  for (let i = 0; i < totalCombos; i++) {
-    const cat = CATS_COMBO[Math.floor(Math.random() * CATS_COMBO.length)];
-    if (cat) dist[cat] = (dist[cat] ?? 0) + 1;
+  let resto = 50;
+  const ordem = embaralhar(SABORES_COMBO);
+  const blocos = [20, 15, 10, 10, 5];
+  for (const p of ordem) {
+    if (resto <= 0) break;
+    const bloco = blocos[Math.floor(Math.random() * blocos.length)] ?? 5;
+    const qtd = Math.min(bloco, resto);
+    dist[p.id] = (dist[p.id] ?? 0) + qtd;
+    resto -= qtd;
   }
   return dist;
 }
@@ -71,43 +62,16 @@ function PreviewCardapio() {
   const [sacola, setSacola] = useState<Record<string, number>>({});
   const [adicionadoId, setAdicionadoId] = useState<string | null>(null);
   const [momentoId, setMomentoId] = useState<string | null>(null);
-  const [totalSalgados, setTotalSalgados] = useState(200);
-  const [modo, setModo] = useState<"manual" | "auto" | "surpresa" | null>(null);
-  const [manualCombos, setManualCombos] = useState<Record<string, number>>({});
-  const [sugestaoKey, setSugestaoKey] = useState(0);
+  const [comboSabores, setComboSabores] = useState<Record<string, number>>({});
+  const [comboKey, setComboKey] = useState(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const momento = PREVIEW_MOMENTOS.find((m) => m.id === momentoId) ?? null;
   const kitSugerido = momento?.kitId ? PREVIEW_PRODUTOS.find((p) => p.id === momento.kitId) ?? null : null;
-  const totalCombos = Math.floor(totalSalgados / 50);
-  const qtdValida = totalSalgados >= 50 && totalSalgados % 50 === 0;
-  const usadosManual = CATS_COMBO.reduce((a, c) => a + (manualCombos[c] ?? 0), 0);
 
   function escolherMomento(m: PreviewMomento) {
     setMomentoId(m.id);
-    setModo(null);
-    setManualCombos({});
-  }
-
-  function ajustarTotal(delta: number) {
-    setTotalSalgados((t) => Math.min(1000, Math.max(50, t + delta)));
-    setModo(null);
-    setManualCombos({});
-  }
-
-  function escolherModo(novo: "manual" | "auto" | "surpresa") {
-    setModo(novo);
-    setManualCombos({});
-    setSugestaoKey((k) => k + 1);
-  }
-
-  function alterarManual(cat: string, delta: number) {
-    setManualCombos((s) => {
-      const atual = s[cat] ?? 0;
-      const outros = CATS_COMBO.reduce((a, c) => a + (c === cat ? 0 : (s[c] ?? 0)), 0);
-      const novo = Math.min(Math.max(0, atual + delta), Math.max(0, totalCombos - outros));
-      return { ...s, [cat]: novo };
-    });
+    setComboSabores({});
   }
 
   function surpreendaMe() {
@@ -115,11 +79,15 @@ function PreviewCardapio() {
     if (!m) return;
     setCategoria("Combinações");
     setMomentoId(m.id);
-    setTotalSalgados(200);
-    setModo("surpresa");
-    setManualCombos({});
-    setSugestaoKey((k) => k + 1);
+    setComboSabores(sugestaoAleatoria());
+    setComboKey((k) => k + 1);
     requestAnimationFrame(() => document.getElementById("pv-momentos")?.scrollIntoView({ behavior: "smooth" }));
+  }
+
+  function adicionarComboMontado(descricao: string) {
+    const id = `combo50-${Date.now()}`;
+    setSacola((s) => ({ ...s, [id]: 1 }));
+    toast.success(`Combo 50 na sacola: ${descricao} (demonstração)`);
   }
 
   const termo = busca.trim().toLowerCase();
@@ -240,21 +208,13 @@ function PreviewCardapio() {
               ))}
             </div>
             {momento && (
-              <MomentoPainel
+              <MontarCombo
+                key={`${momento.id}-${comboKey}`}
                 momento={momento}
                 kitSugerido={kitSugerido}
-                totalSalgados={totalSalgados}
-                totalCombos={totalCombos}
-                qtdValida={qtdValida}
-                modo={modo}
-                manualCombos={manualCombos}
-                sugestaoKey={sugestaoKey}
-                onTotal={ajustarTotal}
-                onTotalDigitar={(v: number) => { setTotalSalgados(v); setModo(null); setManualCombos({}); }}
-                onModo={escolherModo}
-                onManual={alterarManual}
-                onGerarOutra={() => setSugestaoKey((k) => k + 1)}
-                adicionadoId={adicionadoId}
+                sabores={comboSabores}
+                onSabores={setComboSabores}
+                onAdicionarCombo={adicionarComboMontado}
                 onAdicionar={adicionar}
               />
             )}
@@ -274,169 +234,128 @@ function PreviewCardapio() {
   );
 }
 
-function MomentoPainel(props: {
+function MontarCombo(props: {
   momento: PreviewMomento;
   kitSugerido: PreviewProduto | null;
-  totalSalgados: number;
-  totalCombos: number;
-  qtdValida: boolean;
-  modo: "manual" | "auto" | "surpresa" | null;
-  manualCombos: Record<string, number>;
-  sugestaoKey: number;
-  onTotal: (delta: number) => void;
-  onTotalDigitar: (v: number) => void;
-  onModo: (m: "manual" | "auto" | "surpresa") => void;
-  onManual: (cat: string, delta: number) => void;
-  onGerarOutra: () => void;
-  adicionadoId: string | null;
+  sabores: Record<string, number>;
+  onSabores: Dispatch<SetStateAction<Record<string, number>>>;
+  onAdicionarCombo: (descricao: string) => void;
   onAdicionar: (p: PreviewProduto) => void;
 }) {
-  const { momento, totalSalgados, totalCombos, qtdValida, modo } = props;
-  const distribuicao = useMemo<Record<string, number> | null>(() => {
-    if (!qtdValida || !modo) return null;
-    if (modo === "manual") return props.manualCombos;
-    if (modo === "auto") return distribuicaoEquilibrada(totalCombos);
-    return distribuicaoSurpresa(totalCombos);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modo, totalCombos, qtdValida, props.manualCombos, props.sugestaoKey]);
-  const usados = CATS_COMBO.reduce((a, c) => a + (distribuicao?.[c] ?? 0), 0);
-  const completa = qtdValida && !!distribuicao && usados === totalCombos && (modo !== "manual" || totalCombos > 0);
+  const { momento, sabores } = props;
+  const total = SABORES_COMBO.reduce((a, p) => a + (sabores[p.id] ?? 0), 0);
+  const faltam = 50 - total;
+  const completo = total === 50;
+  const itens = SABORES_COMBO.filter((p) => (sabores[p.id] ?? 0) > 0);
+  const porCategoria = CATS_COMBO.map((cat) => ({
+    cat,
+    qtd: SABORES_COMBO.filter((p) => p.categoria === cat).reduce((a, p) => a + (sabores[p.id] ?? 0), 0),
+  })).filter((g) => g.qtd > 0);
+
+  function alterar(id: string, delta: number) {
+    props.onSabores((prev) => {
+      const atual = prev[id] ?? 0;
+      const totalPrev = SABORES_COMBO.reduce((a, p) => a + (prev[p.id] ?? 0), 0);
+      const novo = Math.min(Math.max(0, atual + delta), Math.max(0, 50 - (totalPrev - atual)));
+      if (novo === atual) return prev;
+      return { ...prev, [id]: novo };
+    });
+  }
+
+  function gerarSugestao() {
+    props.onSabores(sugestaoAleatoria());
+  }
+
+  function limpar() {
+    props.onSabores({});
+  }
+
+  function adicionarCombo() {
+    if (total !== 50) return;
+    const descricao = itens.map((p) => `${sabores[p.id]}x ${p.nome}`).join(", ");
+    props.onAdicionarCombo(descricao);
+  }
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
       <p className="text-sm text-muted-foreground">
-        {momento.icone} {momento.titulo} — <strong>monte sua seleção</strong>
+        {momento.icone} {momento.titulo} — <strong>COMBO — 50 UNIDADES</strong>
       </p>
+      <p className="mt-1 text-sm"><strong>Monte seu combo escolhendo os sabores disponíveis.</strong> Você pode misturar os sabores para completar as 50 unidades.</p>
+      <p className="mt-1 text-xs text-muted-foreground">Exemplos (só exemplos): 50 Coxinhas • 25 + 25 • 20 + 10 + 10 + 10</p>
 
-      {/* Quantidade */}
-      <div className="mt-3">
-        <label htmlFor="pv-qtd" className="text-sm font-bold">Quantos salgados você quer?</label>
-        <div className="mt-1 flex items-center gap-2">
-          <Button size="sm" variant="outline" className="min-h-[44px] min-w-[44px]" onClick={() => props.onTotal(-50)} aria-label="Diminuir 50">−</Button>
-          <Input
-            id="pv-qtd"
-            inputMode="numeric"
-            value={Number.isNaN(props.totalSalgados) ? "" : props.totalSalgados}
-            onChange={(e) => props.onTotalDigitar(Math.floor(Number(e.target.value) || 0))}
-            className="max-w-[140px] text-center text-lg font-bold"
-          />
-          <Button size="sm" variant="outline" className="min-h-[44px] min-w-[44px]" onClick={() => props.onTotal(50)} aria-label="Aumentar 50">+</Button>
-        </div>
-        {!qtdValida ? (
-          <p className="mt-1 text-xs text-destructive">Escolha uma quantidade em múltiplos de 50 (mínimo 50).</p>
+      {/* Contador */}
+      <div className="mt-3 rounded-xl bg-muted p-3 text-sm" aria-live="polite">
+        <p className="font-display text-lg">TOTAL DO COMBO — {total} / 50 unidades</p>
+        {completo ? (
+          <p className="font-bold text-primary">✓ COMBO COMPLETO — 50 / 50 unidades</p>
         ) : (
-          <p className="mt-1 text-xs text-muted-foreground">1 combo = 50 salgados • {totalSalgados} salgados = {totalCombos} {totalCombos === 1 ? "combo" : "combos"}</p>
+          <p>Faltam <strong>{faltam} unidades</strong></p>
         )}
       </div>
 
-      {/* Modos */}
-      {qtdValida && (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {([
-            { id: "manual", icone: "🎯", titulo: "Eu escolho", desc: "Divida os combos por categoria" },
-            { id: "auto", icone: "🤖", titulo: "Equilibrar para mim", desc: "Distribuição automática" },
-            { id: "surpresa", icone: "✨", titulo: "Surpreenda-me", desc: "Combinação aleatória" },
-          ] as const).map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => props.onModo(m.id)}
-              aria-pressed={modo === m.id}
-              className={cn(
-                "rounded-xl border p-3 text-left",
-                modo === m.id ? "border-primary ring-2 ring-primary" : "border-border",
-              )}
-            >
-              <span aria-hidden>{m.icone}</span>
-              <span className="block text-sm font-bold">{m.titulo}</span>
-              <span className="block text-xs text-muted-foreground">{m.desc}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Manual */}
-      {qtdValida && modo === "manual" && distribuicao && (
-        <div className="mt-3 space-y-2">
-          <p className="text-sm">Como você quer dividir seus <strong>{totalSalgados} salgados</strong>?</p>
-          {CATS_COMBO.map((cat) => {
-            const n = distribuicao[cat] ?? 0;
-            return (
-              <div key={cat} className="flex items-center gap-2 rounded-xl border border-border p-2">
-                <span className="flex-1 text-sm font-bold">{cat}</span>
-                <Button size="sm" variant="outline" className="min-h-[44px] min-w-[44px]" onClick={() => props.onManual(cat, -1)} disabled={n <= 0} aria-label={`Menos um combo de ${cat}`}>−</Button>
-                <span className="w-14 text-center text-sm" aria-live="polite">{n} <span className="text-muted-foreground">({n * 50})</span></span>
-                <Button size="sm" variant="outline" className="min-h-[44px] min-w-[44px]" onClick={() => props.onManual(cat, 1)} disabled={usados >= totalCombos} aria-label={`Mais um combo de ${cat}`}>+</Button>
-              </div>
-            );
-          })}
-          <div className="rounded-xl bg-muted p-3 text-sm" aria-live="polite">
-            {usados < totalCombos ? (
-              <>Você escolheu <strong>{usados} de {totalCombos} combos</strong> • Falta escolher: <strong>{totalCombos - usados} combo(s) ({(totalCombos - usados) * 50} salgados)</strong></>
-            ) : (
-              <>✓ Combinação completa — <strong>{totalCombos} combos • {totalSalgados} salgados</strong></>
-            )}
+      {/* Sabores por categoria */}
+      {CATS_COMBO.map((cat) => (
+        <div key={cat} className="mt-3">
+          <h3 className="font-display text-sm uppercase text-muted-foreground">{cat}</h3>
+          <div className="mt-1 space-y-2">
+            {SABORES_COMBO.filter((p) => p.categoria === cat).map((p) => {
+              const qtd = sabores[p.id] ?? 0;
+              return (
+                <div key={p.id} className="flex items-center gap-2 rounded-xl border border-border p-2">
+                  {p.foto ? (
+                    <img src={p.foto} alt="" aria-hidden width={48} height={36} className="size-12 rounded-md object-cover" />
+                  ) : (
+                    <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground" aria-hidden><CameraOff className="size-4" /></span>
+                  )}
+                  <span className="min-w-0 flex-1 text-sm font-bold">{p.nome}</span>
+                  <Button size="sm" variant="outline" className="min-h-[44px] min-w-[44px]" onClick={() => alterar(p.id, -1)} disabled={qtd <= 0} aria-label={`Menos uma unidade de ${p.nome}`}>−</Button>
+                  <span className="w-10 text-center text-sm font-bold" aria-live="polite">{qtd}</span>
+                  <Button size="sm" variant="outline" className="min-h-[44px] min-w-[44px]" onClick={() => alterar(p.id, 1)} disabled={total >= 50} aria-label={`Mais uma unidade de ${p.nome}`}>+</Button>
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
+      ))}
 
-      {/* Resultado */}
-      {completa && distribuicao && (
-        <div key={props.sugestaoKey} className="mt-3 space-y-3">
-          <p className="text-sm text-muted-foreground">Sugestão visual — valores serão definidos no pedido.</p>
-          {CATS_COMBO.filter((c) => (distribuicao[c] ?? 0) > 0).map((cat) => (
-            <SugestaoCategoria
-              key={cat}
-              categoria={cat}
-              combos={distribuicao[cat] ?? 0}
-              seed={props.sugestaoKey}
-              adicionadoId={props.adicionadoId}
-              onAdicionar={props.onAdicionar}
-            />
-          ))}
-          {props.kitSugerido && (
-            <div className="rounded-xl bg-muted p-3 text-sm">
-              Também temos uma opção pronta para sua festa: <strong>{props.kitSugerido.nome}</strong> — {brl(props.kitSugerido.preco)}
-              <Button size="sm" variant="outline" className="ml-2" onClick={() => props.onAdicionar(props.kitSugerido!)}>Adicionar</Button>
-            </div>
-          )}
-          {(modo === "auto" || modo === "surpresa") && (
-            <Button className="w-full min-h-[44px] sm:w-auto" onClick={props.onGerarOutra}>
-              <RefreshCw className="mr-2 size-4" /> Gerar outra combinação
-            </Button>
+      {/* Composição */}
+      {itens.length > 0 && (
+        <div className="mt-3 rounded-xl border border-border p-3">
+          <h3 className="font-display text-sm uppercase text-muted-foreground">Composição do combo</h3>
+          <ul className="mt-1 space-y-1 text-sm">
+            {itens.map((p) => (
+              <li key={p.id} className="flex justify-between gap-2">
+                <span className="min-w-0 break-words">{p.nome}</span>
+                <strong className="shrink-0">{sabores[p.id]}</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 border-t border-border pt-2 text-sm"><strong>Total — {total} / 50</strong>{!completo && <> • <span className="text-destructive">FALTAM {faltam} UNIDADES</span></>}</p>
+          {porCategoria.length > 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {porCategoria.map((g) => `${g.cat}: ${g.qtd}`).join(" • ")}
+            </p>
           )}
         </div>
       )}
-    </div>
-  );
-}
 
-function SugestaoCategoria({ categoria, combos, seed, adicionadoId, onAdicionar }: {
-  categoria: string;
-  combos: number;
-  seed: number;
-  adicionadoId: string | null;
-  onAdicionar: (p: PreviewProduto) => void;
-}) {
-  const itens = useMemo(() => sugerirProdutos(categoria, 4), [categoria, seed]);
-  return (
-    <div className="rounded-xl border border-border p-3">
-      <p className="text-sm"><strong>{categoria}</strong> <span className="text-muted-foreground">• {combos} {combos === 1 ? "combo" : "combos"} ({combos * 50} salgados)</span></p>
-      <ul className="mt-2 space-y-1.5">
-        {itens.map((p) => (
-          <li key={p.id} className="flex items-center gap-2 text-sm">
-            {p.foto ? (
-              <img src={p.foto} alt="" aria-hidden width={40} height={30} className="size-10 rounded-md object-cover" />
-            ) : (
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground" aria-hidden><CameraOff className="size-4" /></span>
-            )}
-            <span className="min-w-0 flex-1 truncate">✓ {p.nome}</span>
-            <Button size="sm" variant="ghost" onClick={() => onAdicionar(p)} aria-label={`Adicionar ${p.nome} à sacola`}>
-              {adicionadoId === p.id ? "Na sacola" : <Plus className="size-4" />}
-            </Button>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={gerarSugestao}>
+          <RefreshCw className="mr-2 size-4" /> Gerar sugestão
+        </Button>
+        <Button size="sm" variant="ghost" onClick={limpar} disabled={total === 0}>Limpar</Button>
+        <Button size="sm" disabled={!completo} onClick={adicionarCombo}>
+          <Plus className="mr-2 size-4" /> Adicionar combo à sacola
+        </Button>
+      </div>
+
+      {props.kitSugerido && props.kitSugerido.preco != null && (
+        <div className="mt-3 rounded-xl bg-muted p-3 text-sm">
+          Também temos uma opção pronta para sua festa: <strong>{props.kitSugerido.nome}</strong> — {brl(props.kitSugerido.preco)}
+          <Button size="sm" variant="outline" className="ml-2" onClick={() => props.onAdicionar(props.kitSugerido!)}>Adicionar</Button>
+        </div>
+      )}
     </div>
   );
 }
