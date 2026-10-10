@@ -215,8 +215,14 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
       const linhasTxt = itens.map((i) => `* ${i.quantidade}x ${i.nome} — ${brl(i.preco * i.quantidade)}`).join("\n");
       window.open(whatsappLink(telefone.trim(), `Novo pedido #${numero}\n\nCliente: ${nome.trim()}\n\n${linhasTxt}\n\nProdutos: ${brl(calcF.subtotal)}\nEntrega: ${brl(calcF.taxaEntrega)}\nTotal: ${brl(calcF.total)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}\n\n${mensagemStatus("recebido", nome.trim(), numero)}`), "_blank", "noopener");
     } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Não foi possível registrar.");
+      console.error("[atendente] finalizar:", err);
+      const detalhe =
+        err instanceof Error && err.message
+          ? err.message
+          : typeof err === "string" && err
+            ? err
+            : "";
+      toast.error(detalhe || "Não foi possível registrar.");
     } finally {
       setEnviando(false);
     }
