@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Néia Pix Reader</string>
+    <string title="service_active">SERVIÇO ATIVO</string>
+    <string title="online">ONLINE</string>
+    <string title="test_mode">TESTE</string>
+    <string title="px_detectados">Pix detectados:</string>
+    <string title="enviados">Enviados:</string>
+    <string title="pendentes">Pendentes:</string>
+    <string title="erros">Erros:</string>
+    <string title="testar_conexao">TESTAR CONEXÃO</string>
+    <string title="enviar_pix_teste">ENVIAR PIX TESTE</string>
+    <string title="ver_eventos">VER EVENTOS</string>
+    <string title="ver_logs">VER LOGS</string>
+    <string title="configuracoes">CONFIGURAÇÕES</string>
+</resources>

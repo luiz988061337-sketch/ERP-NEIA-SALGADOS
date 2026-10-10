@@ -2,16 +2,17 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { MapPin, Navigation, Phone, MessageCircle, Banknote, Package, History } from "lucide-react";
+import { MapPin, Navigation, Phone, MessageCircle, Banknote, Package, History, Truck, Satellite, WifiOff, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
-import { avisarStatus } from "@/lib/push";
+import { notificarPedido } from "@/lib/notificacoes";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
+import { useGpsTracking, GpsStatus, UseGpsTrackingReturn } from "@/hooks/useGpsTracking";
 
 export const Route = createFileRoute("/motoboy")({
   head: () => ({
@@ -41,8 +42,6 @@ function Motoboy() {
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
-  const watchId = useRef<number | null>(null);
-  const ultimoEnvio = useRef<number>(0);
   const [retornando, setRetornando] = useState(false);
   const [aba, setAba] = useState("disponiveis");
 
@@ -115,40 +114,38 @@ function Motoboy() {
   const emAndamento = useMemo(() => (minhas ?? []).filter((p: any) => p.status !== "entregue" && p.status !== "cancelado"), [minhas]);
   const historico = useMemo(() => (minhas ?? []).filter((p: any) => ["entregue", "cancelado"].includes(p.status)), [minhas]);
 
-  // Tracking contínuo: enquanto houver entrega em rota, envia localização a cada 15s
+  // Pedidos em rota para rastreamento GPS
+  const pedidosEmRota = useMemo(() => emAndamento.filter((p: any) => p.status === "em_rota"), [emAndamento]);
+  const pedidoIdsEmRota = useMemo(() => pedidosEmRota.map((p: any) => p.id), [pedidosEmRota]);
+
+  // GPS Tracking hook
+  const {
+    status: gpsStatus,
+    currentPosition: gpsPosition,
+    lastUpdate: gpsLastUpdate,
+    error: gpsError,
+    startTracking,
+    stopTracking,
+    isTracking,
+  } = useGpsTracking({
+    pedidoIds: pedidoIdsEmRota,
+    enabled: pedidoIdsEmRota.length > 0 && !!autorizado,
+    updateIntervalMs: 15000,
+    minDistanceMeters: 10,
+    maxAgeMs: 10000,
+    timeoutMs: 15000,
+  });
+
+  const isTrackingBool: boolean = isTracking ?? false;
+
+  // Auto-start tracking when there are deliveries in route
   useEffect(() => {
-    const emRota = emAndamento.some((p: any) => p.status === "em_rota");
-    if (!emRota || !("geolocation" in navigator)) {
-      if (watchId.current != null) {
-        navigator.geolocation.clearWatch(watchId.current);
-        watchId.current = null;
-      }
-      return;
+    if (pedidoIdsEmRota.length > 0 && autorizado && !isTrackingBool) {
+      startTracking();
+    } else if (pedidoIdsEmRota.length === 0 && isTrackingBool) {
+      stopTracking();
     }
-    watchId.current = navigator.geolocation.watchPosition(
-      async (pos) => {
-        // Fase A: throttle de 15s para não martelar o banco a cada fix de GPS.
-        const agora = Date.now();
-        if (agora - ultimoEnvio.current < 15000) return;
-        ultimoEnvio.current = agora;
-        const alvos = emAndamento.filter((p: any) => p.status === "em_rota");
-        for (const p of alvos) {
-          await supabase.from("pedidos").update({
-            motoboy_lat: pos.coords.latitude,
-            motoboy_lng: pos.coords.longitude,
-            motoboy_atualizado_em: new Date().toISOString(),
-          }).eq("id", (p as any).id);
-        }
-      },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 },
-    );
-    return () => {
-      if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
-      watchId.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(emAndamento.map((p: any) => p.id + p.status))]);
+  }, [pedidoIdsEmRota.length, autorizado, startTracking, stopTracking, isTrackingBool]);
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["entregas-disponiveis"] });
@@ -164,12 +161,19 @@ function Motoboy() {
     if (error) toast.error("Entrega já foi aceita por outro motoboy.");
     else {
       toast.success(`Você aceitou o pedido nº ${p.numero}. Taxa ${brl(p.taxa_motoboy)}. Toque em Iniciar para sair.`);
-      void avisarStatus(supabase, p, "aguardando_motoboy", mensagemStatus("aguardando_motoboy", p.cliente_nome, p.numero));
+      void notificarPedido({ client: supabase, pedidoId: p.id, status: "aguardando_motoboy", telefone: p.telefone, mensagem: mensagemStatus("aguardando_motoboy", p.cliente_nome, p.numero) });
     }
     refresh();
   }
 
   async function iniciar(p: any) {
+    // Request GPS permission and start tracking
+    try {
+      await startTracking();
+    } catch (err) {
+      console.error("Failed to start GPS:", err);
+    }
+
     const pos = await new Promise<GeolocationPosition | null>((resolve) =>
       navigator.geolocation
         ? navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 8000 })
@@ -186,7 +190,7 @@ function Motoboy() {
     if (error) toast.error("Não foi possível iniciar.");
     else {
       toast.success(`Entrega nº ${p.numero} iniciada.`);
-      void avisarStatus(supabase, p, "em_rota", mensagemStatus("em_rota", p.cliente_nome, p.numero));
+      void notificarPedido({ client: supabase, pedidoId: p.id, status: "em_rota", telefone: p.telefone, mensagem: mensagemStatus("em_rota", p.cliente_nome, p.numero) });
     }
     refresh();
   }
@@ -196,7 +200,7 @@ function Motoboy() {
     if (error) toast.error("Não foi possível finalizar.");
     else {
       toast.success(`Pedido nº ${p.numero} entregue! +${brl(p.taxa_motoboy)}`);
-      void avisarStatus(supabase, p, "entregue", mensagemStatus("entregue", p.cliente_nome, p.numero));
+      void notificarPedido({ client: supabase, pedidoId: p.id, status: "entregue", telefone: p.telefone, mensagem: mensagemStatus("entregue", p.cliente_nome, p.numero) });
       // Se não há mais pendentes, vira RETORNANDO À BASE automaticamente + avisa o admin
       try {
         const { count } = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("motoboy_id", user!.id).in("status", ["aguardando_motoboy", "em_rota"]);
@@ -267,10 +271,53 @@ function Motoboy() {
     return <p className="p-10 text-center text-muted-foreground">Você não tem acesso ao painel do motoboy.</p>;
   }
 
+  // GPS Status indicator component
+  const getGpsStatusInfo = (status: GpsStatus) => {
+    switch (status) {
+      case "ativo":
+        return { icon: Satellite, color: "text-success", label: "GPS ativo", description: "Localização sendo compartilhada" };
+      case "atualizando":
+        return { icon: Loader2, color: "text-primary", label: "GPS atualizando", description: "Obtendo localização..." };
+      case "sem_atualizacao":
+        return { icon: AlertCircle, color: "text-warning", label: "GPS sem atualização", description: "Sem atualização há mais de 1 minuto" };
+      case "indisponivel":
+        return { icon: Satellite, color: "text-muted-foreground", label: "GPS indisponível", description: "GPS não disponível ou não iniciado" };
+      case "permissao_negada":
+        return { icon: AlertCircle, color: "text-destructive", label: "Permissão negada", description: "Ative a localização nas configurações" };
+      case "offline":
+        return { icon: WifiOff, color: "text-warning", label: "Offline", description: "Sem conexão. Sincronizando quando voltar." };
+      default:
+        return { icon: Satellite, color: "text-muted-foreground", label: "GPS", description: "" };
+    }
+  };
+
+  const gpsInfo = getGpsStatusInfo(gpsStatus);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="font-display text-3xl">Painel do motoboy</h1>
-      <p className="text-sm text-muted-foreground">Aceite corridas, navegue e acompanhe seus ganhos.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div>
+          <h1 className="font-display text-3xl">Painel do motoboy</h1>
+          <p className="text-sm text-muted-foreground">Aceite corridas, navegue e acompanhe seus ganhos.</p>
+        </div>
+        {/* GPS Status Indicator */}
+        <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${gpsInfo.color.replace("text-", "border-")} bg-card`}>
+          <gpsInfo.icon className={`size-5 ${gpsInfo.color}`} />
+          <div className="text-left">
+            <p className={`font-semibold text-sm ${gpsInfo.color}`}>{gpsInfo.label}</p>
+            <p className="text-xs text-muted-foreground">{gpsInfo.description}</p>
+          </div>
+          {gpsLastUpdate && (
+            <span className="ml-2 text-xs text-muted-foreground">
+              Última atualização: {gpsLastUpdate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
+          {gpsError && (
+            <span className="ml-2 text-xs text-destructive">{gpsError}</span>
+          )}
+        </div>
+      </div>
+
       <div className="mt-3 flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={() => base("retornando_base")}>Retornando à base</Button>
         <Button size="sm" variant="outline" onClick={() => base("disponivel_base")}>Cheguei à base</Button>
@@ -448,6 +495,19 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
     p.motoboy_lat && p.motoboy_lng ? { lat: p.motoboy_lat, lng: p.motoboy_lng, label: "Você" } : null,
   ].filter(Boolean) as { lat: number; lng: number; label: string }[];
 
+  // GPS status for this specific delivery
+  const isEmRota = p.status === "em_rota";
+  const hasGps = p.motoboy_lat && p.motoboy_lng;
+  const lastUpdate = p.motoboy_atualizado_em ? new Date(p.motoboy_atualizado_em) : null;
+  const isGpsStale = lastUpdate && (Date.now() - lastUpdate.getTime()) > 60000;
+
+  const getGpsBadge = () => {
+    if (!isEmRota) return null;
+    if (!hasGps) return <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"><Satellite className="size-3" /> GPS aguardando</span>;
+    if (isGpsStale) return <span className="inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-1 text-xs"><AlertCircle className="size-3" /> GPS desatualizado</span>;
+    return <span className="inline-flex items-center gap-1 rounded-full bg-success/20 text-success px-2 py-1 text-xs"><Satellite className="size-3" /> GPS ativo</span>;
+  };
+
   return (
     <article className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2">
@@ -476,14 +536,16 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
         {p.observacoes && <p className="rounded bg-muted p-2 text-xs">Obs: {p.observacoes}</p>}
       </div>
 
+      {p.status === "em_rota" && getGpsBadge()}
+
       {pontos.length > 0 && <MapView pontos={pontos} className="mt-3 h-48 w-full rounded-xl border border-border" />}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <Button size="sm" variant="outline" asChild>
           <a href={rotaGoogleMaps(destino)} target="_blank" rel="noopener noreferrer"><Navigation className="mr-1 size-4" /> Abrir rota / Navegar</a>
         </Button>
-        {p.status !== "em_rota" && <Button size="sm" onClick={onIniciar}>Iniciar entrega</Button>}
-        {p.status === "em_rota" && <Button size="sm" onClick={onFinalizar}>Finalizar entrega</Button>}
+        {p.status !== "em_rota" && <Button size="sm" onClick={onIniciar}>🛵 Iniciar Rota</Button>}
+        {p.status === "em_rota" && <Button size="sm" onClick={onFinalizar}>✓ Finalizar entrega</Button>}
         <Button size="sm" variant="outline" onClick={() => setAvisarAtraso((v) => !v)}>Atraso</Button>
       </div>
       {p.atrasado ? <p className="mt-2 text-xs text-destructive">Atrasado: {p.atraso_motivo}{p.atraso_descricao ? ` — ${p.atraso_descricao}` : ""}</p> : null}

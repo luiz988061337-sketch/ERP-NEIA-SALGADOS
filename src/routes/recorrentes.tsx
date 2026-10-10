@@ -97,7 +97,7 @@ function Recorrentes() {
     [itensBase, qtds],
   );
 
-  async function salvar(e: React.FormEvent<HTMLFormElement>) {
+async function salvar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!user) return;
     if (itensFinais.length === 0) {
@@ -105,22 +105,34 @@ function Recorrentes() {
       return;
     }
     const f = new FormData(e.currentTarget);
+    const endereco = String(f.get("endereco") ?? "");
+    const pagamento = String(f.get("forma_pagamento") ?? "pix");
+    // Determinar modalidade de pagamento: online vs na_entrega
+    // - dinheiro: sempre na_entrega
+    // - pix/credito/debito: online por padrão
+    // - retirada (endereco == "Retirada"): sempre online
+    const isRetirada = endereco === "Retirada";
+    const pagamento_modalidade = isRetirada ? "online"
+      : String(f.get("forma_pagamento") ?? "pix") === "dinheiro" ? "na_entrega"
+      : "online";
+
     const payload = {
-      user_id: editando?.user_id ?? user.id,
-      cliente_nome: String(f.get("cliente_nome") ?? ""),
-      telefone: String(f.get("telefone") ?? ""),
-      endereco: String(f.get("endereco") ?? ""),
-      bairro: String(f.get("bairro") ?? ""),
-      cidade: String(f.get("cidade") ?? ""),
-      complemento: String(f.get("complemento") ?? ""),
-      referencia: String(f.get("referencia") ?? ""),
-      forma_pagamento: String(f.get("forma_pagamento") ?? "pix"),
-      itens: itensFinais,
-      frequencia: String(f.get("frequencia") ?? "semanal"),
-      proxima_execucao: String(f.get("proxima_execucao") ?? ""),
-      modo_confirmacao: String(f.get("modo_confirmacao") ?? "manual"),
-      status: editando?.id ? editando.status : "ativo",
-    };
+        user_id: editando?.user_id ?? user.id,
+        cliente_nome: String(f.get("cliente_nome") ?? ""),
+        telefone: String(f.get("telefone") ?? ""),
+        endereco: String(f.get("endereco") ?? ""),
+        bairro: String(f.get("bairro") ?? ""),
+        cidade: String(f.get("cidade") ?? ""),
+        complemento: String(f.get("complemento") ?? ""),
+        referencia: String(f.get("referencia") ?? ""),
+        forma_pagamento: String(f.get("forma_pagamento") ?? "pix"),
+        pagamento_modalidade,
+        itens: itensFinais,
+        frequencia: String(f.get("frequencia") ?? "semanal"),
+        proxima_execucao: String(f.get("proxima_execucao") ?? ""),
+        modo_confirmacao: String(f.get("modo_confirmacao") ?? "manual"),
+        status: editando?.id ? editando.status : "ativo",
+      };
     if (payload.cliente_nome.trim().length < 2 || payload.telefone.replace(/\D/g, "").length < 10) {
       toast.error("Informe cliente e WhatsApp válidos.");
       return;

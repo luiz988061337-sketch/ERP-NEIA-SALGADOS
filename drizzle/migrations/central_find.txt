@@ -1,0 +1,20 @@
+﻿
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:60:import { CentralOperacao } from 
+"@/components/central-operacao";
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:575:    const map = new Map<string, { id: string; 
+entregas: number; canceladas: number; ganhos: number; tempos: number[] }>();
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:579:      const cur = map.get(mid) ?? { id: mid as 
+string, entregas: 0, canceladas: 0, ganhos: 0, tempos: [] as number[] };
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:581:        cur.entregas += 1;
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:595:      .sort((a, b) => b.entregas - a.entregas);
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:686:          <CentralOperacao
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:831:            <p className="text-xs 
+text-muted-foreground">Entregas realizadas, tempo médio, ganhos e canceladas. Motoboys cadastrados: 
+{motoboysRoles?.length ?? 0}</p>
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:837:                  <span>{m.entregas} entregas</span>
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:847:            <h2 className="font-display 
+text-xl">Entregas em rota agora</h2>
+C:\Users\User\pixel-perfect-render-4410\src\routes\admin.tsx:1072:                  placeholder="Próximo à praça 
+central"
+
+

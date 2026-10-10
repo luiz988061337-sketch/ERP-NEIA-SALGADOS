@@ -48,6 +48,7 @@ import { Route as PreviewPedidosRouteImport } from './routes/preview/pedidos'
 import { Route as PreviewPlanejamentoRouteImport } from './routes/preview/planejamento'
 import { Route as PreviewPrioridadeManualRouteImport } from './routes/preview/prioridade-manual'
 import { Route as PreviewProducaoNovaRouteImport } from './routes/preview/producao-nova'
+import { Route as PreviewSimuladorCardapioRouteImport } from './routes/preview/simulador-cardapio'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as PreviewAdminIndexRouteImport } from './routes/preview/admin/index'
 import { Route as PreviewAdminEntregasRouteImport } from './routes/preview/admin/entregas'
@@ -257,6 +258,11 @@ const PreviewProducaoNovaRoute = PreviewProducaoNovaRouteImport.update({
   path: '/producao-nova',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewSimuladorCardapioRoute = PreviewSimuladorCardapioRouteImport.update({
+  id: '/simulador-cardapio',
+  path: '/simulador-cardapio',
+  getParentRoute: () => PreviewRoute,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/preview/planejamento': typeof PreviewPlanejamentoRoute
   '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByTo {
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
+  '/preview': typeof PreviewRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -397,6 +405,7 @@ export interface FileRoutesByTo {
   '/preview/planejamento': typeof PreviewPlanejamentoRoute
   '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
@@ -449,6 +458,7 @@ export interface FileRoutesById {
   '/preview/planejamento': typeof PreviewPlanejamentoRoute
   '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
@@ -502,6 +512,7 @@ export interface FileRouteTypes {
     | '/preview/planejamento'
     | '/preview/prioridade-manual'
     | '/preview/producao-nova'
+    | '/preview/simulador-cardapio'
     | '/preview/'
     | '/.lovable/oauth/consent'
     | '/preview/admin/entregas'
@@ -537,6 +548,7 @@ export interface FileRouteTypes {
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
+    | '/preview'
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
@@ -552,6 +564,7 @@ export interface FileRouteTypes {
     | '/preview/planejamento'
     | '/preview/prioridade-manual'
     | '/preview/producao-nova'
+    | '/preview/simulador-cardapio'
     | '/preview'
     | '/.lovable/oauth/consent'
     | '/preview/admin/entregas'
@@ -603,6 +616,7 @@ export interface FileRouteTypes {
     | '/preview/planejamento'
     | '/preview/prioridade-manual'
     | '/preview/producao-nova'
+    | '/preview/simulador-cardapio'
     | '/preview/'
     | '/.lovable/oauth/consent'
     | '/preview/admin/entregas'
@@ -922,6 +936,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewProducaoNovaRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/simulador-cardapio': {
+      id: '/preview/simulador-cardapio'
+      path: '/simulador-cardapio'
+      fullPath: '/preview/simulador-cardapio'
+      preLoaderRoute: typeof PreviewSimuladorCardapioRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -1007,6 +1028,7 @@ interface PreviewRouteChildren {
   PreviewPlanejamentoRoute: typeof PreviewPlanejamentoRoute
   PreviewPrioridadeManualRoute: typeof PreviewPrioridadeManualRoute
   PreviewProducaoNovaRoute: typeof PreviewProducaoNovaRoute
+  PreviewSimuladorCardapioRoute: typeof PreviewSimuladorCardapioRoute
   PreviewIndexRoute: typeof PreviewIndexRoute
   PreviewAdminEntregasRoute: typeof PreviewAdminEntregasRoute
   PreviewAdminFiscalRoute: typeof PreviewAdminFiscalRoute
@@ -1031,6 +1053,7 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewPlanejamentoRoute: PreviewPlanejamentoRoute,
   PreviewPrioridadeManualRoute: PreviewPrioridadeManualRoute,
   PreviewProducaoNovaRoute: PreviewProducaoNovaRoute,
+  PreviewSimuladorCardapioRoute: PreviewSimuladorCardapioRoute,
   PreviewIndexRoute: PreviewIndexRoute,
   PreviewAdminEntregasRoute: PreviewAdminEntregasRoute,
   PreviewAdminFiscalRoute: PreviewAdminFiscalRoute,

@@ -1,0 +1,171 @@
+﻿import { useMemo } from "react";
+import { Link } from "@tanstack/react-router";
+import { BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/status-steps";
+import { brl, hora } from "@/lib/format";
+import { intervaloPeriodo, minutosDesde, noIntervalo, type PeriodoKey } from "@/lib/operacao";
+import { isVip, type CustomerStats } from "@/lib/crm";
+import { cn } from "@/lib/utils";
+
+export const PERIODO_LABEL: Record<PeriodoKey, string> = {
+  hoje: "Hoje",
+  ontem: "Ontem",
+  "7d": "Ãšltimos 7 dias",
+  "30d": "Ãšltimos 30 dias",
+  mes: "Este mÃªs",
+  mes_ant: "MÃªs anterior",
+  tudo: "Tudo",
+};
+
+type Props = {
+  pedidos: any[];
+  produtos: any[];
+  clientes: CustomerStats[];
+  periodo: PeriodoKey;
+  setPeriodo: (p: PeriodoKey) => void;
+  setAba: (a: string) => void;
+  notLidas: string[];
+  marcarLida: (id: string) => void;
+};
+
+function Card({ titulo, valor, sub, to, onClick }: { titulo: string; valor: string; sub: string; to?: string; onClick?: () => void }) {
+  const inner = (
+    <div className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] transition-shadow hover:shadow-[var(--shadow-float)]">
+      <p className="text-xs text-muted-foreground">{titulo}</p>
+      <p className="font-display text-2xl text-primary">{valor}</p>
+      <p className="text-xs text-muted-foreground">{sub}</p>
+    </div>
+  );
+  if (to) return <Link to={to as any}>{inner}</Link>;
+  if (onClick) return <button type="button" onClick={onClick} className="text-left">{inner}</button>;
+  return inner;
+}
+
+export function CentralOperacao({ pedidos, produtos, clientes, periodo, setPeriodo, setAba, notLidas, marcarLida }: Props) {
+  const { ini, fim } = useMemo(() => intervaloPeriodo(periodo), [periodo]);
+  const lista = useMemo(
+    () => (pedidos ?? []).filter((p: any) => (periodo === "tudo" ? true : noIntervalo(p.created_at, ini, fim))),
+    [pedidos, periodo, ini, fim],
+  );
+  const validos = useMemo(() => lista.filter((p: any) => p.status !== "cancelado"), [lista]);
+  const vendas = validos.reduce((a: number, p: any) => a + Number(p.total ?? 0), 0);
+  const ticket = validos.length ? vendas / validos.length : 0;
+  const aguard = (pedidos ?? []).filter((p: any) => p.status === "recebido").length;
+  const atrasados = (pedidos ?? []).filter((p: any) => {
+    if (p.status !== "recebido" && p.status !== "em_producao") return false;
+    const m = minutosDesde(p.created_at);
+    return m != null && m > 60;
+  });
+  const emProd = (pedidos ?? []).filter((p: any) => p.status === "em_producao").length;
+  const prontos = (pedidos ?? []).filter((p: any) => p.status === "pronto").length;
+  const emRota = (pedidos ?? []).filter((p: any) => ["aguardando_motoboy", "em_rota"].includes(p.status)).length;
+  const agendados = (pedidos ?? []).filter((p: any) => p.agendado_para && p.status !== "cancelado" && p.status !== "entregue").length;
+  const novos = clientes.filter((c) => (c.total_pedidos ?? 0) <= 1).length;
+  const sem30 = clientes.filter((c) => (c.dias_sem_comprar ?? 0) >= 30).length;
+  const sem60 = clientes.filter((c) => (c.dias_sem_comprar ?? 0) >= 60).length;
+  const vipInativos = clientes.filter((c) => isVip(c.total_gasto) && (c.dias_sem_comprar ?? 0) >= 30).length;
+  const proxAg = useMemo(
+    () =>
+      (pedidos ?? [])
+        .filter((p: any) => p.agendado_para && p.status !== "cancelado" && p.status !== "entregue")
+        .sort((a: any, b: any) => +new Date(a.agendado_para) - +new Date(b.agendado_para))
+        .slice(0, 5),
+    [pedidos],
+  );
+  const estoqueBaixo = (produtos ?? []).filter((p: any) => (p.estoque_minimo ?? 0) > 0 && Number(p.estoque ?? 0) < Number(p.estoque_minimo)).length;
+
+  const porDia = useMemo(() => {
+    const map = new Map<string, { label: string; vendas: number; qtd: number }>();
+    for (const p of validos) {
+      const d = new Date(p.created_at);
+      const key = d.toISOString().slice(0, 10);
+      const cur = map.get(key) ?? { label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }), vendas: 0, qtd: 0 };
+      cur.vendas += Number(p.total ?? 0);
+      cur.qtd += 1;
+      map.set(key, cur);
+    }
+    return [...map.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).slice(-14).map(([, v]) => v);
+  }, [validos]);
+  const maxV = Math.max(1, ...porDia.map((d) => d.vendas));
+
+  const alertas = [
+    aguard > 0 ? { id: "aguard", cor: "ðŸ”´", texto: `${aguard} pedido(s) aguardando confirmaÃ§Ã£o`, aba: "pedidos" } : null,
+    atrasados.length > 0 ? { id: "atrasados", cor: "ðŸŸ¡", texto: `${atrasados.length} pedido(s) hÃ¡ +60min sem concluir (possÃ­vel atraso)`, aba: "pedidos" } : null,
+    proxAg.length > 0 ? { id: "agenda", cor: "ðŸŸ¡", texto: `${proxAg.length} pedido(s) agendado(s) prÃ³ximo(s) do horÃ¡rio`, aba: "pedidos" } : null,
+    estoqueBaixo > 0 ? { id: "estoque", cor: "ðŸŸ ", texto: `${estoqueBaixo} produto(s) com estoque abaixo do mÃ­nimo`, aba: "produtos" } : null,
+    vipInativos > 0 ? { id: "vip", cor: "ðŸ”µ", texto: `${vipInativos} cliente(s) VIP sem comprar hÃ¡ 30+ dias`, aba: "clientes" } : null,
+  ].filter(Boolean) as { id: string; cor: string; texto: string; aba: string }[];
+  const alertasNovos = alertas.filter((a) => !notLidas.includes(a.id));
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="font-display text-xl">Central de OperaÃ§Ã£o</h2>
+        <select value={periodo} onChange={(e) => setPeriodo(e.target.value as PeriodoKey)} className="ml-auto rounded-md border border-input bg-background px-3 py-2 text-sm" aria-label="PerÃ­odo">
+          {(Object.keys(PERIODO_LABEL) as PeriodoKey[]).map((k) => (
+            <option key={k} value={k}>{PERIODO_LABEL[k]}</option>
+          ))}
+        </select>
+      </div>
+
+      {alertasNovos.length > 0 ? (
+        <section className="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-4" aria-label="Alertas">
+          {alertasNovos.map((a) => (
+            <div key={a.id} className="flex items-center gap-2 text-sm">
+              <span>{a.cor} {a.texto}</span>
+              <Button size="sm" variant="outline" className="ml-auto" onClick={() => setAba(a.aba)}>Ver</Button>
+              <Button size="sm" variant="ghost" onClick={() => marcarLida(a.id)}>Lida</Button>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card titulo={`Vendas (${PERIODO_LABEL[periodo]})`} valor={brl(vendas)} sub={`${validos.length} pedidos`} onClick={() => setAba("pedidos")} />
+        <Card titulo="Qtd. pedidos" valor={String(validos.length)} sub={`Ticket ${brl(ticket)}`} onClick={() => setAba("pedidos")} />
+        <Card titulo="Ticket mÃ©dio" valor={brl(ticket)} sub={PERIODO_LABEL[periodo]} onClick={() => setAba("pedidos")} />
+        <Card titulo="Aguardando aÃ§Ã£o" valor={String(aguard)} sub="recebido" onClick={() => setAba("pedidos")} />
+        <Card titulo="Em produÃ§Ã£o" valor={String(emProd)} sub="em_producao" onClick={() => setAba("pedidos")} />
+        <Card titulo="Prontos" valor={String(prontos)} sub="pronto" onClick={() => setAba("pedidos")} />
+        <Card titulo="Em entrega" valor={String(emRota)} sub="aguard./rota" onClick={() => setAba("pedidos")} />
+        <Card titulo="Agendados" valor={String(agendados)} sub="futuros" onClick={() => setAba("pedidos")} />
+        <Card titulo="Clientes novos" valor={String(novos)} sub="â‰¤1 pedido" to="/clientes" />
+        <Card titulo="Sem comprar 30+d" valor={String(sem30)} sub="reativar" to="/clientes" />
+        <Card titulo="Sem comprar 60+d" valor={String(sem60)} sub="crÃ­ticos" to="/clientes" />
+        <Card titulo="VIP inativos" valor={String(vipInativos)} sub="prioridade" to="/campanhas" />
+      </div>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <h3 className="flex items-center gap-2 font-display text-xl"><BarChart3 className="size-5" /> Vendas por dia (leve)</h3>
+        {porDia.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">Sem vendas no perÃ­odo.</p>
+        ) : (
+          <div className="mt-3 flex h-28 items-end gap-1.5" role="img" aria-label="GrÃ¡fico de vendas por dia">
+            {porDia.map((d) => (
+              <div key={d.label} className="flex flex-1 flex-col items-center gap-1" title={`${d.label}: ${brl(d.vendas)} (${d.qtd})`}>
+                <div className={cn("w-full rounded-t bg-primary/80")} style={{ height: `${Math.max(4, (d.vendas / maxV) * 100)}px` }} />
+                <span className="text-[10px] text-muted-foreground">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {proxAg.length > 0 ? (
+        <section className="rounded-xl border border-border bg-card p-5">
+          <h3 className="font-display text-xl">PrÃ³ximos agendados</h3>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {proxAg.map((p: any) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-2">
+                <span className="font-display">NÂº {p.numero}</span>
+                <StatusBadge status={p.status} />
+                <span className="text-muted-foreground">{new Date(p.agendado_para).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} â€¢ {p.cliente_nome} â€¢ {hora(p.created_at)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}

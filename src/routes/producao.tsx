@@ -26,7 +26,7 @@ import {
   type CalculoProducao,
 } from "@/lib/motor-producao";
 import { impressaoDireta, fichaDireta } from "@/lib/impressao";
-import { avisarStatus } from "@/lib/push";
+import { notificarPedido } from "@/lib/notificacoes";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/producao")({
@@ -398,7 +398,7 @@ function Producao() {
       toast.error(error.message || "Não foi possível atualizar o pedido.");
       return;
     }
-    void avisarStatus(supabase, pedido, status, mensagemStatus(status, pedido.cliente_nome, pedido.numero));
+    void notificarPedido({ client: supabase, pedidoId: pedido.id, status, telefone: pedido.telefone, mensagem: mensagemStatus(status, pedido.cliente_nome, pedido.numero) });
     try {
       await supabase.from("pedido_status_historico").insert({ pedido_id: pedido.id, de_status: pedido.status, para_status: status });
     } catch { /* sem migration — segue */ }

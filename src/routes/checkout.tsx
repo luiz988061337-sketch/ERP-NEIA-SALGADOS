@@ -13,7 +13,7 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { useCart, isComboItem } from "@/lib/cart";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
-import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, whatsappLink, mensagemStatus } from "@/lib/format";
+import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA } from "@/lib/format";
 import { notificarPush } from "@/lib/push";
 import { calcTotals, isMultiploCombo } from "@/lib/totals";
 import { validarCupom } from "@/lib/cupons";
@@ -329,6 +329,14 @@ function Checkout() {
         ? null
         : await geocodificarEndereco(`${parsed.data.endereco}, ${parsed.data.bairro}, ${parsed.data.cidade}`).catch(() => null);
 
+      // Determinar modalidade de pagamento: online vs na_entrega
+      // - dinheiro: sempre na_entrega (não existe pagamento online em dinheiro)
+      // - pix/credito/debito: online por padrão (confirmação posterior)
+      // - retirada: sempre online (pagamento no balcão/online)
+      const pagamento_modalidade = tipoEntrega === "retirada" ? "online"
+        : pagamento === "dinheiro" ? "na_entrega"
+        : "online";
+
       const insertBody: Record<string, any> = {
         user_id: user.id,
         cliente_nome: parsed.data.cliente_nome,
@@ -352,6 +360,7 @@ function Checkout() {
         observacoes: parsed.data.origem_indicador ? `${obsFinal ?? ""} [Indicado por: ${parsed.data.origem_indicador}]`.trim() : (obsFinal ?? ""),
         tipo_entrega: tipoEntrega,
         forma_pagamento: pagamento,
+        pagamento_modalidade,
         // Pagamento começa SEMPRE pendente. Nunca marcar como pago aqui:
         // a loja confirma. Status do pedido e status do pagamento são separados.
         pagamento_status: "pendente",
@@ -380,6 +389,7 @@ function Checkout() {
             campanha_origem: _co,
             tipo_entrega: _te2,
             pagamento_status: _ps,
+            pagamento_modalidade: _pm,
             tipo_imovel: _ti,
             apartamento: _ap,
             bloco: _bl,
@@ -499,18 +509,7 @@ function Checkout() {
           agendadoEm: quando === "agendar" ? new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : null,
           agendadoPara: agendadoPara ? new Date(agendadoPara).toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(/\./g, "") + "h" : null,
         });
-        await supabase.from("fila_impressao").insert({
-          trabalho_uuid: `${(pedido as any).id}:confirmado`,
-          pedido_id: (pedido as any).id,
-          tipo: "pedido",
-          payload: payloadCozinha,
-          impressora: "Tanca TP-550",
-          imprimir_apos: quando === "agendar" ? agendadoPara : null,
-        });
-      } catch { /* sem fila — pedido segue, cozinha avisa */ }
-
-      // Fidelidade: pontos calculados e creditados no servidor (uma vez por pedido)
-      let pts = 0;
+        let pts = 0;
       try {
         const { data: creditados } = await supabase.rpc("creditar_pontos_pedido", { p_pedido_id: (pedido as any).id });
         pts = Number(creditados ?? 0);
@@ -528,13 +527,14 @@ function Checkout() {
       const condTxt = ehApto
         ? `\nApto: ${parsed.data.apartamento || "-"}${parsed.data.bloco ? ` • Bloco/Torre: ${parsed.data.bloco}` : ""}${parsed.data.andar ? ` • Andar: ${parsed.data.andar}` : ""}${parsed.data.interfone ? ` • Interfone: ${parsed.data.interfone}` : ""}${String(parsed.data.pode_subir ?? "") === "on" ? " • autorizado subir" : ""}`
         : "";
-      const msgWhats = `Novo pedido #${(pedido as any).numero}\n\nCliente: ${parsed.data.cliente_nome}\nTelefone: ${parsed.data.telefone}\n\nProdutos:\n${linhas}\n\nProdutos: ${brl(calc.subtotal)}\n${isRetirada ? "Retirada na loja" : "Entrega"}: ${brl(taxaEntregaFinal)}\nTotal: ${brl(totalFinal)}\n\nPagamento: ${PAGAMENTO_LABEL[pagamento]}${quandoTxt}${eventoTxt}\n\n${isRetirada ? "🏪 Retirada na loja" : `Endereço:\n${parsed.data.endereco}\n${parsed.data.bairro} — ${parsed.data.cidade}\nComp.: ${parsed.data.complemento || "-"}${condTxt}\nRef.: ${parsed.data.referencia || "-"}`}\n\nObservações:\n${obsFinal || "-"}\n\n${mensagemStatus("recebido", parsed.data.cliente_nome, (pedido as any).numero)}`;
-      window.open(whatsappLink((pedido as any).telefone, msgWhats), "_blank", "noopener");
+      const navigate = useNavigate();
       navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
-} catch (err) {
-    console.error(err);
-    toast.error(mensagemDeErro(err));
-  } finally {
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível finalizar o pedido.");
+    }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível finalizar o pedido.");
+    } finally {
       setEnviando(false);
     }
   }

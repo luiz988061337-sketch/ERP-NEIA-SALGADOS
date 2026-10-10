@@ -128,7 +128,7 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
   t("push sem getKey é nulo", push.extrairInscricao({ endpoint: "x" }) === null);
   t("push sem endpoint é nulo", push.extrairInscricao({ endpoint: "", getKey: () => new ArrayBuffer(1) }) === null);
   t("push node sem suporte", push.suportePush() === false && push.estadoPush() === "nao-suportado");
-  // avisarStatus: push entregue → sem WhatsApp; sem push/sem janela → sem popup e sem erro
+  // notificarPedido (notificacoes.ts): coordena push + WhatsApp sem nunca quebrar
   {
     const ok = { functions: { invoke: async () => ({ data: { enviados: 1 } }) } };
     const vazio = { functions: { invoke: async () => ({ data: { enviados: 0 } }) } };
@@ -137,9 +137,13 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
     t("push zerado false", (await push.notificarPush(vazio, "p1", "em_rota")) === false);
     t("push erro false", (await push.notificarPush(quebra, "p1", "em_rota")) === false);
     t("push sem args false", (await push.notificarPush(ok, "", "")) === false);
-    await push.avisarStatus(ok, { id: "p1", telefone: "159" }, "em_rota", "oi");
-    await push.avisarStatus(quebra, { id: "p1", telefone: "159" }, "em_rota", "oi");
-    t("avisarStatus nunca quebra", true);
+    const { notificarPedido } = await import("@/lib/notificacoes.ts");
+    const r1 = await notificarPedido({ client: ok, pedidoId: "p1", status: "em_rota", telefone: "159", mensagem: "oi" });
+    t("notificarPedido push entregue", r1.push === "enviado" && r1.whatsapp === "desativado");
+    const r2 = await notificarPedido({ client: quebra, pedidoId: "p1", status: "em_rota", telefone: "159", mensagem: "oi" });
+    t("notificarPedido push quebrado não quebra", r2.push === "falhou" && r2.whatsapp === "desativado");
+    const r3 = await notificarPedido({ client: ok, pedidoId: "p1", status: "em_rota" });
+    t("notificarPedido sem telefone ok", r3.push === "enviado" && r3.whatsapp === "desativado");
   }
 }
 

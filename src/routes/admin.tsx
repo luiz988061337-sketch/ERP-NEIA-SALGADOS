@@ -62,7 +62,7 @@ import {
   whatsappLink,
   type OrderStatus,
 } from "@/lib/format";
-import { avisarStatus } from "@/lib/push";
+import { notificarPedido } from "@/lib/notificacoes";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
@@ -629,7 +629,7 @@ function Admin() {
     else {
       toast.success(`Pedido nº ${p.numero} → ${STATUS_LABEL[status]}`);
       void logAdmin("pedido_status", `#${p.numero} → ${status}`);
-      void avisarStatus(supabase, p, status, mensagemStatus(status, p.cliente_nome, p.numero));
+      void notificarPedido({ client: supabase, pedidoId: p.id, status, telefone: p.telefone, mensagem: mensagemStatus(status, p.cliente_nome, p.numero) });
     }
     queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
   }
