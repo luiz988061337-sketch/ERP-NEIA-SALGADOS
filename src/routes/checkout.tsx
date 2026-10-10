@@ -527,7 +527,6 @@ function Checkout() {
       const condTxt = ehApto
         ? `\nApto: ${parsed.data.apartamento || "-"}${parsed.data.bloco ? ` • Bloco/Torre: ${parsed.data.bloco}` : ""}${parsed.data.andar ? ` • Andar: ${parsed.data.andar}` : ""}${parsed.data.interfone ? ` • Interfone: ${parsed.data.interfone}` : ""}${String(parsed.data.pode_subir ?? "") === "on" ? " • autorizado subir" : ""}`
         : "";
-      const navigate = useNavigate();
       navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível finalizar o pedido.");
