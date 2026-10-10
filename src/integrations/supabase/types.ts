@@ -1539,6 +1539,8 @@ export type Database = {
           cidade: string
           complemento: string
           endereco: string
+          entrega_prazo_max: number
+          entrega_prazo_min: number
           facebook: string
           google_avaliacao: string
           id: boolean
@@ -1549,6 +1551,8 @@ export type Database = {
           nome: string
           pix_chave: string
           referencia: string
+          retirada_prazo_max: number
+          retirada_prazo_min: number
           site: string
           telefone: string
         }
@@ -1558,6 +1562,8 @@ export type Database = {
           cidade?: string
           complemento?: string
           endereco?: string
+          entrega_prazo_max?: number
+          entrega_prazo_min?: number
           facebook?: string
           google_avaliacao?: string
           id?: boolean
@@ -1568,6 +1574,8 @@ export type Database = {
           nome?: string
           pix_chave?: string
           referencia?: string
+          retirada_prazo_max?: number
+          retirada_prazo_min?: number
           site?: string
           telefone?: string
         }
@@ -1577,6 +1585,8 @@ export type Database = {
           cidade?: string
           complemento?: string
           endereco?: string
+          entrega_prazo_max?: number
+          entrega_prazo_min?: number
           facebook?: string
           google_avaliacao?: string
           id?: boolean
@@ -1587,6 +1597,8 @@ export type Database = {
           nome?: string
           pix_chave?: string
           referencia?: string
+          retirada_prazo_max?: number
+          retirada_prazo_min?: number
           site?: string
           telefone?: string
         }
