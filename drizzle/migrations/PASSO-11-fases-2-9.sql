@@ -1,11 +1,11 @@
-﻿-- PASSO-11: fases 2-9 (0023 a 028 em um arquivo so)
+﻿-- PASSO-11: fases 2-9 (0023 a 028 em um arquivo só)
 
 
 -- ============ 0023_base_operacional.sql ============
--- 0023: base operacional â€” histÃ³rico, lotes FEFO, reservas, horÃ¡rio/capacidade
--- Idempotente. Rode no SQL Editor APÃ“S 0022.
+-- 0023: base operacional — histórico, lotes FEFO, reservas, horário/capacidade
+-- Idempotente. Rode no SQL Editor APÓS 0022.
 
--- HistÃ³rico/timeline de status (override auditado: quem, quando, de, para, motivo)
+-- Histórico/timeline de status (override auditado: quem, quando, de, para, motivo)
 CREATE TABLE IF NOT EXISTS public.pedido_status_historico (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.pedido_status_historico (
 );
 CREATE INDEX IF NOT EXISTS pedido_hist_pedido_idx ON public.pedido_status_historico (pedido_id);
 
--- Flags operacionais no pedido (atraso Ã© ALERTA, nÃ£o apaga estÃ¡gio real)
+-- Flags operacionais no pedido (atraso é ALERTA, não apaga estágio real)
 ALTER TABLE public.pedidos
   ADD COLUMN IF NOT EXISTS atrasado boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS problema text,
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS public.lotes (
 );
 CREATE INDEX IF NOT EXISTS lotes_prod_validade_idx ON public.lotes (produto_id, validade);
 
--- Reservas de estoque (confirmaÃ§Ã£o reserva, cancelamento libera)
+-- Reservas de estoque (confirmação reserva, cancelamento libera)
 CREATE TABLE IF NOT EXISTS public.reservas_estoque (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   pedido_id uuid NOT NULL REFERENCES public.pedidos(id) ON DELETE CASCADE,
@@ -54,10 +54,10 @@ CREATE TABLE IF NOT EXISTS public.reservas_estoque (
 );
 CREATE INDEX IF NOT EXISTS reservas_pedido_idx ON public.reservas_estoque (pedido_id);
 
--- MovimentaÃ§Ãµes: garantir tipos novos nunca quebram CHECK antigo -> sem CHECK, sÃ³ texto
--- (estoque_mov.tipo jÃ¡ Ã© texto livre nas migrations)
+-- Movimentações: garantir tipos novos nunca quebram CHECK antigo -> sem CHECK, só texto
+-- (estoque_mov.tipo já é texto livre nas migrations)
 
--- Config de horÃ¡rio/capacidade (singleton id=true)
+-- Config de horário/capacidade (singleton id=true)
 CREATE TABLE IF NOT EXISTS public.horario_config (
   id boolean PRIMARY KEY DEFAULT true,
   antecedencia_min integer NOT NULL DEFAULT 30,
@@ -112,8 +112,8 @@ GRANT SELECT ON public.pedido_status_historico, public.lotes, public.horario_con
 
 
 -- ============ 0024_entrega.sql ============
--- 0024: entrega â€” status motoboy, rotas, atrasos, endereÃ§o estruturado
--- Idempotente. Rode APÃ“S 0023.
+-- 0024: entrega — status motoboy, rotas, atrasos, endereço estruturado
+-- Idempotente. Rode APÓS 0023.
 
 CREATE TABLE IF NOT EXISTS public.rotas_entrega (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -169,8 +169,8 @@ GRANT ALL ON public.rotas_entrega, public.rota_pedidos TO authenticated;
 
 
 -- ============ 0025_impressao.sql ============
--- 0025: impressÃ£o â€” fila, logs, anti-duplicidade, status de impressÃ£o
--- Idempotente. Rode APÃ“S 0024.
+-- 0025: impressão — fila, logs, anti-duplicidade, status de impressão
+-- Idempotente. Rode APÓS 0024.
 
 CREATE TABLE IF NOT EXISTS public.fila_impressao (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -203,8 +203,8 @@ GRANT ALL ON public.fila_impressao TO authenticated;
 
 
 -- ============ 0026_cozinha.sql ============
--- 0026: cozinha â€” fritura, sons/config, tempo por produto
--- Idempotente. Rode APÃ“S 0025.
+-- 0026: cozinha — fritura, sons/config, tempo por produto
+-- Idempotente. Rode APÓS 0025.
 
 ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS tempo_fritura_50s integer NOT NULL DEFAULT 210;
 
@@ -234,8 +234,8 @@ GRANT ALL ON public.fila_fritura TO authenticated;
 
 
 -- ============ 0027_lembretes.sql ============
--- 0027: comunicaÃ§Ã£o â€” lembretes de pedidos futuros, sem auto-cancelar
--- Idempotente. Rode APÃ“S 0026.
+-- 0027: comunicação — lembretes de pedidos futuros, sem auto-cancelar
+-- Idempotente. Rode APÓS 0026.
 
 CREATE TABLE IF NOT EXISTS public.pedido_lembretes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -256,10 +256,10 @@ GRANT ALL ON public.pedido_lembretes TO authenticated;
 
 
 -- ============ 0028_crm_experiencia.sql ============
--- 0028: CRM/fidelidade â€” jornada, indicaÃ§Ã£o, parceiros, degustaÃ§Ã£o, avaliaÃ§Ãµes pÃºblicas, ajuda, alta demanda
--- Idempotente. Rode APÃ“S 0027.
+-- 0028: CRM/fidelidade — jornada, indicação, parceiros, degustação, avaliações públicas, ajuda, alta demanda
+-- Idempotente. Rode APÓS 0027.
 
--- Jornada (um evento por linha, sem vigilÃ¢ncia invasiva: sÃ³ eventos do funil)
+-- Jornada (um evento por linha, sem vigilância invasiva: só eventos do funil)
 CREATE TABLE IF NOT EXISTS public.jornada_eventos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -268,11 +268,11 @@ CREATE TABLE IF NOT EXISTS public.jornada_eventos (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Origem sÃ³ no primeiro pedido (coluna jÃ¡ existe campanha_origem; garantir parceiro/indicador)
+-- Origem só no primeiro pedido (coluna já existe campanha_origem; garantir parceiro/indicador)
 ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS origem_parceiro_id uuid;
 ALTER TABLE public.pedidos ADD COLUMN IF NOT EXISTS indicado_por uuid REFERENCES auth.users(id);
 
--- IndicaÃ§Ãµes (cÃ³digo por cliente)
+-- Indicações (código por cliente)
 CREATE TABLE IF NOT EXISTS public.indicacoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   indicador_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS public.indicacoes (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
--- DegustaÃ§Ã£o: SÃ“ depois do orÃ§amento (Â§4), elegibilidade configurÃ¡vel
+-- Degustação: SÓ depois do orçamento (§4), elegibilidade configurável
 CREATE TABLE IF NOT EXISTS public.degustacoes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -302,7 +302,7 @@ CREATE TABLE IF NOT EXISTS public.degustacao_regras (
 );
 INSERT INTO public.degustacao_regras (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 
--- Parceiros (sem comissÃ£o automÃ¡tica; indicaÃ§Ã£o futura)
+-- Parceiros (sem comissão automática; indicação futura)
 CREATE TABLE IF NOT EXISTS public.parceiros (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   nome text NOT NULL, categoria text NOT NULL, cidade text, bairro text,
@@ -325,11 +325,11 @@ CREATE TABLE IF NOT EXISTS public.datas_demanda (
   nivel text NOT NULL DEFAULT 'alta', ativo boolean NOT NULL DEFAULT true
 );
 
--- AvaliaÃ§Ãµes pÃºblicas: flag de moderaÃ§Ã£o (coluna nova, default exige aprovaÃ§Ã£o)
+-- Avaliações públicas: flag de moderação (coluna nova, default exige aprovação)
 ALTER TABLE public.avaliacoes ADD COLUMN IF NOT EXISTS autoriza_publicar boolean NOT NULL DEFAULT false;
 ALTER TABLE public.avaliacoes ADD COLUMN IF NOT EXISTS aprovada boolean NOT NULL DEFAULT false;
 
--- RLS mÃ­nimo
+-- RLS mínimo
 ALTER TABLE public.jornada_eventos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.indicacoes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.degustacoes ENABLE ROW LEVEL SECURITY;
@@ -364,12 +364,12 @@ CREATE POLICY "datas admin" ON public.datas_demanda FOR ALL USING (public.has_ro
 GRANT ALL ON public.jornada_eventos, public.indicacoes, public.degustacoes, public.degustacao_regras, public.parceiros, public.ajuda_artigos, public.datas_demanda TO authenticated;
 GRANT SELECT ON public.parceiros, public.ajuda_artigos, public.datas_demanda TO anon;
 
--- Seed ajuda mÃ­nima (categorias do Â§41)
+-- Seed ajuda mínima (categorias do §41)
 INSERT INTO public.ajuda_artigos (categoria, titulo, corpo) VALUES
- ('pedidos','Como acompanhar meu pedido?','Abra Conta â†’ Meus pedidos ou o link do pedido. Os status mostram preparaÃ§Ã£o, saÃ­da e entrega.'),
- ('combos','Por que combos sÃ£o de 50 em 50?','Combos de festa sÃ£o produzidos em caixas de 50. O carrinho arredonda para 50, 100, 150â€¦ Congelados e bebidas vendem por unidade.'),
- ('entrega','Entrega ou retirada?','Entrega tem taxa e vai com motoboy. Retirada Ã© na loja, sem taxa, com endereÃ§o e mapa no pedido.'),
- ('pagamento','Como pago?','PIX com QR/Copia e Cola, dinheiro, crÃ©dito ou dÃ©bito. O pagamento comeÃ§a pendente e a loja confirma.'),
- ('agendamento','Posso agendar?','Sim, Segâ€“SÃ¡b 08â€“12h e 13â€“22h (nunca 12â€“13h, Dom fechado), com 30min de antecedÃªncia.')
+ ('pedidos','Como acompanhar meu pedido?','Abra Conta → Meus pedidos ou o link do pedido. Os status mostram preparação, saída e entrega.'),
+ ('combos','Por que combos são de 50 em 50?','Combos de festa são produzidos em caixas de 50. O carrinho arredonda para 50, 100, 150… Congelados e bebidas vendem por unidade.'),
+ ('entrega','Entrega ou retirada?','Entrega tem taxa e vai com motoboy. Retirada é na loja, sem taxa, com endereço e mapa no pedido.'),
+ ('pagamento','Como pago?','PIX com QR/Copia e Cola, dinheiro, crédito ou débito. O pagamento começa pendente e a loja confirma.'),
+ ('agendamento','Posso agendar?','Sim, Seg–Sáb 08–12h e 13–22h (nunca 12–13h, Dom fechado), com 30min de antecedência.')
 ON CONFLICT DO NOTHING;
 
