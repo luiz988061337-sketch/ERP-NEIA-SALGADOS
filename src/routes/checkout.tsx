@@ -609,9 +609,6 @@ function Checkout() {
                     <div className="space-y-1.5"><Label htmlFor="andar">Andar</Label><Input id="andar" name="andar" placeholder="Ex: 4" maxLength={10} /></div>
                   </div>
                   <input type="hidden" name="torre" value="" />
-                  <label className="flex cursor-pointer items-center gap-2 text-sm">
-                    <input type="checkbox" name="pode_subir" className="size-4" /> Autorizo o motoboy a subir até o apartamento
-                  </label>
                   <p className="text-xs text-muted-foreground">Se possível, aguarde o motoboy na portaria no momento da chegada. 😊</p>
                 </>
               ) : (
