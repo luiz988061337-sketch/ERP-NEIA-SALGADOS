@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, User, LogOut, LayoutDashboard, ChefHat, Bike, Menu } from "lucide-react";
+import { ShoppingBag, User, LogOut, LayoutDashboard, ChefHat, Bike, Menu, Truck } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/neia-logo.png.asset.json";
 import { useCart } from "@/lib/cart";
@@ -26,6 +26,7 @@ export function SiteHeader() {
   const isProducao = roles?.includes("producao") || isAdmin;
   const isMotoboy = roles?.includes("motoboy") || isAdmin;
   const isAtendente = roles?.includes("atendente") || isAdmin;
+  const isEntregas = isProducao || isMotoboy || isAtendente;
 
   async function sair() {
     await queryClient.cancelQueries();
@@ -108,6 +109,11 @@ export function SiteHeader() {
               <Link to="/motoboy">Entregas</Link>
             </Button>
           ) : null}
+          {isEntregas ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/central-entregas">Central</Link>
+            </Button>
+          ) : null}
           {isAdmin ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">Admin</Link>
@@ -165,6 +171,13 @@ export function SiteHeader() {
                   <DropdownMenuItem asChild>
                     <Link to="/motoboy">
                       <Bike className="mr-2 size-4" /> Painel do motoboy
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {isEntregas ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/central-entregas">
+                      <Truck className="mr-2 size-4" /> Central de entregas
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
@@ -279,6 +292,11 @@ export function SiteHeader() {
               {isMotoboy ? (
                 <DropdownMenuItem asChild>
                   <Link to="/motoboy">Entregas</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isEntregas ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/central-entregas">Central</Link>
                 </DropdownMenuItem>
               ) : null}
               {isAdmin ? (
