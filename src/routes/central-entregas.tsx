@@ -639,11 +639,11 @@ function CentralEntregas() {
       </div>
 
       {/* ========== KANBAN ========== */}
-      <div className="space-y-4">
-        <h2 className="font-display text-lg">Kanban de Pedidos</h2>
+      <h2 className="font-display text-lg">Kanban de Pedidos</h2>
+      <div className="flex items-start gap-4 overflow-x-auto pb-2">
 
         {/* Coluna AGUARDANDO */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
           <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">AGUARDANDO MOTOBOY</h3>
           <p className="text-xs text-muted-foreground">Pedidos prontos aguardando atribuição</p>
           <div className="h-64 overflow-y-auto space-y-2">
@@ -657,7 +657,7 @@ function CentralEntregas() {
         </div>
 
         {/* Coluna ATRIBUÍDOS */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
           <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">ATRIBUÍDOS</h3>
           <p className="text-xs text-muted-foreground">Pedidos com motoboy atribuído</p>
           <div className="h-64 overflow-y-auto space-y-2">
@@ -671,7 +671,7 @@ function CentralEntregas() {
         </div>
 
         {/* Coluna EM ROTA */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
           <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">EM ROTA</h3>
           <p className="text-xs text-muted-foreground">Pedidos com motoboy em deslocamento</p>
           <div className="h-64 overflow-y-auto space-y-2">
@@ -685,7 +685,7 @@ function CentralEntregas() {
         </div>
 
         {/* Coluna ENTREGUES */}
-        <div className="rounded-xl border border-border bg-card p-4">
+        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
           <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">ENTREGUES</h3>
           <p className="text-xs text-muted-foreground">Pedidos finalizados</p>
           <div className="h-64 overflow-y-auto space-y-2">

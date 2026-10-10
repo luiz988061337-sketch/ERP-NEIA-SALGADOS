@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -1895,6 +1895,9 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-display text-xl">Fechamento — {mes}</h2>
           <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="ml-auto w-44" aria-label="Mês" />
+          <Link to="/financeiro" className="text-sm text-primary underline">
+            Financeiro completo (caixa, contas, conciliação) →
+          </Link>
         </div>
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           <p className="flex justify-between rounded-lg bg-muted p-2.5"><span>Faturamento ({validos.length} pedidos)</span><strong>{brl(fat)}</strong></p>

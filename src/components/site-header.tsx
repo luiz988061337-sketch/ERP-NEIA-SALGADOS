@@ -23,6 +23,7 @@ export function SiteHeader() {
   const queryClient = useQueryClient();
 
   const isAdmin = roles?.includes("admin");
+  const isFinanceiro = roles?.includes("financeiro") || isAdmin;
   const isProducao = roles?.includes("producao") || isAdmin;
   const isMotoboy = roles?.includes("motoboy") || isAdmin;
   const isAtendente = roles?.includes("atendente") || isAdmin;
@@ -199,6 +200,13 @@ export function SiteHeader() {
                   <DropdownMenuItem asChild>
                     <Link to="/campanhas">
                       <LayoutDashboard className="mr-2 size-4" /> Campanhas
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
+                {isFinanceiro ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/financeiro">
+                      <LayoutDashboard className="mr-2 size-4" /> Financeiro
                     </Link>
                   </DropdownMenuItem>
                 ) : null}

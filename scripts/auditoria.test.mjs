@@ -36,6 +36,28 @@ for (const [s, e, d, esperado] of [[40, 6, 0, 46], [40, 0, 0, 40], [100, 6, 10, 
   t(`total ${s}+${e}-${d} = ${esperado}`, r.total === esperado && r.taxaEntrega === Math.max(0, e));
 }
 
+// ---------- Financeiro: caixa, contas e conciliação (Fase F) ----------
+const fin = await import("@/lib/financeiro.ts");
+t("caixa esperado 100+40-15=125", fin.saldoCaixaEsperado(100, 40, 15) === 125);
+t("caixa diferença +5", fin.diferencaCaixa(130, 125) === 5);
+t("caixa diferença -3", fin.diferencaCaixa(122, 125) === -3);
+t("conta paga prevalece", fin.statusConta({ status: "paga", vencimento: "2020-01-01" }, "2026-10-10") === "paga");
+t("conta cancelada prevalece", fin.statusConta({ status: "cancelada", vencimento: "2020-01-01" }, "2026-10-10") === "cancelada");
+t("conta vencida", fin.statusConta({ status: "pendente", vencimento: "2026-10-01" }, "2026-10-10") === "vencida");
+t("conta futura pendente", fin.statusConta({ status: "pendente", vencimento: "2026-12-01" }, "2026-10-10") === "pendente");
+t("conta sem vencimento pendente", fin.statusConta({ status: "pendente", vencimento: null }, "2026-10-10") === "pendente");
+{
+  const conc = fin.resumoConciliacao([
+    { total: 46, pagamento_status: "pago", status: "recebido", forma_pagamento: "pix" },
+    { total: 40, pagamento_status: "pendente", status: "recebido", forma_pagamento: "dinheiro" },
+    { total: 100, pagamento_status: "pendente", status: "cancelado", forma_pagamento: "pix" },
+  ]);
+  t("conciliação separa recebido/pendente/cancelado", conc.recebido === 46 && conc.pendente === 40 && conc.cancelado === 100);
+  t("conciliação por meio", conc.porMeio.pix === 46 && (conc.porMeio.dinheiro ?? 0) === 0);
+  t("conciliação qtds", conc.qtdRecebido === 1 && conc.qtdPendente === 1);
+}
+t("contas ignora cancelada", fin.totalContas([{ tipo: "pagar", valor: 50, status: "pendente" }, { tipo: "pagar", valor: 999, status: "cancelada" }], "pagar") === 50);
+
 // ---------- 2. Regra dos combos ----------
 const casos = [[49, false], [50, true], [51, false], [99, false], [100, true], [101, false], [150, true], [199, false], [200, true], [250, true], [0, false], [60, false], [70, false], [80, false], [90, false]];
 for (const [qtd, esperado] of casos) t(`combo ${qtd}un = ${esperado ? "permitido" : "bloqueado"}`, totals.isMultiploCombo(qtd) === esperado);
