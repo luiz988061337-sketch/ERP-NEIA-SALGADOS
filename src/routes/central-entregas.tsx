@@ -94,7 +94,8 @@ function CentralEntregas() {
     queryKey: ["central-j2-pedidos", filtro],
     enabled: !!autorizado && !loading,
     queryFn: async () => {
-      let query = supabase.from("pedidos").select("*").order("created_at", { ascending: false });
+      // Retirada nunca entra na central de entregas (NULL passa p/ bancos sem a 0018).
+      let query = supabase.from("pedidos").select("*").neq("tipo_entrega", "retirada").order("created_at", { ascending: false });
       switch (filtro) {
         case "hoje": {
           const hoje = new Date();

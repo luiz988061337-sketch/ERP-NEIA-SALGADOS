@@ -180,6 +180,7 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
         desconto: calcF.desconto,
         total: calcF.total,
         cupom: null,
+        tipo_entrega: entrega,
         agendado_para: agendadoPara,
         agendamento_obs: "",
         tipo_evento: "",
@@ -189,7 +190,7 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
       {
         const res = await supabase.from("pedidos").insert(insertBody).select("id, numero").single();
         if (res.error && String(res.error.message ?? "").includes("column")) {
-          const { agendado_para: _a, agendamento_obs: _b, tipo_evento: _c, cidade: _d, pagamento_modalidade: _pm, ...legacy } = insertBody;
+          const { agendado_para: _a, agendamento_obs: _b, tipo_evento: _c, cidade: _d, pagamento_modalidade: _pm, tipo_entrega: _te, ...legacy } = insertBody;
           const retry = await supabase.from("pedidos").insert(legacy).select("id, numero").single();
           if (retry.error || !retry.data) throw retry.error ?? new Error("insert falhou");
           pedidoId = (retry.data as any).id;
