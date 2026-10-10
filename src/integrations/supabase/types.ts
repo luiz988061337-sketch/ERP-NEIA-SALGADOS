@@ -119,6 +119,42 @@ export type Database = {
           },
         ]
       }
+      caixa_sessoes: {
+        Row: {
+          aberta_em: string
+          diferenca: number | null
+          fechada_em: string | null
+          id: string
+          observacao: string
+          responsavel: string | null
+          saldo_informado: number | null
+          saldo_inicial: number
+          status: string
+        }
+        Insert: {
+          aberta_em?: string
+          diferenca?: number | null
+          fechada_em?: string | null
+          id?: string
+          observacao?: string
+          responsavel?: string | null
+          saldo_informado?: number | null
+          saldo_inicial?: number
+          status?: string
+        }
+        Update: {
+          aberta_em?: string
+          diferenca?: number | null
+          fechada_em?: string | null
+          id?: string
+          observacao?: string
+          responsavel?: string | null
+          saldo_informado?: number | null
+          saldo_inicial?: number
+          status?: string
+        }
+        Relationships: []
+      }
       calculadora_config: {
         Row: {
           id: boolean
@@ -220,6 +256,74 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      contas: {
+        Row: {
+          categoria: string
+          created_at: string
+          created_by: string | null
+          descricao: string
+          fornecedor: string
+          id: string
+          meio: string
+          pago_em: string | null
+          parcela_atual: number
+          parcela_total: number
+          pedido_id: string | null
+          recorrente: boolean
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+          vencimento: string | null
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          fornecedor?: string
+          id?: string
+          meio?: string
+          pago_em?: string | null
+          parcela_atual?: number
+          parcela_total?: number
+          pedido_id?: string | null
+          recorrente?: boolean
+          status?: string
+          tipo: string
+          updated_at?: string
+          valor?: number
+          vencimento?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          fornecedor?: string
+          id?: string
+          meio?: string
+          pago_em?: string | null
+          parcela_atual?: number
+          parcela_total?: number
+          pedido_id?: string | null
+          recorrente?: boolean
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_campaigns: {
         Row: {
@@ -1050,6 +1154,7 @@ export type Database = {
           id: string
           lote_id: string | null
           observacao: string | null
+          processada_em: string | null
           produto_id: string
           quantidade: number
           referencia_id: string | null
@@ -1064,6 +1169,7 @@ export type Database = {
           id?: string
           lote_id?: string | null
           observacao?: string | null
+          processada_em?: string | null
           produto_id: string
           quantidade: number
           referencia_id?: string | null
@@ -1078,6 +1184,7 @@ export type Database = {
           id?: string
           lote_id?: string | null
           observacao?: string | null
+          processada_em?: string | null
           produto_id?: string
           quantidade?: number
           referencia_id?: string | null
