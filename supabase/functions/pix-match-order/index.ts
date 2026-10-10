@@ -137,6 +137,8 @@ serve(async (req) => {
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
+        }
+
 
         matchedOrderId = pedido.id;
         classification = "IDENTIFICADO_POR_REFERENCIA";
