@@ -257,34 +257,34 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
   }
 }
 
-// Estoque: contrato 0030/0061/0062 como modelo executável das regras especificadas.
+// Estoque: contrato 0030/0068/0069 como modelo executável das regras especificadas.
 // NÃO é prova de banco: replica literalmente as transições dos arquivos SQL para
 // travar as invariantes (ativa→liberada devolve; cancelada de fallback não devolve;
 // repetição é no-op; reserva só pós-confirmação). Cenários sintéticos 100/30.
 {
   const { readFileSync } = await import("node:fs");
   const f30 = readFileSync("drizzle/migrations/0030_reserva_atomica.sql", "utf8");
-  const f61 = readFileSync("drizzle/migrations/0061_auth_dono_staff.sql", "utf8");
-  const f62 = readFileSync("drizzle/migrations/0062_liberacao_idempotente.sql", "utf8");
+  const f61 = readFileSync("drizzle/migrations/0068_auth_dono_staff.sql", "utf8");
+  const f62 = readFileSync("drizzle/migrations/0069_liberacao_idempotente.sql", "utf8");
   const f23 = readFileSync("drizzle/migrations/0023_base_operacional.sql", "utf8");
   const adminSrc = readFileSync("src/routes/admin.tsx", "utf8");
   const contaSrc = readFileSync("src/routes/pedido.$id.tsx", "utf8");
   // Invariantes estáticas (detectam drift entre SQL e código):
-  t("0061 libera só ativa", /WHERE pedido_id = p_pedido_id AND status = 'ativa'/i.test(f61));
-  t("0061 marca liberada", /SET status = 'liberada' WHERE id = r\.id/i.test(f61));
-  t("0061 idempotente por SUM ativa", /AND status = 'ativa'/i.test(f61) && /v_falta := p_qtd - v_ja_reservado/i.test(f61));
+  t("0068 libera só ativa", /WHERE pedido_id = p_pedido_id AND status = 'ativa'/i.test(f61));
+  t("0068 marca liberada", /SET status = 'liberada' WHERE id = r\.id/i.test(f61));
+  t("0068 idempotente por SUM ativa", /AND status = 'ativa'/i.test(f61) && /v_falta := p_qtd - v_ja_reservado/i.test(f61));
   t("fallback admin marca cancelada", /reservas_estoque"\).update\(\{ status: "cancelada" \}\)/.test(adminSrc));
   t("fallback cliente marca cancelada", /reservas_estoque"\).update\(\{ status: "cancelada" \}\)/.test(contaSrc));
   t("CHECK aceita os 4 estados", /CHECK \(status IN \('ativa','liberada','consumida','cancelada'\)\)/.test(f23));
-  t("0062 filtra processada_em NULL", /AND processada_em IS NULL/i.test(f62));
-  t("0062 marca processada", /SET processada_em = now\(\)/i.test(f62));
+  t("0069 filtra processada_em NULL", /AND processada_em IS NULL/i.test(f62));
+  t("0069 marca processada", /SET processada_em = now\(\)/i.test(f62));
   t("0030 cria ativa e debita", /VALUES \(p_pedido_id, p_produto_id, p_qtd, 'ativa'\)/.test(f30));
 
   // Modelo das regras especificadas (sintético, sem banco):
   function novoBanco(estoqueInicial) {
     return { estoque: estoqueInicial, reservas: [] };
   }
-  // Espelha 0030/0061: cria 'ativa' debitando; retry conta SUM(ativa).
+  // Espelha 0030/0068: cria 'ativa' debitando; retry conta SUM(ativa).
   function reservar(b, pedido, produto, qtd, confirmado) {
     if (!confirmado || qtd === null || qtd <= 0) return false;
     const ja = b.reservas.filter((r) => r.pedido === pedido && r.produto === produto && r.status === "ativa")
@@ -296,7 +296,7 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
     b.reservas.push({ pedido, produto, qtd: falta, status: "ativa" });
     return true;
   }
-  // Espelha 0030/0061: só 'ativa' → 'liberada', devolvendo.
+  // Espelha 0030/0068: só 'ativa' → 'liberada', devolvendo.
   function liberar(b, pedido) {
     let n = 0;
     for (const r of b.reservas) {
@@ -316,7 +316,7 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
     }
     return n;
   }
-  // Espelha 0062: processa cada reserva 1x (flag processada).
+  // Espelha 0069: processa cada reserva 1x (flag processada).
   function liberarLotes(b, pedido, processadas) {
     let devolvidos = 0;
     for (const r of b.reservas) {
@@ -342,7 +342,7 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
     t("estoque: 1ª liberação devolve", liberar(b, "p1") === 1 && b.estoque === 100);
     t("estoque: 2ª liberação no-op", liberar(b, "p1") === 0 && b.estoque === 100);
   }
-  // Retry de reserva é idempotente (0061):
+  // Retry de reserva é idempotente (0068):
   {
     const b = novoBanco(100);
     reservar(b, "p1", "coxinha", 30, true);
@@ -362,13 +362,13 @@ t("motivos têm rótulo", entrega.MOTIVO_ATRASO.every((m) => Boolean(entrega.MOT
     t("estoque: fallback marca cancelada sem devolver", fallbackCancelar(b, "p1") === 1 && b.estoque === 70);
     t("estoque: liberar após cancelada não recredita", liberar(b, "p1") === 0 && b.estoque === 70);
   }
-  // Reserva antiga + 0062: processa 1x:
+  // Reserva antiga + 0069: processa 1x:
   {
     const b = novoBanco(100);
     reservar(b, "p1", "coxinha", 30, true);
     liberar(b, "p1");
     const proc = new Set();
-    t("estoque: 0062 processa 1x", liberarLotes(b, "p1", proc) === 30 && liberarLotes(b, "p1", proc) === 0);
+    t("estoque: 0069 processa 1x", liberarLotes(b, "p1", proc) === 30 && liberarLotes(b, "p1", proc) === 0);
   }
   // Cancela após já liberada: no-op:
   {

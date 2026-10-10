@@ -1,4 +1,4 @@
--- 0061: autorização (dono/staff) + idempotência nas reservas 0030 (K5 Fase 3).
+-- 0068: autorização (dono/staff) + idempotência nas reservas 0030 (K5 Fase 3).
 -- PROBLEMAS CORRIGIDOS (auditoria K3/K4, código local):
 --   a) reservar/liberar_reserva_atomica não verificavam dono nem status:
 --      qualquer authenticated com UUIDs válidos debitava/liberava estoque
@@ -125,6 +125,6 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.reservar_estoque_atomica(uuid, uuid, integer) IS
-  '0061: exige pedido existente, dono ou staff (admin/producao/atendente), status recebido/em_producao; idempotente por retry.';
+  '0068: exige pedido existente, dono ou staff (admin/producao/atendente), status recebido/em_producao; idempotente por retry.';
 COMMENT ON FUNCTION public.liberar_reserva_atomica(uuid) IS
-  '0061: exige pedido existente, dono ou staff; só libera linhas ativa (repetir = no-op).';
+  '0068: exige pedido existente, dono ou staff; só libera linhas ativa (repetir = no-op).';

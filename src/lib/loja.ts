@@ -17,7 +17,7 @@ export type LojaConfig = {
   facebook?: string;
   site?: string;
   google_avaliacao?: string;
-  /** Prazos comerciais em minutos (migration 0059; promessa ao cliente, não tempo técnico). */
+  /** Prazos comerciais em minutos (migration 0066; promessa ao cliente, não tempo técnico). */
   retirada_prazo_min?: number | null;
   retirada_prazo_max?: number | null;
   entrega_prazo_min?: number | null;
@@ -65,7 +65,7 @@ export function useLojaConfig() {
       // Sem a migration 0021 a loja usa os padrões.
       if (error) return DEFAULT_LOJA_CONFIG;
       const base = { ...DEFAULT_LOJA_CONFIG, ...((data as Partial<LojaConfig> | null) ?? {}) };
-      // Prazos (migration 0059): banco ainda sem as colunas cai aqui sem quebrar a loja.
+      // Prazos (migration 0066): banco ainda sem as colunas cai aqui sem quebrar a loja.
       try {
         const { data: prazos, error: erroPrazos } = await supabase
           .from("loja_config")

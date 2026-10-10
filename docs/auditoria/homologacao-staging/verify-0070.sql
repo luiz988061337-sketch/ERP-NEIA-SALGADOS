@@ -1,5 +1,5 @@
--- verify-0063.sql — RLS do motoboy + aceite atômico + guard.
--- Somente leitura. Rode PRE antes de aplicar 0063; POST depois.
+-- verify-0070.sql — RLS do motoboy + aceite atômico + guard.
+-- Somente leitura. Rode PRE antes de aplicar 0070; POST depois.
 
 -- PRE: policy antiga com braço motoboy-IS-NULL; sem policy de claim.
 SELECT policyname, cmd
@@ -9,7 +9,7 @@ WHERE schemaname = 'public'
   AND policyname IN ('pedidos update staff', 'pedidos motoboy claim')
 ORDER BY 1;
 
--- (aplicar drizzle/migrations/0063_motoboy_update_rls.sql)
+-- (aplicar drizzle/migrations/0070_motoboy_update_rls.sql)
 
 -- POST: staff sem braço IS-NULL + claim com USING/WITH CHECK do aceite.
 SELECT policyname, qual AS usando, with_check AS checagem
@@ -21,7 +21,7 @@ ORDER BY 1;
 
 -- POST: guard com ramo do aceite legítimo.
 SELECT CASE WHEN prosrc ILIKE '%motoboy_sem_atribuicao%'
-            THEN 'OK-0063' ELSE 'DIVERGE' END AS guard
+            THEN 'OK-0070' ELSE 'DIVERGE' END AS guard
 FROM pg_proc
 WHERE proname = 'pedidos_guard_update';
 

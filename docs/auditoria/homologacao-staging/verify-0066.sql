@@ -1,5 +1,5 @@
--- verify-0059.sql — prazos comerciais em loja_config (40-60 / 60-90).
--- Somente leitura. Rode PRE antes de aplicar 0059; POST depois.
+-- verify-0066.sql — prazos comerciais em loja_config (40-60 / 60-90).
+-- Somente leitura. Rode PRE antes de aplicar 0066; POST depois.
 
 -- PRE: colunas devem estar ausentes (0 linhas).
 SELECT column_name, data_type, column_default
@@ -12,7 +12,7 @@ WHERE table_schema = 'public'
   )
 ORDER BY 1;
 
--- (aplicar drizzle/migrations/0059_prazos_atendimento.sql)
+-- (aplicar drizzle/migrations/0066_prazos_atendimento.sql)
 
 -- POST: 4 colunas com defaults 40/60/60/90.
 SELECT column_name, data_type, column_default

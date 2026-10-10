@@ -1,4 +1,4 @@
--- 0062: liberação de lotes idempotente (K5 Fase 4).
+-- 0069: liberação de lotes idempotente (K5 Fase 4).
 -- PROBLEMA (auditoria K3/K4, código 0042/0050): liberar_reserva_pedido
 -- relê TODAS as linhas tipo='reserva' a cada chamada e reinsere 'liberacao'
 -- + soma lotes.restante de novo -> N chamadas inflam o lote N vezes. A 0050
@@ -94,4 +94,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.liberar_reserva_pedido(uuid) IS
-  '0062: idempotente via processada_em + lock do pedido; compatível com 0050.';
+  '0069: idempotente via processada_em + lock do pedido; compatível com 0050.';

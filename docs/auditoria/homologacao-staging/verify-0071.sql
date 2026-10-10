@@ -1,5 +1,5 @@
--- verify-0064.sql — REVOKE de EXECUTE em gerar_msg_apartamento.
--- Somente leitura. Rode PRE antes de aplicar 0064; POST depois.
+-- verify-0071.sql — REVOKE de EXECUTE em gerar_msg_apartamento.
+-- Somente leitura. Rode PRE antes de aplicar 0071; POST depois.
 
 -- PRE e POST: privilégio efetivo (esperado PRE=true, POST=false
 -- para anon/authenticated).

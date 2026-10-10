@@ -1,5 +1,5 @@
--- verify-0060.sql — REVOKE de EXECUTE nas funções internas de estoque.
--- Somente leitura. Rode PRE antes de aplicar 0060; POST depois.
+-- verify-0067.sql — REVOKE de EXECUTE nas funções internas de estoque.
+-- Somente leitura. Rode PRE antes de aplicar 0067; POST depois.
 -- Não toca em reservar/liberar_estoque_atomica (0030/0031 intactos).
 
 -- PRE e POST: privilégio efetivo por papel (esperado PRE=true, POST=false

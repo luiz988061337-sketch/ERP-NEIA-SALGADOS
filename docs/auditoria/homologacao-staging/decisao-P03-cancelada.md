@@ -7,15 +7,15 @@ pelo executor. Requer confirmação do responsável + homologação em staging.
 
 - `0023_base_operacional.sql:48` — CHECK permite
   `ativa / liberada / consumida / cancelada`.
-- `0030` e `0061` — `liberar_reserva_atomica` processa **só** `status='ativa'`
-  (0061:74,116) e grava **`liberada`** (0061:118), **devolvendo**
+- `0030` e `0068` — `liberar_reserva_atomica` processa **só** `status='ativa'`
+  (0068:74,116) e grava **`liberada`** (0068:118), **devolvendo**
   `produtos.estoque`. Repetição = no-op. `reservar` conta `SUM` só de `ativa`
-  (0061:70-76).
+  (0068:70-76).
 - Fallbacks cliente (`pedido.$id.tsx:168`) e admin (`admin.tsx:625`) —
   `UPDATE reservas_estoque SET status='cancelada' WHERE pedido_id AND
   status='ativa'`, **sem devolver estoque**, executados **após** a tentativa
   de RPC (best-effort, erros abafados).
-- `0062:51-56` — `v_tem_0030 = EXISTS(qualquer linha do pedido)`: linhas
+- `0069:51-56` — `v_tem_0030 = EXISTS(qualquer linha do pedido)`: linhas
   `cancelada` contam como "0030 engajou" → lotes devolvidos, `produtos`
   **não** recreditado.
 - `consumida` — só existe no CHECK; **zero escritores** em SQL/TS/MJS.
@@ -26,15 +26,15 @@ pelo executor. Requer confirmação do responsável + homologação em staging.
 |---|---|
 | RPC ok → fallback | fallback no-op (nada `ativa` restante). **Seguro.** |
 | RPC negado/falhou → fallback | linha vira `cancelada`, estoque **preso** (débito sem devolução). **Risco.** |
-| Retry `reservar` após `cancelada` (0061) | `SUM(ativa)` ignora `cancelada` → **redebita integral**. **Risco.** |
-| `0062` sobre pedido com `cancelada` e RPC falhado | lotes ok, `produtos` não restaurado. **Risco (mesma raiz).** |
+| Retry `reservar` após `cancelada` (0068) | `SUM(ativa)` ignora `cancelada` → **redebita integral**. **Risco.** |
+| `0069` sobre pedido com `cancelada` e RPC falhado | lotes ok, `produtos` não restaurado. **Risco (mesma raiz).** |
 | Repetir liberar/cancelar | no-op em todos os caminhos. **Seguro.** |
 
 ## 3. Opções (escolha do responsável)
 
 - **A — Marcar `liberada` no fallback.** REJEITADA preliminarmente: mente
   sobre devolução que não ocorreu (RPC falhou). Só aceitável pareada com
-  restauração real — que violaria o modelo de auth da 0061. Não propor.
+  restauração real — que violaria o modelo de auth da 0068. Não propor.
 - **B — Não marcar nada em falha de RPC (manter `ativa`) + erro visível.**
   Reserva pendente fica explícita e retentável; exige UI que exponha a falha
   (hoje abafada por `catch {}`) e rotina de reconciliação. Afeta
@@ -45,7 +45,7 @@ pelo executor. Requer confirmação do responsável + homologação em staging.
   migration + homologação; decide quem autoriza (sistema/staff).
 - **`consumida`:** usar na entrega (baixa definitiva) ou remover do CHECK
   em migration futura. Sem uso hoje — não tocar sem decisão.
-- **0061 `SUM`:** contar ou não `cancelada` depende da opção (B: irrelevante
+- **0068 `SUM`:** contar ou não `cancelada` depende da opção (B: irrelevante
   se `cancelada` deixar de existir; C: ignorar, como hoje).
 
 ## 4. Verificação em staging (após decisão)

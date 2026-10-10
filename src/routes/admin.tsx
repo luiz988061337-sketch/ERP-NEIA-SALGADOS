@@ -470,7 +470,7 @@ function Admin() {
       const n = Number(v);
       return v === "" || v == null || Number.isNaN(n) ? null : n;
     };
-    // Prazos comerciais (migration 0059): inteiros > 0 com min <= max.
+    // Prazos comerciais (migration 0066): inteiros > 0 com min <= max.
     const prazo = (v: unknown, padrao: number): number => {
       const n = Number(v);
       return v === "" || v == null || !Number.isFinite(n) || n <= 0 ? padrao : Math.floor(n);
@@ -501,7 +501,7 @@ function Admin() {
     if (error) {
       toast.error(
         /retirada_prazo|entrega_prazo/.test(error.message)
-          ? "Rode a migration 0059 no Supabase para salvar os prazos."
+          ? "Rode a migration 0066 no Supabase para salvar os prazos."
           : /does not exist|schema/i.test(error.message)
             ? "Rode a migration 0021 no Supabase."
             : error.message,

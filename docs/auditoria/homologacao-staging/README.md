@@ -1,18 +1,18 @@
-# Homologação isolada — migrations 0056–0064
+# Homologação isolada — migrations 0056–0071
 
 Kit de preparação LOCAL. Nada aqui foi executado em banco algum.
 
 ## Ordem estrita (uma migration por vez, com parada)
 
-1. `00-baseline.md` — baseline `0000→0059` em staging zerado (fail-fast).
+1. `00-baseline.md` — baseline `0000→0066` em staging zerado (fail-fast).
 2. `verify-0056-0057.sql` → aplicar `0056`, depois `0057`.
-3. `verify-0058.sql` → aplicar `0058`.
-4. `verify-0059.sql` → aplicar `0059`.
-5. `verify-0060.sql` → aplicar `0060`.
-6. `verify-0061.sql` → aplicar `0061`.
-7. `verify-0062.sql` → aplicar `0062`.
-8. `verify-0063.sql` → aplicar `0063`.
-9. `verify-0064.sql` → aplicar `0064`.
+3. `verify-0065.sql` → aplicar `0065`.
+4. `verify-0066.sql` → aplicar `0066`.
+5. `verify-0067.sql` → aplicar `0067`.
+6. `verify-0068.sql` → aplicar `0068`.
+7. `verify-0069.sql` → aplicar `0069`.
+8. `verify-0070.sql` → aplicar `0070`.
+9. `verify-0071.sql` → aplicar `0071`.
 
 Para cada migration: rode o bloco **PRE** (só `SELECT`), aplique o arquivo
 `drizzle/migrations/NNNN_*.sql` em **um `New query` separado**, rode o bloco

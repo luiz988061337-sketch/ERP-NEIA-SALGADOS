@@ -1,4 +1,4 @@
-# Baseline 0000→0059 (staging zerado, fail-fast)
+# Baseline 0000→0066 (staging zerado, fail-fast)
 
 Aplique **um arquivo por `New query`**, nesta ordem exata, conferindo
 `Success` em cada um. Qualquer erro **para a sequência** (sem `WARNING`
@@ -8,7 +8,7 @@ Exceção conhecida: `0003_operacao.sql` contém `ALTER TYPE ... ADD VALUE`
 (papéis `atendente`, `financeiro`), que **não roda dentro de transação**.
 Rode essas 2 linhas sozinhas, uma por vez, e depois o resto do arquivo.
 
-## Ordem (58 arquivos)
+## Ordem (69 arquivos: 58 até 0055 + 0056/0057 + 7 do Pix remoto + 0065/0066)
 
 ```
 0000_neia_salgados_schema.sql
@@ -71,8 +71,15 @@ Rode essas 2 linhas sozinhas, uma por vez, e depois o resto do arquivo.
 0055_push_staff_read.sql
 0056_desativa_trigger_fefo_status.sql
 0057_desativa_reserva_lotes_preparo.sql
-0058_parceiros_publicos_view_fix.sql
-0059_prazos_atendimento.sql
+0058_gerar_cupom_apos_itens.sql
+0059_pix_notification_events.sql
+0060_pix_reader_devices.sql
+0061_gerar_cupons_pagos.sql
+0062_trigger_pagamento_confirmado.sql
+0063_corrigir_fluxo_impressao_pix.sql
+0064_gps_tracking_rls.sql
+0065_parceiros_publicos_view_fix.sql
+0066_prazos_atendimento.sql
 ```
 
 Notas:
@@ -82,4 +89,4 @@ Notas:
 - `0001_*`/`0002_*` duplicados: aplicar ambos, na ordem acima.
 - `0056`+`0057` removem o mesmo trigger (redundância documentada): aplicar ambos.
 - Após a baseline, rodar os blocos K5.6 (A–H) e só então iniciar
-  `verify-0056-0057.sql` → … → `verify-0064.sql`.
+  `verify-0056-0057.sql` → … → `verify-0071.sql`.

@@ -1,5 +1,5 @@
--- verify-0058.sql — view parceiros_publicos ('aprovado' → 'aprovada').
--- Somente leitura. Rode PRE antes de aplicar 0058; POST depois.
+-- verify-0065.sql — view parceiros_publicos ('aprovado' → 'aprovada').
+-- Somente leitura. Rode PRE antes de aplicar 0065; POST depois.
 
 -- PRE: view com filtro antigo não retorna linhas (bug documentado) e o
 -- CHECK só aceita 'aprovada'.
@@ -11,7 +11,7 @@ SELECT conname, pg_get_constraintdef(oid) AS definicao_check
 FROM pg_constraint
 WHERE conname LIKE '%parceiro%';
 
--- (aplicar drizzle/migrations/0058_parceiros_publicos_view_fix.sql)
+-- (aplicar drizzle/migrations/0065_parceiros_publicos_view_fix.sql)
 
 -- POST: definição contém 'aprovada' (e não 'aprovado' como filtro).
 SELECT definition AS definicao_nova

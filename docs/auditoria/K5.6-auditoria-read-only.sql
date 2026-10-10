@@ -1,6 +1,6 @@
 -- =============================================================
 -- K5.6 — Pacote de auditoria READ-ONLY (Lovable Cloud / Supabase)
--- Projeto: ERP Néia Salgados. Revisa base para as migrations 0060–0064.
+-- Projeto: ERP Néia Salgados. Revisa base para as migrations 0067-0071.
 --
 -- COMO USAR: cole CADA BLOCO separadamente no SQL Editor e execute.
 -- Todos os blocos são SELECT em catálogos (pg_catalog /
@@ -120,10 +120,10 @@ CROSS JOIN (
 ORDER BY 2, 1;
 
 -- -------------------------------------------------------------
--- BLOCO C — Colunas e estruturas (0060–0064 e fluxos do aceite)
+-- BLOCO C — Colunas e estruturas (0067-0071 e fluxos do aceite)
 -- O que verifica: existência/tipo das colunas usadas nas migrations e
 -- no congelamento de colunas do aceite do motoboy.
--- Colunas importantes: processada_em (0062), chaves pedido/lote/produto,
+-- Colunas importantes: processada_em (0069), chaves pedido/lote/produto,
 -- motoboy_id/aceito_em/status (aceite), conferência de valores.
 -- Linha ausente = coluna inexistente (migration pendente ou base antiga)
 -- OU sem visibilidade para o papel atual (ver Bloco H).
@@ -219,7 +219,7 @@ ORDER BY 2, 1;
 -- O que verifica: PKs/UNIQUE/FKs/CHECKs, índices de idempotência e os
 -- valores válidos de order_status (base do aceite e das transições).
 -- UNIQUE (pedido,produto) ausente = risco de fila duplicada (ver 0049).
--- Enum diferente do local = transições 0041/0063 precisam de revisão.
+-- Enum diferente do local = transições 0041/0070 precisam de revisão.
 -- Não conclui dados duplicados reais (exigiria contar linhas). Índice ou
 -- constraint ausente aqui não é falha por si só: pode existir com outro
 -- nome ou estar invisível ao papel atual (ver Bloco H).

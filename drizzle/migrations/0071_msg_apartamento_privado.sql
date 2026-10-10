@@ -1,4 +1,4 @@
--- 0064: restringir EXECUTE direto em gerar_msg_apartamento (K5.4).
+-- 0071: restringir EXECUTE direto em gerar_msg_apartamento (K5.4).
 -- PROBLEMA (auditoria K5.3, confirmado em K5.4): public.gerar_msg_apartamento
 -- (0045, RETURNS text, SECURITY DEFINER) devolve detalhes de entrega
 -- (apartamento, bloco, torre, andar, interfone, pode_subir) de QUALQUER
@@ -21,4 +21,4 @@ REVOKE ALL ON FUNCTION public.gerar_msg_apartamento(uuid)
   FROM PUBLIC, anon, authenticated;
 
 COMMENT ON FUNCTION public.gerar_msg_apartamento(uuid) IS
-  '0064: EXECUTE direto revogado (sem chamadores legítimos; auditoria K5.4). Uso futuro exigirá auth interna + grant explícito.';
+  '0071: EXECUTE direto revogado (sem chamadores legítimos; auditoria K5.4). Uso futuro exigirá auth interna + grant explícito.';

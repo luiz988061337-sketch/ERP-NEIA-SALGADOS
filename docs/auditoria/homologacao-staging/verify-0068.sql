@@ -1,5 +1,5 @@
--- verify-0061.sql — auth dono/staff + idempotência na 0030.
--- Somente leitura. Rode PRE antes de aplicar 0061; POST depois.
+-- verify-0068.sql — auth dono/staff + idempotência na 0030.
+-- Somente leitura. Rode PRE antes de aplicar 0068; POST depois.
 
 -- PRE: corpo atual SEM checagem de dono (documentar o antes).
 SELECT proname,
@@ -7,9 +7,9 @@ SELECT proname,
 FROM pg_proc
 WHERE proname IN ('reservar_estoque_atomica', 'liberar_reserva_atomica');
 
--- (aplicar drizzle/migrations/0061_auth_dono_staff.sql)
+-- (aplicar drizzle/migrations/0068_auth_dono_staff.sql)
 
--- POST: corpo com auth + idempotência + comentários 0061.
+-- POST: corpo com auth + idempotência + comentários 0068.
 SELECT proname,
        CASE WHEN prosrc ILIKE '%v_eh_staff%' THEN 'COM-auth' ELSE 'SEM-auth' END AS auth,
        CASE WHEN prosrc ILIKE '%v_falta%' OR prosrc ILIKE '%status = ''ativa''%'

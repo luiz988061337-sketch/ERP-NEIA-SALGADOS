@@ -1,4 +1,4 @@
--- 0058_parceiros_publicos_view_fix.sql (FASE A — corretiva, idempotente, NÃO aplicada ainda)
+-- 0065_parceiros_publicos_view_fix.sql (FASE A — corretiva, idempotente, NÃO aplicada ainda)
 -- Problema: a view filtrava status = 'aprovado', mas o CHECK de public.parceiros
 -- (0028_crm_experiencia.sql:52) só aceita 'aprovada' -> a view nunca retornava linha.
 -- Correção: alinhar a view ao valor real do CHECK ('aprovada').

@@ -1,4 +1,4 @@
--- 0063: RLS de UPDATE restrita ao motoboy dono + aceite atômico (K5 Fase 5).
+-- 0070: RLS de UPDATE restrita ao motoboy dono + aceite atômico (K5 Fase 5).
 -- PROBLEMA (auditoria K3/K4): a policy "pedidos update staff" (0000:168)
 -- permite a QUALQUER motoboy atualizar pedidos com motoboy_id IS NULL,
 -- inclusive status — e o guard 0005 só barra colunas de valores.
@@ -185,4 +185,4 @@ BEGIN
 END; $$;
 
 COMMENT ON POLICY "pedidos motoboy claim" ON public.pedidos IS
-  '0063: só aceite atômico (sem dono -> próprio). UPDATE geral exige dono.';
+  '0070: só aceite atômico (sem dono -> próprio). UPDATE geral exige dono.';

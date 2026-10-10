@@ -1,4 +1,4 @@
--- 0060: restringir EXECUTE direto nas funções internas de estoque (K5 Fase 2).
+-- 0067: restringir EXECUTE direto nas funções internas de estoque (K5 Fase 2).
 -- CONTEXTO (auditoria K3/K4, somente código local):
 --   - registrar_mov_estoque (2 assinaturas), reservar_estoque_pedido,
 --     liberar_reserva_pedido e calcular_tempo_fritura são SECURITY DEFINER
@@ -16,7 +16,7 @@
 --     por grep em supabase/, print-agent/ e scripts/): portanto SEM GRANT a
 --     service_role — privilégio mínimo, sem conveniência preventiva.
 -- FORA DO ESCOPO (não tocar): reservar/liberar_estoque_atomica (0030, usadas
---   pelo checkout — grants 0031 mantidos; autorização interna vem na 0061),
+--   pelo checkout — grants 0031 mantidos; autorização interna vem na 0068),
 --   creditar_pontos_pedido / resgatar_fidelidade (0002, já restritas e com
 --   checagem de dono), funções de trigger e pedidos_guard_update (não
 --   expostas por API; RLS/guard inalterados aqui).
@@ -45,4 +45,4 @@ REVOKE ALL ON FUNCTION public.calcular_tempo_fritura(uuid, integer)
   FROM PUBLIC, anon, authenticated;
 
 COMMENT ON FUNCTION public.reservar_estoque_pedido(uuid) IS
-  '0060: EXECUTE direto revogado (PUBLIC/anon/authenticated, sem GRANT residual); só trigger/interno. Autorização de dono/staff vem na 0061.';
+  '0067: EXECUTE direto revogado (PUBLIC/anon/authenticated, sem GRANT residual); só trigger/interno. Autorização de dono/staff vem na 0068.';

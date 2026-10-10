@@ -1,4 +1,4 @@
--- 0059: prazos comerciais de atendimento em loja_config (Fase 1.6.4).
+-- 0066: prazos comerciais de atendimento em loja_config (Fase 1.6.4).
 -- Retirada 40-60 min, entrega 60-90 min (valores iniciais = regra comercial atual).
 -- Escopo: SOMENTE configuração. Nenhum consumidor (motor, producao, checkout,
 -- vitrine) lê estas colunas ainda — a integração é a Fase 1.6.5.
