@@ -258,11 +258,12 @@ const PreviewProducaoNovaRoute = PreviewProducaoNovaRouteImport.update({
   path: '/producao-nova',
   getParentRoute: () => PreviewRoute,
 } as any)
-const PreviewSimuladorCardapioRoute = PreviewSimuladorCardapioRouteImport.update({
-  id: '/simulador-cardapio',
-  path: '/simulador-cardapio',
-  getParentRoute: () => PreviewRoute,
-} as any)
+const PreviewSimuladorCardapioRoute =
+  PreviewSimuladorCardapioRouteImport.update({
+    id: '/simulador-cardapio',
+    path: '/simulador-cardapio',
+    getParentRoute: () => PreviewRoute,
+  } as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -389,7 +390,6 @@ export interface FileRoutesByTo {
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
-  '/preview': typeof PreviewRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -548,7 +548,6 @@ export interface FileRouteTypes {
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
-    | '/preview'
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'

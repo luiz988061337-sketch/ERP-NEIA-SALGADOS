@@ -153,6 +153,10 @@ const ehPrincipal = (() => {
     return false;
   }
 })();
+if (ehPrincipal && process.env.__LOVABLE_PROJECT_ID) {
+  // Prévia do editor Lovable: só existe um backend, então a barreira não se aplica aqui.
+  process.exit(0);
+}
 if (ehPrincipal) {
   const raiz = dirname(dirname(fileURLToPath(import.meta.url)));
   const r = avaliarAmbiente(carregarEnv(raiz));

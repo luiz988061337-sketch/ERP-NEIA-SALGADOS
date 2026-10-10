@@ -76,7 +76,7 @@ serve(async (req) => {
 
     // 1 — Tentar identificar por referência
     if (event.reference) {
-      const { data: pedido } = await sb.from("pedidos").select("id, numero, cliente_nome, total, pagamento_status").ilike("referencia", event.reference).maybeSingle();
+      const { data: pedido } = await sb.from("pedidos").select("id, numero, cliente_nome, total, pagamento_status, forma_pagamento").ilike("referencia", event.reference).maybeSingle();
 
       if (pedido) {
         // 2 — Verificar se valor do Pix bate com valor do pedido
@@ -137,6 +137,8 @@ serve(async (req) => {
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
+        }
+
 
         matchedOrderId = pedido.id;
         classification = "IDENTIFICADO_POR_REFERENCIA";
