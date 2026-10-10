@@ -123,7 +123,10 @@ export function gerarPix(opts: {
   };
 }
 
-/** Link de QR para o payload (fallback quando não há biblioteca local de QR). */
+/**
+ * @deprecated Não usar — enviava chave+valor do Pix para terceiro (qrserver).
+ * Mantido só para compatibilidade; o app agora gera o QR 100% local (qrcode).
+ */
 export function urlQrPix(copiaECola: string, tamanho = 220): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${tamanho}x${tamanho}&margin=2&data=${encodeURIComponent(copiaECola)}`;
 }

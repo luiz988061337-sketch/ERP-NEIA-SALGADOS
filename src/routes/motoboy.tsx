@@ -42,6 +42,7 @@ function Motoboy() {
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const watchId = useRef<number | null>(null);
+  const ultimoEnvio = useRef<number>(0);
   const [retornando, setRetornando] = useState(false);
   const [aba, setAba] = useState("disponiveis");
 
@@ -126,6 +127,10 @@ function Motoboy() {
     }
     watchId.current = navigator.geolocation.watchPosition(
       async (pos) => {
+        // Fase A: throttle de 15s para não martelar o banco a cada fix de GPS.
+        const agora = Date.now();
+        if (agora - ultimoEnvio.current < 15000) return;
+        ultimoEnvio.current = agora;
         const alvos = emAndamento.filter((p: any) => p.status === "em_rota");
         for (const p of alvos) {
           await supabase.from("pedidos").update({
@@ -170,12 +175,14 @@ function Motoboy() {
         ? navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 8000 })
         : resolve(null),
     );
-    const { error } = await supabase.from("pedidos").update({
-      status: "em_rota",
-      motoboy_lat: pos?.coords.latitude ?? null,
-      motoboy_lng: pos?.coords.longitude ?? null,
-      motoboy_atualizado_em: new Date().toISOString(),
-    }).eq("id", p.id);
+    // Fase A: se o GPS for negado, não apaga a última posição conhecida.
+    const update: Record<string, unknown> = { status: "em_rota" };
+    if (pos) {
+      update["motoboy_lat"] = pos.coords.latitude;
+      update["motoboy_lng"] = pos.coords.longitude;
+      update["motoboy_atualizado_em"] = new Date().toISOString();
+    }
+    const { error } = await supabase.from("pedidos").update(update).eq("id", p.id);
     if (error) toast.error("Não foi possível iniciar.");
     else {
       toast.success(`Entrega nº ${p.numero} iniciada.`);

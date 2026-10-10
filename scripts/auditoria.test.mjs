@@ -30,6 +30,11 @@ t("desconto valor", totals.calcTotals({ subtotal: 100, taxaEntrega: 6, desconto:
 t("desconto limitado ao subtotal", totals.calcTotals({ subtotal: 5, taxaEntrega: 6, desconto: 50 }).total === 6);
 t("total nunca negativo", totals.calcTotals({ subtotal: 0, taxaEntrega: 0, desconto: 99 }).total === 0);
 t("strings numéricas", totals.calcTotals({ subtotal: "40", taxaEntrega: "6" }).total === 46);
+// Regressão 40+6=52 (K6.9 §4): taxa somada 1x em todos os caminhos (UI, submit, atendente, WhatsApp).
+for (const [s, e, d, esperado] of [[40, 6, 0, 46], [40, 0, 0, 40], [100, 6, 10, 96], [5, 6, 50, 6], [0, 0, 0, 0]]) {
+  const r = totals.calcTotals({ subtotal: s, taxaEntrega: e, desconto: d });
+  t(`total ${s}+${e}-${d} = ${esperado}`, r.total === esperado && r.taxaEntrega === Math.max(0, e));
+}
 
 // ---------- 2. Regra dos combos ----------
 const casos = [[49, false], [50, true], [51, false], [99, false], [100, true], [101, false], [150, true], [199, false], [200, true], [250, true], [0, false], [60, false], [70, false], [80, false], [90, false]];

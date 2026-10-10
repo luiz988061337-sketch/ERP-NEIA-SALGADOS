@@ -433,7 +433,6 @@ function Calculadora() {
                   key={p.id}
                   className="flex items-center gap-3 rounded-lg border border-border p-2"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imagemProduto(p.imagem_url, slug)}
                     alt=""

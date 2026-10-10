@@ -470,15 +470,42 @@ function Admin() {
       const n = Number(v);
       return v === "" || v == null || Number.isNaN(n) ? null : n;
     };
+    // Prazos comerciais (migration 0059): inteiros > 0 com min <= max.
+    const prazo = (v: unknown, padrao: number): number => {
+      const n = Number(v);
+      return v === "" || v == null || !Number.isFinite(n) || n <= 0 ? padrao : Math.floor(n);
+    };
+    const retiradaMin = prazo(lojaForm.retirada_prazo_min, 40);
+    const retiradaMax = prazo(lojaForm.retirada_prazo_max, 60);
+    const entregaMin = prazo(lojaForm.entrega_prazo_min, 60);
+    const entregaMax = prazo(lojaForm.entrega_prazo_max, 90);
+    if (retiradaMin > retiradaMax) {
+      toast.error("Retirada: o prazo mínimo não pode ser maior que o máximo.");
+      return;
+    }
+    if (entregaMin > entregaMax) {
+      toast.error("Entrega: o prazo mínimo não pode ser maior que o máximo.");
+      return;
+    }
     const payload = {
       ...lojaForm,
       mapa_lat: num(lojaForm.mapa_lat),
       mapa_lng: num(lojaForm.mapa_lng),
+      retirada_prazo_min: retiradaMin,
+      retirada_prazo_max: retiradaMax,
+      entrega_prazo_min: entregaMin,
+      entrega_prazo_max: entregaMax,
       atualizado_em: new Date().toISOString(),
     };
     const { error } = await supabase.from("loja_config").update(payload).eq("id", true);
     if (error) {
-      toast.error(/does not exist|schema/i.test(error.message) ? "Rode a migration 0021 no Supabase." : error.message);
+      toast.error(
+        /retirada_prazo|entrega_prazo/.test(error.message)
+          ? "Rode a migration 0059 no Supabase para salvar os prazos."
+          : /does not exist|schema/i.test(error.message)
+            ? "Rode a migration 0021 no Supabase."
+            : error.message,
+      );
       return;
     }
     toast.success("Dados da loja salvos.");
@@ -865,7 +892,6 @@ function Admin() {
                 {enviandoFoto ? <p className="text-xs text-muted-foreground">Preparando e enviando foto…</p> : null}
                 {novoSlide.imagem_url ? (
                   <div className="mt-2 rounded-lg border border-border p-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={novoSlide.imagem_url} alt="Prévia" className="h-28 w-full rounded object-contain" />
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground">
@@ -1734,7 +1760,7 @@ function MetasAdmin({ pedidos, onChange }: { pedidos: any[]; onChange: () => voi
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const tipo = String(f.get("tipo"));
-    let periodo_ref = String(f.get("periodo_ref") ?? "").trim();
+    const periodo_ref = String(f.get("periodo_ref") ?? "").trim();
     if (tipo === "mensal" && /^\d{4}-\d{2}$/.test(periodo_ref) === false) {
       toast.error("Para meta mensal use o formato AAAA-MM.");
       return;

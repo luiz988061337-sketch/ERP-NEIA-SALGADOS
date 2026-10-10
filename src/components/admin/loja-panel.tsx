@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import { Link2, MapPin, Phone, Store } from "lucide-react";
+import { Clock, Link2, MapPin, Phone, Store } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -251,7 +251,93 @@ export function LojaPanel({
           </Card>
         </div>
 
-        {/* 4. Localizacao no mapa */}
+        {/* 4. Prazos de atendimento */}
+        <Card className="shadow-card xl:col-span-2">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="flex items-center gap-2 font-display text-lg">
+              <Clock className="size-4 text-primary" />
+              ⏱️ Prazos de atendimento
+            </CardTitle>
+            <CardDescription>
+              Esses valores representam o prazo comercial informado ao cliente. Eles são
+              diferentes do tempo técnico de produção da cozinha.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-5 p-5 pt-0 sm:grid-cols-2">
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <p className="font-display text-base">🏪 Retirada</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="loja-ret-min">Prazo mínimo</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="loja-ret-min"
+                      type="number"
+                      min={1}
+                      step={1}
+                      className="w-24"
+                      value={lojaAtual.retirada_prazo_min ?? 40}
+                      onChange={(e) => setLoja("retirada_prazo_min", e.target.value)}
+                    />
+                    <span className="text-xs text-muted-foreground">minutos</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="loja-ret-max">Prazo máximo</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="loja-ret-max"
+                      type="number"
+                      min={1}
+                      step={1}
+                      className="w-24"
+                      value={lojaAtual.retirada_prazo_max ?? 60}
+                      onChange={(e) => setLoja("retirada_prazo_max", e.target.value)}
+                    />
+                    <span className="text-xs text-muted-foreground">minutos</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3 rounded-lg border border-border p-4">
+              <p className="font-display text-base">🛵 Entrega</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="loja-ent-min">Prazo mínimo</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="loja-ent-min"
+                      type="number"
+                      min={1}
+                      step={1}
+                      className="w-24"
+                      value={lojaAtual.entrega_prazo_min ?? 60}
+                      onChange={(e) => setLoja("entrega_prazo_min", e.target.value)}
+                    />
+                    <span className="text-xs text-muted-foreground">minutos</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="loja-ent-max">Prazo máximo</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="loja-ent-max"
+                      type="number"
+                      min={1}
+                      step={1}
+                      className="w-24"
+                      value={lojaAtual.entrega_prazo_max ?? 90}
+                      onChange={(e) => setLoja("entrega_prazo_max", e.target.value)}
+                    />
+                    <span className="text-xs text-muted-foreground">minutos</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 5. Localizacao no mapa */}
         <Card className="shadow-card xl:col-span-2">
           <CardHeader className="p-5 pb-3">
             <CardTitle className="flex items-center gap-2 font-display text-lg">

@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CalculadoraRouteImport } from './routes/calculadora'
 import { Route as CampanhasRouteImport } from './routes/campanhas'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
+import { Route as CentralEntregasRouteImport } from './routes/central-entregas'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ComboRouteImport } from './routes/combo'
@@ -30,11 +31,33 @@ import { Route as MotoboyRouteImport } from './routes/motoboy'
 import { Route as OperacaoRouteImport } from './routes/operacao'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ParceirosRouteImport } from './routes/parceiros'
+import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
+import { Route as PreviewIndexRouteImport } from './routes/preview/index'
+import { Route as PreviewCalculadoraRouteImport } from './routes/preview/calculadora'
+import { Route as PreviewCardapioRouteImport } from './routes/preview/cardapio'
+import { Route as PreviewCarrinhoRouteImport } from './routes/preview/carrinho'
+import { Route as PreviewCheckoutRouteImport } from './routes/preview/checkout'
+import { Route as PreviewComboRouteImport } from './routes/preview/combo'
+import { Route as PreviewCozinhaInteligenteRouteImport } from './routes/preview/cozinha-inteligente'
+import { Route as PreviewOperacaoIntegradaRouteImport } from './routes/preview/operacao-integrada'
+import { Route as PreviewPedidosRouteImport } from './routes/preview/pedidos'
+import { Route as PreviewPlanejamentoRouteImport } from './routes/preview/planejamento'
+import { Route as PreviewPrioridadeManualRouteImport } from './routes/preview/prioridade-manual'
+import { Route as PreviewProducaoNovaRouteImport } from './routes/preview/producao-nova'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as PreviewAdminIndexRouteImport } from './routes/preview/admin/index'
+import { Route as PreviewAdminEntregasRouteImport } from './routes/preview/admin/entregas'
+import { Route as PreviewAdminFiscalRouteImport } from './routes/preview/admin/fiscal'
+import { Route as PreviewAdminImpressaoRouteImport } from './routes/preview/admin/impressao'
+import { Route as PreviewAdminMotoboysRouteImport } from './routes/preview/admin/motoboys'
+import { Route as PreviewAdminPedidosRouteImport } from './routes/preview/admin/pedidos'
+import { Route as PreviewAdminProdutosRouteImport } from './routes/preview/admin/produtos'
+import { Route as PreviewAdminWhatsappRouteImport } from './routes/preview/admin/whatsapp'
+import { Route as PreviewPedidoIdRouteImport } from './routes/preview/pedido.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -74,6 +97,11 @@ const CampanhasRoute = CampanhasRouteImport.update({
 const CarrinhoRoute = CarrinhoRouteImport.update({
   id: '/carrinho',
   path: '/carrinho',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CentralEntregasRoute = CentralEntregasRouteImport.update({
+  id: '/central-entregas',
+  path: '/central-entregas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -141,6 +169,11 @@ const ParceirosRoute = ParceirosRouteImport.update({
   path: '/parceiros',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProducaoRoute = ProducaoRouteImport.update({
   id: '/producao',
   path: '/producao',
@@ -162,10 +195,117 @@ const PedidoIdRoute = PedidoIdRouteImport.update({
   path: '/pedido/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewIndexRoute = PreviewIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewCalculadoraRoute = PreviewCalculadoraRouteImport.update({
+  id: '/calculadora',
+  path: '/calculadora',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewCardapioRoute = PreviewCardapioRouteImport.update({
+  id: '/cardapio',
+  path: '/cardapio',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewCarrinhoRoute = PreviewCarrinhoRouteImport.update({
+  id: '/carrinho',
+  path: '/carrinho',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewCheckoutRoute = PreviewCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewComboRoute = PreviewComboRouteImport.update({
+  id: '/combo',
+  path: '/combo',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewCozinhaInteligenteRoute =
+  PreviewCozinhaInteligenteRouteImport.update({
+    id: '/cozinha-inteligente',
+    path: '/cozinha-inteligente',
+    getParentRoute: () => PreviewRoute,
+  } as any)
+const PreviewOperacaoIntegradaRoute =
+  PreviewOperacaoIntegradaRouteImport.update({
+    id: '/operacao-integrada',
+    path: '/operacao-integrada',
+    getParentRoute: () => PreviewRoute,
+  } as any)
+const PreviewPedidosRoute = PreviewPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewPlanejamentoRoute = PreviewPlanejamentoRouteImport.update({
+  id: '/planejamento',
+  path: '/planejamento',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewPrioridadeManualRoute = PreviewPrioridadeManualRouteImport.update({
+  id: '/prioridade-manual',
+  path: '/prioridade-manual',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewProducaoNovaRoute = PreviewProducaoNovaRouteImport.update({
+  id: '/producao-nova',
+  path: '/producao-nova',
+  getParentRoute: () => PreviewRoute,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewAdminIndexRoute = PreviewAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminEntregasRoute = PreviewAdminEntregasRouteImport.update({
+  id: '/admin/entregas',
+  path: '/admin/entregas',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminFiscalRoute = PreviewAdminFiscalRouteImport.update({
+  id: '/admin/fiscal',
+  path: '/admin/fiscal',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminImpressaoRoute = PreviewAdminImpressaoRouteImport.update({
+  id: '/admin/impressao',
+  path: '/admin/impressao',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminMotoboysRoute = PreviewAdminMotoboysRouteImport.update({
+  id: '/admin/motoboys',
+  path: '/admin/motoboys',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminPedidosRoute = PreviewAdminPedidosRouteImport.update({
+  id: '/admin/pedidos',
+  path: '/admin/pedidos',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminProdutosRoute = PreviewAdminProdutosRouteImport.update({
+  id: '/admin/produtos',
+  path: '/admin/produtos',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewAdminWhatsappRoute = PreviewAdminWhatsappRouteImport.update({
+  id: '/admin/whatsapp',
+  path: '/admin/whatsapp',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewPedidoIdRoute = PreviewPedidoIdRouteImport.update({
+  id: '/pedido/$id',
+  path: '/pedido/$id',
+  getParentRoute: () => PreviewRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -177,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/calculadora': typeof CalculadoraRoute
   '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
+  '/central-entregas': typeof CentralEntregasRoute
   '/checkout': typeof CheckoutRoute
   '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
@@ -190,11 +331,33 @@ export interface FileRoutesByFullPath {
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
+  '/preview': typeof PreviewRouteWithChildren
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/preview/calculadora': typeof PreviewCalculadoraRoute
+  '/preview/cardapio': typeof PreviewCardapioRoute
+  '/preview/carrinho': typeof PreviewCarrinhoRoute
+  '/preview/checkout': typeof PreviewCheckoutRoute
+  '/preview/combo': typeof PreviewComboRoute
+  '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/operacao-integrada': typeof PreviewOperacaoIntegradaRoute
+  '/preview/pedidos': typeof PreviewPedidosRoute
+  '/preview/planejamento': typeof PreviewPlanejamentoRoute
+  '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
+  '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
+  '/preview/admin/fiscal': typeof PreviewAdminFiscalRoute
+  '/preview/admin/impressao': typeof PreviewAdminImpressaoRoute
+  '/preview/admin/motoboys': typeof PreviewAdminMotoboysRoute
+  '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
+  '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
+  '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/pedido/$id': typeof PreviewPedidoIdRoute
+  '/preview/admin/': typeof PreviewAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -205,6 +368,7 @@ export interface FileRoutesByTo {
   '/calculadora': typeof CalculadoraRoute
   '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
+  '/central-entregas': typeof CentralEntregasRoute
   '/checkout': typeof CheckoutRoute
   '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
@@ -222,7 +386,28 @@ export interface FileRoutesByTo {
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/preview/calculadora': typeof PreviewCalculadoraRoute
+  '/preview/cardapio': typeof PreviewCardapioRoute
+  '/preview/carrinho': typeof PreviewCarrinhoRoute
+  '/preview/checkout': typeof PreviewCheckoutRoute
+  '/preview/combo': typeof PreviewComboRoute
+  '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/operacao-integrada': typeof PreviewOperacaoIntegradaRoute
+  '/preview/pedidos': typeof PreviewPedidosRoute
+  '/preview/planejamento': typeof PreviewPlanejamentoRoute
+  '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
+  '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
+  '/preview/admin/fiscal': typeof PreviewAdminFiscalRoute
+  '/preview/admin/impressao': typeof PreviewAdminImpressaoRoute
+  '/preview/admin/motoboys': typeof PreviewAdminMotoboysRoute
+  '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
+  '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
+  '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/pedido/$id': typeof PreviewPedidoIdRoute
+  '/preview/admin': typeof PreviewAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -234,6 +419,7 @@ export interface FileRoutesById {
   '/calculadora': typeof CalculadoraRoute
   '/campanhas': typeof CampanhasRoute
   '/carrinho': typeof CarrinhoRoute
+  '/central-entregas': typeof CentralEntregasRoute
   '/checkout': typeof CheckoutRoute
   '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
@@ -247,11 +433,33 @@ export interface FileRoutesById {
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
+  '/preview': typeof PreviewRouteWithChildren
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/preview/calculadora': typeof PreviewCalculadoraRoute
+  '/preview/cardapio': typeof PreviewCardapioRoute
+  '/preview/carrinho': typeof PreviewCarrinhoRoute
+  '/preview/checkout': typeof PreviewCheckoutRoute
+  '/preview/combo': typeof PreviewComboRoute
+  '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/operacao-integrada': typeof PreviewOperacaoIntegradaRoute
+  '/preview/pedidos': typeof PreviewPedidosRoute
+  '/preview/planejamento': typeof PreviewPlanejamentoRoute
+  '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
+  '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
+  '/preview/admin/fiscal': typeof PreviewAdminFiscalRoute
+  '/preview/admin/impressao': typeof PreviewAdminImpressaoRoute
+  '/preview/admin/motoboys': typeof PreviewAdminMotoboysRoute
+  '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
+  '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
+  '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/pedido/$id': typeof PreviewPedidoIdRoute
+  '/preview/admin/': typeof PreviewAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -264,6 +472,7 @@ export interface FileRouteTypes {
     | '/calculadora'
     | '/campanhas'
     | '/carrinho'
+    | '/central-entregas'
     | '/checkout'
     | '/clientes'
     | '/combo'
@@ -277,11 +486,33 @@ export interface FileRouteTypes {
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
+    | '/preview'
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
     | '/pedido/$id'
+    | '/preview/calculadora'
+    | '/preview/cardapio'
+    | '/preview/carrinho'
+    | '/preview/checkout'
+    | '/preview/combo'
+    | '/preview/cozinha-inteligente'
+    | '/preview/operacao-integrada'
+    | '/preview/pedidos'
+    | '/preview/planejamento'
+    | '/preview/prioridade-manual'
+    | '/preview/producao-nova'
+    | '/preview/'
     | '/.lovable/oauth/consent'
+    | '/preview/admin/entregas'
+    | '/preview/admin/fiscal'
+    | '/preview/admin/impressao'
+    | '/preview/admin/motoboys'
+    | '/preview/admin/pedidos'
+    | '/preview/admin/produtos'
+    | '/preview/admin/whatsapp'
+    | '/preview/pedido/$id'
+    | '/preview/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -292,6 +523,7 @@ export interface FileRouteTypes {
     | '/calculadora'
     | '/campanhas'
     | '/carrinho'
+    | '/central-entregas'
     | '/checkout'
     | '/clientes'
     | '/combo'
@@ -309,7 +541,28 @@ export interface FileRouteTypes {
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
     | '/pedido/$id'
+    | '/preview/calculadora'
+    | '/preview/cardapio'
+    | '/preview/carrinho'
+    | '/preview/checkout'
+    | '/preview/combo'
+    | '/preview/cozinha-inteligente'
+    | '/preview/operacao-integrada'
+    | '/preview/pedidos'
+    | '/preview/planejamento'
+    | '/preview/prioridade-manual'
+    | '/preview/producao-nova'
+    | '/preview'
     | '/.lovable/oauth/consent'
+    | '/preview/admin/entregas'
+    | '/preview/admin/fiscal'
+    | '/preview/admin/impressao'
+    | '/preview/admin/motoboys'
+    | '/preview/admin/pedidos'
+    | '/preview/admin/produtos'
+    | '/preview/admin/whatsapp'
+    | '/preview/pedido/$id'
+    | '/preview/admin'
   id:
     | '__root__'
     | '/'
@@ -320,6 +573,7 @@ export interface FileRouteTypes {
     | '/calculadora'
     | '/campanhas'
     | '/carrinho'
+    | '/central-entregas'
     | '/checkout'
     | '/clientes'
     | '/combo'
@@ -333,11 +587,33 @@ export interface FileRouteTypes {
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
+    | '/preview'
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
     | '/pedido/$id'
+    | '/preview/calculadora'
+    | '/preview/cardapio'
+    | '/preview/carrinho'
+    | '/preview/checkout'
+    | '/preview/combo'
+    | '/preview/cozinha-inteligente'
+    | '/preview/operacao-integrada'
+    | '/preview/pedidos'
+    | '/preview/planejamento'
+    | '/preview/prioridade-manual'
+    | '/preview/producao-nova'
+    | '/preview/'
     | '/.lovable/oauth/consent'
+    | '/preview/admin/entregas'
+    | '/preview/admin/fiscal'
+    | '/preview/admin/impressao'
+    | '/preview/admin/motoboys'
+    | '/preview/admin/pedidos'
+    | '/preview/admin/produtos'
+    | '/preview/admin/whatsapp'
+    | '/preview/pedido/$id'
+    | '/preview/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -349,6 +625,7 @@ export interface RootRouteChildren {
   CalculadoraRoute: typeof CalculadoraRoute
   CampanhasRoute: typeof CampanhasRoute
   CarrinhoRoute: typeof CarrinhoRoute
+  CentralEntregasRoute: typeof CentralEntregasRoute
   CheckoutRoute: typeof CheckoutRoute
   ClientesRoute: typeof ClientesRoute
   ComboRoute: typeof ComboRoute
@@ -362,6 +639,7 @@ export interface RootRouteChildren {
   OperacaoRoute: typeof OperacaoRoute
   OrcamentosRoute: typeof OrcamentosRoute
   ParceirosRoute: typeof ParceirosRoute
+  PreviewRoute: typeof PreviewRouteWithChildren
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -425,6 +703,13 @@ declare module '@tanstack/react-router' {
       path: '/carrinho'
       fullPath: '/carrinho'
       preLoaderRoute: typeof CarrinhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/central-entregas': {
+      id: '/central-entregas'
+      path: '/central-entregas'
+      fullPath: '/central-entregas'
+      preLoaderRoute: typeof CentralEntregasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -518,6 +803,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ParceirosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/producao': {
       id: '/producao'
       path: '/producao'
@@ -546,6 +838,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedidoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/': {
+      id: '/preview/'
+      path: '/'
+      fullPath: '/preview/'
+      preLoaderRoute: typeof PreviewIndexRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/calculadora': {
+      id: '/preview/calculadora'
+      path: '/calculadora'
+      fullPath: '/preview/calculadora'
+      preLoaderRoute: typeof PreviewCalculadoraRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/cardapio': {
+      id: '/preview/cardapio'
+      path: '/cardapio'
+      fullPath: '/preview/cardapio'
+      preLoaderRoute: typeof PreviewCardapioRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/carrinho': {
+      id: '/preview/carrinho'
+      path: '/carrinho'
+      fullPath: '/preview/carrinho'
+      preLoaderRoute: typeof PreviewCarrinhoRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/checkout': {
+      id: '/preview/checkout'
+      path: '/checkout'
+      fullPath: '/preview/checkout'
+      preLoaderRoute: typeof PreviewCheckoutRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/combo': {
+      id: '/preview/combo'
+      path: '/combo'
+      fullPath: '/preview/combo'
+      preLoaderRoute: typeof PreviewComboRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/cozinha-inteligente': {
+      id: '/preview/cozinha-inteligente'
+      path: '/cozinha-inteligente'
+      fullPath: '/preview/cozinha-inteligente'
+      preLoaderRoute: typeof PreviewCozinhaInteligenteRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/operacao-integrada': {
+      id: '/preview/operacao-integrada'
+      path: '/operacao-integrada'
+      fullPath: '/preview/operacao-integrada'
+      preLoaderRoute: typeof PreviewOperacaoIntegradaRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/pedidos': {
+      id: '/preview/pedidos'
+      path: '/pedidos'
+      fullPath: '/preview/pedidos'
+      preLoaderRoute: typeof PreviewPedidosRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/planejamento': {
+      id: '/preview/planejamento'
+      path: '/planejamento'
+      fullPath: '/preview/planejamento'
+      preLoaderRoute: typeof PreviewPlanejamentoRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/prioridade-manual': {
+      id: '/preview/prioridade-manual'
+      path: '/prioridade-manual'
+      fullPath: '/preview/prioridade-manual'
+      preLoaderRoute: typeof PreviewPrioridadeManualRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/producao-nova': {
+      id: '/preview/producao-nova'
+      path: '/producao-nova'
+      fullPath: '/preview/producao-nova'
+      preLoaderRoute: typeof PreviewProducaoNovaRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -553,8 +929,122 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/admin/': {
+      id: '/preview/admin/'
+      path: '/admin'
+      fullPath: '/preview/admin/'
+      preLoaderRoute: typeof PreviewAdminIndexRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin/entregas': {
+      id: '/preview/admin/entregas'
+      path: '/admin/entregas'
+      fullPath: '/preview/admin/entregas'
+      preLoaderRoute: typeof PreviewAdminEntregasRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin/fiscal': {
+      id: '/preview/admin/fiscal'
+      path: '/admin/fiscal'
+      fullPath: '/preview/admin/fiscal'
+      preLoaderRoute: typeof PreviewAdminFiscalRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin/impressao': {
+      id: '/preview/admin/impressao'
+      path: '/admin/impressao'
+      fullPath: '/preview/admin/impressao'
+      preLoaderRoute: typeof PreviewAdminImpressaoRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin/motoboys': {
+      id: '/preview/admin/motoboys'
+      path: '/admin/motoboys'
+      fullPath: '/preview/admin/motoboys'
+      preLoaderRoute: typeof PreviewAdminMotoboysRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin/pedidos': {
+      id: '/preview/admin/pedidos'
+      path: '/admin/pedidos'
+      fullPath: '/preview/admin/pedidos'
+      preLoaderRoute: typeof PreviewAdminPedidosRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin/produtos': {
+      id: '/preview/admin/produtos'
+      path: '/admin/produtos'
+      fullPath: '/preview/admin/produtos'
+      preLoaderRoute: typeof PreviewAdminProdutosRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/admin/whatsapp': {
+      id: '/preview/admin/whatsapp'
+      path: '/admin/whatsapp'
+      fullPath: '/preview/admin/whatsapp'
+      preLoaderRoute: typeof PreviewAdminWhatsappRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/pedido/$id': {
+      id: '/preview/pedido/$id'
+      path: '/pedido/$id'
+      fullPath: '/preview/pedido/$id'
+      preLoaderRoute: typeof PreviewPedidoIdRouteImport
+      parentRoute: typeof PreviewRoute
+    }
   }
 }
+
+interface PreviewRouteChildren {
+  PreviewCalculadoraRoute: typeof PreviewCalculadoraRoute
+  PreviewCardapioRoute: typeof PreviewCardapioRoute
+  PreviewCarrinhoRoute: typeof PreviewCarrinhoRoute
+  PreviewCheckoutRoute: typeof PreviewCheckoutRoute
+  PreviewComboRoute: typeof PreviewComboRoute
+  PreviewCozinhaInteligenteRoute: typeof PreviewCozinhaInteligenteRoute
+  PreviewOperacaoIntegradaRoute: typeof PreviewOperacaoIntegradaRoute
+  PreviewPedidosRoute: typeof PreviewPedidosRoute
+  PreviewPlanejamentoRoute: typeof PreviewPlanejamentoRoute
+  PreviewPrioridadeManualRoute: typeof PreviewPrioridadeManualRoute
+  PreviewProducaoNovaRoute: typeof PreviewProducaoNovaRoute
+  PreviewIndexRoute: typeof PreviewIndexRoute
+  PreviewAdminEntregasRoute: typeof PreviewAdminEntregasRoute
+  PreviewAdminFiscalRoute: typeof PreviewAdminFiscalRoute
+  PreviewAdminImpressaoRoute: typeof PreviewAdminImpressaoRoute
+  PreviewAdminMotoboysRoute: typeof PreviewAdminMotoboysRoute
+  PreviewAdminPedidosRoute: typeof PreviewAdminPedidosRoute
+  PreviewAdminProdutosRoute: typeof PreviewAdminProdutosRoute
+  PreviewAdminWhatsappRoute: typeof PreviewAdminWhatsappRoute
+  PreviewPedidoIdRoute: typeof PreviewPedidoIdRoute
+  PreviewAdminIndexRoute: typeof PreviewAdminIndexRoute
+}
+
+const PreviewRouteChildren: PreviewRouteChildren = {
+  PreviewCalculadoraRoute: PreviewCalculadoraRoute,
+  PreviewCardapioRoute: PreviewCardapioRoute,
+  PreviewCarrinhoRoute: PreviewCarrinhoRoute,
+  PreviewCheckoutRoute: PreviewCheckoutRoute,
+  PreviewComboRoute: PreviewComboRoute,
+  PreviewCozinhaInteligenteRoute: PreviewCozinhaInteligenteRoute,
+  PreviewOperacaoIntegradaRoute: PreviewOperacaoIntegradaRoute,
+  PreviewPedidosRoute: PreviewPedidosRoute,
+  PreviewPlanejamentoRoute: PreviewPlanejamentoRoute,
+  PreviewPrioridadeManualRoute: PreviewPrioridadeManualRoute,
+  PreviewProducaoNovaRoute: PreviewProducaoNovaRoute,
+  PreviewIndexRoute: PreviewIndexRoute,
+  PreviewAdminEntregasRoute: PreviewAdminEntregasRoute,
+  PreviewAdminFiscalRoute: PreviewAdminFiscalRoute,
+  PreviewAdminImpressaoRoute: PreviewAdminImpressaoRoute,
+  PreviewAdminMotoboysRoute: PreviewAdminMotoboysRoute,
+  PreviewAdminPedidosRoute: PreviewAdminPedidosRoute,
+  PreviewAdminProdutosRoute: PreviewAdminProdutosRoute,
+  PreviewAdminWhatsappRoute: PreviewAdminWhatsappRoute,
+  PreviewPedidoIdRoute: PreviewPedidoIdRoute,
+  PreviewAdminIndexRoute: PreviewAdminIndexRoute,
+}
+
+const PreviewRouteWithChildren =
+  PreviewRoute._addFileChildren(PreviewRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -565,6 +1055,7 @@ const rootRouteChildren: RootRouteChildren = {
   CalculadoraRoute: CalculadoraRoute,
   CampanhasRoute: CampanhasRoute,
   CarrinhoRoute: CarrinhoRoute,
+  CentralEntregasRoute: CentralEntregasRoute,
   CheckoutRoute: CheckoutRoute,
   ClientesRoute: ClientesRoute,
   ComboRoute: ComboRoute,
@@ -578,6 +1069,7 @@ const rootRouteChildren: RootRouteChildren = {
   OperacaoRoute: OperacaoRoute,
   OrcamentosRoute: OrcamentosRoute,
   ParceirosRoute: ParceirosRoute,
+  PreviewRoute: PreviewRouteWithChildren,
   ProducaoRoute: ProducaoRoute,
   RecorrentesRoute: RecorrentesRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:

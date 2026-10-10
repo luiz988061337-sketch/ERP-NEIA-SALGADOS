@@ -10,6 +10,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync } from "node:fs";
+import { avaliarAmbiente, carregarEnv } from "./proteger-dev.mjs";
 
 const PORTA = Number(process.env.SMOKE_PORT ?? 4199);
 const BASE = `http://127.0.0.1:${PORTA}`;
@@ -66,6 +67,16 @@ const raiz = dirname(dirname(fileURLToPath(import.meta.url)));
   }
 }
 const viteBin = join(raiz, "node_modules", "vite", "bin", "vite.js");
+// Barreira K6.7: smoke sobe o vite diretamente (sem passar pelo script
+// "dev"), então valida o destino aqui também antes de iniciar qualquer
+// servidor. Nada é iniciado contra produção.
+{
+  const r = avaliarAmbiente(carregarEnv(raiz));
+  if (!r.ok) {
+    console.error(`✗ smoke abortado pela barreira de ambiente: ${r.motivo}`);
+    process.exit(2);
+  }
+}
 const servidor = spawn(process.execPath, [viteBin, "dev", "--port", String(PORTA), "--host", "127.0.0.1"], {
   cwd: raiz,
   stdio: ["ignore", "ignore", "pipe"],

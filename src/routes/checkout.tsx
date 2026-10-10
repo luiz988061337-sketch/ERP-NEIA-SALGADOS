@@ -267,7 +267,7 @@ function Checkout() {
     } catch {
       origemCampanha = "";
     }
-    let tipoEvento = String(form.get("tipo_evento") ?? "");
+    const tipoEvento = String(form.get("tipo_evento") ?? "");
     if (quando === "agendar") {
       const dtRaw = String(form.get("agendamento_para") ?? "");
       const v = validarAgendamento(dtRaw, new Date(), 30);
@@ -788,7 +788,7 @@ function Checkout() {
 
         <Button type="submit" size="lg" className="w-full" disabled={enviando}>
           {enviando ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-          Confirmar pedido • {brl(total)}
+          Confirmar pedido • {brl(totalFinalUI)}
         </Button>
       </form>
     </div>

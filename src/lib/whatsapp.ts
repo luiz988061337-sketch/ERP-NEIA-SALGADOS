@@ -1,19 +1,23 @@
 /**
  * WhatsApp (§49) + lembretes (§8): templates com variáveis reais.
  * Variáveis permitidas: numero,total,total_com_taxa,cliente,pagamento,agendamento,
- * taxa_entrega,taxa_motoboy,endereco,entrega,pedido. Total 40+6=46 (taxa 1x).
+ * taxa_entrega,taxa_motoboy,endereco (alias: endereço),entrega,pedido. Total 40+6=46 (taxa 1x).
  */
 import { brl, calcTotalsSafe } from "./whatsapp-total";
 
 export const VARIAVEIS_PERMITIDAS = [
   "numero", "total", "total_com_taxa", "cliente", "pagamento", "agendamento",
-  "taxa_entrega", "taxa_motoboy", "endereco", "entrega", "pedido",
+  "taxa_entrega", "taxa_motoboy", "endereco", "endereço", "entrega", "pedido",
 ] as const;
 
 export function renderTemplate(tpl: string, vars: Record<string, string | number>): string {
   let out = tpl;
   for (const [k, v] of Object.entries(vars)) {
     out = out.split(`{{${k}}}`).join(String(v));
+  }
+  // Alias: {{endereço}} usa a mesma fonte de {{endereco}}.
+  if (vars["endereco"] !== undefined) {
+    out = out.split("{{endereço}}").join(String(vars["endereco"]));
   }
   return out;
 }

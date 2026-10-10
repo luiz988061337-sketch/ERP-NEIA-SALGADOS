@@ -175,6 +175,8 @@ function Acompanhar() {
     }
   }
 
+  const { data: lojaConfig } = useLojaConfig();
+
   if (isLoading) return <p className="p-10 text-center text-muted-foreground">Carregando pedido...</p>;
   if (!pedido)
     return (
@@ -187,7 +189,6 @@ function Acompanhar() {
     );
 
   const isRetirada = pedido.tipo_entrega === "retirada";
-  const { data: lojaConfig } = useLojaConfig();
   const loja = lojaConfig ?? DEFAULT_LOJA_CONFIG;
   const pontoLoja = isRetirada ? pontoDaLoja(loja) : null;
 
@@ -224,7 +225,14 @@ function Acompanhar() {
             <Bike className="size-5" /> Entrega a caminho
           </h2>
           {pontos.length > 0 ? (
-            <MapView pontos={pontos} />
+            <>
+              <MapView pontos={pontos} />
+              <p className="text-xs text-muted-foreground">
+                {pedido.motoboy_atualizado_em
+                  ? `Posição atualizada em ${dataHora(pedido.motoboy_atualizado_em)}. Se estiver antiga, o GPS do motoboy pode estar sem sinal.`
+                  : "Aguardando primeira posição do GPS do motoboy."}
+              </p>
+            </>
           ) : (
             <p className="text-sm text-muted-foreground">
               O motoboy está a caminho. A localização ao vivo aparece aqui assim que o GPS for compartilhado.
