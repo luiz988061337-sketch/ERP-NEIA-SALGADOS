@@ -124,6 +124,14 @@ const slugCategoriaPorId = useMemo(() => new Map((categorias ?? []).map((c) => [
       toast.error("Informe o endereço de entrega.");
       return;
     }
+    if (entrega === "entrega" && bairro.trim().length < 2) {
+      toast.error("Informe o bairro.");
+      return;
+    }
+    if (entrega === "entrega" && cidade.trim().length < 2) {
+      toast.error("Informe a cidade.");
+      return;
+    }
     let agendadoPara: string | null = null;
     if (quando === "agendar") {
       const dt = new Date(agendamento);
