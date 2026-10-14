@@ -60,6 +60,7 @@ import { Route as PreviewAdminPedidosRouteImport } from './routes/preview/admin/
 import { Route as PreviewAdminProdutosRouteImport } from './routes/preview/admin/produtos'
 import { Route as PreviewAdminWhatsappRouteImport } from './routes/preview/admin/whatsapp'
 import { Route as PreviewPedidoIdRouteImport } from './routes/preview/pedido.$id'
+import { Route as ApiPublicPixEventRouteImport } from './routes/api/public/pix/event'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -320,6 +321,11 @@ const PreviewPedidoIdRoute = PreviewPedidoIdRouteImport.update({
   path: '/pedido/$id',
   getParentRoute: () => PreviewRoute,
 } as any)
+const ApiPublicPixEventRoute = ApiPublicPixEventRouteImport.update({
+  id: '/api/public/pix/event',
+  path: '/api/public/pix/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -373,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
+  '/api/public/pix/event': typeof ApiPublicPixEventRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -425,6 +432,7 @@ export interface FileRoutesByTo {
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/admin': typeof PreviewAdminIndexRoute
+  '/api/public/pix/event': typeof ApiPublicPixEventRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -479,6 +487,7 @@ export interface FileRoutesById {
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
+  '/api/public/pix/event': typeof ApiPublicPixEventRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -534,6 +543,7 @@ export interface FileRouteTypes {
     | '/preview/admin/whatsapp'
     | '/preview/pedido/$id'
     | '/preview/admin/'
+    | '/api/public/pix/event'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -586,6 +596,7 @@ export interface FileRouteTypes {
     | '/preview/admin/whatsapp'
     | '/preview/pedido/$id'
     | '/preview/admin'
+    | '/api/public/pix/event'
   id:
     | '__root__'
     | '/'
@@ -639,6 +650,7 @@ export interface FileRouteTypes {
     | '/preview/admin/whatsapp'
     | '/preview/pedido/$id'
     | '/preview/admin/'
+    | '/api/public/pix/event'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -671,6 +683,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   PedidoIdRoute: typeof PedidoIdRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  ApiPublicPixEventRoute: typeof ApiPublicPixEventRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1032,6 +1045,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewPedidoIdRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/api/public/pix/event': {
+      id: '/api/public/pix/event'
+      path: '/api/public/pix/event'
+      fullPath: '/api/public/pix/event'
+      preLoaderRoute: typeof ApiPublicPixEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1119,6 +1139,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   PedidoIdRoute: PedidoIdRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  ApiPublicPixEventRoute: ApiPublicPixEventRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

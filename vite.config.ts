@@ -13,7 +13,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   nitro: {
-    preset: "vercel",
+    // Só usa o preset da Vercel quando o build roda NA Vercel (VERCEL=1).
+    // Incondicional quebrava a publicação pelo Lovable (J.1 item 3).
+    ...(process.env["VERCEL"] === "1" ? { preset: "vercel" } : {}),
   },
   plugins: [...mcpPlugins],
 });
