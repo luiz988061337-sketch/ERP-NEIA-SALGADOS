@@ -13,6 +13,11 @@ import {
   Pencil,
   Plus,
   MessageCircle,
+  ClipboardList,
+  ChefHat,
+  CheckCircle2,
+  Truck,
+  Download,
 } from "lucide-react";
 import {
   BarChart,
@@ -77,6 +82,9 @@ import { FichasAdmin } from "@/components/admin/estoque/fichas-admin";
 import { FornecedoresAdmin } from "@/components/admin/estoque/fornecedores-admin";
 import { ComprasAdmin } from "@/components/admin/estoque/compras-admin";
 import { PrecificacaoAdmin } from "@/components/admin/precificacao-admin";
+import { DashboardAdmin } from "@/components/admin/dashboard-admin";
+import { EmptyState, PageHeader, StatusCard } from "@/components/admin/ui-admin";
+import fritos from "@/assets/cat-fritos.jpg";
 import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
 import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
@@ -90,7 +98,10 @@ export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Administração — Néia Salgados" },
-      { name: "description", content: "Dashboard, produtos, pedidos, clientes, motoboys e financeiro." },
+      {
+        name: "description",
+        content: "Dashboard, produtos, pedidos, clientes, motoboys e financeiro.",
+      },
     ],
   }),
   component: Admin,
@@ -154,7 +165,10 @@ function Admin() {
     queryKey: ["admin-produtos"],
     enabled: !!isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("produtos").select("*, categorias(nome,slug)").order("nome");
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("*, categorias(nome,slug)")
+        .order("nome");
       if (error) throw error;
       return data ?? [];
     },
@@ -184,7 +198,11 @@ function Admin() {
     queryKey: ["admin-profiles"],
     enabled: !!isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(300);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(300);
       if (error) throw error;
       return data ?? [];
     },
@@ -208,7 +226,10 @@ function Admin() {
     queryKey: ["admin-motoboys"],
     enabled: !!isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("user_roles").select("user_id").eq("role", "motoboy");
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "motoboy");
       if (error) throw error;
       return data ?? [];
     },
@@ -233,19 +254,31 @@ function Admin() {
       return data ?? [];
     },
   });
-  const [editandoMotoboy, setEditandoMotoboy] = useState<{ id?: string; nome: string; telefone: string; observacao: string } | null>(null);
+  const [editandoMotoboy, setEditandoMotoboy] = useState<{
+    id?: string;
+    nome: string;
+    telefone: string;
+    observacao: string;
+  } | null>(null);
   const [salvandoMotoboy, setSalvandoMotoboy] = useState(false);
 
   async function salvarMotoboy(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!editandoMotoboy) return;
     setSalvandoMotoboy(true);
-    const payload = { nome: editandoMotoboy.nome, telefone: editandoMotoboy.telefone, observacao: editandoMotoboy.observacao };
+    const payload = {
+      nome: editandoMotoboy.nome,
+      telefone: editandoMotoboy.telefone,
+      observacao: editandoMotoboy.observacao,
+    };
     const { error } = editandoMotoboy.id
       ? await supabase.from("motoboys").update(payload).eq("id", editandoMotoboy.id)
       : await supabase.from("motoboys").insert(payload);
     setSalvandoMotoboy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success(editandoMotoboy.id ? "Motoboy atualizado." : "Motoboy cadastrado.");
     setEditandoMotoboy(null);
     void refetchMotoboys();
@@ -254,7 +287,10 @@ function Admin() {
   async function excluirMotoboy(id: string, nome: string) {
     if (!window.confirm(`Excluir motoboy "${nome}"?`)) return;
     const { error } = await supabase.from("motoboys").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Motoboy excluído.");
     void refetchMotoboys();
   }
@@ -313,7 +349,9 @@ function Admin() {
       const { data } = supabase.storage.from(BUCKET_HERO).getPublicUrl(caminho);
       setNovoSlide((s) => ({ ...s, imagem_url: data.publicUrl }));
       setFotoInfo(`${largura}x${altura} • ${tamanhoLegivel(blob.size)}`);
-      toast.success(`Foto pronta (${largura}x${altura}, ${tamanhoLegivel(blob.size)}). Agora clique em Adicionar slide.`);
+      toast.success(
+        `Foto pronta (${largura}x${altura}, ${tamanhoLegivel(blob.size)}). Agora clique em Adicionar slide.`,
+      );
     } catch (err) {
       console.error(err);
       toast.error("Não consegui preparar a imagem. Tente outra foto.");
@@ -325,7 +363,10 @@ function Admin() {
   async function adicionarSlide(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const { error } = await supabase.from("hero_carousel").insert({ ...novoSlide, ativo: true });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Slide adicionado.");
     limparNovoSlide();
     void refetchHero();
@@ -333,13 +374,19 @@ function Admin() {
 
   async function alternarSlideAtivo(id: string, ativo: boolean) {
     const { error } = await supabase.from("hero_carousel").update({ ativo: !ativo }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     void refetchHero();
   }
 
   async function salvarSlide(id: string, campos: { legenda?: string; ordem?: number }) {
     const { error } = await supabase.from("hero_carousel").update(campos).eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Slide atualizado.");
     void refetchHero();
   }
@@ -351,11 +398,22 @@ function Admin() {
       const { blob, type, largura, altura } = await redimensionarImagem(file);
       const ext = type === "image/png" ? "png" : "jpg";
       const caminho = `hero/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error } = await supabase.storage.from(BUCKET_HERO).upload(caminho, blob, { upsert: true, contentType: type });
-      if (error) { toast.error(error.message); return; }
+      const { error } = await supabase.storage
+        .from(BUCKET_HERO)
+        .upload(caminho, blob, { upsert: true, contentType: type });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       const { data } = supabase.storage.from(BUCKET_HERO).getPublicUrl(caminho);
-      const upd = await supabase.from("hero_carousel").update({ imagem_url: data.publicUrl }).eq("id", id);
-      if (upd.error) { toast.error(upd.error.message); return; }
+      const upd = await supabase
+        .from("hero_carousel")
+        .update({ imagem_url: data.publicUrl })
+        .eq("id", id);
+      if (upd.error) {
+        toast.error(upd.error.message);
+        return;
+      }
       toast.success(`Foto trocada (${largura}x${altura}, ${tamanhoLegivel(blob.size)}).`);
       void refetchHero();
     } catch (err) {
@@ -375,12 +433,16 @@ function Admin() {
   async function excluirSlide(id: string, imagemUrl: string) {
     if (!window.confirm("Excluir este slide?")) return;
     const { error } = await supabase.from("hero_carousel").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     // Apaga o arquivo do storage para não deixar lixo acumulado.
     const caminho = caminhoNoStorage(imagemUrl);
     if (caminho) {
       const { error: errStorage } = await supabase.storage.from(BUCKET_HERO).remove([caminho]);
-      if (errStorage) console.warn("Slide removido, mas a imagem ficou no storage:", errStorage.message);
+      if (errStorage)
+        console.warn("Slide removido, mas a imagem ficou no storage:", errStorage.message);
     }
     toast.success("Slide excluído.");
     void refetchHero();
@@ -390,7 +452,11 @@ function Admin() {
     queryKey: ["admin-calc-config"],
     enabled: !!isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("calculadora_config").select("*").eq("id", true).maybeSingle();
+      const { data, error } = await supabase
+        .from("calculadora_config")
+        .select("*")
+        .eq("id", true)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -400,7 +466,11 @@ function Admin() {
     enabled: !!isAdmin,
     retry: false,
     queryFn: async () => {
-      const { data, error } = await supabase.from("loja_config").select("*").eq("id", true).maybeSingle();
+      const { data, error } = await supabase
+        .from("loja_config")
+        .select("*")
+        .eq("id", true)
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -431,11 +501,14 @@ function Admin() {
       const r = await buscarCep(cepLoja);
       setLojaForm((f) => ({
         ...(f ?? lojaAtual),
-        endereco: [r.logradouro, r.complemento].filter(Boolean).join(", ") || (f ?? lojaAtual).endereco,
+        endereco:
+          [r.logradouro, r.complemento].filter(Boolean).join(", ") || (f ?? lojaAtual).endereco,
         bairro: r.bairro || (f ?? lojaAtual).bairro,
         cidade: r.localidade || (f ?? lojaAtual).cidade,
       }));
-      toast.success(`CEP ${mascararCep(r.cep)}: ${r.localidade}${r.uf ? `/${r.uf}` : ""}. Confira o número.`);
+      toast.success(
+        `CEP ${mascararCep(r.cep)}: ${r.localidade}${r.uf ? `/${r.uf}` : ""}. Confira o número.`,
+      );
       document.getElementById("loja-endereco")?.focus();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não consegui buscar o CEP.");
@@ -445,12 +518,7 @@ function Admin() {
   }
 
   async function localizarNoMapa() {
-    const endereco = [
-      lojaAtual.endereco,
-      lojaAtual.complemento,
-      lojaAtual.bairro,
-      lojaAtual.cidade,
-    ]
+    const endereco = [lojaAtual.endereco, lojaAtual.complemento, lojaAtual.bairro, lojaAtual.cidade]
       .filter(Boolean)
       .join(", ");
     if (!endereco) {
@@ -461,7 +529,9 @@ function Admin() {
     const loc = await geocodificarEndereco(endereco);
     setLocalizando(false);
     if (!loc) {
-      toast.error("Não localizei esse endereço. Confira o texto ou digite latitude/longitude ao lado.");
+      toast.error(
+        "Não localizei esse endereço. Confira o texto ou digite latitude/longitude ao lado.",
+      );
       return;
     }
     setLojaForm((f) => ({ ...(f ?? lojaAtual), mapa_lat: loc.lat, mapa_lng: loc.lng }));
@@ -518,13 +588,21 @@ function Admin() {
     queryClient.invalidateQueries({ queryKey: ["loja-config"] });
   }
 
-  const [calcEdit, setCalcEdit] = useState<{ permitir_personalizado: boolean; por_pessoa_padrao: number; minimo_por_pessoa: number; maximo_por_pessoa: number } | null>(null);
+  const [calcEdit, setCalcEdit] = useState<{
+    permitir_personalizado: boolean;
+    por_pessoa_padrao: number;
+    minimo_por_pessoa: number;
+    maximo_por_pessoa: number;
+  } | null>(null);
 
   async function salvarCalcConfig(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!calcEdit) return;
     const { error } = await supabase.from("calculadora_config").update(calcEdit).eq("id", true);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Configuração salva.");
     setCalcEdit(null);
     void refetchCalc();
@@ -540,71 +618,45 @@ function Admin() {
   }
 
   function refreshAll() {
-    for (const k of ["admin-pedidos", "admin-produtos", "admin-categorias", "admin-cupons", "admin-profiles", "admin-avaliacoes", "admin-all-roles", "admin-metas"])
+    for (const k of [
+      "admin-pedidos",
+      "admin-produtos",
+      "admin-categorias",
+      "admin-cupons",
+      "admin-profiles",
+      "admin-avaliacoes",
+      "admin-all-roles",
+      "admin-metas",
+    ])
       queryClient.invalidateQueries({ queryKey: [k] });
     void refetchRoles();
   }
 
-  const dash = useMemo(() => {
-    const lista = pedidos ?? [];
-    const hojeStr = new Date().toDateString();
-    const inicioMes = new Date();
-    inicioMes.setDate(1);
-    inicioMes.setHours(0, 0, 0, 0);
-    const doDia = lista.filter((p: any) => new Date(p.created_at).toDateString() === hojeStr && p.status !== "cancelado");
-    const doMes = lista.filter((p: any) => new Date(p.created_at) >= inicioMes && p.status !== "cancelado");
-    const fatDia = doDia.reduce((a: number, p: any) => a + Number(p.total), 0);
-    const fatMes = doMes.reduce((a: number, p: any) => a + Number(p.total), 0);
-    const ticket = doMes.length ? fatMes / doMes.length : 0;
-
-    const prodMap = new Map<string, { nome: string; qtd: number; total: number }>();
-    for (const p of lista) {
-      if (p.status === "cancelado") continue;
-      for (const i of (p as any).pedido_itens ?? []) {
-        const cur = prodMap.get(i.nome) ?? { nome: i.nome, qtd: 0, total: 0 };
-        cur.qtd += i.quantidade;
-        cur.total += Number(i.preco_unitario) * i.quantidade;
-        prodMap.set(i.nome, cur);
-      }
-    }
-    const maisVendidos = [...prodMap.values()].sort((a, b) => b.qtd - a.qtd).slice(0, 5);
-
-    const cliMap = new Map<string, { nome: string; qtd: number; total: number; tel: string }>();
-    for (const p of lista) {
-      if (p.status === "cancelado") continue;
-      const key = (p as any).user_id ?? (p as any).telefone;
-      const cur = cliMap.get(key) ?? { nome: (p as any).cliente_nome, qtd: 0, total: 0, tel: (p as any).telefone };
-      cur.qtd += 1;
-      cur.total += Number((p as any).total);
-      cliMap.set(key, cur);
-    }
-    const recorrentes = [...cliMap.values()].filter((c) => c.qtd >= 2).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
-
-    // Cálculo puro (nunca useMemo aninhado: hook dentro de hook quebra o render).
-    const fatPorDia = (() => {
-      const map = new Map<string, number>();
-      for (const p of doMes) {
-        const dia = new Date(p.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-        map.set(dia, (map.get(dia) ?? 0) + Number(p.total));
-      }
-      return [...map.entries()].map(([dia, total]) => ({ dia, total }));
-    })();
-
-    return { doDia, doMes, fatDia, fatMes, ticket, maisVendidos, recorrentes, totalPedidos: lista.length, fatPorDia };
-  }, [pedidos]);
-
   const rankingMotoboys = useMemo(() => {
     const lista = pedidos ?? [];
-    const map = new Map<string, { id: string; entregas: number; canceladas: number; ganhos: number; tempos: number[] }>();
+    const map = new Map<
+      string,
+      { id: string; entregas: number; canceladas: number; ganhos: number; tempos: number[] }
+    >();
     for (const p of lista) {
       const mid = (p as any).motoboy_id;
       if (!mid) continue;
-      const cur = map.get(mid) ?? { id: mid as string, entregas: 0, canceladas: 0, ganhos: 0, tempos: [] as number[] };
+      const cur = map.get(mid) ?? {
+        id: mid as string,
+        entregas: 0,
+        canceladas: 0,
+        ganhos: 0,
+        tempos: [] as number[],
+      };
       if ((p as any).status === "entregue") {
         cur.entregas += 1;
         cur.ganhos += Number((p as any).taxa_motoboy ?? 0);
         if ((p as any).aceito_em && (p as any).entregue_em) {
-          cur.tempos.push((new Date((p as any).entregue_em).getTime() - new Date((p as any).aceito_em).getTime()) / 60000);
+          cur.tempos.push(
+            (new Date((p as any).entregue_em).getTime() -
+              new Date((p as any).aceito_em).getTime()) /
+              60000,
+          );
         }
       }
       if ((p as any).status === "cancelado") cur.canceladas += 1;
@@ -619,22 +671,42 @@ function Admin() {
   }, [pedidos]);
 
   if (roles && !isAdmin) {
-    return <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>;
+    return (
+      <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
+    );
   }
 
   async function mudarStatusPedido(p: any, status: OrderStatus) {
     // Cancelar devolve estoque primeiro (0030); o trigger 0042 reconcilia o resto.
     // Sem isso, produtos.estoque ficava debitado para sempre (vazamento).
     if (status === "cancelado") {
-      try { await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: p.id }); } catch { /* sem migration — trigger 0042 assume */ }
-      try { await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", p.id).eq("status", "ativa"); } catch { /* sem migration */ }
+      try {
+        await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: p.id });
+      } catch {
+        /* sem migration — trigger 0042 assume */
+      }
+      try {
+        await supabase
+          .from("reservas_estoque")
+          .update({ status: "cancelada" })
+          .eq("pedido_id", p.id)
+          .eq("status", "ativa");
+      } catch {
+        /* sem migration */
+      }
     }
     const { error } = await supabase.from("pedidos").update({ status }).eq("id", p.id);
     if (error) toast.error(error?.message || "Não foi possível atualizar.");
     else {
       toast.success(`Pedido nº ${p.numero} → ${STATUS_LABEL[status]}`);
       void logAdmin("pedido_status", `#${p.numero} → ${status}`);
-      void notificarPedido({ client: supabase, pedidoId: p.id, status, telefone: p.telefone, mensagem: mensagemStatus(status, p.cliente_nome, p.numero) });
+      void notificarPedido({
+        client: supabase,
+        pedidoId: p.id,
+        status,
+        telefone: p.telefone,
+        mensagem: mensagemStatus(status, p.cliente_nome, p.numero),
+      });
     }
     queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
   }
@@ -658,183 +730,197 @@ function Admin() {
       );
       return;
     }
-    toast.success(`Pagamento do pedido nº ${p.numero}: ${PAGAMENTO_STATUS_LABEL[pagamentoStatus] ?? pagamentoStatus}`);
+    toast.success(
+      `Pagamento do pedido nº ${p.numero}: ${PAGAMENTO_STATUS_LABEL[pagamentoStatus] ?? pagamentoStatus}`,
+    );
     void logAdmin("pagamento_status", `#${p.numero} → ${pagamentoStatus}`);
     queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
   }
 
   return (
-    <AdminShell aba={aba} onAba={setAba} onRefresh={refreshAll}>
+    <AdminShell
+      aba={aba}
+      onAba={setAba}
+      onRefresh={refreshAll}
+      usuario={user?.email ?? null}
+      onSair={async () => {
+        await supabase.auth.signOut();
+        navigate({ to: "/auth", replace: true });
+      }}
+    >
       <Tabs value={aba} onValueChange={setAba}>
-        <TabsContent value="dashboard" className="mt-4 space-y-4">
-          <BuscaGlobal
-            termo={buscaGlobal}
-            onTermo={setBuscaGlobal}
+        <TabsContent value="dashboard" className="mt-4">
+          <DashboardAdmin
             pedidos={pedidos ?? []}
             produtos={produtos ?? []}
             profiles={profiles ?? []}
-            onIrPedido={(numero) => { setPedidoFoco(String(numero)); setAba("pedidos"); }}
-            onIrProduto={(nome) => { setProdutoFoco(nome); setAba("produtos"); }}
-            onIrCliente={(nome) => { setClienteFoco(nome); setAba("clientes"); }}
-          />
-          <CentralOperacao
-            pedidos={pedidos ?? []}
-            produtos={produtos ?? []}
-            clientes={clientesStats ?? []}
+            clientesStats={clientesStats ?? []}
             periodo={periodo}
             setPeriodo={setPeriodo}
             setAba={setAba}
             notLidas={notLidas}
             marcarLida={marcarLida}
+            busca={buscaGlobal}
+            setBusca={setBuscaGlobal}
+            setPedidoFoco={setPedidoFoco}
+            setProdutoFoco={setProdutoFoco}
+            setClienteFoco={setClienteFoco}
           />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <section className="rounded-xl border border-border bg-card p-5">
-              <h2 className="flex items-center gap-2 font-display text-xl"><BarChart3 className="size-5" /> Mais vendidos</h2>
-              {dash.maisVendidos.length > 0 ? (
-                <div className="mt-3 h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dash.maisVendidos} layout="vertical" margin={{ left: 10, right: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                      <XAxis type="number" tickFormatter={(v) => brl(v)} />
-                      <YAxis type="category" dataKey="nome" width={120} tick={{ fontSize: 12 }} />
-                      <Tooltip formatter={(v: number) => brl(v)} />
-                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Total" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-muted-foreground">Sem vendas ainda.</p>
-              )}
-            </section>
-            <section className="rounded-xl border border-border bg-card p-5">
-              <h2 className="flex items-center gap-2 font-display text-xl"><Crown className="size-5" /> Clientes recorrentes</h2>
-              {dash.recorrentes.length > 0 ? (
-                <div className="mt-3 h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={dash.recorrentes}
-                        dataKey="total"
-                        nameKey="nome"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        label={({ nome, qtd }) => `${nome} (${qtd})`}
-                      >
-                        {dash.recorrentes.map((_, i) => (
-                          <Cell key={i} fill={`hsl(${(i * 60) + 20} 70% 50%)`} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v: number) => brl(v)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-muted-foreground">Nenhum recorrente ainda.</p>
-              )}
-            </section>
-          </div>
-
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="font-display text-xl">Faturamento do mês</h2>
-            {dash.fatPorDia.length > 0 ? (
-              <div className="mt-3 h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={dash.fatPorDia} margin={{ left: 10, right: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="dia" tick={{ fontSize: 12 }} />
-                    <YAxis tickFormatter={(v) => brl(v)} />
-                    <Tooltip formatter={(v: number) => brl(v)} />
-                    <Legend />
-                    <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} name="Faturamento" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm text-muted-foreground">Sem faturamento no mês.</p>
-            )}
-          </section>
-
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="font-display text-xl">Pedidos de hoje</h2>
-            <div className="mt-3 space-y-2">
-              {(dash.doDia ?? []).slice(0, 10).map((p: any) => (
-                <div key={p.id} className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-display">Nº {p.numero}</span>
-<StatusBadge status={p.status} />
-              <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-semibold">{p.tipo_entrega === "retirada" ? "🏪 Retirada" : "🚚 Entrega"}</span>
-              <PagamentoStatusBadge status={p.pagamento_status} />
-                  <span className="text-muted-foreground">{p.cliente_nome} • {hora(p.created_at)}</span>
-                  <span className="ml-auto font-semibold text-primary">{brl(p.total)}</span>
-                </div>
-              ))}
-              {dash.doDia.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido hoje.</p>}
-            </div>
-          </section>
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-4">
-          <PedidosAdmin pedidos={pedidos ?? []} onStatus={mudarStatusPedido} onPagamento={mudarPagamento} foco={pedidoFoco} onLimparFoco={() => setPedidoFoco("")} />
+          <PedidosAdmin
+            pedidos={pedidos ?? []}
+            onStatus={mudarStatusPedido}
+            onPagamento={mudarPagamento}
+            foco={pedidoFoco}
+            onLimparFoco={() => setPedidoFoco("")}
+          />
         </TabsContent>
 
         <TabsContent value="produtos" className="mt-4 space-y-6">
-          <ProdutosAdmin produtos={produtos ?? []} categorias={categorias ?? []} onChange={refreshAll} foco={produtoFoco} onLimparFoco={() => setProdutoFoco("")} />
+          <ProdutosAdmin
+            produtos={produtos ?? []}
+            categorias={categorias ?? []}
+            onChange={refreshAll}
+            foco={produtoFoco}
+            onLimparFoco={() => setProdutoFoco("")}
+          />
           <CategoriasAdmin categorias={categorias ?? []} onChange={refreshAll} />
         </TabsContent>
 
         <TabsContent value="clientes" className="mt-4">
-          <ClientesAdmin profiles={profiles ?? []} pedidos={pedidos ?? []} foco={clienteFoco} onLimparFoco={() => setClienteFoco("")} />
+          <ClientesAdmin
+            profiles={profiles ?? []}
+            pedidos={pedidos ?? []}
+            foco={clienteFoco}
+            onLimparFoco={() => setClienteFoco("")}
+          />
         </TabsContent>
 
         <TabsContent value="motoboys" className="mt-4 space-y-4">
           <section className="rounded-xl border border-border bg-card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-xl">Motoboys cadastrados</h2>
-              <Button size="sm" onClick={() => setEditandoMotoboy({ nome: "", telefone: "", observacao: "" })}>
+              <Button
+                size="sm"
+                onClick={() => setEditandoMotoboy({ nome: "", telefone: "", observacao: "" })}
+              >
                 <Plus className="mr-1 size-4" /> Novo motoboy
               </Button>
             </div>
             {editandoMotoboy && (
-              <form onSubmit={salvarMotoboy} className="mb-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
-                <div className="space-y-1"><Label>Nome</Label><Input value={editandoMotoboy.nome} onChange={(e) => setEditandoMotoboy({ ...editandoMotoboy, nome: e.target.value })} required /></div>
-                <div className="space-y-1"><Label>Telefone (WhatsApp)</Label><Input value={editandoMotoboy.telefone} onChange={(e) => setEditandoMotoboy({ ...editandoMotoboy, telefone: e.target.value })} placeholder="(11) 90000-0000" required inputMode="tel" /></div>
-                <div className="space-y-1 sm:col-span-2"><Label>Observação</Label><Textarea value={editandoMotoboy.observacao} onChange={(e) => setEditandoMotoboy({ ...editandoMotoboy, observacao: e.target.value })} /></div>
+              <form
+                onSubmit={salvarMotoboy}
+                className="mb-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2"
+              >
+                <div className="space-y-1">
+                  <Label>Nome</Label>
+                  <Input
+                    value={editandoMotoboy.nome}
+                    onChange={(e) =>
+                      setEditandoMotoboy({ ...editandoMotoboy, nome: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Telefone (WhatsApp)</Label>
+                  <Input
+                    value={editandoMotoboy.telefone}
+                    onChange={(e) =>
+                      setEditandoMotoboy({ ...editandoMotoboy, telefone: e.target.value })
+                    }
+                    placeholder="(11) 90000-0000"
+                    required
+                    inputMode="tel"
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label>Observação</Label>
+                  <Textarea
+                    value={editandoMotoboy.observacao}
+                    onChange={(e) =>
+                      setEditandoMotoboy({ ...editandoMotoboy, observacao: e.target.value })
+                    }
+                  />
+                </div>
                 <div className="flex gap-2 sm:col-span-2">
-                  <Button type="submit" disabled={salvandoMotoboy}>{salvandoMotoboy ? "Salvando…" : "Salvar"}</Button>
-                  <Button type="button" variant="outline" onClick={() => setEditandoMotoboy(null)}>Cancelar</Button>
+                  <Button type="submit" disabled={salvandoMotoboy}>
+                    {salvandoMotoboy ? "Salvando…" : "Salvar"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setEditandoMotoboy(null)}>
+                    Cancelar
+                  </Button>
                 </div>
               </form>
             )}
             <div className="space-y-2">
               {(motoboysList ?? []).map((m: any) => (
-                <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm">
+                <div
+                  key={m.id}
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm"
+                >
                   <div className="flex-1">
-                    <p className="font-semibold">{m.nome || "Sem nome"} <span className="ml-1 text-xs font-normal text-muted-foreground">{m.telefone || "—"}</span></p>
-                    {m.observacao ? <p className="text-xs text-muted-foreground">{m.observacao}</p> : null}
+                    <p className="font-semibold">
+                      {m.nome || "Sem nome"}{" "}
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        {m.telefone || "—"}
+                      </span>
+                    </p>
+                    {m.observacao ? (
+                      <p className="text-xs text-muted-foreground">{m.observacao}</p>
+                    ) : null}
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setEditandoMotoboy({ id: m.id, nome: m.nome, telefone: m.telefone, observacao: m.observacao })}><Pencil className="size-4" /></Button>
-                  <Button size="sm" variant="ghost" onClick={() => excluirMotoboy(m.id, m.nome)}><Trash2 className="size-4" /></Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setEditandoMotoboy({
+                        id: m.id,
+                        nome: m.nome,
+                        telefone: m.telefone,
+                        observacao: m.observacao,
+                      })
+                    }
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => excluirMotoboy(m.id, m.nome)}>
+                    <Trash2 className="size-4" />
+                  </Button>
                 </div>
               ))}
-              {(motoboysList ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum motoboy cadastrado.</p>}
+              {(motoboysList ?? []).length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhum motoboy cadastrado.</p>
+              )}
             </div>
           </section>
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-display text-xl">Ranking de motoboys</h2>
-            <p className="text-xs text-muted-foreground">Entregas realizadas, tempo médio, ganhos e canceladas. Motoboys cadastrados: {motoboysRoles?.length ?? 0}</p>
+            <p className="text-xs text-muted-foreground">
+              Entregas realizadas, tempo médio, ganhos e canceladas. Motoboys cadastrados:{" "}
+              {motoboysRoles?.length ?? 0}
+            </p>
             <div className="mt-3 space-y-2">
               {rankingMotoboys.map((m, i) => (
-                <div key={m.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm">
+                <div
+                  key={m.id}
+                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm"
+                >
                   <Badge>#{i + 1}</Badge>
                   <span className="font-mono text-xs">{m.id.slice(0, 8)}…</span>
                   <span>{m.entregas} entregas</span>
-                  <span className="text-muted-foreground">Tempo médio: {m.tempoMedio ? `${m.tempoMedio.toFixed(0)} min` : "—"}</span>
+                  <span className="text-muted-foreground">
+                    Tempo médio: {m.tempoMedio ? `${m.tempoMedio.toFixed(0)} min` : "—"}
+                  </span>
                   <span className="text-muted-foreground">Canceladas: {m.canceladas}</span>
                   <span className="ml-auto font-display text-primary">{brl(m.ganhos)}</span>
                 </div>
               ))}
-              {rankingMotoboys.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma entrega com motoboy ainda.</p>}
+              {rankingMotoboys.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma entrega com motoboy ainda.</p>
+              )}
             </div>
           </section>
           <section className="rounded-xl border border-border bg-card p-5">
@@ -843,7 +929,11 @@ function Admin() {
           </section>
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-display text-xl">Rotas por bairro</h2>
-            <RotasBairro pedidos={(pedidos ?? []).filter((p: any) => ["em_rota", "aguardando_motoboy"].includes(p.status))} />
+            <RotasBairro
+              pedidos={(pedidos ?? []).filter((p: any) =>
+                ["em_rota", "aguardando_motoboy"].includes(p.status),
+              )}
+            />
           </section>
         </TabsContent>
 
@@ -888,7 +978,12 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="usuarios" className="mt-4">
-          <UsuariosAdmin profiles={profiles ?? []} roles={todasRoles ?? []} meuId={user?.id} onChange={refreshAll} />
+          <UsuariosAdmin
+            profiles={profiles ?? []}
+            roles={todasRoles ?? []}
+            meuId={user?.id}
+            onChange={refreshAll}
+          />
         </TabsContent>
 
         <TabsContent value="logs" className="mt-4">
@@ -898,8 +993,13 @@ function Admin() {
         <TabsContent value="hero" className="mt-4">
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-display text-xl">Carrossel da capa</h2>
-            <p className="text-xs text-muted-foreground">Slides aparecem na home. Sem slides, a capa padrão é usada.</p>
-            <form onSubmit={adicionarSlide} className="mt-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
+            <p className="text-xs text-muted-foreground">
+              Slides aparecem na home. Sem slides, a capa padrão é usada.
+            </p>
+            <form
+              onSubmit={adicionarSlide}
+              className="mt-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2"
+            >
               <div className="space-y-1 sm:col-span-2">
                 <Label htmlFor="hero-foto">Foto do slide *</Label>
                 <input
@@ -911,25 +1011,54 @@ function Admin() {
                   className="block w-full cursor-pointer rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-semibold"
                 />
                 <p className="text-xs text-muted-foreground">
-                  JPG, PNG, WebP ou AVIF. A foto é redimensionada sem corte e aparece inteira na capa —
-                  proporção horizontal (ex.: 1600x900) ocupa mais espaço, mas qualquer formato funciona.
+                  JPG, PNG, WebP ou AVIF. A foto é redimensionada sem corte e aparece inteira na
+                  capa — proporção horizontal (ex.: 1600x900) ocupa mais espaço, mas qualquer
+                  formato funciona.
                 </p>
-                {enviandoFoto ? <p className="text-xs text-muted-foreground">Preparando e enviando foto…</p> : null}
+                {enviandoFoto ? (
+                  <p className="text-xs text-muted-foreground">Preparando e enviando foto…</p>
+                ) : null}
                 {novoSlide.imagem_url ? (
                   <div className="mt-2 rounded-lg border border-border p-2">
-                    <img src={novoSlide.imagem_url} alt="Prévia" className="h-28 w-full rounded object-contain" />
+                    <img
+                      src={novoSlide.imagem_url}
+                      alt="Prévia"
+                      className="h-28 w-full rounded object-contain"
+                    />
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground">
                         Foto anexada{fotoInfo ? ` — ${fotoInfo}` : ""} (sem corte)
                       </span>
-                      <Button type="button" size="sm" variant="ghost" onClick={limparNovoSlide}>Trocar</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={limparNovoSlide}>
+                        Trocar
+                      </Button>
                     </div>
                   </div>
                 ) : null}
               </div>
-              <div className="space-y-1"><Label>Legenda</Label><Input value={novoSlide.legenda} onChange={(e) => setNovoSlide({ ...novoSlide, legenda: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Ordem</Label><Input type="number" value={novoSlide.ordem} onChange={(e) => setNovoSlide({ ...novoSlide, ordem: Number(e.target.value) || 0 })} /></div>
-              <div className="sm:col-span-2"><Button type="submit" disabled={!novoSlide.imagem_url}><Plus className="mr-1 size-4" />Adicionar slide</Button></div>
+              <div className="space-y-1">
+                <Label>Legenda</Label>
+                <Input
+                  value={novoSlide.legenda}
+                  onChange={(e) => setNovoSlide({ ...novoSlide, legenda: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Ordem</Label>
+                <Input
+                  type="number"
+                  value={novoSlide.ordem}
+                  onChange={(e) =>
+                    setNovoSlide({ ...novoSlide, ordem: Number(e.target.value) || 0 })
+                  }
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <Button type="submit" disabled={!novoSlide.imagem_url}>
+                  <Plus className="mr-1 size-4" />
+                  Adicionar slide
+                </Button>
+              </div>
             </form>
             <div className="mt-4 space-y-2">
               {(heroSlides ?? []).map((s: any) => (
@@ -943,7 +1072,9 @@ function Admin() {
                   onExcluir={() => excluirSlide(s.id, s.imagem_url)}
                 />
               ))}
-              {(heroSlides ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum slide cadastrado.</p>}
+              {(heroSlides ?? []).length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhum slide cadastrado.</p>
+              )}
             </div>
           </section>
         </TabsContent>
@@ -953,13 +1084,133 @@ function Admin() {
             <h2 className="font-display text-xl">Calculadora de salgados</h2>
             <p className="text-xs text-muted-foreground">Configurações da página /calculadora.</p>
             <form onSubmit={salvarCalcConfig} className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1"><Label>Por pessoa (padrão)</Label><Input type="number" defaultValue={calcConfig?.por_pessoa_padrao ?? 20} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), por_pessoa_padrao: Number(e.target.value) || 20 }))} /></div>
-              <div className="space-y-1"><Label>Mínimo por pessoa</Label><Input type="number" defaultValue={calcConfig?.minimo_por_pessoa ?? 15} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), minimo_por_pessoa: Number(e.target.value) || 15 }))} /></div>
-              <div className="space-y-1"><Label>Máximo por pessoa</Label><Input type="number" defaultValue={calcConfig?.maximo_por_pessoa ?? 40} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), maximo_por_pessoa: Number(e.target.value) || 40 }))} /></div>
-              <div className="space-y-1"><Label>WhatsApp que recebe o orçamento</Label><Input placeholder="11999999999" defaultValue={calcConfig?.zap_contato ?? ""} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), zap_contato: e.target.value }))} /><p className="text-xs text-muted-foreground">Com DDD. Vazio = o botão de WhatsApp avisa que falta configurar.</p></div>
-              <div className="space-y-1"><Label>Validade da estimativa (dias)</Label><Input type="number" defaultValue={calcConfig?.orcamento_validade_dias ?? 3} onChange={(e) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), orcamento_validade_dias: Number(e.target.value) || 3 }))} /></div>
-              <label className="flex items-center gap-2 text-sm"><Switch checked={calcEdit?.permitir_personalizado ?? calcConfig?.permitir_personalizado ?? true} onCheckedChange={(v) => setCalcEdit((p) => ({ ...(p ?? { permitir_personalizado: calcConfig?.permitir_personalizado ?? true, por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20, minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15, maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40, zap_contato: calcConfig?.zap_contato ?? "", orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3 }), permitir_personalizado: v }))} /> Permitir quantidade personalizada</label>
-              <div className="sm:col-span-2"><Button type="submit">Salvar configuração</Button></div>
+              <div className="space-y-1">
+                <Label>Por pessoa (padrão)</Label>
+                <Input
+                  type="number"
+                  defaultValue={calcConfig?.por_pessoa_padrao ?? 20}
+                  onChange={(e) =>
+                    setCalcEdit((p) => ({
+                      ...(p ?? {
+                        permitir_personalizado: calcConfig?.permitir_personalizado ?? true,
+                        por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20,
+                        minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15,
+                        maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40,
+                        zap_contato: calcConfig?.zap_contato ?? "",
+                        orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3,
+                      }),
+                      por_pessoa_padrao: Number(e.target.value) || 20,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Mínimo por pessoa</Label>
+                <Input
+                  type="number"
+                  defaultValue={calcConfig?.minimo_por_pessoa ?? 15}
+                  onChange={(e) =>
+                    setCalcEdit((p) => ({
+                      ...(p ?? {
+                        permitir_personalizado: calcConfig?.permitir_personalizado ?? true,
+                        por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20,
+                        minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15,
+                        maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40,
+                        zap_contato: calcConfig?.zap_contato ?? "",
+                        orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3,
+                      }),
+                      minimo_por_pessoa: Number(e.target.value) || 15,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Máximo por pessoa</Label>
+                <Input
+                  type="number"
+                  defaultValue={calcConfig?.maximo_por_pessoa ?? 40}
+                  onChange={(e) =>
+                    setCalcEdit((p) => ({
+                      ...(p ?? {
+                        permitir_personalizado: calcConfig?.permitir_personalizado ?? true,
+                        por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20,
+                        minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15,
+                        maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40,
+                        zap_contato: calcConfig?.zap_contato ?? "",
+                        orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3,
+                      }),
+                      maximo_por_pessoa: Number(e.target.value) || 40,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>WhatsApp que recebe o orçamento</Label>
+                <Input
+                  placeholder="11999999999"
+                  defaultValue={calcConfig?.zap_contato ?? ""}
+                  onChange={(e) =>
+                    setCalcEdit((p) => ({
+                      ...(p ?? {
+                        permitir_personalizado: calcConfig?.permitir_personalizado ?? true,
+                        por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20,
+                        minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15,
+                        maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40,
+                        zap_contato: calcConfig?.zap_contato ?? "",
+                        orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3,
+                      }),
+                      zap_contato: e.target.value,
+                    }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Com DDD. Vazio = o botão de WhatsApp avisa que falta configurar.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <Label>Validade da estimativa (dias)</Label>
+                <Input
+                  type="number"
+                  defaultValue={calcConfig?.orcamento_validade_dias ?? 3}
+                  onChange={(e) =>
+                    setCalcEdit((p) => ({
+                      ...(p ?? {
+                        permitir_personalizado: calcConfig?.permitir_personalizado ?? true,
+                        por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20,
+                        minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15,
+                        maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40,
+                        zap_contato: calcConfig?.zap_contato ?? "",
+                        orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3,
+                      }),
+                      orcamento_validade_dias: Number(e.target.value) || 3,
+                    }))
+                  }
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <Switch
+                  checked={
+                    calcEdit?.permitir_personalizado ?? calcConfig?.permitir_personalizado ?? true
+                  }
+                  onCheckedChange={(v) =>
+                    setCalcEdit((p) => ({
+                      ...(p ?? {
+                        permitir_personalizado: calcConfig?.permitir_personalizado ?? true,
+                        por_pessoa_padrao: calcConfig?.por_pessoa_padrao ?? 20,
+                        minimo_por_pessoa: calcConfig?.minimo_por_pessoa ?? 15,
+                        maximo_por_pessoa: calcConfig?.maximo_por_pessoa ?? 40,
+                        zap_contato: calcConfig?.zap_contato ?? "",
+                        orcamento_validade_dias: calcConfig?.orcamento_validade_dias ?? 3,
+                      }),
+                      permitir_personalizado: v,
+                    }))
+                  }
+                />{" "}
+                Permitir quantidade personalizada
+              </label>
+              <div className="sm:col-span-2">
+                <Button type="submit">Salvar configuração</Button>
+              </div>
             </form>
           </section>
         </TabsContent>
@@ -986,22 +1237,61 @@ function Admin() {
               {(avaliacoes ?? []).map((a: any) => (
                 <li key={a.id} className="rounded-lg border border-border p-3">
                   <p className="flex items-center gap-2">
-                    <Star className="size-4 fill-secondary text-secondary" /> {a.nota}/5 — {a.produtos?.nome ?? a.produto_id}
-                    {a.prazo ? <span className="text-xs text-muted-foreground">• prazo {a.prazo}/5</span> : null}
-                    {a.atendimento ? <span className="text-xs text-muted-foreground">• atend. {a.atendimento}/5</span> : null}
-                    {a.nota <= 2 ? <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">⚠ acompanhar</span> : null}
-                    <span className="ml-auto text-xs text-muted-foreground">{dataHora(a.created_at)}</span>
+                    <Star className="size-4 fill-secondary text-secondary" /> {a.nota}/5 —{" "}
+                    {a.produtos?.nome ?? a.produto_id}
+                    {a.prazo ? (
+                      <span className="text-xs text-muted-foreground">• prazo {a.prazo}/5</span>
+                    ) : null}
+                    {a.atendimento ? (
+                      <span className="text-xs text-muted-foreground">
+                        • atend. {a.atendimento}/5
+                      </span>
+                    ) : null}
+                    {a.nota <= 2 ? (
+                      <span className="rounded bg-destructive/10 px-1.5 py-0.5 text-xs text-destructive">
+                        ⚠ acompanhar
+                      </span>
+                    ) : null}
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {dataHora(a.created_at)}
+                    </span>
                   </p>
                   {a.comentario && <p className="mt-1 text-muted-foreground">“{a.comentario}”</p>}
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                    {a.autoriza_publicar ? <span className="text-muted-foreground">✔ autorizou publicar</span> : <span className="text-muted-foreground">não autorizou publicar</span>}
-                    {a.aprovada ? <span className="text-success">● publicada</span> : <span className="text-muted-foreground">○ pendente</span>}
-                    {!a.aprovada ? <Button size="sm" variant="outline" onClick={() => moderarAvaliacao(a.id, true)}>Aprovar e publicar</Button> : null}
-                    {a.aprovada ? <Button size="sm" variant="ghost" onClick={() => moderarAvaliacao(a.id, false)}>Despublicar</Button> : null}
+                    {a.autoriza_publicar ? (
+                      <span className="text-muted-foreground">✔ autorizou publicar</span>
+                    ) : (
+                      <span className="text-muted-foreground">não autorizou publicar</span>
+                    )}
+                    {a.aprovada ? (
+                      <span className="text-success">● publicada</span>
+                    ) : (
+                      <span className="text-muted-foreground">○ pendente</span>
+                    )}
+                    {!a.aprovada ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => moderarAvaliacao(a.id, true)}
+                      >
+                        Aprovar e publicar
+                      </Button>
+                    ) : null}
+                    {a.aprovada ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => moderarAvaliacao(a.id, false)}
+                      >
+                        Despublicar
+                      </Button>
+                    ) : null}
                   </p>
                 </li>
               ))}
-              {(avaliacoes ?? []).length === 0 && <li className="text-muted-foreground">Sem avaliações.</li>}
+              {(avaliacoes ?? []).length === 0 && (
+                <li className="text-muted-foreground">Sem avaliações.</li>
+              )}
             </ul>
           </section>
         </TabsContent>
@@ -1010,65 +1300,19 @@ function Admin() {
   );
 }
 
-function BuscaGlobal({ termo, onTermo, pedidos, produtos, profiles, onIrPedido, onIrProduto, onIrCliente }: {
-  termo: string;
-  onTermo: (t: string) => void;
+function PedidosAdmin({
+  pedidos,
+  onStatus,
+  onPagamento,
+  foco,
+  onLimparFoco,
+}: {
   pedidos: any[];
-  produtos: any[];
-  profiles: any[];
-  onIrPedido: (numero: number) => void;
-  onIrProduto: (nome: string) => void;
-  onIrCliente: (nome: string) => void;
+  onStatus: (p: any, s: OrderStatus) => void;
+  onPagamento?: (p: any, s: string) => void;
+  foco?: string;
+  onLimparFoco?: () => void;
 }) {
-  const t = termo.trim().toLowerCase();
-  const ped = t ? pedidos.filter((p: any) =>
-    String(p.numero).includes(t) || (p.cliente_nome ?? "").toLowerCase().includes(t) || (p.telefone ?? "").includes(t),
-  ).slice(0, 5) : [];
-  const prods = t ? produtos.filter((p: any) => (p.nome ?? "").toLowerCase().includes(t)).slice(0, 5) : [];
-  const clis = t ? profiles.filter((p: any) =>
-    (p.nome ?? "").toLowerCase().includes(t) || (p.telefone ?? "").includes(t),
-  ).slice(0, 5) : [];
-  const temResultado = ped.length + prods.length + clis.length > 0;
-  return (
-    <section className="rounded-xl border border-border bg-card p-4" aria-label="Pesquisa global">
-      <Input
-        value={termo}
-        onChange={(e) => onTermo(e.target.value)}
-        placeholder="🔎 Buscar pedido nº, cliente, telefone ou produto…"
-        className="max-w-xl"
-      />
-      {t ? (
-        <div className="mt-3 space-y-2 text-sm">
-          {!temResultado ? <p className="text-muted-foreground">Nenhum resultado para “{termo.trim()}”.</p> : null}
-          {ped.map((p: any) => (
-            <button key={p.id} type="button" onClick={() => { onIrPedido(p.numero); onTermo(""); }} className="flex w-full items-center gap-2 rounded-lg border border-border p-2 text-left hover:bg-muted">
-              <span className="font-display">Pedido nº {p.numero}</span>
-              <StatusBadge status={p.status} />
-              <span className="text-muted-foreground">{p.cliente_nome} • {dataHora(p.created_at)}</span>
-              <span className="ml-auto font-semibold text-primary">{brl(p.total)}</span>
-            </button>
-          ))}
-          {prods.map((p: any) => (
-            <button key={p.id} type="button" onClick={() => { onIrProduto(p.nome); onTermo(""); }} className="flex w-full items-center gap-2 rounded-lg border border-border p-2 text-left hover:bg-muted">
-              <Package className="size-4 text-muted-foreground" />
-              <span className="font-semibold">{p.nome}</span>
-              <span className="ml-auto text-muted-foreground">{brl(p.preco_promocional ?? p.preco)}</span>
-            </button>
-          ))}
-          {clis.map((p: any) => (
-            <button key={p.id} type="button" onClick={() => { onIrCliente(p.nome ?? p.telefone ?? ""); onTermo(""); }} className="flex w-full items-center gap-2 rounded-lg border border-border p-2 text-left hover:bg-muted">
-              <Users className="size-4 text-muted-foreground" />
-              <span className="font-semibold">{p.nome || "Sem nome"}</span>
-              <span className="text-muted-foreground">{p.telefone || ""}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { pedidos: any[]; onStatus: (p: any, s: OrderStatus) => void; onPagamento?: (p: any, s: string) => void; foco?: string; onLimparFoco?: () => void }) {
   async function imprimirDireto(p: any) {
     try {
       await impressaoDireta(supabase, p);
@@ -1080,13 +1324,113 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
   const [filtro, setFiltro] = useState("todos");
   const [fEvento, setFEvento] = useState("todos");
   const [soAgendados, setSoAgendados] = useState(false);
+  const [buscaLocal, setBuscaLocal] = useState("");
+  const [fPeriodo, setFPeriodo] = useState("todos");
+  const [fPgto, setFPgto] = useState("todas");
   const listaBase = pedidos.filter((p) => (filtro === "todos" ? true : p.status === filtro));
-  const listaEvt = fEvento === "todos" ? listaBase : listaBase.filter((p) => (p.tipo_evento ?? "") === (fEvento === "sem_evento" ? "" : fEvento));
-  const listaAge = soAgendados ? listaEvt.filter((p) => p.agendado_para && p.status !== "cancelado" && p.status !== "entregue") : listaEvt;
+  const listaEvt =
+    fEvento === "todos"
+      ? listaBase
+      : listaBase.filter(
+          (p) => (p.tipo_evento ?? "") === (fEvento === "sem_evento" ? "" : fEvento),
+        );
+  const listaPer =
+    fPeriodo === "todos"
+      ? listaEvt
+      : listaEvt.filter((p) => +new Date(p.created_at) >= Date.now() - Number(fPeriodo) * 86400000);
+  const listaPgto =
+    fPgto === "todas" ? listaPer : listaPer.filter((p) => p.forma_pagamento === fPgto);
+  const listaAge = soAgendados
+    ? listaPgto.filter(
+        (p) => p.agendado_para && p.status !== "cancelado" && p.status !== "entregue",
+      )
+    : listaPgto;
   const lista = foco
-    ? listaAge.filter((p) => String(p.numero).includes(foco) || (p.cliente_nome ?? "").toLowerCase().includes(foco.toLowerCase()) || (p.telefone ?? "").includes(foco))
-    : listaAge;
+    ? listaAge.filter(
+        (p) =>
+          String(p.numero).includes(foco) ||
+          (p.cliente_nome ?? "").toLowerCase().includes(foco.toLowerCase()) ||
+          (p.telefone ?? "").includes(foco),
+      )
+    : buscaLocal.trim()
+      ? listaAge.filter((p) => {
+          const t = buscaLocal.trim().toLowerCase();
+          return (
+            String(p.numero).includes(t) ||
+            (p.cliente_nome ?? "").toLowerCase().includes(t) ||
+            (p.telefone ?? "").includes(t)
+          );
+        })
+      : listaAge;
   const listaTope = lista.slice(0, 60);
+  // Resumo do dia (real, independente dos filtros): KPIs, recentes, status e pagamentos.
+  const resumoPed = useMemo(() => {
+    const hoje = new Date().toDateString();
+    const doDia = pedidos.filter(
+      (p: any) => new Date(p.created_at).toDateString() === hoje && p.status !== "cancelado",
+    );
+    const totalHoje = doDia.reduce((a: number, p: any) => a + (Number(p.total) || 0), 0);
+    const conta = (sts: string[]) => doDia.filter((p: any) => sts.includes(p.status)).length;
+    const recentes = [...doDia]
+      .sort((a: any, b: any) => +new Date(b.created_at) - +new Date(a.created_at))
+      .slice(0, 5);
+    const fatias = [
+      { rotulo: "Novos", qtd: conta(["recebido"]), cor: "#eab308" },
+      { rotulo: "Em produção", qtd: conta(["em_producao"]), cor: "#2563eb" },
+      { rotulo: "Prontos", qtd: conta(["pronto"]), cor: "#22c55e" },
+      { rotulo: "Em entrega", qtd: conta(["aguardando_motoboy", "em_rota"]), cor: "#a855f7" },
+      { rotulo: "Entregues", qtd: conta(["entregue"]), cor: "#16a34a" },
+    ];
+    const pgMap = new Map<string, { meio: string; qtd: number; total: number }>();
+    for (const p of doDia) {
+      const meio = String(p.forma_pagamento ?? "outro");
+      const cur = pgMap.get(meio) ?? { meio, qtd: 0, total: 0 };
+      cur.qtd += 1;
+      cur.total += Number(p.total) || 0;
+      pgMap.set(meio, cur);
+    }
+    return {
+      totalHoje,
+      totalHojeFmt: brl(totalHoje),
+      qtdHoje: doDia.length,
+      emProd: conta(["em_producao"]),
+      prontos: conta(["pronto"]),
+      entregues: conta(["entregue"]),
+      recentes,
+      fatias,
+      totalStatus: fatias.reduce((a, f) => a + f.qtd, 0),
+      pagtos: [...pgMap.values()],
+    };
+  }, [pedidos]);
+  function verTodosPedidos() {
+    setFiltro("todos");
+    setFEvento("todos");
+    setSoAgendados(false);
+    setBuscaLocal("");
+    setFPeriodo("todos");
+    setFPgto("todas");
+    onLimparFoco?.();
+  }
+  const linhasCSV = lista.slice(0, 500).map((p: any) => ({
+    numero: p.numero,
+    data: p.created_at,
+    cliente: p.cliente_nome,
+    telefone: p.telefone,
+    endereco: p.endereco,
+    bairro: p.bairro,
+    pagamento: p.forma_pagamento,
+    subtotal: p.subtotal,
+    entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega",
+    taxa_entrega: p.taxa_entrega,
+    desconto: p.desconto,
+    total: p.total,
+    status: p.status,
+    evento: p.tipo_evento,
+    itens: (p.pedido_itens ?? []).map((i: any) => `${i.quantidade}x ${i.nome}`).join(" | "),
+  }));
+  function exportarCSV() {
+    downloadCSV(`pedidos-${new Date().toISOString().slice(0, 10)}.csv`, linhasCSV);
+  }
   const colunas = [
     {
       titulo: "PENDENTE",
@@ -1191,137 +1535,374 @@ function PedidosAdmin({ pedidos, onStatus, onPagamento, foco, onLimparFoco }: { 
     </article>
   );
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="font-display text-xl">Gestão de pedidos</h2>
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={soAgendados}
-            onChange={(e) => setSoAgendados(e.target.checked)}
-          />{" "}
-          Só agendados
-        </label>
-        <Select value={fEvento} onValueChange={setFEvento}>
-          <SelectTrigger className="ml-auto w-44">
-            <SelectValue placeholder="Evento" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os eventos</SelectItem>
-            <SelectItem value="sem_evento">Sem evento</SelectItem>
-            <SelectItem value="aniversario">Aniversário</SelectItem>
-            <SelectItem value="casamento">Casamento</SelectItem>
-            <SelectItem value="empresa">Empresa</SelectItem>
-            <SelectItem value="festa">Festa</SelectItem>
-            <SelectItem value="confraternizacao">Confraternização</SelectItem>
-            <SelectItem value="outro">Outro</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filtro} onValueChange={setFiltro}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            {[
-              "recebido",
-              "em_producao",
-              "pronto",
-              "aguardando_motoboy",
-              "em_rota",
-              "entregue",
-              "cancelado",
-            ].map((v) => (
-              <SelectItem key={v} value={v}>
-                {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          size="sm"
-          variant="outline"
-          className="ml-auto"
-          onClick={() =>
-            downloadCSV(
-              `pedidos-${new Date().toISOString().slice(0, 10)}.csv`,
-              lista.slice(0, 500).map((p: any) => ({
-                numero: p.numero,
-                data: p.created_at,
-                cliente: p.cliente_nome,
-                telefone: p.telefone,
-                endereco: p.endereco,
-                bairro: p.bairro,
-                pagamento: p.forma_pagamento,
-                subtotal: p.subtotal,
-                entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega",
-                taxa_entrega: p.taxa_entrega,
-                desconto: p.desconto,
-                total: p.total,
-                status: p.status,
-                evento: p.tipo_evento,
-                itens: ((p.pedido_itens ?? []) as any[])
-                  .map((i) => `${i.quantidade}x ${i.nome}`)
-                  .join(" | "),
-              })),
-            )
-          }
-        >
-          Exportar CSV
-        </Button>
-        {foco ? (
-          <Button size="sm" variant="outline" onClick={onLimparFoco}>
-            Foco: “{foco}” ✕
-          </Button>
-        ) : null}
+    <>
+      <div className="relative min-h-36 overflow-hidden rounded-xl shadow-[var(--shadow-card)]">
+        <img
+          src={fritos}
+          alt="Pedidos Néia"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
+        <div className="relative flex items-center gap-3 p-5">
+          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-yellow-400 text-black">
+            <ClipboardList className="size-7" aria-hidden />
+          </span>
+          <div>
+            <h1 className="font-display text-2xl font-bold text-yellow-400">Pedidos</h1>
+            <p className="text-sm text-neutral-200">
+              Acompanhe o status de todos os pedidos da loja.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatusCard
+          className="bg-yellow-100 text-yellow-900"
+          icone={ClipboardList}
+          titulo="Total hoje"
+          valor={resumoPed.totalHojeFmt}
+          detalhe={`${resumoPed.qtdHoje} pedido(s)`}
+        />
+        <StatusCard
+          className="bg-blue-600 text-white"
+          icone={ChefHat}
+          titulo="Em Produção"
+          valor={resumoPed.emProd}
+          detalhe="hoje"
+        />
+        <StatusCard
+          className="bg-green-500 text-white"
+          icone={CheckCircle2}
+          titulo="Prontos"
+          valor={resumoPed.prontos}
+          detalhe="hoje"
+        />
+        <StatusCard
+          className="bg-purple-500 text-white"
+          icone={Truck}
+          titulo="Entregues"
+          valor={resumoPed.entregues}
+          detalhe="hoje"
+        />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        {colunas.map((c) => {
-          const itens = listaTope.filter((p) => c.status.includes(p.status));
-          return (
-            <div
-              key={c.titulo}
-              className={`flex min-h-[18rem] flex-col rounded-xl border border-border border-t-4 ${c.ring} bg-muted/30`}
+        <section
+          className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] lg:col-span-2"
+          aria-label="Pedidos recentes"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold">Pedidos Recentes</h2>
+            <button
+              type="button"
+              onClick={verTodosPedidos}
+              className="min-h-[44px] px-2 text-xs text-muted-foreground underline"
             >
-              <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-                <span className={`size-2.5 shrink-0 rounded-full ${c.dot}`} />
-                <h3 className="font-display text-sm font-semibold tracking-wide">{c.titulo}</h3>
-                <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-                  {itens.length}
-                </span>
-              </div>
-              <p className="px-3 pt-2 text-xs text-muted-foreground">{c.sub}</p>
-              <div className="no-scrollbar flex max-h-[70vh] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
-                {itens.map(cartao)}
-                {itens.length === 0 && (
-                  <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                    Nenhum pedido.
-                  </p>
-                )}
-              </div>
+              Ver todos
+            </button>
+          </div>
+          {resumoPed.recentes.length > 0 ? (
+            <ul className="mt-1 divide-y divide-border">
+              <li className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_64px_88px_110px_56px]">
+                <span>Nº</span>
+                <span>Cliente</span>
+                <span>Itens</span>
+                <span>Total</span>
+                <span className="hidden sm:block">Status</span>
+                <span className="hidden sm:block">Horário</span>
+              </li>
+              {resumoPed.recentes.map((p: any) => (
+                <li
+                  key={p.id}
+                  className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 rounded px-1 py-1.5 text-xs sm:grid-cols-[64px_1fr_64px_88px_110px_56px] sm:text-[13px]"
+                >
+                  <span className="font-bold">#{p.numero}</span>
+                  <span className="truncate">{p.cliente_nome}</span>
+                  <span className="text-muted-foreground">
+                    {(p.pedido_itens ?? []).reduce(
+                      (s: number, i: any) => s + (Number(i.quantidade) || 0),
+                      0,
+                    )}{" "}
+                    un.
+                  </span>
+                  <span className="font-semibold">{brl(p.total)}</span>
+                  <span className="hidden sm:block">
+                    <StatusBadge status={p.status} />
+                  </span>
+                  <span className="hidden text-muted-foreground sm:block">
+                    {hora(p.created_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-2">
+              <EmptyState titulo="Nenhum pedido hoje" />
             </div>
-          );
-        })}
+          )}
+        </section>
+
+        <div className="space-y-4">
+          <section
+            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+            aria-label="Pedidos por status"
+          >
+            <h2 className="text-sm font-bold">Por Status</h2>
+            {resumoPed.totalStatus > 0 ? (
+              <>
+                <div
+                  className="mt-2 flex h-3 overflow-hidden rounded-full"
+                  role="img"
+                  aria-label={`${resumoPed.totalStatus} pedidos por status`}
+                >
+                  {resumoPed.fatias.map((f) => (
+                    <span
+                      key={f.rotulo}
+                      style={{
+                        width: `${(f.qtd / resumoPed.totalStatus) * 100}%`,
+                        backgroundColor: f.cor,
+                      }}
+                      title={`${f.rotulo}: ${f.qtd}`}
+                    />
+                  ))}
+                </div>
+                <ul className="mt-2 space-y-1 text-xs">
+                  {resumoPed.fatias.map((f) => (
+                    <li key={f.rotulo} className="flex items-center gap-2">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: f.cor }}
+                        aria-hidden
+                      />
+                      <span className="flex-1">{f.rotulo}</span>
+                      <b>{f.qtd}</b>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <div className="mt-2">
+                <EmptyState titulo="Sem pedidos hoje" />
+              </div>
+            )}
+          </section>
+
+          <section
+            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+            aria-label="Pagamentos do dia"
+          >
+            <h2 className="text-sm font-bold">Pagamentos do Dia</h2>
+            <ul className="mt-2 space-y-1 text-xs">
+              {resumoPed.pagtos.map((g) => (
+                <li
+                  key={g.meio}
+                  className="flex items-center justify-between gap-2 rounded bg-muted px-2 py-1.5"
+                >
+                  <span>{PAGAMENTO_LABEL[g.meio] ?? g.meio}</span>
+                  <span className="text-muted-foreground">
+                    {g.qtd} • <b className="text-foreground">{brl(g.total)}</b>
+                  </span>
+                </li>
+              ))}
+              {resumoPed.pagtos.length === 0 && (
+                <li className="text-muted-foreground">Sem movimento hoje.</li>
+              )}
+            </ul>
+            <p className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
+              <span className="font-semibold">Total do dia</span>
+              <b>{brl(resumoPed.totalHoje)}</b>
+            </p>
+          </section>
+        </div>
       </div>
 
-      {naoColunados.length > 0 ? (
-        <details className="mt-4 rounded-xl border border-border bg-muted/30">
-          <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">
-            Histórico — {naoColunados.length} pedido(s) fora das colunas (entregues / cancelados)
-          </summary>
-          <div className="flex flex-col gap-2.5 p-3">{naoColunados.map(cartao)}</div>
-        </details>
-      ) : null}
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <a
+          href="/pdv"
+          className="flex min-h-[56px] items-center gap-3 rounded-xl bg-neutral-950 p-4 text-white shadow-[var(--shadow-card)] hover:opacity-90"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-yellow-400 font-bold text-black">
+            +
+          </span>
+          <span>
+            <span className="block text-sm font-bold">Novo Pedido</span>
+            <span className="block text-xs text-neutral-400">Registrar pedido manualmente</span>
+          </span>
+        </a>
+        <button
+          type="button"
+          onClick={verTodosPedidos}
+          className="flex min-h-[56px] items-center gap-3 rounded-xl bg-neutral-950 p-4 text-left text-white shadow-[var(--shadow-card)] hover:opacity-90"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-yellow-400 text-black">
+            <ClipboardList className="size-5" aria-hidden />
+          </span>
+          <span>
+            <span className="block text-sm font-bold">Ver Todos os Pedidos</span>
+            <span className="block text-xs text-neutral-400">Limpa filtros e foco</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={exportarCSV}
+          className="flex min-h-[56px] items-center gap-3 rounded-xl bg-neutral-950 p-4 text-left text-white shadow-[var(--shadow-card)] hover:opacity-90"
+        >
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-yellow-400 text-black">
+            <Download className="size-5" aria-hidden />
+          </span>
+          <span>
+            <span className="block text-sm font-bold">Exportar CSV</span>
+            <span className="block text-xs text-neutral-400">Vendas e desempenho</span>
+          </span>
+        </button>
+      </div>
 
-      {lista.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>
-      )}
-    </section>
+      <section className="mt-4 rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="font-display text-xl">Gestão de pedidos</h2>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={soAgendados}
+              onChange={(e) => setSoAgendados(e.target.checked)}
+            />{" "}
+            Só agendados
+          </label>
+          <Select value={fEvento} onValueChange={setFEvento}>
+            <SelectTrigger className="ml-auto w-44">
+              <SelectValue placeholder="Evento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os eventos</SelectItem>
+              <SelectItem value="sem_evento">Sem evento</SelectItem>
+              <SelectItem value="aniversario">Aniversário</SelectItem>
+              <SelectItem value="casamento">Casamento</SelectItem>
+              <SelectItem value="empresa">Empresa</SelectItem>
+              <SelectItem value="festa">Festa</SelectItem>
+              <SelectItem value="confraternizacao">Confraternização</SelectItem>
+              <SelectItem value="outro">Outro</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filtro} onValueChange={setFiltro}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {[
+                "recebido",
+                "em_producao",
+                "pronto",
+                "aguardando_motoboy",
+                "em_rota",
+                "entregue",
+                "cancelado",
+              ].map((v) => (
+                <SelectItem key={v} value={v}>
+                  {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            value={buscaLocal}
+            onChange={(e) => setBuscaLocal(e.target.value)}
+            placeholder="🔎 Nº, cliente ou telefone…"
+            className="w-52"
+          />
+          <Select value={fPeriodo} onValueChange={setFPeriodo}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todo o período</SelectItem>
+              <SelectItem value="1">Hoje</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={fPgto} onValueChange={setFPgto}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Pagamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as formas</SelectItem>
+              <SelectItem value="pix">Pix</SelectItem>
+              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+              <SelectItem value="credito">Crédito</SelectItem>
+              <SelectItem value="debito">Débito</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={exportarCSV}>
+            Exportar CSV
+          </Button>
+          {foco ? (
+            <Button size="sm" variant="outline" onClick={onLimparFoco}>
+              Foco: “{foco}” ✕
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          {colunas.map((c) => {
+            const itens = listaTope.filter((p) => c.status.includes(p.status));
+            return (
+              <div
+                key={c.titulo}
+                className={`flex min-h-[18rem] flex-col rounded-xl border border-border border-t-4 ${c.ring} bg-muted/30`}
+              >
+                <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+                  <span className={`size-2.5 shrink-0 rounded-full ${c.dot}`} />
+                  <h3 className="font-display text-sm font-semibold tracking-wide">{c.titulo}</h3>
+                  <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+                    {itens.length}
+                  </span>
+                </div>
+                <p className="px-3 pt-2 text-xs text-muted-foreground">{c.sub}</p>
+                <div className="no-scrollbar flex max-h-[70vh] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+                  {itens.map(cartao)}
+                  {itens.length === 0 && (
+                    <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                      Nenhum pedido.
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {naoColunados.length > 0 ? (
+          <details className="mt-4 rounded-xl border border-border bg-muted/30">
+            <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">
+              Histórico — {naoColunados.length} pedido(s) fora das colunas (entregues / cancelados)
+            </summary>
+            <div className="flex flex-col gap-2.5 p-3">{naoColunados.map(cartao)}</div>
+          </details>
+        ) : null}
+
+        {lista.length === 0 && (
+          <p className="mt-4 text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>
+        )}
+      </section>
+    </>
   );
 }
 
-function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: { produtos: any[]; categorias: any[]; onChange: () => void; foco?: string; onLimparFoco?: () => void }) {
+function ProdutosAdmin({
+  produtos,
+  categorias,
+  onChange,
+  foco,
+  onLimparFoco,
+}: {
+  produtos: any[];
+  categorias: any[];
+  onChange: () => void;
+  foco?: string;
+  onLimparFoco?: () => void;
+}) {
   const [editando, setEditando] = useState<any | null>(null);
   const [novo, setNovo] = useState(false);
   const [movDe, setMovDe] = useState<string | null>(null);
@@ -1363,7 +1944,25 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
       : await supabase.from("produtos").insert(fullPayload);
     if (error && String(error.message ?? "").includes("column")) {
       // Banco ainda sem migrações 0001/0003/0004/0033 — salva campos legados
-      const { tipo_venda: _tv, destaque: _d, promo_inicio: _pi, promo_fim: _pf, promo_ativo: _pa, estoque_minimo: _em, custo: _cu, tempo_fritura_s: _tf, descricao_fiscal: _df, ncm: _ncm, cest: _ce, cfop_padrao: _cf, cst: _cs, csosn: _so, origem_mercadoria: _om, gtin: _gt, ...legacy } = fullPayload;
+      const {
+        tipo_venda: _tv,
+        destaque: _d,
+        promo_inicio: _pi,
+        promo_fim: _pf,
+        promo_ativo: _pa,
+        estoque_minimo: _em,
+        custo: _cu,
+        tempo_fritura_s: _tf,
+        descricao_fiscal: _df,
+        ncm: _ncm,
+        cest: _ce,
+        cfop_padrao: _cf,
+        cst: _cs,
+        csosn: _so,
+        origem_mercadoria: _om,
+        gtin: _gt,
+        ...legacy
+      } = fullPayload;
       const retry = id
         ? await supabase.from("produtos").update(legacy).eq("id", id)
         : await supabase.from("produtos").insert(legacy);
@@ -1401,93 +2000,315 @@ function ProdutosAdmin({ produtos, categorias, onChange, foco, onLimparFoco }: {
           </Button>
         ) : null}
         <Button
-          size="sm" variant="outline"
-          onClick={() => downloadCSV(`produtos-${new Date().toISOString().slice(0, 10)}.csv`, visiveis.map((p: any) => ({
-            nome: p.nome, categoria: p.categorias?.nome, preco: p.preco, promo: p.preco_promocional,
-            tipo: p.tipo_venda, estoque: p.estoque, minimo: p.estoque_minimo, disponivel: p.disponivel,
-          })))}
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            downloadCSV(
+              `produtos-${new Date().toISOString().slice(0, 10)}.csv`,
+              visiveis.map((p: any) => ({
+                nome: p.nome,
+                categoria: p.categorias?.nome,
+                preco: p.preco,
+                promo: p.preco_promocional,
+                tipo: p.tipo_venda,
+                estoque: p.estoque,
+                minimo: p.estoque_minimo,
+                disponivel: p.disponivel,
+              })),
+            )
+          }
         >
           CSV
         </Button>
-        <Button size="sm" className="ml-auto" onClick={() => { setNovo(true); setEditando(null); }}>
+        <Button
+          size="sm"
+          className="ml-auto"
+          onClick={() => {
+            setNovo(true);
+            setEditando(null);
+          }}
+        >
           <Plus className="mr-1 size-4" /> Novo
         </Button>
       </div>
 
       {(novo || editando) && (
-        <form onSubmit={(e) => salvar(e, editando?.id)} className="mt-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
-          <div className="space-y-1"><Label>Nome</Label><Input name="nome" defaultValue={editando?.nome ?? ""} required /></div>
-          <div className="space-y-1"><Label>Categoria</Label>
-            <select name="categoria_id" defaultValue={editando?.categoria_id ?? categorias[0]?.id} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-              {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+        <form
+          onSubmit={(e) => salvar(e, editando?.id)}
+          className="mt-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2"
+        >
+          <div className="space-y-1">
+            <Label>Nome</Label>
+            <Input name="nome" defaultValue={editando?.nome ?? ""} required />
+          </div>
+          <div className="space-y-1">
+            <Label>Categoria</Label>
+            <select
+              name="categoria_id"
+              defaultValue={editando?.categoria_id ?? categorias[0]?.id}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
             </select>
           </div>
-          <div className="space-y-1 sm:col-span-2"><Label>Descrição</Label><Textarea name="descricao" defaultValue={editando?.descricao ?? ""} /></div>
-          <div className="space-y-1"><Label>Preço</Label><Input name="preco" type="number" step="0.01" defaultValue={editando?.preco ?? ""} required /></div>
-          <div className="space-y-1"><Label>Preço promocional (opcional)</Label><Input name="preco_promocional" type="number" step="0.01" defaultValue={editando?.preco_promocional ?? ""} /></div>
-          <div className="space-y-1"><Label>Tipo de venda</Label>
-            <select name="tipo_venda" defaultValue={editando?.tipo_venda ?? "combo_50"} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <div className="space-y-1 sm:col-span-2">
+            <Label>Descrição</Label>
+            <Textarea name="descricao" defaultValue={editando?.descricao ?? ""} />
+          </div>
+          <div className="space-y-1">
+            <Label>Preço</Label>
+            <Input
+              name="preco"
+              type="number"
+              step="0.01"
+              defaultValue={editando?.preco ?? ""}
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Preço promocional (opcional)</Label>
+            <Input
+              name="preco_promocional"
+              type="number"
+              step="0.01"
+              defaultValue={editando?.preco_promocional ?? ""}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Tipo de venda</Label>
+            <select
+              name="tipo_venda"
+              defaultValue={editando?.tipo_venda ?? "combo_50"}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
               <option value="combo_50">Combo de 50 (múltiplos de 50)</option>
               <option value="unidade">Venda por unidade</option>
             </select>
           </div>
-          <div className="space-y-1"><Label>Promo início (opcional)</Label><Input name="promo_inicio" type="datetime-local" defaultValue={editando?.promo_inicio ? String(editando.promo_inicio).slice(0, 16) : ""} /></div>
-          <div className="space-y-1"><Label>Promo fim (opcional)</Label><Input name="promo_fim" type="datetime-local" defaultValue={editando?.promo_fim ? String(editando.promo_fim).slice(0, 16) : ""} /></div>
-          <div className="space-y-1"><Label>Estoque</Label><Input name="estoque" type="number" defaultValue={editando?.estoque ?? 100} /></div>
-          <div className="space-y-1"><Label>Estoque mínimo (alerta)</Label><Input name="estoque_minimo" type="number" defaultValue={editando?.estoque_minimo ?? 0} /></div>
-          <div className="space-y-1"><Label>Custo (margem estimada, opcional)</Label><Input name="custo" type="number" step="0.01" defaultValue={editando?.custo ?? ""} /></div>
-          <div className="space-y-1"><Label>Fritura 50un em seg (padrão 210)</Label><Input name="tempo_fritura_s" type="number" min={0} placeholder="210" defaultValue={editando?.tempo_fritura_s ?? ""} /></div>
-          <div className="space-y-1"><Label>Imagem URL (opcional)</Label><Input name="imagem_url" defaultValue={editando?.imagem_url ?? ""} /></div>
+          <div className="space-y-1">
+            <Label>Promo início (opcional)</Label>
+            <Input
+              name="promo_inicio"
+              type="datetime-local"
+              defaultValue={
+                editando?.promo_inicio ? String(editando.promo_inicio).slice(0, 16) : ""
+              }
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Promo fim (opcional)</Label>
+            <Input
+              name="promo_fim"
+              type="datetime-local"
+              defaultValue={editando?.promo_fim ? String(editando.promo_fim).slice(0, 16) : ""}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Estoque</Label>
+            <Input name="estoque" type="number" defaultValue={editando?.estoque ?? 100} />
+          </div>
+          <div className="space-y-1">
+            <Label>Estoque mínimo (alerta)</Label>
+            <Input
+              name="estoque_minimo"
+              type="number"
+              defaultValue={editando?.estoque_minimo ?? 0}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Custo (margem estimada, opcional)</Label>
+            <Input name="custo" type="number" step="0.01" defaultValue={editando?.custo ?? ""} />
+          </div>
+          <div className="space-y-1">
+            <Label>Fritura 50un em seg (padrão 210)</Label>
+            <Input
+              name="tempo_fritura_s"
+              type="number"
+              min={0}
+              placeholder="210"
+              defaultValue={editando?.tempo_fritura_s ?? ""}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Imagem URL (opcional)</Label>
+            <Input name="imagem_url" defaultValue={editando?.imagem_url ?? ""} />
+          </div>
           <details className="sm:col-span-2 rounded-lg border border-border p-3">
-            <summary className="cursor-pointer text-sm font-semibold">Dados fiscais (contador) — sem NCM a NF-e bloqueia</summary>
+            <summary className="cursor-pointer text-sm font-semibold">
+              Dados fiscais (contador) — sem NCM a NF-e bloqueia
+            </summary>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2"><Label>Descrição fiscal (opcional)</Label><Input name="descricao_fiscal" defaultValue={editando?.descricao_fiscal ?? ""} /></div>
-              <div className="space-y-1"><Label>NCM *</Label><Input name="ncm" inputMode="numeric" maxLength={8} defaultValue={editando?.ncm ?? ""} placeholder="Ex: 19059090" /></div>
-              <div className="space-y-1"><Label>CEST (opcional)</Label><Input name="cest" inputMode="numeric" defaultValue={editando?.cest ?? ""} /></div>
-              <div className="space-y-1"><Label>CFOP padrão *</Label><Input name="cfop_padrao" inputMode="numeric" maxLength={4} defaultValue={editando?.cfop_padrao ?? ""} placeholder="Ex: 5102" /></div>
-              <div className="space-y-1"><Label>Origem *</Label>
-                <select name="origem_mercadoria" defaultValue={editando?.origem_mercadoria ?? ""} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <div className="space-y-1 sm:col-span-2">
+                <Label>Descrição fiscal (opcional)</Label>
+                <Input name="descricao_fiscal" defaultValue={editando?.descricao_fiscal ?? ""} />
+              </div>
+              <div className="space-y-1">
+                <Label>NCM *</Label>
+                <Input
+                  name="ncm"
+                  inputMode="numeric"
+                  maxLength={8}
+                  defaultValue={editando?.ncm ?? ""}
+                  placeholder="Ex: 19059090"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>CEST (opcional)</Label>
+                <Input name="cest" inputMode="numeric" defaultValue={editando?.cest ?? ""} />
+              </div>
+              <div className="space-y-1">
+                <Label>CFOP padrão *</Label>
+                <Input
+                  name="cfop_padrao"
+                  inputMode="numeric"
+                  maxLength={4}
+                  defaultValue={editando?.cfop_padrao ?? ""}
+                  placeholder="Ex: 5102"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Origem *</Label>
+                <select
+                  name="origem_mercadoria"
+                  defaultValue={editando?.origem_mercadoria ?? ""}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
                   <option value="">—</option>
                   <option value="0">0 - Nacional</option>
                   <option value="1">1 - Importada direta</option>
                   <option value="2">2 - Importada no mercado interno</option>
                 </select>
               </div>
-              <div className="space-y-1"><Label>CST (lucro real/presumido)</Label><Input name="cst" inputMode="numeric" maxLength={2} defaultValue={editando?.cst ?? ""} placeholder="Ex: 00" /></div>
-              <div className="space-y-1"><Label>CSOSN (Simples Nacional)</Label><Input name="csosn" inputMode="numeric" maxLength={3} defaultValue={editando?.csosn ?? ""} placeholder="Ex: 102" /></div>
-              <div className="space-y-1 sm:col-span-2"><Label>GTIN/EAN (opcional)</Label><Input name="gtin" inputMode="numeric" defaultValue={editando?.gtin ?? ""} /></div>
+              <div className="space-y-1">
+                <Label>CST (lucro real/presumido)</Label>
+                <Input
+                  name="cst"
+                  inputMode="numeric"
+                  maxLength={2}
+                  defaultValue={editando?.cst ?? ""}
+                  placeholder="Ex: 00"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>CSOSN (Simples Nacional)</Label>
+                <Input
+                  name="csosn"
+                  inputMode="numeric"
+                  maxLength={3}
+                  defaultValue={editando?.csosn ?? ""}
+                  placeholder="Ex: 102"
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label>GTIN/EAN (opcional)</Label>
+                <Input name="gtin" inputMode="numeric" defaultValue={editando?.gtin ?? ""} />
+              </div>
             </div>
           </details>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="disponivel" defaultChecked={editando?.disponivel ?? true} /> Disponível</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="destaque" defaultChecked={editando?.destaque ?? false} /> ⭐ Destaque (Mais pedidos)</label>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="promo_ativo" defaultChecked={editando?.promo_ativo ?? true} /> Promo ativa</label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="disponivel"
+              defaultChecked={editando?.disponivel ?? true}
+            />{" "}
+            Disponível
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="destaque" defaultChecked={editando?.destaque ?? false} />{" "}
+            ⭐ Destaque (Mais pedidos)
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="promo_ativo"
+              defaultChecked={editando?.promo_ativo ?? true}
+            />{" "}
+            Promo ativa
+          </label>
           <div className="flex gap-2 sm:col-span-2">
             <Button type="submit">Salvar</Button>
-            <Button type="button" variant="outline" onClick={() => { setNovo(false); setEditando(null); }}>Cancelar</Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setNovo(false);
+                setEditando(null);
+              }}
+            >
+              Cancelar
+            </Button>
           </div>
         </form>
       )}
 
       <div className="mt-4 space-y-2">
         {visiveis.map((p) => {
-          const baixo = Number(p.estoque_minimo ?? 0) > 0 && Number(p.estoque ?? 0) < Number(p.estoque_minimo);
+          const baixo =
+            Number(p.estoque_minimo ?? 0) > 0 && Number(p.estoque ?? 0) < Number(p.estoque_minimo);
           return (
-          <div key={p.id}>
-          <div className={cn("flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm", !p.disponivel && "opacity-60")}>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold">{p.nome} <span className="text-xs text-muted-foreground">• {p.categorias?.nome} • {p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}{p.destaque ? " • ⭐" : ""}{p.ncm ? "" : " • ⚠️ sem NCM"}</span></p>
-              <p className="text-xs text-muted-foreground">{brl(p.preco_promocional ?? p.preco)} • Estoque: {p.estoque}{baixo ? " ⚠️ abaixo do mínimo" : ""} {p.preco_promocional ? "• PROMO" : ""}</p>
+            <div key={p.id}>
+              <div
+                className={cn(
+                  "flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm",
+                  !p.disponivel && "opacity-60",
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">
+                    {p.nome}{" "}
+                    <span className="text-xs text-muted-foreground">
+                      • {p.categorias?.nome} • {p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}
+                      {p.destaque ? " • ⭐" : ""}
+                      {p.ncm ? "" : " • ⚠️ sem NCM"}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {brl(p.preco_promocional ?? p.preco)} • Estoque: {p.estoque}
+                    {baixo ? " ⚠️ abaixo do mínimo" : ""} {p.preco_promocional ? "• PROMO" : ""}
+                  </p>
+                </div>
+                <Switch
+                  checked={p.disponivel}
+                  onCheckedChange={async (v) => {
+                    await supabase.from("produtos").update({ disponivel: v }).eq("id", p.id);
+                    onChange();
+                  }}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setMovDe(movDe === p.id ? null : p.id)}
+                >
+                  Estoque
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={() => {
+                    setEditando(p);
+                    setNovo(false);
+                  }}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => excluir(p.id, p.nome)}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+              {movDe === p.id ? (
+                <MovEstoque
+                  produto={p}
+                  onChange={() => {
+                    setMovDe(null);
+                    onChange();
+                  }}
+                />
+              ) : null}
             </div>
-            <Switch checked={p.disponivel} onCheckedChange={async (v) => {
-              await supabase.from("produtos").update({ disponivel: v }).eq("id", p.id);
-              onChange();
-            }} />
-            <Button size="sm" variant="outline" onClick={() => setMovDe(movDe === p.id ? null : p.id)}>Estoque</Button>
-            <Button size="icon" variant="outline" onClick={() => { setEditando(p); setNovo(false); }}><Pencil className="size-4" /></Button>
-            <Button size="icon" variant="ghost" onClick={() => excluir(p.id, p.nome)}><Trash2 className="size-4" /></Button>
-          </div>
-          {movDe === p.id ? <MovEstoque produto={p} onChange={() => { setMovDe(null); onChange(); }} /> : null}
-          </div>
           );
         })}
       </div>
@@ -1504,7 +2325,12 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
     queryKey: ["estoque-mov", produto.id],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from("estoque_mov").select("*").eq("produto_id", produto.id).order("created_at", { ascending: false }).limit(10);
+        const { data, error } = await supabase
+          .from("estoque_mov")
+          .select("*")
+          .eq("produto_id", produto.id)
+          .order("created_at", { ascending: false })
+          .limit(10);
         if (error) throw error;
         return (data ?? []) as any[];
       } catch {
@@ -1523,10 +2349,17 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
     try {
       const { data: u } = await supabase.auth.getUser();
       const { error: e1 } = await supabase.from("estoque_mov").insert({
-        produto_id: produto.id, tipo, quantidade: Math.floor(Number(qtd)), motivo: motivo.slice(0, 200), created_by: u.user?.id ?? null,
+        produto_id: produto.id,
+        tipo,
+        quantidade: Math.floor(Number(qtd)),
+        motivo: motivo.slice(0, 200),
+        created_by: u.user?.id ?? null,
       });
       if (e1) throw e1;
-      const { error: e2 } = await supabase.from("produtos").update({ estoque: r.valor }).eq("id", produto.id);
+      const { error: e2 } = await supabase
+        .from("produtos")
+        .update({ estoque: r.valor })
+        .eq("id", produto.id);
       if (e2) throw e2;
       toast.success(`Estoque: ${produto.estoque} → ${r.valor}`);
       void logAdmin("estoque_mov", `${produto.nome} ${tipo} ${qtd} → ${r.valor}`);
@@ -1542,21 +2375,48 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
     <div className="rounded-lg border border-dashed border-border p-3 text-sm">
       <p className="font-semibold">Movimentar estoque (atual: {produto.estoque})</p>
       <div className="mt-2 grid gap-2 sm:grid-cols-4">
-        <select value={tipo} onChange={(e) => setTipo(e.target.value as TipoMov)} className="rounded-md border border-input bg-background px-2 py-1.5 text-sm">
+        <select
+          value={tipo}
+          onChange={(e) => setTipo(e.target.value as TipoMov)}
+          className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+        >
           <option value="entrada">Entrada</option>
           <option value="saida">Saída</option>
           <option value="ajuste">Ajuste (+)</option>
           <option value="perda">Perda</option>
           <option value="producao">Produção</option>
         </select>
-        <Input type="number" min={1} value={qtd} onChange={(e) => setQtd(Number(e.target.value))} aria-label="Quantidade" />
-        <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo" maxLength={200} className="sm:col-span-2" />
+        <Input
+          type="number"
+          min={1}
+          value={qtd}
+          onChange={(e) => setQtd(Number(e.target.value))}
+          aria-label="Quantidade"
+        />
+        <Input
+          value={motivo}
+          onChange={(e) => setMotivo(e.target.value)}
+          placeholder="Motivo"
+          maxLength={200}
+          className="sm:col-span-2"
+        />
       </div>
-      <Button size="sm" className="mt-2" disabled={enviando} onClick={salvar}>Registrar</Button>
+      <Button size="sm" className="mt-2" disabled={enviando} onClick={salvar}>
+        Registrar
+      </Button>
       {(movs ?? []).length > 0 ? (
         <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
           {(movs ?? []).map((m: any) => (
-            <li key={m.id}>{new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })} • {m.tipo} • {m.quantidade}{m.motivo ? ` • ${m.motivo}` : ""}</li>
+            <li key={m.id}>
+              {new Date(m.created_at).toLocaleString("pt-BR", {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              • {m.tipo} • {m.quantidade}
+              {m.motivo ? ` • ${m.motivo}` : ""}
+            </li>
           ))}
         </ul>
       ) : null}
@@ -1568,8 +2428,14 @@ function CategoriasAdmin({ categorias, onChange }: { categorias: any[]; onChange
   const [nome, setNome] = useState("");
   async function criar() {
     if (!nome.trim()) return;
-    const slug = nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-");
-    const { error } = await supabase.from("categorias").insert({ nome: nome.trim(), slug, ordem: categorias.length + 1 });
+    const slug = nome
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-");
+    const { error } = await supabase
+      .from("categorias")
+      .insert({ nome: nome.trim(), slug, ordem: categorias.length + 1 });
     if (error) toast.error("Erro ao criar categoria.");
     else {
       toast.success("Categoria criada!");
@@ -1581,17 +2447,26 @@ function CategoriasAdmin({ categorias, onChange }: { categorias: any[]; onChange
     <section className="rounded-xl border border-border bg-card p-5">
       <h2 className="font-display text-xl">Categorias</h2>
       <div className="mt-3 flex gap-2">
-        <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nova categoria (ex: Porções)" />
+        <Input
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          placeholder="Nova categoria (ex: Porções)"
+        />
         <Button onClick={criar}>Adicionar</Button>
       </div>
       <ul className="mt-3 space-y-1.5 text-sm">
         {categorias.map((c) => (
           <li key={c.id} className="flex items-center gap-2 rounded-lg border border-border p-2.5">
-            <span className="flex-1">{c.nome} <span className="text-xs text-muted-foreground">/{c.slug}</span></span>
-            <Switch checked={c.ativo} onCheckedChange={async (v) => {
-              await supabase.from("categorias").update({ ativo: v }).eq("id", c.id);
-              onChange();
-            }} />
+            <span className="flex-1">
+              {c.nome} <span className="text-xs text-muted-foreground">/{c.slug}</span>
+            </span>
+            <Switch
+              checked={c.ativo}
+              onCheckedChange={async (v) => {
+                await supabase.from("categorias").update({ ativo: v }).eq("id", c.id);
+                onChange();
+              }}
+            />
           </li>
         ))}
       </ul>
@@ -1599,7 +2474,17 @@ function CategoriasAdmin({ categorias, onChange }: { categorias: any[]; onChange
   );
 }
 
-function ClientesAdmin({ profiles, pedidos, foco, onLimparFoco }: { profiles: any[]; pedidos: any[]; foco?: string; onLimparFoco?: () => void }) {
+function ClientesAdmin({
+  profiles,
+  pedidos,
+  foco,
+  onLimparFoco,
+}: {
+  profiles: any[];
+  pedidos: any[];
+  foco?: string;
+  onLimparFoco?: () => void;
+}) {
   const [busca, setBusca] = useState(foco ?? "");
   const agreg = useMemo(() => {
     const map = new Map<string, { pedidos: any[]; total: number }>();
@@ -1614,7 +2499,10 @@ function ClientesAdmin({ profiles, pedidos, foco, onLimparFoco }: { profiles: an
   }, [pedidos]);
 
   const lista = profiles.filter((pr) =>
-    busca ? (pr.nome ?? "").toLowerCase().includes(busca.toLowerCase()) || (pr.telefone ?? "").includes(busca) : true,
+    busca
+      ? (pr.nome ?? "").toLowerCase().includes(busca.toLowerCase()) ||
+        (pr.telefone ?? "").includes(busca)
+      : true,
   );
 
   return (
@@ -1622,12 +2510,24 @@ function ClientesAdmin({ profiles, pedidos, foco, onLimparFoco }: { profiles: an
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-display text-xl">Clientes ({profiles.length})</h2>
         {foco ? (
-          <Button size="sm" variant="outline" onClick={() => { setBusca(""); onLimparFoco?.(); }}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setBusca("");
+              onLimparFoco?.();
+            }}
+          >
             Foco: “{foco}” ✕
           </Button>
         ) : null}
       </div>
-      <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou telefone..." className="mt-3 max-w-sm" />
+      <Input
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+        placeholder="Buscar por nome ou telefone..."
+        className="mt-3 max-w-sm"
+      />
       <div className="mt-3 space-y-2">
         {lista.slice(0, 50).map((pr) => {
           const ag = agreg.get(pr.id);
@@ -1636,14 +2536,18 @@ function ClientesAdmin({ profiles, pedidos, foco, onLimparFoco }: { profiles: an
               <summary className="cursor-pointer font-semibold">
                 {pr.nome || "Sem nome"} • {pr.telefone || "—"}
                 <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  {ag?.pedidos.length ?? 0} pedidos • {brl(ag?.total ?? 0)} • {pr.pontos ?? 0} pts fidelidade
+                  {ag?.pedidos.length ?? 0} pedidos • {brl(ag?.total ?? 0)} • {pr.pontos ?? 0} pts
+                  fidelidade
                 </span>
               </summary>
               <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                 {(ag?.pedidos ?? []).slice(0, 5).map((p: any) => (
-                  <p key={p.id}>Nº {p.numero} — {dataHora(p.created_at)} — {STATUS_LABEL[p.status]} — {brl(p.total)} — {p.endereco}, {p.bairro}</p>
+                  <p key={p.id}>
+                    Nº {p.numero} — {dataHora(p.created_at)} — {STATUS_LABEL[p.status]} —{" "}
+                    {brl(p.total)} — {p.endereco}, {p.bairro}
+                  </p>
                 ))}
-                {!(ag?.pedidos?.length) && <p>Sem pedidos ainda.</p>}
+                {!ag?.pedidos?.length && <p>Sem pedidos ainda.</p>}
               </div>
             </details>
           );
@@ -1653,7 +2557,15 @@ function ClientesAdmin({ profiles, pedidos, foco, onLimparFoco }: { profiles: an
   );
 }
 
-function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: any[]; onChange: () => void }) {
+function CuponsAdmin({
+  cupons,
+  produtos,
+  onChange,
+}: {
+  cupons: any[];
+  produtos: any[];
+  onChange: () => void;
+}) {
   const [expandir, setExpandir] = useState(false);
   async function salvar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -1676,7 +2588,14 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
     };
     let { error } = await supabase.from("cupons").insert(payload);
     if (error && String(error.message ?? "").includes("column")) {
-      const { cliente_telefone: _t, validade_ini: _i, validade_fim: _f2, max_usos: _m, produtos_ids: _p, ...legacy } = payload;
+      const {
+        cliente_telefone: _t,
+        validade_ini: _i,
+        validade_fim: _f2,
+        max_usos: _m,
+        produtos_ids: _p,
+        ...legacy
+      } = payload;
       const retry = await supabase.from("cupons").insert(legacy);
       error = retry.error;
       if (!error) toast.error("Criado sem personalização — rode a migração 0006 no Supabase.");
@@ -1694,13 +2613,21 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
     <section className="rounded-xl border border-border bg-card p-5">
       <div className="flex items-center gap-2">
         <h2 className="font-display text-xl">Cupons</h2>
-        <Button size="sm" variant="outline" className="ml-auto" onClick={() => setExpandir((v) => !v)}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="ml-auto"
+          onClick={() => setExpandir((v) => !v)}
+        >
           {expandir ? "− Simples" : "+ Personalizado"}
         </Button>
       </div>
       <form onSubmit={salvar} className="mt-3 grid gap-2 sm:grid-cols-5">
         <Input name="codigo" placeholder="CÓDIGO" required maxLength={20} />
-        <select name="tipo" className="rounded-md border border-input bg-background px-3 py-2 text-sm">
+        <select
+          name="tipo"
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
           <option value="percentual">Percentual %</option>
           <option value="valor">Valor R$</option>
         </select>
@@ -1709,12 +2636,26 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
         <Button type="submit">Criar</Button>
         {expandir ? (
           <>
-            <div className="space-y-1"><Label>Cliente específico (telefone)</Label><Input name="cliente_telefone" placeholder="Só este telefone (opcional)" /></div>
-            <div className="space-y-1"><Label>Válido de</Label><Input name="validade_ini" type="datetime-local" /></div>
-            <div className="space-y-1"><Label>Válido até</Label><Input name="validade_fim" type="datetime-local" /></div>
-            <div className="space-y-1"><Label>Limite de usos (0=ilimitado)</Label><Input name="max_usos" type="number" min={0} defaultValue={0} /></div>
+            <div className="space-y-1">
+              <Label>Cliente específico (telefone)</Label>
+              <Input name="cliente_telefone" placeholder="Só este telefone (opcional)" />
+            </div>
+            <div className="space-y-1">
+              <Label>Válido de</Label>
+              <Input name="validade_ini" type="datetime-local" />
+            </div>
+            <div className="space-y-1">
+              <Label>Válido até</Label>
+              <Input name="validade_fim" type="datetime-local" />
+            </div>
+            <div className="space-y-1">
+              <Label>Limite de usos (0=ilimitado)</Label>
+              <Input name="max_usos" type="number" min={0} defaultValue={0} />
+            </div>
             <details className="sm:col-span-5 rounded-md border border-border p-2">
-              <summary className="cursor-pointer text-sm">Produtos participantes (vazio = todos)</summary>
+              <summary className="cursor-pointer text-sm">
+                Produtos participantes (vazio = todos)
+              </summary>
               <div className="mt-2 grid max-h-40 gap-1 overflow-y-auto sm:grid-cols-2">
                 {produtos.map((p) => (
                   <label key={p.id} className="flex items-center gap-2 text-xs">
@@ -1733,14 +2674,22 @@ function CuponsAdmin({ cupons, produtos, onChange }: { cupons: any[]; produtos: 
             <span className="text-muted-foreground">
               {c.tipo === "percentual" ? `${c.valor}%` : brl(c.valor)} • mín. {brl(c.minimo)}
               {c.cliente_telefone ? ` • 👤 ${c.cliente_telefone}` : ""}
-              {c.validade_fim ? ` • até ${new Date(c.validade_fim).toLocaleDateString("pt-BR")}` : ""}
+              {c.validade_fim
+                ? ` • até ${new Date(c.validade_fim).toLocaleDateString("pt-BR")}`
+                : ""}
               {Number(c.max_usos ?? 0) > 0 ? ` • máx. ${c.max_usos} usos` : ""}
-              {Array.isArray(c.produtos_ids) && c.produtos_ids.length > 0 ? ` • ${c.produtos_ids.length} produto(s)` : ""}
+              {Array.isArray(c.produtos_ids) && c.produtos_ids.length > 0
+                ? ` • ${c.produtos_ids.length} produto(s)`
+                : ""}
             </span>
-            <Switch className="ml-auto" checked={c.ativo} onCheckedChange={async (v) => {
-              await supabase.from("cupons").update({ ativo: v }).eq("id", c.id);
-              onChange();
-            }} />
+            <Switch
+              className="ml-auto"
+              checked={c.ativo}
+              onCheckedChange={async (v) => {
+                await supabase.from("cupons").update({ ativo: v }).eq("id", c.id);
+                onChange();
+              }}
+            />
           </li>
         ))}
       </ul>
@@ -1753,7 +2702,11 @@ function MetasAdmin({ pedidos, onChange }: { pedidos: any[]; onChange: () => voi
     queryKey: ["admin-metas"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from("metas").select("*").order("periodo_ref", { ascending: false }).limit(24);
+        const { data, error } = await supabase
+          .from("metas")
+          .select("*")
+          .order("periodo_ref", { ascending: false })
+          .limit(24);
         if (error) throw error;
         return data ?? [];
       } catch {
@@ -1790,14 +2743,19 @@ function MetasAdmin({ pedidos, onChange }: { pedidos: any[]; onChange: () => voi
       toast.error("Para meta mensal use o formato AAAA-MM.");
       return;
     }
-    if ((tipo === "diaria" || tipo === "semanal") && /^\d{4}-\d{2}-\d{2}$/.test(periodo_ref) === false) {
+    if (
+      (tipo === "diaria" || tipo === "semanal") &&
+      /^\d{4}-\d{2}-\d{2}$/.test(periodo_ref) === false
+    ) {
       toast.error("Use o formato AAAA-MM-DD (semanal = dia inicial).");
       return;
     }
-    const { error } = await supabase.from("metas").upsert(
-      { tipo, periodo_ref, valor: Number(f.get("valor") ?? 0) },
-      { onConflict: "tipo,periodo_ref" },
-    );
+    const { error } = await supabase
+      .from("metas")
+      .upsert(
+        { tipo, periodo_ref, valor: Number(f.get("valor") ?? 0) },
+        { onConflict: "tipo,periodo_ref" },
+      );
     if (error) {
       toast.error("Não foi possível salvar. Rode a migração 0006 no Supabase.");
       return;
@@ -1813,7 +2771,11 @@ function MetasAdmin({ pedidos, onChange }: { pedidos: any[]; onChange: () => voi
     <section className="rounded-xl border border-border bg-card p-5">
       <h2 className="font-display text-xl">Metas de vendas</h2>
       <form onSubmit={salvar} className="mt-3 grid gap-2 sm:grid-cols-4">
-        <select name="tipo" className="rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="mensal">
+        <select
+          name="tipo"
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+          defaultValue="mensal"
+        >
           <option value="diaria">Diária</option>
           <option value="semanal">Semanal</option>
           <option value="mensal">Mensal</option>
@@ -1825,31 +2787,47 @@ function MetasAdmin({ pedidos, onChange }: { pedidos: any[]; onChange: () => voi
       <ul className="mt-3 space-y-2 text-sm">
         {(metas ?? []).map((m: any) => {
           const { ini, fim, diasTotais } = intervaloMeta(m);
-          const validos = pedidos.filter((p: any) => p.status !== "cancelado" && noIntervalo(p.created_at, ini, fim));
+          const validos = pedidos.filter(
+            (p: any) => p.status !== "cancelado" && noIntervalo(p.created_at, ini, fim),
+          );
           const vendido = validos.reduce((a: number, p: any) => a + Number(p.total ?? 0), 0);
           const meta = Number(m.valor ?? 0);
           const pct = meta > 0 ? Math.min(100, (vendido / meta) * 100) : 0;
           const fimEfetivo = fim > agora ? agora : fim;
-          const diasPassados = Math.max(1, Math.ceil((fimEfetivo.getTime() - ini.getTime()) / 86400000));
+          const diasPassados = Math.max(
+            1,
+            Math.ceil((fimEfetivo.getTime() - ini.getTime()) / 86400000),
+          );
           const diasRestantes = Math.max(0, diasTotais - diasPassados);
           const restante = Math.max(0, meta - vendido);
           const mediaNecessaria = diasRestantes > 0 && restante > 0 ? restante / diasRestantes : 0;
           return (
             <li key={m.id} className="rounded-lg border border-border p-3">
               <div className="flex justify-between gap-2">
-                <span className="font-semibold capitalize">{m.tipo} • {m.periodo_ref}</span>
-                <span>{brl(vendido)} de {brl(meta)} ({pct.toFixed(1)}%)</span>
+                <span className="font-semibold capitalize">
+                  {m.tipo} • {m.periodo_ref}
+                </span>
+                <span>
+                  {brl(vendido)} de {brl(meta)} ({pct.toFixed(1)}%)
+                </span>
               </div>
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
                 <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Restam {brl(restante)}{diasRestantes > 0 ? ` • média diária necessária: ${brl(mediaNecessaria)}` : " • período encerrado"}
+                Restam {brl(restante)}
+                {diasRestantes > 0
+                  ? ` • média diária necessária: ${brl(mediaNecessaria)}`
+                  : " • período encerrado"}
               </p>
             </li>
           );
         })}
-        {(metas ?? []).length === 0 ? <li className="text-muted-foreground">Nenhuma meta cadastrada. Sem previsões — só dados reais após cadastrar.</li> : null}
+        {(metas ?? []).length === 0 ? (
+          <li className="text-muted-foreground">
+            Nenhuma meta cadastrada. Sem previsões — só dados reais após cadastrar.
+          </li>
+        ) : null}
       </ul>
     </section>
   );
@@ -1862,7 +2840,12 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
     queryKey: ["admin-despesas", mes],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from("despesas").select("*").gte("data", `${mes}-01`).lt("data", `${mes}-31`).order("data", { ascending: false });
+        const { data, error } = await supabase
+          .from("despesas")
+          .select("*")
+          .gte("data", `${mes}-01`)
+          .lt("data", `${mes}-31`)
+          .order("data", { ascending: false });
         if (error) throw error;
         return data ?? [];
       } catch {
@@ -1871,7 +2854,9 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
     },
   });
 
-  const validos = pedidos.filter((p: any) => p.status !== "cancelado" && String(p.created_at ?? "").slice(0, 7) === mes);
+  const validos = pedidos.filter(
+    (p: any) => p.status !== "cancelado" && String(p.created_at ?? "").slice(0, 7) === mes,
+  );
   const fat = validos.reduce((a: number, p: any) => a + Number(p.total ?? 0), 0);
   const porPag: Record<string, number> = {};
   let taxas = 0;
@@ -1881,7 +2866,10 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
     taxas += Number(p.taxa_entrega ?? 0);
     descontos += Number(p.desconto ?? 0);
   }
-  const despTotal = ((despesas ?? []) as any[]).reduce((a: number, d: any) => a + Number(d.valor ?? 0), 0);
+  const despTotal = ((despesas ?? []) as any[]).reduce(
+    (a: number, d: any) => a + Number(d.valor ?? 0),
+    0,
+  );
   const resultado = fat - despTotal;
 
   async function salvarDespesa(e: React.FormEvent<HTMLFormElement>) {
@@ -1919,32 +2907,61 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-display text-xl">Fechamento — {mes}</h2>
-          <Input type="month" value={mes} onChange={(e) => setMes(e.target.value)} className="ml-auto w-44" aria-label="Mês" />
+          <Input
+            type="month"
+            value={mes}
+            onChange={(e) => setMes(e.target.value)}
+            className="ml-auto w-44"
+            aria-label="Mês"
+          />
           <Link to="/financeiro" className="text-sm text-primary underline">
             Financeiro completo (caixa, contas, conciliação) →
           </Link>
         </div>
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-          <p className="flex justify-between rounded-lg bg-muted p-2.5"><span>Faturamento ({validos.length} pedidos)</span><strong>{brl(fat)}</strong></p>
-          <p className="flex justify-between rounded-lg bg-muted p-2.5"><span>Taxas de entrega</span><strong>{brl(taxas)}</strong></p>
-          <p className="flex justify-between rounded-lg bg-muted p-2.5"><span>Descontos</span><strong>-{brl(descontos)}</strong></p>
-          <p className="flex justify-between rounded-lg bg-muted p-2.5"><span>Despesas</span><strong>-{brl(despTotal)}</strong></p>
+          <p className="flex justify-between rounded-lg bg-muted p-2.5">
+            <span>Faturamento ({validos.length} pedidos)</span>
+            <strong>{brl(fat)}</strong>
+          </p>
+          <p className="flex justify-between rounded-lg bg-muted p-2.5">
+            <span>Taxas de entrega</span>
+            <strong>{brl(taxas)}</strong>
+          </p>
+          <p className="flex justify-between rounded-lg bg-muted p-2.5">
+            <span>Descontos</span>
+            <strong>-{brl(descontos)}</strong>
+          </p>
+          <p className="flex justify-between rounded-lg bg-muted p-2.5">
+            <span>Despesas</span>
+            <strong>-{brl(despTotal)}</strong>
+          </p>
         </div>
         <div className="mt-2 grid gap-2 text-sm sm:grid-cols-4">
           {(["pix", "dinheiro", "credito", "debito"] as const).map((pg) => (
-            <p key={pg} className="flex justify-between rounded-lg border border-border p-2.5"><span>{PAGAMENTO_LABEL[pg]}</span><strong>{brl(porPag[pg] ?? 0)}</strong></p>
+            <p key={pg} className="flex justify-between rounded-lg border border-border p-2.5">
+              <span>{PAGAMENTO_LABEL[pg]}</span>
+              <strong>{brl(porPag[pg] ?? 0)}</strong>
+            </p>
           ))}
         </div>
         <p className="mt-3 rounded-xl border border-primary/40 p-3 font-display text-lg">
           Resultado operacional estimado: <span className="text-primary">{brl(resultado)}</span>
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">Faturamento menos despesas registradas. Não é lucro líquido (não inclui todos os custos).</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Faturamento menos despesas registradas. Não é lucro líquido (não inclui todos os custos).
+        </p>
       </section>
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="font-display text-xl">Despesas</h2>
         <form onSubmit={salvarDespesa} className="mt-3 grid gap-2 sm:grid-cols-4">
           <Input name="data" type="date" defaultValue={`${mes}-01`} required />
-          <Input name="descricao" placeholder="Descrição" required maxLength={120} className="sm:col-span-2" />
+          <Input
+            name="descricao"
+            placeholder="Descrição"
+            required
+            maxLength={120}
+            className="sm:col-span-2"
+          />
           <div className="flex gap-2">
             <Input name="valor" type="number" step="0.01" min={0} placeholder="Valor" required />
             <Button type="submit">Add</Button>
@@ -1952,14 +2969,23 @@ function FinanceiroAdmin({ pedidos }: { pedidos: any[] }) {
         </form>
         <ul className="mt-3 space-y-1.5 text-sm">
           {((despesas ?? []) as any[]).map((d) => (
-            <li key={d.id} className="flex items-center gap-2 rounded-lg border border-border p-2.5">
-              <span className="text-muted-foreground">{new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR")}</span>
+            <li
+              key={d.id}
+              className="flex items-center gap-2 rounded-lg border border-border p-2.5"
+            >
+              <span className="text-muted-foreground">
+                {new Date(`${d.data}T12:00:00`).toLocaleDateString("pt-BR")}
+              </span>
               <span className="flex-1">{d.descricao}</span>
               <span className="font-semibold">{brl(d.valor)}</span>
-              <Button size="icon" variant="ghost" onClick={() => excluirDespesa(d.id)}><Trash2 className="size-4" /></Button>
+              <Button size="icon" variant="ghost" onClick={() => excluirDespesa(d.id)}>
+                <Trash2 className="size-4" />
+              </Button>
             </li>
           ))}
-          {(despesas ?? []).length === 0 ? <li className="text-muted-foreground">Nenhuma despesa no mês.</li> : null}
+          {(despesas ?? []).length === 0 ? (
+            <li className="text-muted-foreground">Nenhuma despesa no mês.</li>
+          ) : null}
         </ul>
       </section>
     </div>
@@ -1975,7 +3001,11 @@ function ImpressaoAdmin() {
     queryKey: ["fila-impressao"],
     enabled: !!isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("fila_impressao").select("*").order("created_at", { ascending: false }).limit(50);
+      const { data, error } = await supabase
+        .from("fila_impressao")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
       if (error) throw error;
       return data ?? [];
     },
@@ -1984,7 +3014,11 @@ function ImpressaoAdmin() {
     queryKey: ["admin-pedidos-impressao"],
     enabled: !!isAdmin,
     queryFn: async () => {
-      const { data, error } = await supabase.from("pedidos").select("id, numero, status, impresso, created_at").order("created_at", { ascending: false }).limit(200);
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select("id, numero, status, impresso, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
       if (error) throw error;
       return data ?? [];
     },
@@ -2006,7 +3040,12 @@ function ImpressaoAdmin() {
     }
   }
 
-  async function reimprimir(job: { id: string; payload: string; pedido_id: string | null; reimpressoes: number }) {
+  async function reimprimir(job: {
+    id: string;
+    payload: string;
+    pedido_id: string | null;
+    reimpressoes: number;
+  }) {
     try {
       await supabase.from("fila_impressao").insert({
         trabalho_uuid: `reimp:${job.id}:${Date.now()}`,
@@ -2016,7 +3055,10 @@ function ImpressaoAdmin() {
         impressora: "Tanca TP-550",
         motivo_reimpressao: "manual",
       });
-      await supabase.from("fila_impressao").update({ reimpressoes: (job.reimpressoes ?? 0) + 1 }).eq("id", job.id);
+      await supabase
+        .from("fila_impressao")
+        .update({ reimpressoes: (job.reimpressoes ?? 0) + 1 })
+        .eq("id", job.id);
       toast.success("Reimpressão na fila.");
       queryClient.invalidateQueries({ queryKey: ["fila-impressao"] });
     } catch (e) {
@@ -2027,7 +3069,10 @@ function ImpressaoAdmin() {
   async function cancelarJob(job: { id: string }) {
     if (!window.confirm("Cancelar este trabalho de impressão?")) return;
     try {
-      await supabase.from("fila_impressao").update({ status: "cancelado", updated_at: new Date().toISOString() }).eq("id", job.id);
+      await supabase
+        .from("fila_impressao")
+        .update({ status: "cancelado", updated_at: new Date().toISOString() })
+        .eq("id", job.id);
       toast.success("Trabalho cancelado.");
       queryClient.invalidateQueries({ queryKey: ["fila-impressao"] });
     } catch (e) {
@@ -2035,9 +3080,12 @@ function ImpressaoAdmin() {
     }
   }
 
-  if (!isAdmin) return <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>;
+  if (!isAdmin)
+    return (
+      <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
+    );
 
-  const trabalhos = ((fila ?? []) as any[]);
+  const trabalhos = (fila ?? []) as any[];
   const pendentes = trabalhos.filter((j) => j.status === "pendente" || j.status === "enviando");
   const maisAntigo = pendentes.reduce<number | null>((acc, j) => {
     const t = +new Date(j.created_at);
@@ -2047,32 +3095,75 @@ function ImpressaoAdmin() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <h1 className="font-display text-3xl">Fila de Impressão</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Tanca TP-550 via agente Windows. Anti-duplicidade por uuid.</p>
+      <PageHeader
+        titulo="Fila de Impressão"
+        descricao="Tanca TP-550 via agente Windows. Anti-duplicidade por uuid."
+      />
       {pendentes.length > 0 && idadeMin >= 3 ? (
         <p className="mt-2 rounded-lg bg-destructive/10 p-2.5 text-sm text-destructive">
-          ⚠️ {pendentes.length} trabalho(s) parado(s) há {idadeMin} min. O agente pode estar offline (notebook desligado?). A fila é mantida — nada será perdido nem duplicado.
+          ⚠️ {pendentes.length} trabalho(s) parado(s) há {idadeMin} min. O agente pode estar offline
+          (notebook desligado?). A fila é mantida — nada será perdido nem duplicado.
         </p>
       ) : null}
       <div className="flex flex-wrap gap-2 mt-4">
-        <Button onClick={testar} className="mt-4">🖨️ Testar Impressora</Button>
+        <Button onClick={testar} className="mt-4">
+          🖨️ Testar Impressora
+        </Button>
       </div>
       <div className="mt-6 space-y-2">
-        {trabalhos.map((j: { id: string; trabalho_uuid: string; status: string; tentativa: number; payload: string; pedido_id: string | null; reimpressoes: number; ultimo_erro?: string | null }) => (
-          <div key={j.id} className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-3 text-sm">
-            <div className="min-w-0">
-              <div className="truncate font-mono text-xs" title={j.trabalho_uuid}>{j.trabalho_uuid}</div>
-              <div className="text-muted-foreground">{j.status} • tentativas {j.tentativa} • reimp {j.reimpressoes}</div>
-              {j.status === "erro" && j.ultimo_erro ? <div className="mt-1 break-all text-xs text-destructive">{j.ultimo_erro}</div> : null}
+        {trabalhos.map(
+          (j: {
+            id: string;
+            trabalho_uuid: string;
+            status: string;
+            tentativa: number;
+            payload: string;
+            pedido_id: string | null;
+            reimpressoes: number;
+            ultimo_erro?: string | null;
+          }) => (
+            <div
+              key={j.id}
+              className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-3 text-sm"
+            >
+              <div className="min-w-0">
+                <div className="truncate font-mono text-xs" title={j.trabalho_uuid}>
+                  {j.trabalho_uuid}
+                </div>
+                <div className="text-muted-foreground">
+                  {j.status} • tentativas {j.tentativa} • reimp {j.reimpressoes}
+                </div>
+                {j.status === "erro" && j.ultimo_erro ? (
+                  <div className="mt-1 break-all text-xs text-destructive">{j.ultimo_erro}</div>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 gap-1">
+                {j.status === "erro" ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      /* tentar novamente - implementar se necessário */
+                    }}
+                  >
+                    ↻ Tentar
+                  </Button>
+                ) : null}
+                {j.status === "pendente" || j.status === "erro" ? (
+                  <Button variant="ghost" size="sm" onClick={() => cancelarJob(j)}>
+                    ✕
+                  </Button>
+                ) : null}
+                <Button variant="outline" size="sm" onClick={() => reimprimir(j)}>
+                  🔁 Reimprimir
+                </Button>
+              </div>
             </div>
-            <div className="flex shrink-0 gap-1">
-              {j.status === "erro" ? <Button variant="outline" size="sm" onClick={() => { /* tentar novamente - implementar se necessário */ }}>↻ Tentar</Button> : null}
-              {(j.status === "pendente" || j.status === "erro") ? <Button variant="ghost" size="sm" onClick={() => cancelarJob(j)}>✕</Button> : null}
-              <Button variant="outline" size="sm" onClick={() => reimprimir(j)}>🔁 Reimprimir</Button>
-            </div>
-          </div>
-        ))}
-        {trabalhos.length === 0 ? <p className="text-sm text-muted-foreground">Fila vazia.</p> : null}
+          ),
+        )}
+        {trabalhos.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Fila vazia.</p>
+        ) : null}
       </div>
     </div>
   );
@@ -2080,7 +3171,17 @@ function ImpressaoAdmin() {
 
 const PAPEIS: Role[] = ["admin", "atendente", "producao", "motoboy", "financeiro", "cliente"];
 
-function UsuariosAdmin({ profiles, roles, meuId, onChange }: { profiles: any[]; roles: { user_id: string; role: string }[]; meuId: string | undefined; onChange: () => void }) {
+function UsuariosAdmin({
+  profiles,
+  roles,
+  meuId,
+  onChange,
+}: {
+  profiles: any[];
+  roles: { user_id: string; role: string }[];
+  meuId: string | undefined;
+  onChange: () => void;
+}) {
   const [busca, setBusca] = useState("");
   const porUsuario = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -2124,20 +3225,31 @@ function UsuariosAdmin({ profiles, roles, meuId, onChange }: { profiles: any[]; 
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <h2 className="font-display text-xl">Usuários e papéis ({profiles.length})</h2>
-      <p className="text-xs text-muted-foreground">Somente admin. Papéis controlam RLS no backend, não só menus.</p>
-      <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nome ou telefone…" className="mt-3 max-w-sm" />
+      <p className="text-xs text-muted-foreground">
+        Somente admin. Papéis controlam RLS no backend, não só menus.
+      </p>
+      <Input
+        value={busca}
+        onChange={(e) => setBusca(e.target.value)}
+        placeholder="Buscar nome ou telefone…"
+        className="mt-3 max-w-sm"
+      />
       <ul className="mt-3 space-y-2">
         {lista.slice(0, 60).map((p) => {
           const meus = porUsuario.get(p.id) ?? [];
           return (
             <li key={p.id} className="rounded-lg border border-border p-3 text-sm">
-              <p className="font-semibold">{p.nome || "Sem nome"} <span className="font-normal text-muted-foreground">• {p.telefone || "—"}</span></p>
+              <p className="font-semibold">
+                {p.nome || "Sem nome"}{" "}
+                <span className="font-normal text-muted-foreground">• {p.telefone || "—"}</span>
+              </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {PAPEIS.map((r) => {
                   const tem = meus.includes(r);
                   return (
                     <button
-                      key={r} type="button"
+                      key={r}
+                      type="button"
                       onClick={() => alternar(p.id, r, tem)}
                       className={`rounded-full border px-3 py-1 text-xs font-semibold ${tem ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
                       aria-pressed={tem}
@@ -2160,7 +3272,11 @@ function LogsAdmin({ profiles }: { profiles: any[] }) {
     queryKey: ["admin-logs"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(200);
+        const { data, error } = await supabase
+          .from("admin_logs")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(200);
         if (error) throw error;
         return data ?? [];
       } catch {
@@ -2168,28 +3284,43 @@ function LogsAdmin({ profiles }: { profiles: any[] }) {
       }
     },
   });
-  const nomes = useMemo(() => new Map(profiles.map((p: any) => [p.id, p.nome || p.telefone || p.id.slice(0, 8)])), [profiles]);
+  const nomes = useMemo(
+    () => new Map(profiles.map((p: any) => [p.id, p.nome || p.telefone || p.id.slice(0, 8)])),
+    [profiles],
+  );
   return (
     <section className="rounded-xl border border-border bg-card p-5">
       <h2 className="font-display text-xl">Logs de auditoria</h2>
-      <p className="text-xs text-muted-foreground">Quem fez o quê e quando (status, produtos, cupons, metas, despesas, notas, papéis).</p>
+      <p className="text-xs text-muted-foreground">
+        Quem fez o quê e quando (status, produtos, cupons, metas, despesas, notas, papéis).
+      </p>
       <ul className="mt-3 space-y-1.5 text-sm">
         {((logs ?? []) as any[]).map((l) => (
           <li key={l.id} className="flex flex-wrap gap-2 rounded-lg border border-border p-2.5">
             <span className="font-semibold">{l.acao}</span>
             <span className="text-muted-foreground">{l.detalhe}</span>
-            <span className="ml-auto text-xs text-muted-foreground">{l.actor ? nomes.get(l.actor) ?? l.actor.slice(0, 8) : "sistema"} • {dataHora(l.created_at)}</span>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {l.actor ? (nomes.get(l.actor) ?? l.actor.slice(0, 8)) : "sistema"} •{" "}
+              {dataHora(l.created_at)}
+            </span>
           </li>
         ))}
-        {(logs ?? []).length === 0 ? <li className="text-muted-foreground">Sem logs. Rode a migração 0003 no Supabase.</li> : null}
+        {(logs ?? []).length === 0 ? (
+          <li className="text-muted-foreground">Sem logs. Rode a migração 0003 no Supabase.</li>
+        ) : null}
       </ul>
     </section>
   );
 }
 
 function ComercialAdmin({ pedidos, clientes }: { pedidos: any[]; clientes: CustomerStats[] }) {
-  const validos = useMemo(() => (pedidos ?? []).filter((p: any) => p.status !== "cancelado"), [pedidos]);
-  const ticket = validos.length ? validos.reduce((a: number, p: any) => a + Number(p.total ?? 0), 0) / validos.length : 0;
+  const validos = useMemo(
+    () => (pedidos ?? []).filter((p: any) => p.status !== "cancelado"),
+    [pedidos],
+  );
+  const ticket = validos.length
+    ? validos.reduce((a: number, p: any) => a + Number(p.total ?? 0), 0) / validos.length
+    : 0;
 
   // Agrupa por telefone p/ novos / recorrentes / reativados (base: pedidos carregados)
   const grupos = useMemo(() => {
@@ -2222,13 +3353,18 @@ function ComercialAdmin({ pedidos, clientes }: { pedidos: any[]; clientes: Custo
   }, [validos]);
 
   const empresas = clientes.filter((c) => c.tipo_cliente === "PJ").length;
-  const fatEmpresas = clientes.filter((c) => c.tipo_cliente === "PJ").reduce((a, c) => a + c.total_gasto, 0);
+  const fatEmpresas = clientes
+    .filter((c) => c.tipo_cliente === "PJ")
+    .reduce((a, c) => a + c.total_gasto, 0);
 
   const { data: orcamentos } = useQuery({
     queryKey: ["comercial-orcamentos"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from("orcamentos").select("status, total").limit(500);
+        const { data, error } = await supabase
+          .from("orcamentos")
+          .select("status, total")
+          .limit(500);
         if (error) throw error;
         return (data ?? []) as any[];
       } catch {
@@ -2252,8 +3388,16 @@ function ComercialAdmin({ pedidos, clientes }: { pedidos: any[]; clientes: Custo
     queryFn: async () => {
       try {
         const { data: camps } = await supabase.from("crm_campaigns").select("id").limit(100);
-        const { data: recs } = await supabase.from("crm_recipients").select("campaign_id, sent_at").limit(5000);
-        const { data: peds } = await supabase.from("pedidos").select("campanha_origem, total").neq("campanha_origem", "").neq("status", "cancelado").limit(2000);
+        const { data: recs } = await supabase
+          .from("crm_recipients")
+          .select("campaign_id, sent_at")
+          .limit(5000);
+        const { data: peds } = await supabase
+          .from("pedidos")
+          .select("campanha_origem, total")
+          .neq("campanha_origem", "")
+          .neq("status", "cancelado")
+          .limit(2000);
         return {
           qtd: (camps ?? []).length,
           enviados: ((recs ?? []) as any[]).filter((r) => r.sent_at).length,
@@ -2271,25 +3415,53 @@ function ComercialAdmin({ pedidos, clientes }: { pedidos: any[]; clientes: Custo
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="font-display text-xl">Comercial (base: dados carregados)</h2>
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <p className="rounded-lg bg-muted p-2.5">Novos clientes <strong className="float-right">{grupos.novos}</strong></p>
-          <p className="rounded-lg bg-muted p-2.5">Recorrentes (2+ pedidos) <strong className="float-right">{grupos.recorrentes}</strong></p>
-          <p className="rounded-lg bg-muted p-2.5">Reativados (gap 60d+, comprou 30d) <strong className="float-right">{grupos.reativados}</strong></p>
-          <p className="rounded-lg bg-muted p-2.5">Ticket médio <strong className="float-right">{brl(ticket)}</strong></p>
-          <p className="rounded-lg bg-muted p-2.5">Empresas <strong className="float-right">{empresas}</strong></p>
-          <p className="rounded-lg bg-muted p-2.5">Faturamento B2B <strong className="float-right">{brl(fatEmpresas)}</strong></p>
-          <p className="rounded-lg bg-muted p-2.5">Campanhas <strong className="float-right">{campanhasInfo?.qtd ?? 0}</strong></p>
-          <p className="rounded-lg bg-muted p-2.5">Vendas de campanha <strong className="float-right">{campanhasInfo?.pedidos ?? 0} • {brl(campanhasInfo?.valor ?? 0)}</strong></p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Novos clientes <strong className="float-right">{grupos.novos}</strong>
+          </p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Recorrentes (2+ pedidos) <strong className="float-right">{grupos.recorrentes}</strong>
+          </p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Reativados (gap 60d+, comprou 30d){" "}
+            <strong className="float-right">{grupos.reativados}</strong>
+          </p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Ticket médio <strong className="float-right">{brl(ticket)}</strong>
+          </p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Empresas <strong className="float-right">{empresas}</strong>
+          </p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Faturamento B2B <strong className="float-right">{brl(fatEmpresas)}</strong>
+          </p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Campanhas <strong className="float-right">{campanhasInfo?.qtd ?? 0}</strong>
+          </p>
+          <p className="rounded-lg bg-muted p-2.5">
+            Vendas de campanha{" "}
+            <strong className="float-right">
+              {campanhasInfo?.pedidos ?? 0} • {brl(campanhasInfo?.valor ?? 0)}
+            </strong>
+          </p>
         </div>
       </section>
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="font-display text-xl">Orçamentos por status</h2>
         <ul className="mt-2 space-y-1.5 text-sm">
           {(orcPorStatus ?? []).map(([s, v]) => (
-            <li key={s} className="flex justify-between gap-2 rounded-lg border border-border p-2.5">
-              <span className="capitalize">{s} ({v.qtd})</span><span className="font-semibold">{brl(v.total)}</span>
+            <li
+              key={s}
+              className="flex justify-between gap-2 rounded-lg border border-border p-2.5"
+            >
+              <span className="capitalize">
+                {s} ({v.qtd})
+              </span>
+              <span className="font-semibold">{brl(v.total)}</span>
             </li>
           ))}
-          {(orcPorStatus ?? []).length === 0 ? <li className="text-muted-foreground">Nenhum orçamento.</li> : null}
+          {(orcPorStatus ?? []).length === 0 ? (
+            <li className="text-muted-foreground">Nenhum orçamento.</li>
+          ) : null}
         </ul>
       </section>
     </div>
@@ -2299,17 +3471,30 @@ function ComercialAdmin({ pedidos, clientes }: { pedidos: any[]; clientes: Custo
 function RotasBairro({ pedidos }: { pedidos: any[] }) {
   const grupos = agruparPorBairro(pedidos.map((p: any) => ({ bairro: p.bairro, id: p.id })));
   const porId = useMemo(() => new Map(pedidos.map((p: any) => [p.id, p])), [pedidos]);
-  if (grupos.length === 0) return <p className="mt-2 text-sm text-muted-foreground">Nenhuma entrega pendente.</p>;
+  if (grupos.length === 0)
+    return <p className="mt-2 text-sm text-muted-foreground">Nenhuma entrega pendente.</p>;
   return (
     <div className="mt-3 space-y-2">
       {grupos.map((g) => (
-        <details key={g.bairro} className="rounded-lg border border-border p-3 text-sm" open={grupos.length <= 3}>
-          <summary className="cursor-pointer font-semibold">ROTA — {g.bairro} ({g.qtd} pedido(s))</summary>
+        <details
+          key={g.bairro}
+          className="rounded-lg border border-border p-3 text-sm"
+          open={grupos.length <= 3}
+        >
+          <summary className="cursor-pointer font-semibold">
+            ROTA — {g.bairro} ({g.qtd} pedido(s))
+          </summary>
           <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
             {g.ids.map((id) => {
               const p = porId.get(id);
               if (!p) return null;
-              return <li key={id}>#{p.numero} — {p.cliente_nome} — {p.endereco}{p.complemento ? `, ${p.complemento}` : ""} • {p.telefone} • {STATUS_EXIBICAO[p.status] ?? p.status}</li>;
+              return (
+                <li key={id}>
+                  #{p.numero} — {p.cliente_nome} — {p.endereco}
+                  {p.complemento ? `, ${p.complemento}` : ""} • {p.telefone} •{" "}
+                  {STATUS_EXIBICAO[p.status] ?? p.status}
+                </li>
+              );
             })}
           </ul>
         </details>
@@ -2320,7 +3505,9 @@ function RotasBairro({ pedidos }: { pedidos: any[] }) {
 
 function AvaliacoesResumo({ avaliacoes }: { avaliacoes: any[] }) {
   const media = (k: string) => {
-    const vals = avaliacoes.map((a: any) => Number(a[k] ?? NaN)).filter((n) => Number.isFinite(n) && n > 0);
+    const vals = avaliacoes
+      .map((a: any) => Number(a[k] ?? NaN))
+      .filter((n) => Number.isFinite(n) && n > 0);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   };
   const mq = media("nota");
@@ -2329,24 +3516,44 @@ function AvaliacoesResumo({ avaliacoes }: { avaliacoes: any[] }) {
   const ruins = avaliacoes.filter((a: any) => Number(a.nota) <= 2).length;
   return (
     <div className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
-      <p className="rounded-lg bg-muted p-2.5">Qualidade <strong className="float-right">{mq != null ? `${mq.toFixed(1)}★` : "—"}</strong></p>
-      <p className="rounded-lg bg-muted p-2.5">Prazo <strong className="float-right">{mp != null ? `${mp.toFixed(1)}★` : "—"}</strong></p>
-      <p className="rounded-lg bg-muted p-2.5">Atendimento <strong className="float-right">{ma != null ? `${ma.toFixed(1)}★` : "—"}</strong></p>
-      <p className="rounded-lg bg-muted p-2.5">⚠ p/ acompanhar <strong className="float-right">{ruins}</strong></p>
+      <p className="rounded-lg bg-muted p-2.5">
+        Qualidade <strong className="float-right">{mq != null ? `${mq.toFixed(1)}★` : "—"}</strong>
+      </p>
+      <p className="rounded-lg bg-muted p-2.5">
+        Prazo <strong className="float-right">{mp != null ? `${mp.toFixed(1)}★` : "—"}</strong>
+      </p>
+      <p className="rounded-lg bg-muted p-2.5">
+        Atendimento{" "}
+        <strong className="float-right">{ma != null ? `${ma.toFixed(1)}★` : "—"}</strong>
+      </p>
+      <p className="rounded-lg bg-muted p-2.5">
+        ⚠ p/ acompanhar <strong className="float-right">{ruins}</strong>
+      </p>
     </div>
   );
 }
 
-function EmRotaAdmin({ pedidos }: { pedidos: any[] }) {  if (pedidos.length === 0) return <p className="mt-2 text-sm text-muted-foreground">Nenhum pedido em rota.</p>;
-  const pontos = pedidos.flatMap((p: any) => [
-    p.destino_lat && p.destino_lng ? { lat: p.destino_lat, lng: p.destino_lng, label: `Entrega ${p.numero}` } : null,
-    p.motoboy_lat && p.motoboy_lng ? { lat: p.motoboy_lat, lng: p.motoboy_lng, label: `Motoboy ${p.numero}` } : null,
-  ].filter(Boolean));
+function EmRotaAdmin({ pedidos }: { pedidos: any[] }) {
+  if (pedidos.length === 0)
+    return <p className="mt-2 text-sm text-muted-foreground">Nenhum pedido em rota.</p>;
+  const pontos = pedidos.flatMap((p: any) =>
+    [
+      p.destino_lat && p.destino_lng
+        ? { lat: p.destino_lat, lng: p.destino_lng, label: `Entrega ${p.numero}` }
+        : null,
+      p.motoboy_lat && p.motoboy_lng
+        ? { lat: p.motoboy_lat, lng: p.motoboy_lng, label: `Motoboy ${p.numero}` }
+        : null,
+    ].filter(Boolean),
+  );
   return (
     <div className="mt-3 space-y-2">
       <MapView pontos={pontos as any} />
       {pedidos.map((p: any) => (
-        <p key={p.id} className="text-sm">Nº {p.numero} — {p.cliente_nome} — atual. {p.motoboy_atualizado_em ? hora(p.motoboy_atualizado_em) : "—"}</p>
+        <p key={p.id} className="text-sm">
+          Nº {p.numero} — {p.cliente_nome} — atual.{" "}
+          {p.motoboy_atualizado_em ? hora(p.motoboy_atualizado_em) : "—"}
+        </p>
       ))}
     </div>
   );

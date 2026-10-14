@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Search,
   CheckCircle,
+  ChevronRight,
   XCircle,
   Satellite,
 } from "lucide-react";
@@ -22,8 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
+import { StatusCard, EmptyState } from "@/components/admin/ui-admin";
+import fritos from "@/assets/cat-fritos.jpg";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 import { MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL } from "@/lib/entrega";
@@ -61,7 +65,9 @@ function CentralEntregas() {
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
-  const [filtro, setFiltro] = useState<"todos" | "hoje" | "em_rota" | "aguardando" | "entregues">("todos");
+  const [filtro, setFiltro] = useState<
+    "todos" | "hoje" | "em_rota" | "aguardando" | "entregues" | "retirada"
+  >("todos");
   const [aba, setAba] = useState("k");
   const [motoboySelecionado, setMotoboySelecionado] = useState("");
   const [pedidosSelecionados, setPedidosSelecionados] = useState<string[]>([]);
@@ -84,7 +90,8 @@ function CentralEntregas() {
   const [ocResolvendoId, setOcResolvendoId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/central-entregas" }, replace: true });
+    if (!loading && !user)
+      navigate({ to: "/auth", search: { redirect: "/central-entregas" }, replace: true });
   }, [loading, user, navigate]);
 
   const autorizado = roles?.includes("admin") || roles?.includes("producao");
@@ -94,12 +101,22 @@ function CentralEntregas() {
     queryKey: ["central-j2-pedidos", filtro],
     enabled: !!autorizado && !loading,
     queryFn: async () => {
-      // Retirada nunca entra na central de entregas (NULL passa p/ bancos sem a 0018).
-      let query = supabase.from("pedidos").select("*").neq("tipo_entrega", "retirada").order("created_at", { ascending: false });
+      // Retirada nunca entra na central de entregas — exceto no filtro
+      // próprio "retirada" (prontos aguardando o cliente buscar).
+      const soRetirada = filtro === "retirada";
+      let query = supabase.from("pedidos").select("*").order("created_at", { ascending: false });
+      if (soRetirada) {
+        query = query.eq("tipo_entrega", "retirada").eq("status", "pronto");
+      } else {
+        // NULL passa p/ bancos sem a 0018.
+        query = query.neq("tipo_entrega", "retirada");
+      }
       switch (filtro) {
         case "hoje": {
           const hoje = new Date();
-          query = query.gte("created_at", `${hoje.toISOString().slice(0, 10)}T00:00:00`).lte("created_at", `${hoje.toISOString().slice(0, 10)}T23:59:59`);
+          query = query
+            .gte("created_at", `${hoje.toISOString().slice(0, 10)}T00:00:00`)
+            .lte("created_at", `${hoje.toISOString().slice(0, 10)}T23:59:59`);
           break;
         }
         case "em_rota":
@@ -138,7 +155,11 @@ function CentralEntregas() {
     queryKey: ["central-j3c-historico", histPedidoId || null, histMotoboyId || null],
     enabled: histFiltroAtivo,
     queryFn: async () => {
-      let q = supabase.from("motoboy_historico").select("*").order("created_at", { ascending: true }).limit(200);
+      let q = supabase
+        .from("motoboy_historico")
+        .select("*")
+        .order("created_at", { ascending: true })
+        .limit(200);
       if (histPedidoId) q = q.eq("pedido_id", histPedidoId);
       if (histMotoboyId) q = q.eq("motoboy_id", histMotoboyId);
       const { data, error } = await q;
@@ -150,7 +171,11 @@ function CentralEntregas() {
     queryKey: ["central-j3c-atrasos", histPedidoId || null, histMotoboyId || null],
     enabled: histFiltroAtivo,
     queryFn: async () => {
-      let q = supabase.from("entrega_atrasos").select("*").order("criado_em", { ascending: true }).limit(100);
+      let q = supabase
+        .from("entrega_atrasos")
+        .select("*")
+        .order("criado_em", { ascending: true })
+        .limit(100);
       if (histPedidoId) q = q.eq("pedido_id", histPedidoId);
       if (histMotoboyId) q = q.eq("motoboy_id", histMotoboyId);
       const { data, error } = await q;
@@ -160,11 +185,19 @@ function CentralEntregas() {
   });
 
   // ---------- OCORRÊNCIAS (J3-D): lista operacional recente, sem subscription nova ----------
-  const { data: ocorrencias, isFetching: ocCarregando, error: ocErro } = useQuery({
+  const {
+    data: ocorrencias,
+    isFetching: ocCarregando,
+    error: ocErro,
+  } = useQuery({
     queryKey: ["central-j3d-ocorrencias"],
     enabled: !!autorizado && !loading,
     queryFn: async () => {
-      const { data, error } = await supabase.from("entrega_atrasos").select("*").order("criado_em", { ascending: false }).limit(100);
+      const { data, error } = await supabase
+        .from("entrega_atrasos")
+        .select("*")
+        .order("criado_em", { ascending: false })
+        .limit(100);
       if (error) throw error;
       return data ?? [];
     },
@@ -180,9 +213,18 @@ function CentralEntregas() {
 
   // Registrar ocorrência: somente campos de entrega_atrasos. Sem atraso automático (proibido na J3-D).
   async function registrarOcorrencia() {
-    if (!ocPedidoId) { toast.error("Selecione um pedido."); return; }
-    if (!(MOTIVO_ATRASO as readonly string[]).includes(ocMotivo)) { toast.error("Motivo inválido."); return; }
-    if (ocMotivo === "outro" && !ocDesc.trim()) { toast.error("Descreva o motivo."); return; }
+    if (!ocPedidoId) {
+      toast.error("Selecione um pedido.");
+      return;
+    }
+    if (!(MOTIVO_ATRASO as readonly string[]).includes(ocMotivo)) {
+      toast.error("Motivo inválido.");
+      return;
+    }
+    if (ocMotivo === "outro" && !ocDesc.trim()) {
+      toast.error("Descreva o motivo.");
+      return;
+    }
     const ped = (pedidos ?? []).find((x: any) => x.id === ocPedidoId);
     setOcSalvando(true);
     try {
@@ -195,7 +237,9 @@ function CentralEntregas() {
       });
       if (error) throw error;
       toast.success("Ocorrência registrada.");
-      setOcPedidoId(""); setOcMotivo("transito"); setOcDesc("");
+      setOcPedidoId("");
+      setOcMotivo("transito");
+      setOcDesc("");
       queryClient.invalidateQueries({ queryKey: ["central-j3d-ocorrencias"] });
       queryClient.invalidateQueries({ queryKey: ["central-j3c-atrasos"] });
       queryClient.invalidateQueries({ queryKey: ["central-j3c-historico"] });
@@ -210,7 +254,10 @@ function CentralEntregas() {
   async function resolverOcorrencia(id: string) {
     setOcResolvendoId(id);
     try {
-      const { error } = await supabase.from("entrega_atrasos").update({ resolvido_em: new Date().toISOString() }).eq("id", id);
+      const { error } = await supabase
+        .from("entrega_atrasos")
+        .update({ resolvido_em: new Date().toISOString() })
+        .eq("id", id);
       if (error) throw error;
       toast.success("Ocorrência marcada como resolvida.");
       queryClient.invalidateQueries({ queryKey: ["central-j3d-ocorrencias"] });
@@ -238,14 +285,19 @@ function CentralEntregas() {
     queryKey: ["central-j3f-rotas", ...rotaIdsEmRota],
     enabled: !!autorizado && !loading && rotaIdsEmRota.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase.from("rotas_entrega").select("id,saiu_em").in("id", rotaIdsEmRota);
+      const { data, error } = await supabase
+        .from("rotas_entrega")
+        .select("id,saiu_em")
+        .in("id", rotaIdsEmRota);
       if (error) throw error;
       return data ?? [];
     },
   });
   const rotaSaidaMap = useMemo(() => {
     const m = new Map<string, string>();
-    (rotasSaida ?? []).forEach((r: any) => { if (r?.id && r?.saiu_em) m.set(r.id, r.saiu_em); });
+    (rotasSaida ?? []).forEach((r: any) => {
+      if (r?.id && r?.saiu_em) m.set(r.id, r.saiu_em);
+    });
     return m;
   }, [rotasSaida]);
   // Início real da rota por pedido: pedidos.saiu_em ?? rotas_entrega.saiu_em. Sem inventar.
@@ -253,7 +305,8 @@ function CentralEntregas() {
   const acompanhamento = useMemo(() => {
     const comInicio = emRotaBase.map((p: any) => ({
       p,
-      inicio: ((p.saiu_em as string | null) ?? (p.rota_id ? rotaSaidaMap.get(p.rota_id) ?? null : null)) as string | null,
+      inicio: ((p.saiu_em as string | null) ??
+        (p.rota_id ? (rotaSaidaMap.get(p.rota_id) ?? null) : null)) as string | null,
     }));
     return comInicio.sort((a: any, b: any) => {
       if (a.inicio && b.inicio) return new Date(a.inicio).getTime() - new Date(b.inicio).getTime();
@@ -267,13 +320,19 @@ function CentralEntregas() {
   const fetchRotasAtivas = async () => {
     const { data, error } = await supabase
       .from("rotas_entrega")
-      .select("id,motoboy_id,status,saiu_em,rota_pedidos(pedido_id,pedidos(id,numero,status,cliente_nome))")
+      .select(
+        "id,motoboy_id,status,saiu_em,rota_pedidos(pedido_id,pedidos(id,numero,status,cliente_nome))",
+      )
       .eq("status", "em_rota")
       .order("saiu_em", { ascending: true });
     if (error) throw error;
     return data ?? [];
   };
-  const { data: rotasAtivas, isFetching: rotasCarregando, error: rotasErro } = useQuery({
+  const {
+    data: rotasAtivas,
+    isFetching: rotasCarregando,
+    error: rotasErro,
+  } = useQuery({
     queryKey: ["central-j3h-rotas"],
     enabled: !!autorizado && !loading,
     queryFn: fetchRotasAtivas,
@@ -285,12 +344,17 @@ function CentralEntregas() {
   async function encerrarRota(rotaId: string) {
     setRotaEncerrandoId(rotaId);
     try {
-      const fresh = await queryClient.fetchQuery({ queryKey: ["central-j3h-rotas"], queryFn: fetchRotasAtivas });
+      const fresh = await queryClient.fetchQuery({
+        queryKey: ["central-j3h-rotas"],
+        queryFn: fetchRotasAtivas,
+      });
       const rota = (fresh ?? []).find((r: any) => r.id === rotaId);
       if (!rota) throw new Error("Rota não encontrada. Atualize a lista e tente de novo.");
       if (rota.status !== "em_rota") throw new Error("Só é possível encerrar rotas em rota.");
-      const vinculados = ((rota.rota_pedidos ?? []).map((rp: any) => rp.pedidos).filter(Boolean));
-      const pendentes = vinculados.filter((p: any) => p.status !== "entregue" && p.status !== "cancelado");
+      const vinculados = (rota.rota_pedidos ?? []).map((rp: any) => rp.pedidos).filter(Boolean);
+      const pendentes = vinculados.filter(
+        (p: any) => p.status !== "entregue" && p.status !== "cancelado",
+      );
       if (pendentes.length > 0) {
         throw new Error(`Ainda existem ${pendentes.length} pedido(s) pendentes nesta rota.`);
       }
@@ -364,21 +428,32 @@ function CentralEntregas() {
           const hoje = new Date();
           return new Date(p.created_at).toDateString() === hoje.toDateString();
         }
-        case "em_rota": return p.status === "em_rota";
-        case "aguardando": return p.status === "aguardando_motoboy";
-        case "entregues": return p.status === "entregue";
-        default: return true;
+        case "em_rota":
+          return p.status === "em_rota";
+        case "aguardando":
+          return p.status === "aguardando_motoboy";
+        case "entregues":
+          return p.status === "entregue";
+        default:
+          return true;
       }
     });
   }, [pedidos, filtro]);
 
   // Contadores a partir dos dados já carregados
   const contadores = useMemo(() => {
-    if (!pedidos?.length) return { aguardando: 0, atribuidos: 0, em_rota: 0, entregue: 0, total: 0 };
+    if (!pedidos?.length)
+      return { aguardando: 0, atribuidos: 0, em_rota: 0, entregue: 0, total: 0 };
     const total = pedidos.length;
     return {
       aguardando: pedidos.filter((p: any) => p.status === "aguardando_motoboy").length,
-      atribuidos: pedidos.filter((p: any) => p.motoboy_id && p.status !== "aguardando_motoboy" && p.status !== "entregue" && p.status !== "em_rota").length,
+      atribuidos: pedidos.filter(
+        (p: any) =>
+          p.motoboy_id &&
+          p.status !== "aguardando_motoboy" &&
+          p.status !== "entregue" &&
+          p.status !== "em_rota",
+      ).length,
       em_rota: pedidos.filter((p: any) => p.status === "em_rota").length,
       entregue: pedidos.filter((p: any) => p.status === "entregue").length,
       total,
@@ -391,8 +466,41 @@ function CentralEntregas() {
     return motoboys.filter((m: any) => m.status === "disponivel_base");
   }, [motoboys]);
 
+  // Resumo do dia (real, sobre os dados carregados): KPIs, em andamento e motoboys.
+  const resumoCentral = useMemo(() => {
+    const lista = pedidos ?? [];
+    const hoje = new Date().toDateString();
+    const emRota = lista.filter((p: any) => p.status === "em_rota");
+    const aguardando = lista.filter((p: any) => p.status === "aguardando_motoboy");
+    const entreguesHoje = lista.filter(
+      (p: any) => p.status === "entregue" && new Date(p.created_at).toDateString() === hoje,
+    );
+    const porMotoboy = new Map<string, string>();
+    for (const m of motoboys ?? []) if (m.user_id) porMotoboy.set(String(m.user_id), m.nome ?? "?");
+    const emAndamento = [...emRota]
+      .sort((a: any, b: any) => +new Date(b.created_at) - +new Date(a.created_at))
+      .slice(0, 8);
+    const motos = (motoboys ?? []).map((m: any) => ({
+      nome: m.nome ?? "?",
+      status: m.status ?? "offline",
+      entregas: lista.filter(
+        (p: any) =>
+          p.motoboy_id && String(p.motoboy_id) === String(m.user_id) && p.status !== "cancelado",
+      ).length,
+    }));
+    const motosEmRota = (motoboys ?? []).filter((m: any) => m.status === "em_rota").length;
+    return { emRota, aguardando, entreguesHoje, emAndamento, porMotoboy, motos, motosEmRota };
+  }, [pedidos, motoboys]);
+
+  function verHistoricoPedido(id: string) {
+    setHistPedidoId(id);
+    document
+      .getElementById("secao-historico")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   // ---------- FUNÇÕES ----------
-// Atribuir motoboy ao pedido
+  // Atribuir motoboy ao pedido
   async function atribuirMotoboy(pedidoId: string, motoboyId: string) {
     // Validar se motoboy está elegível (status disponivel_base)
     const motoboy = motoboysElegiveis?.find((m: any) => m.id === motoboyId);
@@ -423,7 +531,10 @@ function CentralEntregas() {
       toast.success(`Motoboy ${motoboy.nome} atribuído ao pedido #${pedidoId}`);
       queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
       // Forçar refetch para mover card entre colunas
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] }), 100);
+      setTimeout(
+        () => queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] }),
+        100,
+      );
     } catch (e: any) {
       toast.error(e instanceof Error ? e.message : "Erro ao atribuir motoboy");
     }
@@ -456,11 +567,15 @@ function CentralEntregas() {
 
     try {
       // 1. Criar rota_entrega
-      const { data: rota, error: e1 } = await supabase.from("rotas_entrega").insert({
-        motoboy_id: motoboyId,
-        status: "em_rota",
-        saiu_em: new Date().toISOString(),
-      }).select("id").single();
+      const { data: rota, error: e1 } = await supabase
+        .from("rotas_entrega")
+        .insert({
+          motoboy_id: motoboyId,
+          status: "em_rota",
+          saiu_em: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
       if (e1 || !rota) throw e1 ?? new Error("Erro ao criar rota");
       const rotaId = rota.id;
 
@@ -474,10 +589,15 @@ function CentralEntregas() {
       if (e2) throw e2;
 
       // 3. Atualizar pedidos com rota_id
-      const { error: e3 } = await supabase.from("pedidos").update({ rota_id: rotaId }).in("id", pedidosSelecionados);
+      const { error: e3 } = await supabase
+        .from("pedidos")
+        .update({ rota_id: rotaId })
+        .in("id", pedidosSelecionados);
       if (e3) throw e3;
 
-      toast.success(`Rota criada com ${pedidosSelecionados.length} pedidos para motoboy ${motoboyId}`);
+      toast.success(
+        `Rota criada com ${pedidosSelecionados.length} pedidos para motoboy ${motoboyId}`,
+      );
       queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
     } catch (e: any) {
       toast.error(e instanceof Error ? e.message : "Erro ao criar rota");
@@ -486,7 +606,7 @@ function CentralEntregas() {
 
   // Alternar filtro
   const handleFiltroChange = (novoFiltro: string) => {
-    setFiltro(novoFiltro as "todos" | "hoje" | "em_rota" | "aguardando" | "entregues");
+    setFiltro(novoFiltro as "todos" | "hoje" | "em_rota" | "aguardando" | "entregues" | "retirada");
     queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
   };
 
@@ -495,8 +615,14 @@ function CentralEntregas() {
   const termoBusca = buscaPedido.trim().toLowerCase();
   function casaBusca(p: any): boolean {
     if (!termoBusca) return false;
-    return String(p.numero ?? "").toLowerCase().includes(termoBusca)
-      || String(p.cliente_nome ?? "").toLowerCase().includes(termoBusca);
+    return (
+      String(p.numero ?? "")
+        .toLowerCase()
+        .includes(termoBusca) ||
+      String(p.cliente_nome ?? "")
+        .toLowerCase()
+        .includes(termoBusca)
+    );
   }
 
   // Card de pedido para Kanban
@@ -505,7 +631,9 @@ function CentralEntregas() {
     // J3-H H2: nome do motoboy (fallback: fragmento do id) + veículo/placa/status quando houver.
     const mb = p.motoboy_id ? (motoboys ?? []).find((x: any) => x.user_id === p.motoboy_id) : null;
     const extrasMb = [mb?.veiculo, mb?.placa, mb?.status].filter(Boolean).join(" • ");
-    const ocAbertas = (ocorrencias ?? []).filter((o: any) => o.pedido_id === p.id && !o.resolvido_em);
+    const ocAbertas = (ocorrencias ?? []).filter(
+      (o: any) => o.pedido_id === p.id && !o.resolvido_em,
+    );
     const rotaInfo = p.rota_id ? ` (Rota: ${p.rota_id.slice(0, 8)})` : "";
     const destaque = casaBusca(p);
 
@@ -513,17 +641,34 @@ function CentralEntregas() {
     const isEmRota = p.status === "em_rota";
     const hasGps = p.motoboy_lat && p.motoboy_lng;
     const lastUpdate = p.motoboy_atualizado_em ? new Date(p.motoboy_atualizado_em) : null;
-    const isGpsStale = lastUpdate && (Date.now() - lastUpdate.getTime()) > 60000;
+    const isGpsStale = lastUpdate && Date.now() - lastUpdate.getTime() > 60000;
 
     const getGpsBadge = () => {
       if (!isEmRota) return null;
-      if (!hasGps) return <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"><Satellite className="size-3" /> GPS aguardando</span>;
-      if (isGpsStale) return <span className="inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-1 text-xs"><AlertCircle className="size-3" /> GPS desatualizado</span>;
-      return <span className="inline-flex items-center gap-1 rounded-full bg-success/20 text-success px-2 py-1 text-xs"><Satellite className="size-3" /> GPS ativo</span>;
+      if (!hasGps)
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+            <Satellite className="size-3" /> GPS aguardando
+          </span>
+        );
+      if (isGpsStale)
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-warning/20 text-warning px-2 py-1 text-xs">
+            <AlertCircle className="size-3" /> GPS desatualizado
+          </span>
+        );
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-success/20 text-success px-2 py-1 text-xs">
+          <Satellite className="size-3" /> GPS ativo
+        </span>
+      );
     };
 
     return (
-      <article key={p.id} className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]${destaque ? " ring-2 ring-primary" : ""}`}>
+      <article
+        key={p.id}
+        className={`rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]${destaque ? " ring-2 ring-primary" : ""}`}
+      >
         <div className="flex items-center gap-2 mb-3">
           <span className="font-display text-lg">Pedido Nº {p.numero}</span>
           <StatusBadge status={p.status} />
@@ -531,18 +676,27 @@ function CentralEntregas() {
           {ocAbertas.length > 0 && (
             <span
               className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive"
-              title={ocAbertas.map((o: any) => MOTIVO_ATRASO_LABEL[o.motivo] ?? o.motivo).join("; ")}
+              title={ocAbertas
+                .map((o: any) => MOTIVO_ATRASO_LABEL[o.motivo] ?? o.motivo)
+                .join("; ")}
             >
               ⚠ Ocorrência aberta{ocAbertas.length > 1 ? ` (${ocAbertas.length})` : ""}
             </span>
           )}
         </div>
-        <p className="text-sm"><strong>Cliente:</strong> {p.cliente_nome}</p>
+        <p className="text-sm">
+          <strong>Cliente:</strong> {p.cliente_nome}
+        </p>
         <p className="text-sm text-muted-foreground">{destino}</p>
-        <p className="text-sm">Total: {brl(p.total)} • {PAGAMENTO_LABEL[p.forma_pagamento] ?? p.forma_pagamento}</p>
+        <p className="text-sm">
+          Total: {brl(p.total)} • {PAGAMENTO_LABEL[p.forma_pagamento] ?? p.forma_pagamento}
+        </p>
         <p className="text-xs mt-1">Criado: {dataHora(p.created_at)}</p>
         {p.motoboy_id && (
-          <p className="text-xs mt-1">Motoboy: {mb?.nome ?? `#${p.motoboy_id.slice(0, 8)}`}{extrasMb ? ` • ${extrasMb}` : ""}</p>
+          <p className="text-xs mt-1">
+            Motoboy: {mb?.nome ?? `#${p.motoboy_id.slice(0, 8)}`}
+            {extrasMb ? ` • ${extrasMb}` : ""}
+          </p>
         )}
         {p.rota_id && <p className="text-xs mt-1">Rota: {rotaInfo}</p>}
       </article>
@@ -550,653 +704,1149 @@ function CentralEntregas() {
   }
 
   // Kanban respeita a busca (filtros J1 intactos); demais seções usam pedidosFiltrados.
-  const pedidosVisiveis = termoBusca ? (pedidosFiltrados ?? []).filter(casaBusca) : (pedidosFiltrados ?? []);
+  const pedidosVisiveis = termoBusca
+    ? (pedidosFiltrados ?? []).filter(casaBusca)
+    : (pedidosFiltrados ?? []);
 
   if (!autorizado) {
-    return <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>;
+    return (
+      <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="font-display text-3xl mb-6">Central de Entregas</h1>
-
-      {/* ========== RESUMO OPERACIONAL (J3-E) ========== */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <button type="button" onClick={() => document.getElementById("secao-atribuicao")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded-xl border border-border bg-card p-3 text-left cursor-pointer">
-          <p className="text-xs text-muted-foreground">Aguardando motoboy</p>
-          <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
-        </button>
-        <button type="button" onClick={() => document.getElementById("secao-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded-xl border border-border bg-card p-3 text-left cursor-pointer">
-          <p className="text-xs text-muted-foreground">Em rota</p>
-          <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
-        </button>
-        <button type="button" onClick={() => document.getElementById("secao-ocorrencias")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded-xl border border-border bg-card p-3 text-left cursor-pointer">
-          <p className="text-xs text-muted-foreground">Ocorrências em aberto</p>
-          <p className="font-display text-xl text-primary">{(ocorrencias ?? []).filter((o: any) => !o.resolvido_em).length}</p>
-        </button>
-        <button type="button" onClick={() => document.getElementById("secao-historico")?.scrollIntoView({ behavior: "smooth", block: "start" })} className="rounded-xl border border-border bg-card p-3 text-left cursor-pointer">
-          <p className="text-xs text-muted-foreground">Entregues</p>
-          <p className="font-display text-xl text-primary">{contadores.entregue}</p>
-        </button>
-      </div>
-
-      {/* ========== FILTROS ========== */}
-      <div className="mb-4">
-        <Tabs value={filtro} onValueChange={handleFiltroChange} className="w-full">
-          <TabsList className="flex flex-wrap gap-2">
-            <TabsTrigger value="todos" className="px-4 py-2 text-sm border rounded-md">
-              Todos {pedidos?.length ? `(${pedidos.length})` : ""}
-            </TabsTrigger>
-            <TabsTrigger value="hoje" className="px-4 py-2 text-sm border rounded-md">Hoje {pedidos?.length ? '' : ''}</TabsTrigger>
-            <TabsTrigger value="em_rota" className="px-4 py-2 text-sm border rounded-md">Em rota</TabsTrigger>
-            <TabsTrigger value="aguardando" className="px-4 py-2 text-sm border rounded-md">Aguardando motoboy</TabsTrigger>
-            <TabsTrigger value="entregues" className="px-4 py-2 text-sm border rounded-md">Entregues</TabsTrigger>
-          </TabsList>
-        </Tabs>
-        {/* Busca rápida (J3-H H4): número ou cliente, sobre os pedidos já carregados. */}
-        <div className="relative mt-3">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={buscaPedido}
-            onChange={(e) => setBuscaPedido(e.target.value)}
-            placeholder="Buscar por número ou cliente…"
-            className="w-full rounded-md border border-input bg-background pl-9 pr-9 py-2 text-sm"
+    <>
+      <AdminTopbar
+        usuario={user?.email ?? null}
+        acesso="Equipe"
+        onSair={async () => {
+          await supabase.auth.signOut();
+          navigate({ to: "/auth", replace: true });
+        }}
+      />
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="relative mb-4 min-h-36 overflow-hidden rounded-xl shadow-[var(--shadow-card)]">
+          <img
+            src={fritos}
+            alt="Central de Entregas"
+            className="absolute inset-0 h-full w-full object-cover"
           />
-          {buscaPedido && (
-            <button
-              type="button"
-              aria-label="Limpar busca"
-              onClick={() => setBuscaPedido("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
+          <div className="relative flex items-center gap-3 p-5">
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-yellow-400 text-black">
+              <Truck className="size-7" aria-hidden />
+            </span>
+            <div>
+              <h1 className="font-display text-2xl font-bold text-yellow-400">
+                Central de Entregas
+              </h1>
+              <p className="text-sm text-neutral-200">
+                Acompanhe os motoboys e o status das entregas.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatusCard
+            className="bg-yellow-100 text-yellow-900"
+            icone={Truck}
+            titulo="Em Rota"
+            valor={resumoCentral.emRota.length}
+            detalhe="pedidos"
+          />
+          <StatusCard
+            className="bg-blue-600 text-white"
+            icone={Clock}
+            titulo="Aguardando Motoboy"
+            valor={resumoCentral.aguardando.length}
+            detalhe="pedidos"
+          />
+          <StatusCard
+            className="bg-green-500 text-white"
+            icone={CheckCircle}
+            titulo="Entregues Hoje"
+            valor={resumoCentral.entreguesHoje.length}
+            detalhe="pedidos"
+          />
+          <StatusCard
+            className="bg-purple-500 text-white"
+            icone={Navigation}
+            titulo="Motoboys em Rota"
+            valor={resumoCentral.motosEmRota}
+            detalhe="motoboys"
+          />
+        </div>
+
+        <div className="mb-4 grid gap-4 lg:grid-cols-3">
+          <section
+            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] lg:col-span-2"
+            aria-label="Entregas em andamento"
+          >
+            <h2 className="text-sm font-bold">Entregas em Andamento</h2>
+            {resumoCentral.emAndamento.length > 0 ? (
+              <ul className="mt-1 divide-y divide-border">
+                <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_80px_64px_24px]">
+                  <span>Nº</span>
+                  <span>Cliente</span>
+                  <span className="hidden sm:block">Endereço</span>
+                  <span>Motoboy</span>
+                  <span>Status</span>
+                  <span className="hidden sm:block">Saída</span>
+                  <span />
+                </li>
+                {resumoCentral.emAndamento.map((p: any) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => verHistoricoPedido(p.id)}
+                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-1 py-1.5 text-left text-xs hover:bg-muted sm:grid-cols-[64px_1fr_1fr_96px_80px_64px_24px] sm:text-[13px]"
+                    >
+                      <span className="font-bold">#{p.numero}</span>
+                      <span className="truncate">{p.cliente_nome}</span>
+                      <span className="hidden truncate text-muted-foreground sm:block">
+                        {p.endereco ?? "—"}
+                      </span>
+                      <span className="truncate">
+                        {resumoCentral.porMotoboy.get(String(p.motoboy_id ?? "")) ?? "—"}
+                      </span>
+                      <span>
+                        <StatusBadge status={p.status} />
+                      </span>
+                      <span className="hidden text-muted-foreground sm:block">
+                        {p.saiu_em ? hora(p.saiu_em) : "—"}
+                      </span>
+                      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="mt-2">
+                <EmptyState titulo="Nenhuma entrega em rota" />
+              </div>
+            )}
+          </section>
+
+          <div className="space-y-4">
+            <section
+              className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+              aria-label="Motoboys"
             >
-              <XCircle className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
+              <h2 className="text-sm font-bold">Motoboys</h2>
+              <ul className="mt-2 space-y-1 text-xs">
+                {(resumoCentral.motos ?? []).map((m: any) => (
+                  <li
+                    key={m.nome}
+                    className="flex items-center justify-between gap-2 rounded bg-muted px-2 py-1.5"
+                  >
+                    <span className="font-semibold">{m.nome}</span>
+                    <span className="text-muted-foreground">
+                      {m.entregas} entregas • {m.status}
+                    </span>
+                  </li>
+                ))}
+                {(resumoCentral.motos ?? []).length === 0 && (
+                  <li className="text-muted-foreground">Sem motoboys cadastrados.</li>
+                )}
+              </ul>
+            </section>
 
-      {/* ========== INDICADORES ========== */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div className="rounded-xl border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">Aguardando</p>
-          <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
+            <section
+              className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+              aria-label="Resumo do dia"
+            >
+              <h2 className="text-sm font-bold">Resumo do Dia</h2>
+              <ul className="mt-2 space-y-1 text-xs">
+                <li className="flex justify-between rounded bg-muted px-2 py-1.5">
+                  <span>Entregas realizadas</span>
+                  <b>{resumoCentral.entreguesHoje.length}</b>
+                </li>
+                <li className="flex justify-between rounded bg-muted px-2 py-1.5">
+                  <span>Em rota</span>
+                  <b>{resumoCentral.emRota.length}</b>
+                </li>
+                <li className="flex justify-between rounded bg-muted px-2 py-1.5">
+                  <span>Aguardando</span>
+                  <b>{resumoCentral.aguardando.length}</b>
+                </li>
+              </ul>
+            </section>
+          </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">Atribuídos</p>
-          <p className="font-display text-xl text-primary">{contadores.atribuidos}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">Em rota</p>
-          <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">Entregues</p>
-          <p className="font-display text-xl text-primary">{contadores.entregue}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3">
-          <p className="text-xs text-muted-foreground">Total</p>
-          <p className="font-display text-xl text-primary">{contadores.total}</p>
-        </div>
-      </div>
 
-      {/* ========== KANBAN ========== */}
-      <h2 className="font-display text-lg">Kanban de Pedidos</h2>
-      <div className="flex items-start gap-4 overflow-x-auto pb-2">
+        {/* ========== RESUMO OPERACIONAL (J3-E) ========== */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("secao-atribuicao")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Aguardando motoboy</p>
+            <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("secao-mapa")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Em rota</p>
+            <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("secao-ocorrencias")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Ocorrências em aberto</p>
+            <p className="font-display text-xl text-primary">
+              {(ocorrencias ?? []).filter((o: any) => !o.resolvido_em).length}
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("secao-historico")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Entregues</p>
+            <p className="font-display text-xl text-primary">{contadores.entregue}</p>
+          </button>
+        </div>
 
-        {/* Coluna AGUARDANDO */}
-        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-          <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">AGUARDANDO MOTOBOY</h3>
-          <p className="text-xs text-muted-foreground">Pedidos prontos aguardando atribuição</p>
-          <div className="h-64 overflow-y-auto space-y-2">
-            {(pedidosVisiveis ?? []).filter((p: any) => p.status === "aguardando_motoboy").map((p: any) => (
-              <PedidoCard key={p.id} pedido={p} />
-            ))}
-            {((pedidosVisiveis ?? []).filter((p: any) => p.status === "aguardando_motoboy").length === 0) && (
-              <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">Nenhum pedido aguardando</p>
+        {/* ========== FILTROS ========== */}
+        <div className="mb-4">
+          <Tabs value={filtro} onValueChange={handleFiltroChange} className="w-full">
+            <TabsList className="flex flex-wrap gap-2">
+              <TabsTrigger value="todos" className="px-4 py-2 text-sm border rounded-md">
+                Todos {pedidos?.length ? `(${pedidos.length})` : ""}
+              </TabsTrigger>
+              <TabsTrigger value="hoje" className="px-4 py-2 text-sm border rounded-md">
+                Hoje {pedidos?.length ? "" : ""}
+              </TabsTrigger>
+              <TabsTrigger value="em_rota" className="px-4 py-2 text-sm border rounded-md">
+                Em rota
+              </TabsTrigger>
+              <TabsTrigger value="aguardando" className="px-4 py-2 text-sm border rounded-md">
+                Aguardando motoboy
+              </TabsTrigger>
+              <TabsTrigger value="entregues" className="px-4 py-2 text-sm border rounded-md">
+                Entregues
+              </TabsTrigger>
+              <TabsTrigger value="retirada" className="px-4 py-2 text-sm border rounded-md">
+                Retirada
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {/* Busca rápida (J3-H H4): número ou cliente, sobre os pedidos já carregados. */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={buscaPedido}
+              onChange={(e) => setBuscaPedido(e.target.value)}
+              placeholder="Buscar por número ou cliente…"
+              className="w-full rounded-md border border-input bg-background pl-9 pr-9 py-2 text-sm"
+            />
+            {buscaPedido && (
+              <button
+                type="button"
+                aria-label="Limpar busca"
+                onClick={() => setBuscaPedido("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
             )}
           </div>
         </div>
 
-        {/* Coluna ATRIBUÍDOS */}
-        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-          <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">ATRIBUÍDOS</h3>
-          <p className="text-xs text-muted-foreground">Pedidos com motoboy atribuído</p>
-          <div className="h-64 overflow-y-auto space-y-2">
-            {(pedidosVisiveis ?? []).filter((p: any) => p.motoboy_id && p.status !== "aguardando_motoboy" && p.status !== "entregue" && p.status !== "em_rota").map((p: any) => (
-              <PedidoCard key={p.id} pedido={p} />
-            ))}
-            {((pedidosVisiveis ?? []).filter((p: any) => p.motoboy_id && p.status !== "aguardando_motoboy" && p.status !== "entregue" && p.status !== "em_rota").length === 0) && (
-              <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">Nenhum pedido atribuído</p>
-            )}
+        {/* ========== INDICADORES ========== */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Aguardando</p>
+            <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Atribuídos</p>
+            <p className="font-display text-xl text-primary">{contadores.atribuidos}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Em rota</p>
+            <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Entregues</p>
+            <p className="font-display text-xl text-primary">{contadores.entregue}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="font-display text-xl text-primary">{contadores.total}</p>
           </div>
         </div>
 
-        {/* Coluna EM ROTA */}
-        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-          <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">EM ROTA</h3>
-          <p className="text-xs text-muted-foreground">Pedidos com motoboy em deslocamento</p>
-          <div className="h-64 overflow-y-auto space-y-2">
-            {(pedidosVisiveis ?? []).filter((p: any) => p.status === "em_rota").map((p: any) => (
-              <PedidoCard key={p.id} pedido={p} />
-            ))}
-            {((pedidosVisiveis ?? []).filter((p: any) => p.status === "em_rota").length === 0) && (
-              <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">Nenhum pedido em rota</p>
-            )}
+        {/* ========== KANBAN ========== */}
+        <h2 className="font-display text-lg">Kanban de Pedidos</h2>
+        <div className="flex items-start gap-4 overflow-x-auto pb-2">
+          {/* Coluna AGUARDANDO */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">
+              AGUARDANDO MOTOBOY
+            </h3>
+            <p className="text-xs text-muted-foreground">Pedidos prontos aguardando atribuição</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter((p: any) => p.status === "aguardando_motoboy")
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "aguardando_motoboy")
+                .length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido aguardando
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna ATRIBUÍDOS */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">
+              ATRIBUÍDOS
+            </h3>
+            <p className="text-xs text-muted-foreground">Pedidos com motoboy atribuído</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter(
+                  (p: any) =>
+                    p.motoboy_id &&
+                    p.status !== "aguardando_motoboy" &&
+                    p.status !== "entregue" &&
+                    p.status !== "em_rota",
+                )
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter(
+                (p: any) =>
+                  p.motoboy_id &&
+                  p.status !== "aguardando_motoboy" &&
+                  p.status !== "entregue" &&
+                  p.status !== "em_rota",
+              ).length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido atribuído
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna EM ROTA */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">EM ROTA</h3>
+            <p className="text-xs text-muted-foreground">Pedidos com motoboy em deslocamento</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter((p: any) => p.status === "em_rota")
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "em_rota").length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido em rota
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna ENTREGUES */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">ENTREGUES</h3>
+            <p className="text-xs text-muted-foreground">Pedidos finalizados</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter((p: any) => p.status === "entregue")
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "entregue").length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido entregue
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Coluna ENTREGUES */}
-        <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-          <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">ENTREGUES</h3>
-          <p className="text-xs text-muted-foreground">Pedidos finalizados</p>
-          <div className="h-64 overflow-y-auto space-y-2">
-            {(pedidosVisiveis ?? []).filter((p: any) => p.status === "entregue").map((p: any) => (
-              <PedidoCard key={p.id} pedido={p} />
-            ))}
-            {((pedidosVisiveis ?? []).filter((p: any) => p.status === "entregue").length === 0) && (
-              <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">Nenhum pedido entregue</p>
-            )}
-          </div>
-        </div>
-      </div>
+        {/* ========== ATRIBUIÇÃO DE MOTOBOY ========== */}
+        {(pedidosFiltrados ?? []).filter((p: any) => p.status === "aguardando_motoboy").length >
+          0 && (
+          <div className="mt-4 rounded-xl border border-border bg-card p-6">
+            <h2 id="secao-atribuicao" className="font-display text-lg mb-4">
+              Atribuir Motoboy
+            </h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Selecionar motoboy para pedido(s) em aguardando_motoboy
+            </p>
 
-      {/* ========== ATRIBUIÇÃO DE MOTOBOY ========== */}
-      {((pedidosFiltrados ?? []).filter((p: any) => p.status === "aguardando_motoboy").length > 0) && (
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <Label>Motoboy</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  onChange={(e) => setMotoboySelecionado(e.target.value)}
+                >
+                  <option value="">Selecione um motoboy</option>
+                  {motoboysElegiveis?.map((m: any) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome} — {m.status}
+                      {m.veiculo && ` • ${m.veiculo}`}
+                      {m.placa && ` • ${m.placa}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Pedidos</Label>
+                <select
+                  multiple
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  onChange={(e) =>
+                    setPedidosSelecionados(
+                      Array.from(e.target.selectedOptions).map((o: any) => o.value),
+                    )
+                  }
+                >
+                  <option value="">Nenhum pedido</option>
+                  {(pedidosFiltrados ?? [])
+                    .filter((p: any) => p.status === "aguardando_motoboy")
+                    .slice(0, 10)
+                    .map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        Pedido Nº {p.numero} — {p.cliente_nome}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => {
+                const mbId = motoboySelecionado as string;
+                const pedidosIds = pedidosSelecionados as string[];
+                if (!mbId || !pedidosIds.length) {
+                  toast.error("Selecione motoboy e pelo menos um pedido.");
+                  return;
+                }
+                // Atribuir motoboy a todos os pedidos selecionados
+                pedidosIds.forEach((pid) => atribuirMotoboy(pid, mbId));
+                // Resetar seleções
+                setMotoboySelecionado("");
+                setPedidosSelecionados([]);
+                toast.success(`Motoboy ${mbId} atribuído a ${pedidosIds.length} pedido(s).`);
+              }}
+            >
+              Confirmar Atribuição
+            </Button>
+          </div>
+        )}
+
+        {/* ========== CRIAR ROTA ========== */}
         <div className="mt-4 rounded-xl border border-border bg-card p-6">
-          <h2 id="secao-atribuicao" className="font-display text-lg mb-4">Atribuir Motoboy</h2>
-          <p className="text-sm text-muted-foreground mb-3">Selecionar motoboy para pedido(s) em aguardando_motoboy</p>
+          <h2 className="font-display text-lg mb-4">Criar Nova Rota</h2>
+          <p className="text-sm text-muted-foreground">
+            Selecionar motoboy e pedidos para criar uma rota de entrega.
+          </p>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <Label>Motoboy</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onChange={(e) => setMotoboySelecionado(e.target.value)}>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                onChange={(e) => setMotoboyRota(e.target.value)}
+              >
                 <option value="">Selecione um motoboy</option>
                 {motoboysElegiveis?.map((m: any) => (
-                  <option key={m.id} value={m.id}>{m.nome} — {m.status}{m.veiculo && ` • ${m.veiculo}`}{m.placa && ` • ${m.placa}`}</option>
+                  <option key={m.id} value={m.id}>
+                    {m.nome} — {m.status}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
               <Label>Pedidos</Label>
-              <select multiple className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onChange={(e) => setPedidosSelecionados(Array.from(e.target.selectedOptions).map((o: any) => o.value))}>
+              <select
+                multiple
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                onChange={(e) =>
+                  setPedidosRota(Array.from(e.target.selectedOptions).map((o: any) => o.value))
+                }
+              >
                 <option value="">Nenhum pedido</option>
-                {(pedidosFiltrados ?? []).filter((p: any) => p.status === "aguardando_motoboy").slice(0, 10).map((p: any) => (
-                  <option key={p.id} value={p.id}>Pedido Nº {p.numero} — {p.cliente_nome}</option>
+                {(pedidosFiltrados ?? [])
+                  .filter((p: any) => p.status === "aguardando_motoboy")
+                  .slice(0, 15)
+                  .map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      Pedido Nº {p.numero} — {p.cliente_nome}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => {
+              const mbId = motoboyRota as string;
+              const pedidosIds = pedidosRota as string[];
+              if (!mbId || !pedidosIds.length) {
+                toast.error("Selecione motoboy e pelo menos um pedido.");
+                return;
+              }
+              criarRota(pedidosIds, mbId);
+              setMotoboyRota("");
+              setPedidosRota([]);
+            }}
+          >
+            Criar Rota
+          </Button>
+        </div>
+
+        {/* ========== ROTAS EM ANDAMENTO (J3-H H1) ========== */}
+        <div className="mt-6">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h2 id="secao-rotas" className="font-display text-lg">
+              Rotas em andamento
+            </h2>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] })}
+            >
+              Atualizar
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Somente rotas <code>em_rota</code>. Encerrar exige todos os pedidos entregues ou
+            cancelados.
+          </p>
+          {rotasCarregando && !(rotasAtivas ?? []).length ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando rotas…
+            </p>
+          ) : rotasErro ? (
+            <p className="text-sm text-destructive">
+              Não foi possível carregar as rotas: {(rotasErro as Error).message}
+            </p>
+          ) : (rotasAtivas ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma rota em andamento.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {(rotasAtivas ?? []).map((r: any) => {
+                const vinculados = (r.rota_pedidos ?? [])
+                  .map((rp: any) => rp.pedidos)
+                  .filter(Boolean);
+                const pendentes = vinculados.filter(
+                  (p: any) => p.status !== "entregue" && p.status !== "cancelado",
+                );
+                const concluidos = vinculados.length - pendentes.length;
+                const mb = (motoboys ?? []).find((x: any) => x.user_id === r.motoboy_id);
+                const podeEncerrar = vinculados.length > 0 && pendentes.length === 0;
+                const confirmando = rotaConfirmId === r.id;
+                const processando = rotaEncerrandoId === r.id;
+                return (
+                  <div key={r.id} className="rounded-xl border border-border bg-card p-4">
+                    <p className="font-display text-base">Rota {String(r.id).slice(0, 8)}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Motoboy: {mb?.nome ?? "—"}
+                      {r.saiu_em ? ` • saiu às ${hora(r.saiu_em)}` : ""}
+                    </p>
+                    <p className="text-sm mt-1">
+                      {vinculados.length === 0
+                        ? "Sem pedidos vinculados."
+                        : `${concluidos} de ${vinculados.length} pedido(s) finalizados`}
+                      {pendentes.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          • pendentes: {pendentes.map((p: any) => `Nº ${p.numero}`).join(", ")}
+                        </span>
+                      )}
+                    </p>
+                    {!confirmando ? (
+                      <div className="mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!podeEncerrar || processando}
+                          onClick={() => setRotaConfirmId(r.id)}
+                        >
+                          Encerrar rota
+                        </Button>
+                        {!podeEncerrar && vinculados.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Aguarde todos os pedidos serem entregues ou cancelados.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-lg border border-border p-3">
+                        <p className="text-sm">
+                          <strong>Encerrar esta rota?</strong> Todos os pedidos foram entregues ou
+                          cancelados?
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={processando}
+                            onClick={() => setRotaConfirmId(null)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={processando}
+                            onClick={() => encerrarRota(r.id)}
+                          >
+                            {processando ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Encerrando…
+                              </>
+                            ) : (
+                              "Encerrar rota"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ========== MAPA ========== */}
+        <div className="mt-6">
+          <h2 id="secao-mapa" className="font-display text-lg">
+            Mapa de Entregas
+          </h2>
+          <p className="text-sm text-muted-foreground">Localização dos pedidos e motoboys</p>
+
+          {pedidosFiltrados?.length > 0 && (
+            <MapView
+              pontos={
+                pedidosFiltrados
+                  .map((p: any) => {
+                    if (p.destino_lat && p.destino_lng) {
+                      return {
+                        lat: p.destino_lat,
+                        lng: p.destino_lng,
+                        label: `Pedido ${p.numero}`,
+                        color: "primary",
+                      };
+                    }
+                    return null;
+                  })
+                  .filter(Boolean) as any
+              }
+            />
+          )}
+
+          {motoboys?.length > 0 && (
+            <MapView
+              pontos={
+                motoboys
+                  .map((m: any) => {
+                    // Encontra o pedido mais recente deste motoboy
+                    const ultimoPedido = (pedidos ?? [])
+                      .filter((p: any) => p.motoboy_id === m.user_id)
+                      .sort(
+                        (a: any, b: any) =>
+                          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+                      )[0];
+
+                    if (
+                      ultimoPedido &&
+                      ultimoPedido.motoboy_lat != null &&
+                      ultimoPedido.motoboy_lng != null
+                    ) {
+                      // Idade da localização em segundos (motoboy_atualizado_em; fallback created_at).
+                      // Regra técnica simples: >120s (~2 intervalos de 15s + margem) = desatualizada.
+                      // LOCALIZAÇÃO DESATUALIZADA ≠ ENTREGA ATRASADA (não registra atraso aqui).
+                      const ref = ultimoPedido.motoboy_atualizado_em ?? ultimoPedido.created_at;
+                      const msDiff = Math.abs(new Date().getTime() - new Date(ref).getTime());
+                      const idadeSegundos = Math.round(msDiff / 1000);
+                      const desatualizada = idadeSegundos > 120;
+                      return {
+                        lat: ultimoPedido.motoboy_lat,
+                        lng: ultimoPedido.motoboy_lng,
+                        label: `Motoboy ${m.nome}${desatualizada ? " ⚠ desatualizada" : ""}`,
+                        color: "success",
+                      };
+                    }
+                    return null;
+                  })
+                  .filter(Boolean) as any
+              }
+            />
+          )}
+        </div>
+
+        {/* ========== HISTÓRICO (J3-C) ========== */}
+        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <h2 id="secao-historico" className="font-display text-lg">
+            Histórico de Entregas
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Timeline operacional por pedido ou motoboy (somente eventos registrados no banco).
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            <div>
+              <Label>Pedido</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={histPedidoId}
+                onChange={(e) => setHistPedidoId(e.target.value)}
+              >
+                <option value="">Selecione um pedido</option>
+                {(pedidos ?? []).slice(0, 200).map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    Pedido Nº {p.numero} — {p.cliente_nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Motoboy</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={histMotoboyId}
+                onChange={(e) => setHistMotoboyId(e.target.value)}
+              >
+                <option value="">Selecione um motoboy</option>
+                {(motoboys ?? []).map((m: any) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
-          <Button onClick={() => {
-            const mbId = motoboySelecionado as string;
-            const pedidosIds = pedidosSelecionados as string[];
-            if (!mbId || !pedidosIds.length) {
-              toast.error("Selecione motoboy e pelo menos um pedido.");
-              return;
-            }
-            // Atribuir motoboy a todos os pedidos selecionados
-            pedidosIds.forEach((pid) => atribuirMotoboy(pid, mbId));
-            // Resetar seleções
-            setMotoboySelecionado("");
-            setPedidosSelecionados([]);
-            toast.success(`Motoboy ${mbId} atribuído a ${pedidosIds.length} pedido(s).`);
-          }}>
-            Confirmar Atribuição
-          </Button>
-        </div>
-      )}
-
-      {/* ========== CRIAR ROTA ========== */}
-      <div className="mt-4 rounded-xl border border-border bg-card p-6">
-        <h2 className="font-display text-lg mb-4">Criar Nova Rota</h2>
-        <p className="text-sm text-muted-foreground">Selecionar motoboy e pedidos para criar uma rota de entrega.</p>
-
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div>
-            <Label>Motoboy</Label>
-            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onChange={(e) => setMotoboyRota(e.target.value)}>
-              <option value="">Selecione um motoboy</option>
-              {motoboysElegiveis?.map((m: any) => (
-                <option key={m.id} value={m.id}>{m.nome} — {m.status}</option>
-              ))}
-            </select>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["central-j3c-historico"] });
+                queryClient.invalidateQueries({ queryKey: ["central-j3c-atrasos"] });
+              }}
+              disabled={!histPedidoId && !histMotoboyId}
+            >
+              Atualizar
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setHistPedidoId("");
+                setHistMotoboyId("");
+              }}
+              disabled={!histPedidoId && !histMotoboyId}
+            >
+              Limpar
+            </Button>
           </div>
-          <div>
-            <Label>Pedidos</Label>
-            <select multiple className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onChange={(e) => setPedidosRota(Array.from(e.target.selectedOptions).map((o: any) => o.value))}>
-              <option value="">Nenhum pedido</option>
-              {(pedidosFiltrados ?? []).filter((p: any) => p.status === "aguardando_motoboy").slice(0, 15).map((p: any) => (
-                <option key={p.id} value={p.id}>Pedido Nº {p.numero} — {p.cliente_nome}</option>
-              ))}
-            </select>
+
+          {!histPedidoId && !histMotoboyId ? (
+            <p className="text-sm text-muted-foreground">
+              Selecione um pedido ou motoboy para ver o histórico.
+            </p>
+          ) : histCarregando ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico…
+            </p>
+          ) : (histEventos ?? []).length === 0 && (histAtrasos ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum evento registrado ainda.</p>
+          ) : (
+            <div className="space-y-4">
+              {histPedidoId &&
+                (() => {
+                  const p = (pedidos ?? []).find((x: any) => x.id === histPedidoId);
+                  if (!p) return null;
+                  const mb = (motoboys ?? []).find((x: any) => x.user_id === p.motoboy_id);
+                  return (
+                    <div className="rounded-lg border border-border p-3">
+                      <p className="font-display text-base">Pedido Nº {p.numero}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {p.cliente_nome}
+                        {mb ? ` • Motoboy: ${mb.nome}` : ""}
+                        {p.rota_id ? ` • Rota: ${String(p.rota_id).slice(0, 8)}` : ""}
+                      </p>
+                    </div>
+                  );
+                })()}
+              <div className="space-y-3">
+                {(histEventos ?? []).map((ev: any) => {
+                  const meta = HIST_EVENTO_META[ev.evento] ?? { titulo: ev.evento, Icon: Clock };
+                  const Icon = meta.Icon;
+                  const temLocal = ev.localizacao_lat != null && ev.localizacao_lng != null;
+                  return (
+                    <div key={ev.id} className="flex gap-3 rounded-lg border border-border p-3">
+                      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <Icon className="h-4 w-4 text-primary" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm">
+                          <strong>{hora(ev.created_at)}</strong> — {meta.titulo}
+                        </p>
+                        {ev.detalhe && (
+                          <p className="text-sm text-muted-foreground break-words">{ev.detalhe}</p>
+                        )}
+                        {ev.rota_id && (
+                          <p className="text-xs text-muted-foreground">
+                            Rota: {String(ev.rota_id).slice(0, 8)}
+                          </p>
+                        )}
+                        {temLocal && (
+                          <p className="text-xs text-muted-foreground">
+                            Local: {ev.localizacao_lat}, {ev.localizacao_lng}
+                            {" • "}
+                            <a
+                              className="underline"
+                              target="_blank"
+                              rel="noreferrer"
+                              href={rotaGoogleMaps(`${ev.localizacao_lat},${ev.localizacao_lng}`)}
+                            >
+                              Ver localização
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {(histAtrasos ?? []).length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-display text-sm uppercase text-muted-foreground">
+                    Atrasos registrados
+                  </h3>
+                  {(histAtrasos ?? []).map((a: any) => (
+                    <div key={a.id} className="rounded-lg border border-border p-3">
+                      <p className="text-sm flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-destructive" />{" "}
+                        <strong>Motivo:</strong> {MOTIVO_ATRASO_LABEL[a.motivo] ?? a.motivo}
+                      </p>
+                      {a.descricao_outro && (
+                        <p className="text-sm text-muted-foreground break-words">
+                          Descrição: {a.descricao_outro}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Registrado em: {dataHora(a.criado_em)}
+                        {a.resolvido_em ? ` • Resolvido em: ${dataHora(a.resolvido_em)}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ========== OCORRÊNCIAS / ATRASOS (J3-D) ========== */}
+        <div className="mt-6 rounded-xl border border-border bg-card p-6">
+          <h2 id="secao-ocorrencias" className="font-display text-lg">
+            Ocorrências / Atrasos
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Visão operacional de <code>entrega_atrasos</code>. Atraso só existe com registro — sem
+            regra automática de tempo ou GPS.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+            <div>
+              <Label>Status</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={ocFiltroStatus}
+                onChange={(e) =>
+                  setOcFiltroStatus(e.target.value as "todas" | "abertas" | "resolvidas")
+                }
+              >
+                <option value="todas">Todas</option>
+                <option value="abertas">Em aberto</option>
+                <option value="resolvidas">Resolvidas</option>
+              </select>
+            </div>
+            <div>
+              <Label>Motivo</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={ocFiltroMotivo}
+                onChange={(e) => setOcFiltroMotivo(e.target.value)}
+              >
+                <option value="">Todos</option>
+                {(MOTIVO_ATRASO as readonly string[]).map((m) => (
+                  <option key={m} value={m}>
+                    {MOTIVO_ATRASO_LABEL[m] ?? m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ["central-j3d-ocorrencias"] });
+                  queryClient.invalidateQueries({ queryKey: ["central-j3c-atrasos"] });
+                }}
+              >
+                Atualizar
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <Button onClick={() => {
-          const mbId = motoboyRota as string;
-          const pedidosIds = pedidosRota as string[];
-          if (!mbId || !pedidosIds.length) {
-            toast.error("Selecione motoboy e pelo menos um pedido.");
-            return;
-          }
-          criarRota(pedidosIds, mbId);
-          setMotoboyRota("");
-          setPedidosRota([]);
-        }}>
-          Criar Rota
-        </Button>
-      </div>
+          <div className="rounded-lg border border-border p-4 mb-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-3">
+              Registrar ocorrência
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <Label>Pedido</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={ocPedidoId}
+                  onChange={(e) => setOcPedidoId(e.target.value)}
+                >
+                  <option value="">Selecione um pedido</option>
+                  {(pedidos ?? []).slice(0, 200).map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      Pedido Nº {p.numero} — {p.cliente_nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Motivo</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={ocMotivo}
+                  onChange={(e) => setOcMotivo(e.target.value)}
+                >
+                  {(MOTIVO_ATRASO as readonly string[]).map((m) => (
+                    <option key={m} value={m}>
+                      {MOTIVO_ATRASO_LABEL[m] ?? m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mb-3">
+              <Label>Descrição{ocMotivo === "outro" ? " (obrigatória)" : " (opcional)"}</Label>
+              <input
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={ocDesc}
+                onChange={(e) => setOcDesc(e.target.value)}
+                placeholder={ocMotivo === "outro" ? "Descreva o motivo" : "Detalhes da ocorrência"}
+              />
+            </div>
+            <Button onClick={registrarOcorrencia} disabled={ocSalvando || !ocPedidoId}>
+              {ocSalvando ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando…
+                </>
+              ) : (
+                "Registrar ocorrência"
+              )}
+            </Button>
+          </div>
 
-      {/* ========== ROTAS EM ANDAMENTO (J3-H H1) ========== */}
-      <div className="mt-6">
-        <div className="flex flex-wrap items-center gap-2 mb-1">
-          <h2 id="secao-rotas" className="font-display text-lg">Rotas em andamento</h2>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] })}
-          >
-            Atualizar
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground mb-4">Somente rotas <code>em_rota</code>. Encerrar exige todos os pedidos entregues ou cancelados.</p>
-        {rotasCarregando && !(rotasAtivas ?? []).length ? (
-          <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando rotas…</p>
-        ) : rotasErro ? (
-          <p className="text-sm text-destructive">Não foi possível carregar as rotas: {(rotasErro as Error).message}</p>
-        ) : (rotasAtivas ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma rota em andamento.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {(rotasAtivas ?? []).map((r: any) => {
-              const vinculados = ((r.rota_pedidos ?? []).map((rp: any) => rp.pedidos).filter(Boolean));
-              const pendentes = vinculados.filter((p: any) => p.status !== "entregue" && p.status !== "cancelado");
-              const concluidos = vinculados.length - pendentes.length;
-              const mb = (motoboys ?? []).find((x: any) => x.user_id === r.motoboy_id);
-              const podeEncerrar = vinculados.length > 0 && pendentes.length === 0;
-              const confirmando = rotaConfirmId === r.id;
-              const processando = rotaEncerrandoId === r.id;
-              return (
-                <div key={r.id} className="rounded-xl border border-border bg-card p-4">
-                  <p className="font-display text-base">Rota {String(r.id).slice(0, 8)}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Motoboy: {mb?.nome ?? "—"}{r.saiu_em ? ` • saiu às ${hora(r.saiu_em)}` : ""}
-                  </p>
-                  <p className="text-sm mt-1">
-                    {vinculados.length === 0
-                      ? "Sem pedidos vinculados."
-                      : `${concluidos} de ${vinculados.length} pedido(s) finalizados`}
-                    {pendentes.length > 0 && (
-                      <span className="text-muted-foreground"> • pendentes: {pendentes.map((p: any) => `Nº ${p.numero}`).join(", ")}</span>
+          {ocCarregando ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando ocorrências…
+            </p>
+          ) : ocErro ? (
+            <p className="text-sm text-destructive">
+              Não foi possível carregar as ocorrências: {(ocErro as Error).message}
+            </p>
+          ) : ocorrenciasFiltradas.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma ocorrência registrada.</p>
+          ) : (
+            <div className="space-y-3">
+              {ocorrenciasFiltradas.map((o: any) => {
+                const p = (pedidos ?? []).find((x: any) => x.id === o.pedido_id);
+                const mb = (motoboys ?? []).find(
+                  (x: any) => x.user_id === (o.motoboy_id ?? p?.motoboy_id),
+                );
+                const aberta = !o.resolvido_em;
+                return (
+                  <div key={o.id} className="rounded-lg border border-border p-4">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <p className="font-display text-base">
+                        Pedido {p ? `Nº ${p.numero}` : `#${String(o.pedido_id).slice(0, 8)}`}
+                      </p>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${aberta ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-500"}`}
+                      >
+                        {aberta ? "🔴 Em aberto" : "🟢 Resolvido"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {p?.cliente_nome}
+                      {mb ? ` • Motoboy: ${mb.nome}` : ""}
+                    </p>
+                    <p className="text-sm mt-1">
+                      <strong>{MOTIVO_ATRASO_LABEL[o.motivo] ?? o.motivo}</strong>
+                    </p>
+                    {o.descricao_outro && (
+                      <p className="text-sm text-muted-foreground break-words">
+                        “{o.descricao_outro}”
+                      </p>
                     )}
-                  </p>
-                  {!confirmando ? (
-                    <div className="mt-3">
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Registrado: {dataHora(o.criado_em)}
+                      {o.resolvido_em ? ` • Resolvido: ${dataHora(o.resolvido_em)}` : ""}
+                    </p>
+                    {aberta && (
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={!podeEncerrar || processando}
-                        onClick={() => setRotaConfirmId(r.id)}
+                        className="mt-2"
+                        onClick={() => resolverOcorrencia(o.id)}
+                        disabled={ocResolvendoId === o.id}
                       >
-                        Encerrar rota
+                        {ocResolvendoId === o.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resolvendo…
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" /> Marcar como resolvida
+                          </>
+                        )}
                       </Button>
-                      {!podeEncerrar && vinculados.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">Aguarde todos os pedidos serem entregues ou cancelados.</p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="mt-3 rounded-lg border border-border p-3">
-                      <p className="text-sm"><strong>Encerrar esta rota?</strong> Todos os pedidos foram entregues ou cancelados?</p>
-                      <div className="mt-2 flex gap-2">
-                        <Button size="sm" variant="ghost" disabled={processando} onClick={() => setRotaConfirmId(null)}>
-                          Cancelar
-                        </Button>
-                        <Button size="sm" disabled={processando} onClick={() => encerrarRota(r.id)}>
-                          {processando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Encerrando…</> : "Encerrar rota"}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* ========== MAPA ========== */}
-      <div className="mt-6">
-        <h2 id="secao-mapa" className="font-display text-lg">Mapa de Entregas</h2>
-        <p className="text-sm text-muted-foreground">Localização dos pedidos e motoboys</p>
-
-        {pedidosFiltrados?.length > 0 && (
-          <MapView
-            pontos={pedidosFiltrados.map((p: any) => {
-              if (p.destino_lat && p.destino_lng) {
-                return {
-                  lat: p.destino_lat,
-                  lng: p.destino_lng,
-                  label: `Pedido ${p.numero}`,
-                  color: "primary",
-                };
-              }
-              return null;
-            }).filter(Boolean) as any}
-          />
-        )}
-
-        {motoboys?.length > 0 && (
-          <MapView
-            pontos={motoboys.map((m: any) => {
-              // Encontra o pedido mais recente deste motoboy
-              const ultimoPedido = (pedidos ?? []).filter((p: any) => p.motoboy_id === m.user_id)
-                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-              
-              if (ultimoPedido && ultimoPedido.motoboy_lat != null && ultimoPedido.motoboy_lng != null) {
-                // Idade da localização em segundos (motoboy_atualizado_em; fallback created_at).
-                // Regra técnica simples: >120s (~2 intervalos de 15s + margem) = desatualizada.
-                // LOCALIZAÇÃO DESATUALIZADA ≠ ENTREGA ATRASADA (não registra atraso aqui).
-                const ref = ultimoPedido.motoboy_atualizado_em ?? ultimoPedido.created_at;
-                const msDiff = Math.abs(new Date().getTime() - new Date(ref).getTime());
-                const idadeSegundos = Math.round(msDiff / 1000);
-                const desatualizada = idadeSegundos > 120;
-                return {
-                  lat: ultimoPedido.motoboy_lat,
-                  lng: ultimoPedido.motoboy_lng,
-                  label: `Motoboy ${m.nome}${desatualizada ? " ⚠ desatualizada" : ""}`,
-                  color: "success",
-                };
-              }
-              return null;
-            }).filter(Boolean) as any}
-          />
-        )}
-      </div>
-
-      {/* ========== HISTÓRICO (J3-C) ========== */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
-        <h2 id="secao-historico" className="font-display text-lg">Histórico de Entregas</h2>
-        <p className="text-sm text-muted-foreground mb-4">Timeline operacional por pedido ou motoboy (somente eventos registrados no banco).</p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          <div>
-            <Label>Pedido</Label>
-            <select
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={histPedidoId}
-              onChange={(e) => setHistPedidoId(e.target.value)}
-            >
-              <option value="">Selecione um pedido</option>
-              {(pedidos ?? []).slice(0, 200).map((p: any) => (
-                <option key={p.id} value={p.id}>Pedido Nº {p.numero} — {p.cliente_nome}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <Label>Motoboy</Label>
-            <select
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={histMotoboyId}
-              onChange={(e) => setHistMotoboyId(e.target.value)}
-            >
-              <option value="">Selecione um motoboy</option>
-              {(motoboys ?? []).map((m: any) => (
-                <option key={m.id} value={m.id}>{m.nome}</option>
-              ))}
-            </select>
-          </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: ["central-j3c-historico"] });
-              queryClient.invalidateQueries({ queryKey: ["central-j3c-atrasos"] });
-            }}
-            disabled={!histPedidoId && !histMotoboyId}
-          >
-            Atualizar
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => { setHistPedidoId(""); setHistMotoboyId(""); }}
-            disabled={!histPedidoId && !histMotoboyId}
-          >
-            Limpar
-          </Button>
-        </div>
-
-        {(!histPedidoId && !histMotoboyId) ? (
-          <p className="text-sm text-muted-foreground">Selecione um pedido ou motoboy para ver o histórico.</p>
-        ) : histCarregando ? (
-          <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico…</p>
-        ) : ((histEventos ?? []).length === 0 && (histAtrasos ?? []).length === 0) ? (
-          <p className="text-sm text-muted-foreground">Nenhum evento registrado ainda.</p>
-        ) : (
-          <div className="space-y-4">
-            {histPedidoId && (() => {
-              const p = (pedidos ?? []).find((x: any) => x.id === histPedidoId);
-              if (!p) return null;
-              const mb = (motoboys ?? []).find((x: any) => x.user_id === p.motoboy_id);
-              return (
-                <div className="rounded-lg border border-border p-3">
-                  <p className="font-display text-base">Pedido Nº {p.numero}</p>
-                  <p className="text-sm text-muted-foreground">{p.cliente_nome}{mb ? ` • Motoboy: ${mb.nome}` : ""}{p.rota_id ? ` • Rota: ${String(p.rota_id).slice(0, 8)}` : ""}</p>
-                </div>
-              );
-            })()}
-            <div className="space-y-3">
-              {(histEventos ?? []).map((ev: any) => {
-                const meta = HIST_EVENTO_META[ev.evento] ?? { titulo: ev.evento, Icon: Clock };
-                const Icon = meta.Icon;
-                const temLocal = ev.localizacao_lat != null && ev.localizacao_lng != null;
+        {/* ========== ACOMPANHAMENTO EM ROTA (J3-F) ========== */}
+        <div className="mt-6">
+          <h2 id="secao-acompanhamento" className="font-display text-lg">
+            Acompanhamento em Rota
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Somente leitura. Tempo em rota não significa atraso.
+          </p>
+          {!pedidos ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando entregas…
+            </p>
+          ) : acompanhamento.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum pedido em rota no momento.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {acompanhamento.map(({ p, inicio }: any) => {
+                const mb = (motoboys ?? []).find((x: any) => x.user_id === p.motoboy_id);
+                const destino = `${p.endereco ?? ""}${p.complemento ? `, ${p.complemento}` : ""}${p.bairro ? `, ${p.bairro}` : ""}`;
+                const ocAbertas = (ocorrencias ?? []).filter(
+                  (o: any) => o.pedido_id === p.id && !o.resolvido_em,
+                );
                 return (
-                  <div key={ev.id} className="flex gap-3 rounded-lg border border-border p-3">
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                      <Icon className="h-4 w-4 text-primary" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm"><strong>{hora(ev.created_at)}</strong> — {meta.titulo}</p>
-                      {ev.detalhe && <p className="text-sm text-muted-foreground break-words">{ev.detalhe}</p>}
-                      {ev.rota_id && <p className="text-xs text-muted-foreground">Rota: {String(ev.rota_id).slice(0, 8)}</p>}
-                      {temLocal && (
-                        <p className="text-xs text-muted-foreground">
-                          Local: {ev.localizacao_lat}, {ev.localizacao_lng}
-                          {" • "}
-                          <a
-                            className="underline"
-                            target="_blank"
-                            rel="noreferrer"
-                            href={rotaGoogleMaps(`${ev.localizacao_lat},${ev.localizacao_lng}`)}
-                          >
-                            Ver localização
-                          </a>
-                        </p>
+                  <div key={p.id} className="rounded-xl border border-border bg-card p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-display text-lg">Pedido Nº {p.numero}</span>
+                      <StatusBadge status={p.status} />
+                      {ocAbertas.length > 0 && (
+                        <span
+                          className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive"
+                          title={ocAbertas
+                            .map((o: any) => MOTIVO_ATRASO_LABEL[o.motivo] ?? o.motivo)
+                            .join("; ")}
+                        >
+                          ⚠ Ocorrência aberta{ocAbertas.length > 1 ? ` (${ocAbertas.length})` : ""}
+                        </span>
                       )}
+                    </div>
+                    <p className="text-sm">
+                      <strong>Motoboy:</strong> {mb?.nome ?? "—"}
+                      {mb?.status ? ` • ${mb.status}` : ""}
+                    </p>
+                    <p className="text-sm mt-1">
+                      <strong>Em rota há:</strong>{" "}
+                      {inicio
+                        ? ` ${formatoDuracao(Date.now() - new Date(inicio).getTime())}`
+                        : " —"}
+                      {inicio && (
+                        <span className="text-muted-foreground"> • saiu às {hora(inicio)}</span>
+                      )}
+                      {!inicio && (
+                        <span className="text-muted-foreground"> • saída não registrada</span>
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1 break-words">
+                      Destino: {destino || "—"}
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {p.rota_id && (
+                        <span className="text-xs text-muted-foreground">
+                          Rota: {String(p.rota_id).slice(0, 8)}
+                        </span>
+                      )}
+                      <Button size="sm" variant="outline" asChild>
+                        <a
+                          href={rotaGoogleMaps(destino || `Pedido ${p.numero}`)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Navigation className="mr-1 size-4" /> Navegar
+                        </a>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          document
+                            .getElementById("secao-mapa")
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                      >
+                        Ver no mapa
+                      </Button>
                     </div>
                   </div>
                 );
               })}
             </div>
-            {(histAtrasos ?? []).length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-display text-sm uppercase text-muted-foreground">Atrasos registrados</h3>
-                {(histAtrasos ?? []).map((a: any) => (
-                  <div key={a.id} className="rounded-lg border border-border p-3">
-                    <p className="text-sm flex items-center gap-2"><AlertCircle className="h-4 w-4 text-destructive" /> <strong>Motivo:</strong> {MOTIVO_ATRASO_LABEL[a.motivo] ?? a.motivo}</p>
-                    {a.descricao_outro && <p className="text-sm text-muted-foreground break-words">Descrição: {a.descricao_outro}</p>}
-                    <p className="text-xs text-muted-foreground">Registrado em: {dataHora(a.criado_em)}{a.resolvido_em ? ` • Resolvido em: ${dataHora(a.resolvido_em)}` : ""}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ========== OCORRÊNCIAS / ATRASOS (J3-D) ========== */}
-      <div className="mt-6 rounded-xl border border-border bg-card p-6">
-        <h2 id="secao-ocorrencias" className="font-display text-lg">Ocorrências / Atrasos</h2>
-        <p className="text-sm text-muted-foreground mb-4">Visão operacional de <code>entrega_atrasos</code>. Atraso só existe com registro — sem regra automática de tempo ou GPS.</p>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          <div>
-            <Label>Status</Label>
-            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ocFiltroStatus} onChange={(e) => setOcFiltroStatus(e.target.value as "todas" | "abertas" | "resolvidas")}>
-              <option value="todas">Todas</option>
-              <option value="abertas">Em aberto</option>
-              <option value="resolvidas">Resolvidas</option>
-            </select>
-          </div>
-          <div>
-            <Label>Motivo</Label>
-            <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ocFiltroMotivo} onChange={(e) => setOcFiltroMotivo(e.target.value)}>
-              <option value="">Todos</option>
-              {(MOTIVO_ATRASO as readonly string[]).map((m) => (
-                <option key={m} value={m}>{MOTIVO_ATRASO_LABEL[m] ?? m}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                queryClient.invalidateQueries({ queryKey: ["central-j3d-ocorrencias"] });
-                queryClient.invalidateQueries({ queryKey: ["central-j3c-atrasos"] });
-              }}
-            >
-              Atualizar
-            </Button>
-          </div>
+          )}
+          {rotasSaidaErro && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Horários de saída das rotas indisponíveis no momento.
+            </p>
+          )}
         </div>
-
-        <div className="rounded-lg border border-border p-4 mb-4">
-          <h3 className="font-display text-sm uppercase text-muted-foreground mb-3">Registrar ocorrência</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-            <div>
-              <Label>Pedido</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ocPedidoId} onChange={(e) => setOcPedidoId(e.target.value)}>
-                <option value="">Selecione um pedido</option>
-                {(pedidos ?? []).slice(0, 200).map((p: any) => (
-                  <option key={p.id} value={p.id}>Pedido Nº {p.numero} — {p.cliente_nome}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Motivo</Label>
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={ocMotivo} onChange={(e) => setOcMotivo(e.target.value)}>
-                {(MOTIVO_ATRASO as readonly string[]).map((m) => (
-                  <option key={m} value={m}>{MOTIVO_ATRASO_LABEL[m] ?? m}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="mb-3">
-            <Label>Descrição{ocMotivo === "outro" ? " (obrigatória)" : " (opcional)"}</Label>
-            <input
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              value={ocDesc}
-              onChange={(e) => setOcDesc(e.target.value)}
-              placeholder={ocMotivo === "outro" ? "Descreva o motivo" : "Detalhes da ocorrência"}
-            />
-          </div>
-          <Button onClick={registrarOcorrencia} disabled={ocSalvando || !ocPedidoId}>
-            {ocSalvando ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando…</> : "Registrar ocorrência"}
-          </Button>
-        </div>
-
-        {ocCarregando ? (
-          <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando ocorrências…</p>
-        ) : ocErro ? (
-          <p className="text-sm text-destructive">Não foi possível carregar as ocorrências: {(ocErro as Error).message}</p>
-        ) : ocorrenciasFiltradas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma ocorrência registrada.</p>
-        ) : (
-          <div className="space-y-3">
-            {ocorrenciasFiltradas.map((o: any) => {
-              const p = (pedidos ?? []).find((x: any) => x.id === o.pedido_id);
-              const mb = (motoboys ?? []).find((x: any) => x.user_id === (o.motoboy_id ?? p?.motoboy_id));
-              const aberta = !o.resolvido_em;
-              return (
-                <div key={o.id} className="rounded-lg border border-border p-4">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <AlertCircle className="h-4 w-4 text-destructive" />
-                    <p className="font-display text-base">Pedido {p ? `Nº ${p.numero}` : `#${String(o.pedido_id).slice(0, 8)}`}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-xs ${aberta ? "bg-destructive/10 text-destructive" : "bg-emerald-500/10 text-emerald-500"}`}>
-                      {aberta ? "🔴 Em aberto" : "🟢 Resolvido"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{p?.cliente_nome}{mb ? ` • Motoboy: ${mb.nome}` : ""}</p>
-                  <p className="text-sm mt-1"><strong>{MOTIVO_ATRASO_LABEL[o.motivo] ?? o.motivo}</strong></p>
-                  {o.descricao_outro && <p className="text-sm text-muted-foreground break-words">“{o.descricao_outro}”</p>}
-                  <p className="text-xs text-muted-foreground mt-1">Registrado: {dataHora(o.criado_em)}{o.resolvido_em ? ` • Resolvido: ${dataHora(o.resolvido_em)}` : ""}</p>
-                  {aberta && (
-                    <Button size="sm" variant="outline" className="mt-2" onClick={() => resolverOcorrencia(o.id)} disabled={ocResolvendoId === o.id}>
-                      {ocResolvendoId === o.id ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resolvendo…</> : <><CheckCircle className="mr-2 h-4 w-4" /> Marcar como resolvida</>}
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
-
-      {/* ========== ACOMPANHAMENTO EM ROTA (J3-F) ========== */}
-      <div className="mt-6">
-        <h2 id="secao-acompanhamento" className="font-display text-lg">Acompanhamento em Rota</h2>
-        <p className="text-sm text-muted-foreground mb-4">Somente leitura. Tempo em rota não significa atraso.</p>
-        {!pedidos ? (
-          <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Carregando entregas…</p>
-        ) : acompanhamento.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum pedido em rota no momento.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {acompanhamento.map(({ p, inicio }: any) => {
-              const mb = (motoboys ?? []).find((x: any) => x.user_id === p.motoboy_id);
-              const destino = `${p.endereco ?? ""}${p.complemento ? `, ${p.complemento}` : ""}${p.bairro ? `, ${p.bairro}` : ""}`;
-              const ocAbertas = (ocorrencias ?? []).filter((o: any) => o.pedido_id === p.id && !o.resolvido_em);
-              return (
-                <div key={p.id} className="rounded-xl border border-border bg-card p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-display text-lg">Pedido Nº {p.numero}</span>
-                    <StatusBadge status={p.status} />
-                    {ocAbertas.length > 0 && (
-                      <span
-                        className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive"
-                        title={ocAbertas.map((o: any) => MOTIVO_ATRASO_LABEL[o.motivo] ?? o.motivo).join("; ")}
-                      >
-                        ⚠ Ocorrência aberta{ocAbertas.length > 1 ? ` (${ocAbertas.length})` : ""}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm"><strong>Motoboy:</strong> {mb?.nome ?? "—"}{mb?.status ? ` • ${mb.status}` : ""}</p>
-                  <p className="text-sm mt-1">
-                    <strong>Em rota há:</strong> {inicio ? ` ${formatoDuracao(Date.now() - new Date(inicio).getTime())}` : " —"}
-                    {inicio && <span className="text-muted-foreground"> • saiu às {hora(inicio)}</span>}
-                    {!inicio && <span className="text-muted-foreground"> • saída não registrada</span>}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1 break-words">Destino: {destino || "—"}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    {p.rota_id && <span className="text-xs text-muted-foreground">Rota: {String(p.rota_id).slice(0, 8)}</span>}
-                    <Button size="sm" variant="outline" asChild>
-                      <a href={rotaGoogleMaps(destino || `Pedido ${p.numero}`)} target="_blank" rel="noopener noreferrer"><Navigation className="mr-1 size-4" /> Navegar</a>
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => document.getElementById("secao-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-                      Ver no mapa
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {rotasSaidaErro && (
-          <p className="text-xs text-muted-foreground mt-2">Horários de saída das rotas indisponíveis no momento.</p>
-        )}
-      </div>
-    </div>
+    </>
   );
 }

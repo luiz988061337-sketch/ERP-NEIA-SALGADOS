@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { PageHeader } from "@/components/admin/ui-admin";
 import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
 import { notificarPedido } from "@/lib/notificacoes";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, whatsappLink } from "@/lib/format";
@@ -296,10 +297,10 @@ function Motoboy() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <div>
-          <h1 className="font-display text-3xl">Painel do motoboy</h1>
-          <p className="text-sm text-muted-foreground">Aceite corridas, navegue e acompanhe seus ganhos.</p>
-        </div>
+        <PageHeader
+          titulo="Painel do motoboy"
+          descricao="Aceite corridas, navegue e acompanhe seus ganhos."
+        />
         {/* GPS Status Indicator */}
         <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 ${gpsInfo.color.replace("text-", "border-")} bg-card`}>
           <gpsInfo.icon className={`size-5 ${gpsInfo.color}`} />

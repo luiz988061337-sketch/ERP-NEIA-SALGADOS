@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { RefreshCw, Store } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { LogOut, RefreshCw, UserRound } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -19,38 +19,46 @@ import {
   SidebarSeparator,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ADMIN_ABA_DESCRICAO, ADMIN_ABA_TITULO, ADMIN_NAV } from "./admin-nav";
+import { ADMIN_NAV } from "./admin-nav";
+import { AdminTopbar } from "./admin-topbar";
+import logo from "@/assets/neia-logo.png.asset.json";
+import fritos from "@/assets/cat-fritos.jpg";
 
 /**
- * Shell do Admin: menu lateral fixo e recolhivel no desktop, off-canvas no
- * celular. A aba ativa continua controlada pelo estado do React (sem URL),
- * exatamente como antes — o shell apenas reorganiza a navegacao.
+ * Shell do Admin (visual Projeto A1): sidebar escura com pill amarela ativa
+ * e topbar com loja, conexão real, relógio, usuário e saída.
+ * A aba ativa continua controlada pelo estado do React (sem URL).
+ * Itens com `href` navegam para rotas staff (PDV, Produção, Central).
  */
 export function AdminShell({
   aba,
   onAba,
   onRefresh,
+  usuario,
+  onSair,
   children,
 }: {
   aba: string;
   onAba: (v: string) => void;
   onRefresh: () => void;
+  usuario?: string | null;
+  onSair?: () => void;
   children: ReactNode;
 }) {
-  const titulo = ADMIN_ABA_TITULO[aba] ?? "Administração";
-  const descricao = ADMIN_ABA_DESCRICAO[aba] ?? "Gestão completa da operação Néia Salgados.";
-
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-        <SidebarHeader className="border-b border-sidebar-border">
-          <div className="flex items-center gap-2.5 px-1 py-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-            <span className="brand-gradient grid size-9 shrink-0 place-items-center rounded-lg text-primary-foreground shadow-card">
-              <Store className="size-5" />
-            </span>
+      <Sidebar
+        collapsible="icon"
+        className="admin-dark border-r border-neutral-800 bg-neutral-950 text-neutral-200"
+      >
+        <SidebarHeader className="border-b border-neutral-800">
+          <div className="flex items-center gap-2.5 px-1 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+            <img src={logo.url} alt="Néia Salgados" className="h-9 w-auto shrink-0" />
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="truncate font-display text-base leading-tight">Néia Salgados</p>
-              <p className="truncate text-xs text-muted-foreground">Administração</p>
+              <p className="truncate font-display text-base leading-tight text-white">
+                Néia Salgados
+              </p>
+              <p className="truncate text-xs text-neutral-400">Administração</p>
             </div>
           </div>
         </SidebarHeader>
@@ -58,27 +66,39 @@ export function AdminShell({
         <SidebarContent className="no-scrollbar">
           {ADMIN_NAV.map((grupo) => (
             <SidebarGroup key={grupo.label}>
-              <SidebarGroupLabel className="font-display text-[0.7rem] uppercase tracking-wide">
+              <SidebarGroupLabel className="px-2 font-display text-[0.7rem] uppercase tracking-wide text-neutral-500">
                 {grupo.label}
               </SidebarGroupLabel>
               <SidebarGroupContent>
                 <div role="tablist" aria-orientation="vertical" className="flex flex-col gap-0.5">
                   {grupo.items.map((item) => (
                     <SidebarMenuItem key={item.value}>
-                      <SidebarMenuButton
-                        isActive={aba === item.value}
-                        tooltip={item.label}
-                        onClick={() => onAba(item.value)}
-                        aria-current={aba === item.value ? "page" : undefined}
-                        className={
-                          aba === item.value
-                            ? "bg-primary font-medium text-primary-foreground shadow-card hover:bg-primary hover:text-primary-foreground"
-                            : undefined
-                        }
-                      >
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
+                      {item.href ? (
+                        <SidebarMenuButton
+                          asChild
+                          tooltip={item.label}
+                          className="min-h-[44px] text-neutral-200 hover:bg-neutral-800 hover:text-white"
+                        >
+                          <Link to={item.href}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      ) : (
+                        <SidebarMenuButton
+                          tooltip={item.label}
+                          onClick={() => onAba(item.value)}
+                          aria-current={aba === item.value ? "page" : undefined}
+                          className={
+                            aba === item.value
+                              ? "min-h-[44px] bg-yellow-400 font-semibold text-black shadow-card hover:bg-yellow-400 hover:text-black"
+                              : "min-h-[44px] text-neutral-200 hover:bg-neutral-800 hover:text-white"
+                          }
+                        >
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      )}
                     </SidebarMenuItem>
                   ))}
                 </div>
@@ -88,35 +108,65 @@ export function AdminShell({
         </SidebarContent>
 
         <SidebarFooter>
-          <SidebarSeparator className="bg-sidebar-border" />
+          <SidebarSeparator className="bg-neutral-800" />
+          <div className="overflow-hidden rounded-xl border border-neutral-800 group-data-[collapsible=icon]:hidden">
+            <img
+              src={fritos}
+              alt="Salgados Néia"
+              className="h-24 w-full object-cover"
+              loading="lazy"
+            />
+            <p className="bg-neutral-900 px-3 py-2 text-xs italic text-neutral-300">
+              Qualidade, sabor e confiança em cada pedido!
+            </p>
+          </div>
           <SidebarMenu>
+            {usuario ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip={usuario} className="cursor-default text-neutral-200">
+                  <UserRound />
+                  <span className="truncate">{usuario}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Atualizar dados" onClick={onRefresh}>
+              <SidebarMenuButton
+                tooltip="Atualizar dados"
+                onClick={onRefresh}
+                className="text-neutral-200 hover:bg-neutral-800 hover:text-white"
+              >
                 <RefreshCw />
                 <span>Atualizar dados</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {onSair ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Sair"
+                  onClick={onSair}
+                  className="text-neutral-200 hover:bg-neutral-800 hover:text-white"
+                >
+                  <LogOut />
+                  <span>Sair</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
           </SidebarMenu>
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
 
       <SidebarInset className="min-w-0">
-        {/* Topo fixo: hamburger no celular + titulo da aba atual */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur lg:px-6">
-          <SidebarTrigger className="-ml-1" />
-          <div className="min-w-0">
-            <h1 className="truncate font-display text-xl lg:text-2xl">{titulo}</h1>
-            <p className="truncate text-xs text-muted-foreground sm:text-sm">{descricao}</p>
-          </div>
-          <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={onRefresh}>
-            <RefreshCw className="mr-1.5 size-4" />
-            <span className="hidden sm:inline">Atualizar dados</span>
-            <span className="sm:hidden">Atualizar</span>
-          </Button>
-        </header>
+        <AdminTopbar
+          usuario={usuario}
+          onSair={onSair}
+          onLojaClick={() => onAba("loja")}
+          menuButton={
+            <SidebarTrigger className="-ml-1 text-neutral-200 hover:bg-neutral-800 hover:text-white" />
+          }
+        />
 
-        <div className="min-w-0 px-4 py-5 lg:px-6 lg:py-6">{children}</div>
+        <div className="min-w-0 bg-neutral-100 px-4 py-5 lg:px-6 lg:py-6">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -4,6 +4,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  useLocation,
   useRouter,
   HeadContent,
   Scripts,
@@ -125,6 +126,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -135,25 +137,34 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
 
+  // Rotas internas (staff): sem chrome da loja pública — cada uma tem layout próprio.
+  // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.
+  const ehStaff =
+    /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp)/.test(
+      pathname,
+    );
+
   return (
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <div className="flex min-h-screen flex-col">
-          <SiteHeader />
+          {ehStaff ? null : <SiteHeader />}
           <main className="flex-1">
             <Outlet />
           </main>
-          <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
-            <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
-              <p className="font-display text-base text-foreground">Néia Salgados</p>
-              <p className="mt-1">Salgados fritos, assados, congelados e kits para festa.</p>
-              <p className="mt-3 text-xs">
-                © {new Date().getFullYear()} Néia Salgados. Todos os direitos reservados.
-              </p>
-            </div>
-          </footer>
+          {ehStaff ? null : (
+            <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
+              <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
+                <p className="font-display text-base text-foreground">Néia Salgados</p>
+                <p className="mt-1">Salgados fritos, assados, congelados e kits para festa.</p>
+                <p className="mt-3 text-xs">
+                  © {new Date().getFullYear()} Néia Salgados. Todos os direitos reservados.
+                </p>
+              </div>
+            </footer>
+          )}
         </div>
-        <CartDock />
+        {ehStaff ? null : <CartDock />}
         <Toaster position="top-center" richColors />
       </CartProvider>
     </QueryClientProvider>

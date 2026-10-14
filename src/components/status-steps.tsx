@@ -9,13 +9,15 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export function StatusBadge({ status }: { status: string }) {
+  // Cores distintas por estágio (padrão A1 §2): amarelo=novo, azul=produção,
+  // verde=pronto, laranja=aguardando motoboy, roxo=em rota, verde escuro=entregue.
   const cores: Record<string, string> = {
-    recebido: "bg-muted text-foreground",
-    em_producao: "bg-secondary text-secondary-foreground",
-    pronto: "bg-secondary text-secondary-foreground",
-    aguardando_motoboy: "bg-secondary text-secondary-foreground",
-    em_rota: "bg-primary text-primary-foreground",
-    entregue: "bg-success text-success-foreground",
+    recebido: "bg-yellow-100 text-yellow-800",
+    em_producao: "bg-blue-100 text-blue-800",
+    pronto: "bg-green-100 text-green-800",
+    aguardando_motoboy: "bg-orange-100 text-orange-800",
+    em_rota: "bg-purple-100 text-purple-800",
+    entregue: "bg-green-600 text-white",
     cancelado: "bg-destructive text-destructive-foreground",
   };
   return <Badge className={cn("border-0", cores[status] ?? "bg-muted")}>{STATUS_LABEL[status] ?? status}</Badge>;

@@ -3,13 +3,16 @@ import {
   Calculator,
   ChefHat,
   ClipboardList,
+  CookingPot,
   Crown,
+  Factory,
   ImageIcon,
   KeyRound,
   LayoutDashboard,
   Package,
   Percent,
   Printer,
+  ReceiptText,
   ScrollText,
   ShoppingCart,
   Star,
@@ -27,6 +30,8 @@ export type AdminNavItem = {
   value: string;
   label: string;
   icon: LucideIcon;
+  /** Rota fora das abas (ex.: /pdv). Sem href, troca a aba do admin. */
+  href?: string;
 };
 
 export type AdminNavGroup = {
@@ -35,56 +40,52 @@ export type AdminNavGroup = {
 };
 
 /**
- * Organizacao do menu lateral do Admin.
- * As 16 abas existentes, apenas agrupadas por categoria.
- * A ordem dentro de cada grupo segue a ordem original das TabsList.
+ * Organizacao do menu lateral do Admin (visual Projeto A1).
+ * Ordem principal segue o mockup; todos os módulos reais permanecem
+ * (nada removido). Itens com `href` navegam para rotas staff fora das abas.
+ * Relatórios não tem módulo próprio — lacuna documentada, sem página fictícia.
  */
 export const ADMIN_NAV: AdminNavGroup[] = [
   {
-    label: "Visão geral",
-    items: [{ value: "dashboard", label: "Dashboard", icon: LayoutDashboard }],
-  },
-  {
-    label: "Operação",
+    label: "Principal",
     items: [
+      { value: "dashboard", label: "Dashboard", icon: LayoutDashboard },
       { value: "pedidos", label: "Pedidos", icon: ClipboardList },
+      { value: "producao", label: "Produção", icon: CookingPot, href: "/producao" },
+      { value: "central", label: "Central de Entregas", icon: Truck, href: "/central-entregas" },
+      { value: "pdv", label: "PDV / Balcão", icon: ReceiptText, href: "/pdv" },
       { value: "clientes", label: "Clientes", icon: Users },
-      { value: "motoboys", label: "Motoboys", icon: Bike },
-      { value: "impressao", label: "Impressão", icon: Printer },
+      { value: "produtos", label: "Produtos", icon: Package },
+      { value: "insumos", label: "Estoque", icon: Wheat },
+      { value: "financeiro", label: "Financeiro", icon: Wallet },
+      { value: "loja", label: "Configurações", icon: Store },
     ],
   },
   {
     label: "Catálogo",
     items: [
-      { value: "produtos", label: "Produtos", icon: Package },
       { value: "precificacao", label: "Precificação", icon: Percent },
       { value: "cupons", label: "Cupons", icon: Tag },
       { value: "calculadora", label: "Calculadora", icon: Calculator },
-    ],
-  },
-  {
-    label: "Loja & Marca",
-    items: [
-      { value: "loja", label: "Loja", icon: Store },
       { value: "hero", label: "Hero", icon: ImageIcon },
       { value: "avaliacoes", label: "Avaliações", icon: Star },
     ],
   },
   {
-    label: "Estoque",
+    label: "Estoque & Compras",
     items: [
-      { value: "insumos", label: "Insumos", icon: Wheat },
       { value: "fichas", label: "Fichas técnicas", icon: ChefHat },
-      { value: "fornecedores", label: "Fornecedores", icon: Truck },
+      { value: "fornecedores", label: "Fornecedores", icon: Factory },
       { value: "compras", label: "Compras", icon: ShoppingCart },
     ],
   },
   {
-    label: "Financeiro",
+    label: "Gestão",
     items: [
-      { value: "financeiro", label: "Financeiro", icon: Wallet },
       { value: "metas", label: "Metas", icon: Target },
       { value: "comercial", label: "Comercial", icon: Crown },
+      { value: "motoboys", label: "Motoboys", icon: Bike },
+      { value: "impressao", label: "Impressão", icon: Printer },
     ],
   },
   {
