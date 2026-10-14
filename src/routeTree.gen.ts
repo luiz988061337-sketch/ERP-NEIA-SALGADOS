@@ -32,6 +32,7 @@ import { Route as MotoboyRouteImport } from './routes/motoboy'
 import { Route as OperacaoRouteImport } from './routes/operacao'
 import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ParceirosRouteImport } from './routes/parceiros'
+import { Route as PdvRouteImport } from './routes/pdv'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
@@ -175,6 +176,11 @@ const OrcamentosRoute = OrcamentosRouteImport.update({
 const ParceirosRoute = ParceirosRouteImport.update({
   id: '/parceiros',
   path: '/parceiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdvRoute = PdvRouteImport.update({
+  id: '/pdv',
+  path: '/pdv',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreviewRoute = PreviewRouteImport.update({
@@ -351,6 +357,7 @@ export interface FileRoutesByFullPath {
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
+  '/pdv': typeof PdvRoute
   '/preview': typeof PreviewRouteWithChildren
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
@@ -405,6 +412,7 @@ export interface FileRoutesByTo {
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
+  '/pdv': typeof PdvRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -459,6 +467,7 @@ export interface FileRoutesById {
   '/operacao': typeof OperacaoRoute
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
+  '/pdv': typeof PdvRoute
   '/preview': typeof PreviewRouteWithChildren
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
@@ -515,6 +524,7 @@ export interface FileRouteTypes {
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
+    | '/pdv'
     | '/preview'
     | '/producao'
     | '/recorrentes'
@@ -569,6 +579,7 @@ export interface FileRouteTypes {
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
+    | '/pdv'
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/operacao'
     | '/orcamentos'
     | '/parceiros'
+    | '/pdv'
     | '/preview'
     | '/producao'
     | '/recorrentes'
@@ -677,6 +689,7 @@ export interface RootRouteChildren {
   OperacaoRoute: typeof OperacaoRoute
   OrcamentosRoute: typeof OrcamentosRoute
   ParceirosRoute: typeof ParceirosRoute
+  PdvRoute: typeof PdvRoute
   PreviewRoute: typeof PreviewRouteWithChildren
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
@@ -847,6 +860,13 @@ declare module '@tanstack/react-router' {
       path: '/parceiros'
       fullPath: '/parceiros'
       preLoaderRoute: typeof ParceirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdv': {
+      id: '/pdv'
+      path: '/pdv'
+      fullPath: '/pdv'
+      preLoaderRoute: typeof PdvRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/preview': {
@@ -1132,6 +1152,7 @@ const rootRouteChildren: RootRouteChildren = {
   OperacaoRoute: OperacaoRoute,
   OrcamentosRoute: OrcamentosRoute,
   ParceirosRoute: ParceirosRoute,
+  PdvRoute: PdvRoute,
   PreviewRoute: PreviewRouteWithChildren,
   ProducaoRoute: ProducaoRoute,
   RecorrentesRoute: RecorrentesRoute,

@@ -100,6 +100,11 @@ export function SiteHeader() {
               <Link to="/atendente">Novo pedido</Link>
             </Button>
           ) : null}
+          {isAtendente ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/pdv">PDV Balcão</Link>
+            </Button>
+          ) : null}
           {isProducao ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/producao">Produção</Link>
@@ -238,6 +243,13 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
+                {isAtendente ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/pdv">
+                      <LayoutDashboard className="mr-2 size-4" /> PDV Balcão
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={sair}>
                   <LogOut className="mr-2 size-4" /> Sair
@@ -290,6 +302,11 @@ export function SiteHeader() {
               {isAtendente ? (
                 <DropdownMenuItem asChild>
                   <Link to="/atendente">Novo pedido</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isAtendente ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/pdv">PDV Balcão</Link>
                 </DropdownMenuItem>
               ) : null}
               {isProducao ? (
