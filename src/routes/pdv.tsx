@@ -400,6 +400,15 @@ function PDV() {
     <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
       {/* Topo */}
       <header className="flex flex-wrap items-center gap-2 border-b border-neutral-800 bg-neutral-950 px-3 py-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="min-h-[44px] shrink-0 border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800 hover:text-white"
+          onClick={() => navigate({ to: roles?.includes("admin") ? "/admin" : "/atendente" })}
+          aria-label="Voltar"
+        >
+          ← Voltar
+        </Button>
         <div className="mr-2 leading-tight">
           <p className="font-display text-2xl font-bold text-yellow-400">
             Néia <span className="text-sm font-normal text-neutral-300">Salgados</span>

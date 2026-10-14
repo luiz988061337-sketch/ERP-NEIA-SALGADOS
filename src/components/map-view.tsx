@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-type Ponto = { lat: number; lng: number; label: string };
+type Ponto = { lat: number; lng: number; label: string; moto?: boolean };
 
 declare global {
   interface Window {
@@ -61,8 +61,17 @@ export function MapView({ pontos, className }: { pontos: Ponto[]; className?: st
           });
         }
         markersRef.current.forEach((m) => m.setMap(null));
-        markersRef.current = pontos.map(
-          (p) => new g.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map: mapRef.current, title: p.label }),
+        markersRef.current = pontos.map((p) =>
+          p.moto
+            ? new g.maps.Marker({
+                position: { lat: p.lat, lng: p.lng },
+                map: mapRef.current,
+                title: p.label,
+                // Moto de desenho: círculo invisível + emoji (sem asset externo).
+                icon: { path: g.maps.SymbolPath.CIRCLE, scale: 0.1, fillOpacity: 0, strokeOpacity: 0 },
+                label: { text: "🛵", fontSize: "30px" },
+              })
+            : new g.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map: mapRef.current, title: p.label }),
         );
         if (pontos.length > 1) {
           const bounds = new g.maps.LatLngBounds();

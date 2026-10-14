@@ -232,9 +232,9 @@ function Acompanhar() {
       ? { lat: pedido.destino_lat, lng: pedido.destino_lng, label: "Entrega" }
       : null,
     pedido.motoboy_lat && pedido.motoboy_lng
-      ? { lat: pedido.motoboy_lat, lng: pedido.motoboy_lng, label: "Motoboy" }
+      ? { lat: pedido.motoboy_lat, lng: pedido.motoboy_lng, label: "Motoboy", moto: true }
       : null,
-  ].filter(Boolean) as { lat: number; lng: number; label: string }[];
+  ].filter(Boolean) as { lat: number; lng: number; label: string; moto?: boolean }[];
 
   function toRad(deg: number): number {
     return deg * (Math.PI / 180);

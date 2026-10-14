@@ -16,9 +16,12 @@ export function AdminTopbar({
   onLojaClick,
   menuButton,
   acesso = "Acesso total",
+  onVoltar,
 }: {
   usuario?: string | null | undefined;
   onSair?: (() => void) | undefined;
+  /** Ação do botão ← Voltar. Sem ação, sem botão. */
+  onVoltar?: (() => void) | null;
   /** Sem destino (ex.: produção), o chip da loja vira só informativo. */
   onLojaClick?: (() => void) | null;
   menuButton?: ReactNode;
@@ -56,6 +59,17 @@ export function AdminTopbar({
   return (
     <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 border-b border-neutral-800 bg-neutral-950 px-4 py-2 text-neutral-100">
       {menuButton}
+      {onVoltar ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onVoltar}
+          className="min-h-[44px] shrink-0 border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800 hover:text-white"
+          aria-label="Voltar"
+        >
+          ← Voltar
+        </Button>
+      ) : null}
       {onLojaClick ? (
         <button
           type="button"

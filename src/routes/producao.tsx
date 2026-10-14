@@ -740,6 +740,7 @@ function Producao() {
       <AdminTopbar
         usuario={user?.email ?? null}
         acesso="Produção"
+        onVoltar={() => navigate({ to: roles?.includes("admin") ? "/admin" : "/central-entregas" })}
         onSair={async () => {
           await supabase.auth.signOut();
           navigate({ to: "/auth", replace: true });

@@ -493,8 +493,8 @@ function EntregaCard({ p, onIniciar, onFinalizar }: { p: any; onIniciar: () => v
   const destino = `${p.endereco}${p.complemento ? `, ${p.complemento}` : ""}, ${p.bairro}`;
   const pontos = [
     p.destino_lat && p.destino_lng ? { lat: p.destino_lat, lng: p.destino_lng, label: "Cliente" } : null,
-    p.motoboy_lat && p.motoboy_lng ? { lat: p.motoboy_lat, lng: p.motoboy_lng, label: "Você" } : null,
-  ].filter(Boolean) as { lat: number; lng: number; label: string }[];
+    p.motoboy_lat && p.motoboy_lng ? { lat: p.motoboy_lat, lng: p.motoboy_lng, label: "Você", moto: true } : null,
+  ].filter(Boolean) as { lat: number; lng: number; label: string; moto?: boolean }[];
 
   // GPS status for this specific delivery
   const isEmRota = p.status === "em_rota";
