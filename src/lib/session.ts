@@ -22,7 +22,7 @@ export function useSession() {
   return { session, user: (session?.user ?? null) as User | null, loading };
 }
 
-export type Role = "admin" | "producao" | "motoboy" | "cliente" | "atendente" | "financeiro";
+export type Role = "admin" | "producao" | "motoboy" | "cliente" | "atendente" | "financeiro" | "contador";
 
 export function useRoles(userId: string | undefined) {
   return useQuery({

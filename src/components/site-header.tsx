@@ -23,6 +23,7 @@ export function SiteHeader() {
   const queryClient = useQueryClient();
 
   const isAdmin = roles?.includes("admin");
+  const isContador = roles?.includes("contador") || isAdmin;
   const isFinanceiro = roles?.includes("financeiro") || isAdmin;
   const isProducao = roles?.includes("producao") || isAdmin;
   const isMotoboy = roles?.includes("motoboy") || isAdmin;
@@ -103,6 +104,11 @@ export function SiteHeader() {
           {isAtendente ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/pdv">PDV Balcão</Link>
+            </Button>
+          ) : null}
+          {isContador ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/contador">Contador</Link>
             </Button>
           ) : null}
           {isProducao ? (
@@ -215,6 +221,13 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
+                {isContador ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/contador">
+                      <LayoutDashboard className="mr-2 size-4" /> Contador
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 {isAdmin ? (
                   <DropdownMenuItem asChild>
                     <Link to="/crm-config">
@@ -307,6 +320,11 @@ export function SiteHeader() {
               {isAtendente ? (
                 <DropdownMenuItem asChild>
                   <Link to="/pdv">PDV Balcão</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isContador ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/contador">Contador</Link>
                 </DropdownMenuItem>
               ) : null}
               {isProducao ? (

@@ -3169,7 +3169,7 @@ function ImpressaoAdmin() {
   );
 }
 
-const PAPEIS: Role[] = ["admin", "atendente", "producao", "motoboy", "financeiro", "cliente"];
+const PAPEIS: Role[] = ["admin", "atendente", "producao", "motoboy", "financeiro", "contador", "cliente"];
 
 function UsuariosAdmin({
   profiles,

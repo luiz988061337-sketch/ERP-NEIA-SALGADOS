@@ -22,6 +22,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ComboRouteImport } from './routes/combo'
 import { Route as ContaRouteImport } from './routes/conta'
+import { Route as ContadorRouteImport } from './routes/contador'
 import { Route as CrmConfigRouteImport } from './routes/crm-config'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as FiscalRouteImport } from './routes/fiscal'
@@ -126,6 +127,11 @@ const ComboRoute = ComboRouteImport.update({
 const ContaRoute = ContaRouteImport.update({
   id: '/conta',
   path: '/conta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContadorRoute = ContadorRouteImport.update({
+  id: '/contador',
+  path: '/contador',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrmConfigRoute = CrmConfigRouteImport.update({
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
+  '/contador': typeof ContadorRoute
   '/crm-config': typeof CrmConfigRoute
   '/financeiro': typeof FinanceiroRoute
   '/fiscal': typeof FiscalRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
+  '/contador': typeof ContadorRoute
   '/crm-config': typeof CrmConfigRoute
   '/financeiro': typeof FinanceiroRoute
   '/fiscal': typeof FiscalRoute
@@ -457,6 +465,7 @@ export interface FileRoutesById {
   '/clientes': typeof ClientesRoute
   '/combo': typeof ComboRoute
   '/conta': typeof ContaRoute
+  '/contador': typeof ContadorRoute
   '/crm-config': typeof CrmConfigRoute
   '/financeiro': typeof FinanceiroRoute
   '/fiscal': typeof FiscalRoute
@@ -514,6 +523,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/combo'
     | '/conta'
+    | '/contador'
     | '/crm-config'
     | '/financeiro'
     | '/fiscal'
@@ -569,6 +579,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/combo'
     | '/conta'
+    | '/contador'
     | '/crm-config'
     | '/financeiro'
     | '/fiscal'
@@ -623,6 +634,7 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/combo'
     | '/conta'
+    | '/contador'
     | '/crm-config'
     | '/financeiro'
     | '/fiscal'
@@ -679,6 +691,7 @@ export interface RootRouteChildren {
   ClientesRoute: typeof ClientesRoute
   ComboRoute: typeof ComboRoute
   ContaRoute: typeof ContaRoute
+  ContadorRoute: typeof ContadorRoute
   CrmConfigRoute: typeof CrmConfigRoute
   FinanceiroRoute: typeof FinanceiroRoute
   FiscalRoute: typeof FiscalRoute
@@ -790,6 +803,13 @@ declare module '@tanstack/react-router' {
       path: '/conta'
       fullPath: '/conta'
       preLoaderRoute: typeof ContaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contador': {
+      id: '/contador'
+      path: '/contador'
+      fullPath: '/contador'
+      preLoaderRoute: typeof ContadorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm-config': {
@@ -1142,6 +1162,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClientesRoute: ClientesRoute,
   ComboRoute: ComboRoute,
   ContaRoute: ContaRoute,
+  ContadorRoute: ContadorRoute,
   CrmConfigRoute: CrmConfigRoute,
   FinanceiroRoute: FinanceiroRoute,
   FiscalRoute: FiscalRoute,
