@@ -76,6 +76,7 @@ import { InsumosAdmin } from "@/components/admin/estoque/insumos-admin";
 import { FichasAdmin } from "@/components/admin/estoque/fichas-admin";
 import { FornecedoresAdmin } from "@/components/admin/estoque/fornecedores-admin";
 import { ComprasAdmin } from "@/components/admin/estoque/compras-admin";
+import { PrecificacaoAdmin } from "@/components/admin/precificacao-admin";
 import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
 import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
@@ -880,6 +881,10 @@ function Admin() {
 
         <TabsContent value="compras" className="mt-4">
           <ComprasAdmin />
+        </TabsContent>
+
+        <TabsContent value="precificacao" className="mt-4">
+          <PrecificacaoAdmin />
         </TabsContent>
 
         <TabsContent value="usuarios" className="mt-4">

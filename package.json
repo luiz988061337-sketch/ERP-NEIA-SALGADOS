@@ -15,6 +15,7 @@
     "teste:rls": "node scripts/auditoria-rls.mjs",
     "teste:pix": "node scripts/pix-reader.test.mjs",
     "teste:insumos": "node scripts/insumos.test.mjs",
+    "teste:precificacao": "node scripts/precificacao.test.mjs",
     "verificar:banco": "node scripts/verificar-banco.mjs",
     "gerar:vapid": "node scripts/gerar-vapid.mjs",
     "format": "prettier --write ."
