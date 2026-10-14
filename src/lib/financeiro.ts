@@ -91,3 +91,61 @@ export function totalContas(
     .filter((c) => c.tipo === tipo && c.status !== "cancelada")
     .reduce((s, c) => s + (Number(c.valor ?? 0) || 0), 0);
 }
+
+export type LinhaDRE = {
+  bruta: number;
+  cancelamentos: number;
+  descontos: number;
+  liquida: number;
+  cmv: number;
+  lucroBruto: number;
+  despesas: number;
+  resultado: number;
+  margemPct: number;
+};
+
+/**
+ * DRE mensal simplificada com dados reais (Etapa M):
+ * bruta = pedidos não cancelados; cancelamentos à parte; descontos;
+ * líquida = bruta − cancelados − descontos; CMV = insumos pagos;
+ * lucro bruto = líquida − CMV; despesas = demais contas pagas;
+ * resultado = lucro bruto − despesas.
+ * Ex. prompt: 20000 − 1400 (aqui: cancel+desc) − 7000 − 6500 → 5100 (25,5%).
+ */
+export function dreMensal(p: {
+  bruta: number;
+  cancelamentos: number;
+  descontos: number;
+  cmv: number;
+  despesas: number;
+}): LinhaDRE {
+  const bruta = Number(p.bruta) || 0;
+  const cancelamentos = Number(p.cancelamentos) || 0;
+  const descontos = Number(p.descontos) || 0;
+  const cmv = Number(p.cmv) || 0;
+  const despesas = Number(p.despesas) || 0;
+  const liquida = bruta - cancelamentos - descontos;
+  const lucroBruto = liquida - cmv;
+  const resultado = lucroBruto - despesas;
+  return {
+    bruta,
+    cancelamentos,
+    descontos,
+    liquida,
+    cmv,
+    lucroBruto,
+    despesas,
+    resultado,
+    margemPct: bruta > 0 ? (resultado / bruta) * 100 : 0,
+  };
+}
+
+/**
+ * Ponto de equilíbrio = custos fixos ÷ margem de contribuição (0-1).
+ * Ex.: fixos 6000, MC 40% → R$ 15.000/mês. Null sem margem.
+ */
+export function pontoEquilibrio(custosFixos: number, margemContribuicao: number): number | null {
+  const mc = Number(margemContribuicao) || 0;
+  if (mc <= 0) return null;
+  return (Number(custosFixos) || 0) / mc;
+}
