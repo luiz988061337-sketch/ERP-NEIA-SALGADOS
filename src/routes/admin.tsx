@@ -686,11 +686,8 @@ function Admin() {
         /* sem migration — trigger 0042 assume */
       }
       try {
-        await supabase
-          .from("reservas_estoque")
-          .update({ status: "cancelada" })
-          .eq("pedido_id", p.id)
-          .eq("status", "ativa");
+        const q = supabase.from("reservas_estoque").update({ status: "cancelada" });
+        await q.eq("pedido_id", p.id).eq("status", "ativa");
       } catch {
         /* sem migration */
       }
@@ -3169,7 +3166,15 @@ function ImpressaoAdmin() {
   );
 }
 
-const PAPEIS: Role[] = ["admin", "atendente", "producao", "motoboy", "financeiro", "contador", "cliente"];
+const PAPEIS: Role[] = [
+  "admin",
+  "atendente",
+  "producao",
+  "motoboy",
+  "financeiro",
+  "contador",
+  "cliente",
+];
 
 function UsuariosAdmin({
   profiles,

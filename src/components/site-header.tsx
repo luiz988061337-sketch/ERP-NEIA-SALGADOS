@@ -106,6 +106,11 @@ export function SiteHeader() {
               <Link to="/pdv">PDV Balcão</Link>
             </Button>
           ) : null}
+          {user ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/equipe">Equipe</Link>
+            </Button>
+          ) : null}
           {isContador ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/contador">Contador</Link>
@@ -129,6 +134,11 @@ export function SiteHeader() {
           {isAdmin ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">Admin</Link>
+            </Button>
+          ) : null}
+          {isAdmin ? (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/gestao">Gestão</Link>
             </Button>
           ) : null}
           {isAdmin ? (
@@ -322,6 +332,11 @@ export function SiteHeader() {
                   <Link to="/pdv">PDV Balcão</Link>
                 </DropdownMenuItem>
               ) : null}
+              {user ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/equipe">Equipe</Link>
+                </DropdownMenuItem>
+              ) : null}
               {isContador ? (
                 <DropdownMenuItem asChild>
                   <Link to="/contador">Contador</Link>
@@ -345,6 +360,11 @@ export function SiteHeader() {
               {isAdmin ? (
                 <DropdownMenuItem asChild>
                   <Link to="/admin">Admin</Link>
+                </DropdownMenuItem>
+              ) : null}
+              {isAdmin ? (
+                <DropdownMenuItem asChild>
+                  <Link to="/gestao">Gestão</Link>
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>

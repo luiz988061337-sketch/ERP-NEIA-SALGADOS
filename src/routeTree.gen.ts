@@ -24,8 +24,10 @@ import { Route as ComboRouteImport } from './routes/combo'
 import { Route as ContaRouteImport } from './routes/conta'
 import { Route as ContadorRouteImport } from './routes/contador'
 import { Route as CrmConfigRouteImport } from './routes/crm-config'
+import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as FiscalRouteImport } from './routes/fiscal'
+import { Route as GestaoRouteImport } from './routes/gestao'
 import { Route as HistoriaRouteImport } from './routes/historia'
 import { Route as ImpressaoRouteImport } from './routes/impressao'
 import { Route as McpRouteImport } from './routes/mcp'
@@ -139,6 +141,11 @@ const CrmConfigRoute = CrmConfigRouteImport.update({
   path: '/crm-config',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EquipeRoute = EquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceiroRoute = FinanceiroRouteImport.update({
   id: '/financeiro',
   path: '/financeiro',
@@ -147,6 +154,11 @@ const FinanceiroRoute = FinanceiroRouteImport.update({
 const FiscalRoute = FiscalRouteImport.update({
   id: '/fiscal',
   path: '/fiscal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GestaoRoute = GestaoRouteImport.update({
+  id: '/gestao',
+  path: '/gestao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoriaRoute = HistoriaRouteImport.update({
@@ -355,8 +367,10 @@ export interface FileRoutesByFullPath {
   '/conta': typeof ContaRoute
   '/contador': typeof ContadorRoute
   '/crm-config': typeof CrmConfigRoute
+  '/equipe': typeof EquipeRoute
   '/financeiro': typeof FinanceiroRoute
   '/fiscal': typeof FiscalRoute
+  '/gestao': typeof GestaoRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
   '/mcp': typeof McpRoute
@@ -411,8 +425,10 @@ export interface FileRoutesByTo {
   '/conta': typeof ContaRoute
   '/contador': typeof ContadorRoute
   '/crm-config': typeof CrmConfigRoute
+  '/equipe': typeof EquipeRoute
   '/financeiro': typeof FinanceiroRoute
   '/fiscal': typeof FiscalRoute
+  '/gestao': typeof GestaoRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
   '/mcp': typeof McpRoute
@@ -467,8 +483,10 @@ export interface FileRoutesById {
   '/conta': typeof ContaRoute
   '/contador': typeof ContadorRoute
   '/crm-config': typeof CrmConfigRoute
+  '/equipe': typeof EquipeRoute
   '/financeiro': typeof FinanceiroRoute
   '/fiscal': typeof FiscalRoute
+  '/gestao': typeof GestaoRoute
   '/historia': typeof HistoriaRoute
   '/impressao': typeof ImpressaoRoute
   '/mcp': typeof McpRoute
@@ -525,8 +543,10 @@ export interface FileRouteTypes {
     | '/conta'
     | '/contador'
     | '/crm-config'
+    | '/equipe'
     | '/financeiro'
     | '/fiscal'
+    | '/gestao'
     | '/historia'
     | '/impressao'
     | '/mcp'
@@ -581,8 +601,10 @@ export interface FileRouteTypes {
     | '/conta'
     | '/contador'
     | '/crm-config'
+    | '/equipe'
     | '/financeiro'
     | '/fiscal'
+    | '/gestao'
     | '/historia'
     | '/impressao'
     | '/mcp'
@@ -636,8 +658,10 @@ export interface FileRouteTypes {
     | '/conta'
     | '/contador'
     | '/crm-config'
+    | '/equipe'
     | '/financeiro'
     | '/fiscal'
+    | '/gestao'
     | '/historia'
     | '/impressao'
     | '/mcp'
@@ -693,8 +717,10 @@ export interface RootRouteChildren {
   ContaRoute: typeof ContaRoute
   ContadorRoute: typeof ContadorRoute
   CrmConfigRoute: typeof CrmConfigRoute
+  EquipeRoute: typeof EquipeRoute
   FinanceiroRoute: typeof FinanceiroRoute
   FiscalRoute: typeof FiscalRoute
+  GestaoRoute: typeof GestaoRoute
   HistoriaRoute: typeof HistoriaRoute
   ImpressaoRoute: typeof ImpressaoRoute
   McpRoute: typeof McpRoute
@@ -819,6 +845,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/equipe': {
+      id: '/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof EquipeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/financeiro': {
       id: '/financeiro'
       path: '/financeiro'
@@ -831,6 +864,13 @@ declare module '@tanstack/react-router' {
       path: '/fiscal'
       fullPath: '/fiscal'
       preLoaderRoute: typeof FiscalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gestao': {
+      id: '/gestao'
+      path: '/gestao'
+      fullPath: '/gestao'
+      preLoaderRoute: typeof GestaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/historia': {
@@ -1164,8 +1204,10 @@ const rootRouteChildren: RootRouteChildren = {
   ContaRoute: ContaRoute,
   ContadorRoute: ContadorRoute,
   CrmConfigRoute: CrmConfigRoute,
+  EquipeRoute: EquipeRoute,
   FinanceiroRoute: FinanceiroRoute,
   FiscalRoute: FiscalRoute,
+  GestaoRoute: GestaoRoute,
   HistoriaRoute: HistoriaRoute,
   ImpressaoRoute: ImpressaoRoute,
   McpRoute: McpRoute,
