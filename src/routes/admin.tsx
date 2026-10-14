@@ -72,6 +72,10 @@ import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/uploa
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { LojaPanel } from "@/components/admin/loja-panel";
+import { InsumosAdmin } from "@/components/admin/estoque/insumos-admin";
+import { FichasAdmin } from "@/components/admin/estoque/fichas-admin";
+import { FornecedoresAdmin } from "@/components/admin/estoque/fornecedores-admin";
+import { ComprasAdmin } from "@/components/admin/estoque/compras-admin";
 import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
 import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
@@ -860,6 +864,22 @@ function Admin() {
 
         <TabsContent value="comercial" className="mt-4">
           <ComercialAdmin pedidos={pedidos ?? []} clientes={clientesStats ?? []} />
+        </TabsContent>
+
+        <TabsContent value="insumos" className="mt-4">
+          <InsumosAdmin />
+        </TabsContent>
+
+        <TabsContent value="fichas" className="mt-4">
+          <FichasAdmin />
+        </TabsContent>
+
+        <TabsContent value="fornecedores" className="mt-4">
+          <FornecedoresAdmin />
+        </TabsContent>
+
+        <TabsContent value="compras" className="mt-4">
+          <ComprasAdmin />
         </TabsContent>
 
         <TabsContent value="usuarios" className="mt-4">

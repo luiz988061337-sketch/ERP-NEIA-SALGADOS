@@ -1,6 +1,7 @@
 import {
   Bike,
   Calculator,
+  ChefHat,
   ClipboardList,
   Crown,
   ImageIcon,
@@ -9,12 +10,15 @@ import {
   Package,
   Printer,
   ScrollText,
+  ShoppingCart,
   Star,
   Store,
   Tag,
   Target,
+  Truck,
   Users,
   Wallet,
+  Wheat,
   type LucideIcon,
 } from "lucide-react";
 
@@ -65,6 +69,15 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
   {
+    label: "Estoque",
+    items: [
+      { value: "insumos", label: "Insumos", icon: Wheat },
+      { value: "fichas", label: "Fichas técnicas", icon: ChefHat },
+      { value: "fornecedores", label: "Fornecedores", icon: Truck },
+      { value: "compras", label: "Compras", icon: ShoppingCart },
+    ],
+  },
+  {
     label: "Financeiro",
     items: [
       { value: "financeiro", label: "Financeiro", icon: Wallet },
@@ -93,6 +106,10 @@ export const ADMIN_ABA_TITULO: Record<string, string> = {
   financeiro: "Financeiro",
   impressao: "Impressão",
   comercial: "Comercial",
+  insumos: "Insumos",
+  fichas: "Fichas técnicas",
+  fornecedores: "Fornecedores",
+  compras: "Compras",
   usuarios: "Usuários",
   logs: "Logs",
   hero: "Hero",
@@ -112,6 +129,10 @@ export const ADMIN_ABA_DESCRICAO: Record<string, string> = {
   financeiro: "Receitas, custos e ticket médio.",
   impressao: "Fila da Tanca TP-550 e histórico de trabalhos.",
   comercial: "Funil de vendas, recompra e perfil de clientes.",
+  insumos: "Matéria-prima: estoque, lotes FEFO, perdas e inventário.",
+  fichas: "Receita de cada produto: insumos por unidade ou cento.",
+  fornecedores: "Cadastro de fornecedores e prazos de entrega.",
+  compras: "Pedidos de compra e recebimentos com custo médio.",
   usuarios: "Acessos e níveis de permissão.",
   logs: "Auditoria das ações administrativas.",
   hero: "Banner e destaques da vitrine.",
