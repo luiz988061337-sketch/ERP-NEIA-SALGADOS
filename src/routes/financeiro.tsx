@@ -19,6 +19,7 @@ import {
   statusConta,
   totalContas,
 } from "@/lib/financeiro";
+import { parseCSVExtrato, parseOFX, sugerirVinculo, type LancamentoExtrato } from "@/lib/ofx";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/financeiro")({
@@ -146,6 +147,119 @@ function Financeiro() {
       }
     },
   });
+
+  const [previa, setPrevia] = useState<LancamentoExtrato[] | null>(null);
+  const [nomeArq, setNomeArq] = useState("");
+
+  const { data: extratos } = useQuery({
+    queryKey: ["fin-extratos"],
+    enabled: !!autorizado,
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from("extratos")
+          .select("*")
+          .eq("status", "pendente")
+          .order("data", { ascending: false })
+          .limit(200);
+        if (error) throw error;
+        return (data ?? []) as any[];
+      } catch {
+        return [];
+      }
+    },
+  });
+
+  async function lerArquivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arq = e.target.files?.[0];
+    if (!arq) return;
+    const texto = await arq.text();
+    const parsed = /\.ofx$/i.test(arq.name) ? parseOFX(texto) : parseCSVExtrato(texto);
+    if (parsed.length === 0) {
+      toast.error("Nenhum lançamento válido (OFX ou CSV data;descricao;valor).");
+      return;
+    }
+    setPrevia(parsed);
+    setNomeArq(arq.name);
+    e.target.value = "";
+  }
+
+  function baixarModeloCSV() {
+    const blob = new Blob(["data;descricao;valor\n10/10/2026;PIX recebido;46,00\n"], {
+      type: "text/csv",
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "modelo-extrato.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function gravarExtrato() {
+    if (!previa?.length) return;
+    let novos = 0;
+    for (let i = 0; i < previa.length; i++) {
+      const l = previa[i];
+      if (!l) continue;
+      const { error } = await supabase.from("extratos").insert({
+        arquivo: nomeArq,
+        linha: i + 1,
+        data: l.data,
+        descricao: l.descricao,
+        valor: l.valor,
+        referencia: l.referencia,
+        created_by: user!.id,
+      });
+      if (!error) novos += 1;
+    }
+    toast.success(`${novos} lançamento(s) importado(s). Duplicados ignorados.`);
+    setPrevia(null);
+    setNomeArq("");
+    queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
+  }
+
+  async function conciliar(ex: any, cand: { tipo: string; id: string }) {
+    if (cand.tipo === "pedido") {
+      const agora = new Date().toISOString();
+      const { error } = await supabase
+        .from("pedidos")
+        .update({ pagamento_status: "pago", pagamento_em: agora })
+        .eq("id", cand.id)
+        .eq("pagamento_status", "pendente");
+      if (error) {
+        toast.error("Falha ao confirmar pedido.");
+        return;
+      }
+    } else {
+      const { data: c } = await supabase.from("contas").select("valor").eq("id", cand.id).single();
+      const { error } = await supabase
+        .from("contas")
+        .update({
+          status: "paga",
+          valor_pago: Number((c as any)?.valor ?? 0),
+          pago_em: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", cand.id);
+      if (error) {
+        toast.error("Falha ao baixar conta.");
+        return;
+      }
+    }
+    await supabase
+      .from("extratos")
+      .update({ status: "conciliado", vinculo_tipo: cand.tipo, vinculo_id: cand.id })
+      .eq("id", ex.id);
+    toast.success("Conciliado.");
+    queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
+    queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
+    queryClient.invalidateQueries({ queryKey: ["fin-pedidos", mes] });
+  }
+
+  async function ignorarExtrato(id: string) {
+    await supabase.from("extratos").update({ status: "ignorado" }).eq("id", id);
+    queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
+  }
 
   if (roles && !autorizado) {
     return <p className="p-10 text-center">Acesso do admin/financeiro.</p>;
@@ -555,6 +669,97 @@ function Financeiro() {
               <strong>{brl(fluxo90.saldo)}</strong>
             </p>
           </div>
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-xl">Importar extrato (OFX/CSV)</h2>
+            <Button size="sm" variant="outline" className="ml-auto" onClick={baixarModeloCSV}>
+              Modelo CSV
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            O vínculo é só sugestão (valor ±2 dias) — confirmar é manual. Confirmar pedido pago
+            imprime o cupom.
+          </p>
+          <div className="mt-2">
+            <Input
+              type="file"
+              accept=".ofx,.csv,.txt"
+              onChange={lerArquivo}
+              aria-label="Arquivo de extrato"
+            />
+          </div>
+          {previa ? (
+            <div className="mt-2 rounded-lg border border-border p-2 text-sm">
+              <p className="font-semibold">
+                {nomeArq}: {previa.length} lançamento(s). Confira e grave.
+              </p>
+              <ul className="mt-1 max-h-40 space-y-0.5 overflow-y-auto text-xs text-muted-foreground">
+                {previa.slice(0, 20).map((l, i) => (
+                  <li key={i}>
+                    {l.data} • {l.descricao} • {brl(l.valor)}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" onClick={gravarExtrato}>
+                  Gravar lançamentos
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPrevia(null)}>
+                  Descartar
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          <ul className="mt-3 space-y-2 text-sm">
+            {(extratos ?? []).map((ex: any) => {
+              const cands = sugerirVinculo(
+                {
+                  referencia: ex.referencia,
+                  data: ex.data,
+                  valor: Number(ex.valor),
+                  descricao: ex.descricao,
+                },
+                (pedidos ?? []).filter((p: any) => p.pagamento_status !== "pago"),
+                (contas ?? []).filter((c: any) => c.status !== "paga" && c.status !== "cancelada"),
+              );
+              return (
+                <li key={ex.id} className="rounded-lg border border-border p-2.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">
+                      {ex.data} • {ex.descricao}
+                    </span>
+                    <b className="ml-auto">{brl(ex.valor)}</b>
+                    <Button size="sm" variant="ghost" onClick={() => ignorarExtrato(ex.id)}>
+                      Ignorar
+                    </Button>
+                  </div>
+                  {cands.length > 0 ? (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {cands.map((c) => (
+                        <Button
+                          key={`${c.tipo}-${c.id}`}
+                          size="sm"
+                          variant="outline"
+                          onClick={() => conciliar(ex, c)}
+                        >
+                          Vincular: {c.rotulo}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Sem sugestão — conferência manual.
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+            {(extratos ?? []).length === 0 && !previa ? (
+              <li className="text-muted-foreground">Nenhum lançamento pendente.</li>
+            ) : null}
+          </ul>
         </section>
 
         <section className="rounded-xl border border-border bg-card p-4">
