@@ -159,7 +159,7 @@ Com `-Executar -Url "<DATABASE_URL>" -Etapa <n>`:
 
 | Item | Estado |
 |---|---|
-| Artefato de corte | `1792429500000` / `cutover-2026-10-19-a1` / SHA-256 `e9ba86c9…1ecdf1` — **idêntico**, não reconstruído |
+| Artefato de corte | `1792429500000` / `cutover-2026-10-19-a1` / SHA-256 `9d13ed82…2203d1` — **idêntico**, não reconstruído |
 | Migrações aplicadas em produção | **nenhuma** (produção intacta, pré-0087) |
 | `controlado` em produção | **inalterado** (a tabela 0092 nem existe) |
 | Flags publicadas | **inalteradas** (bundle não publicado) |

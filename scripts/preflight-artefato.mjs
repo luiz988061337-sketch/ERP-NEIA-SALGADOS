@@ -11,6 +11,7 @@
  * Saída: `PREFLIGHT_ARTEFATO_OK` ou `ARTEFATO_DIVERGIU`.
  */
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
@@ -93,6 +94,19 @@ const ARQUIVOS_SOLTOS = [
   "postcss.config.js",
 ];
 
+// O mtime NAO e confiavel: um rebase/checkout reescreve os mtimes de todo o
+// arquivo sem alterar o CONTEUDO. Por isso, quando o projeto e um repo git,
+// a verificacao autoritativa e o CONTEUDO (working tree vs HEAD).
+const git = (args) => {
+  try {
+    return execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+  } catch {
+    return null;
+  }
+};
+const temGit = git(["rev-parse", "--is-inside-work-tree"]) === "true";
+const dirty = temGit ? git(["status", "--porcelain"]) : null;
+
 const posteriores = [];
 for (const f of ARQUIVOS_SOLTOS) {
   const p = path.join(ROOT, f);
@@ -127,11 +141,22 @@ const geradorAlterado = posteriores.some((p) => p.arquivo === "scripts/build-cut
 const funcionaisAlterados = posteriores.filter(
   (p) => !p.arquivo.startsWith("scripts/") && p.arquivo !== "scripts/build-cutover.mjs",
 );
-ok(
-  funcionaisAlterados.length === 0,
-  "nenhum arquivo FUNCIONAL alterado após o build",
-  funcionaisAlterados.map((p) => p.arquivo).join(", "),
-);
+if (temGit) {
+  // Autoritativo: a arvore de trabalho tem que ser IGUAL ao HEAD commitado.
+  ok(
+    dirty === "",
+    "arvore de trabalho identica ao HEAD commitado (conteudo)",
+    (dirty ?? "").split("\n").slice(0, 8).join(" | "),
+  );
+  const temCorte = git(["log", "--oneline", "-20"]).includes("regime atomico");
+  ok(temCorte, "commit do regime atomico presente no historico");
+} else {
+  ok(
+    funcionaisAlterados.length === 0,
+    "nenhum arquivo FUNCIONAL alterado apos o build",
+    funcionaisAlterados.map((p) => p.arquivo).join(", "),
+  );
+}
 if (geradorAlterado) {
   console.log("  AVISO: o gerador do build foi alterado depois do build (não afeta o bundle em disco).");
 }

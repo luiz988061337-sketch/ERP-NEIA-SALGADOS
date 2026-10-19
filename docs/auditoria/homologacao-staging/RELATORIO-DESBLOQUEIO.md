@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-19
 **Etapa:** preparação final (sem nenhuma escrita em produção).
-**Artefato de corte:** `1792429500000` / `cutover-2026-10-19-a1` / SHA-256 `e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1`
+**Artefato de corte:** `1792429500000` / `cutover-2026-10-19-a1` / SHA-256 `9d13ed828e09e2936bd74f38cf20c115e0dc39711eda7417f7bfce1ad2203d1`
 
 ---
 
@@ -97,7 +97,7 @@ pelo Vite **somente no modo `production`**:
 |---|---|
 | Versão | `1792429500000` (fixada) |
 | Rótulo | `cutover-2026-10-19-a1` |
-| **SHA-256 do bundle** | `e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1` |
+| **SHA-256 do bundle** | `9d13ed828e09e2936bd74f38cf20c115e0dc39711eda7417f7bfce1ad2203d1` |
 | Arquivos no bundle | 270 |
 | Publicação | **NÃO PUBLICADO** |
 
@@ -171,7 +171,7 @@ Verificação feita **sem exibir nenhum segredo**:
 |---|---|---|
 | `-BuildVersion` | `1792429500000` | ✅ |
 | `-BuildLabel` | `cutover-2026-10-19-a1` | ✅ |
-| `-BuildSha256` | `e9ba86c9…1ecdf1` | ✅ (SHA-256 do manifesto) |
+| `-BuildSha256` | `9d13ed82…2203d1` | ✅ (SHA-256 do manifesto) |
 | Etapas | 1–12, com comando, resultado esperado, critério de erro e rollback | ✅ |
 | Modo padrão | **simulação** (não executa nada sem `-Executar`) | ✅ |
 | Etapa 5 (migrations) | 11 migrations, **sem a 0088** | ✅ |

@@ -25,7 +25,7 @@
 |------|-------|
 | Versão | `1792429500000` |
 | Rótulo | `cutover-2026-10-19-a1` |
-| SHA-256 do bundle | `e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1` |
+| SHA-256 do bundle | `9d13ed828e09e2936bd74f38cf20c115e0dc39711eda7417f7bfce1ad2203d1` |
 | Prova de remoção do legado | **0 call sites** em 282 arquivos de bundle |
 | Fluxo novo no bundle | 0095 / 0093 / 0091 presentes |
 | Publicação | **NÃO PUBLICADO** (artefato local) |

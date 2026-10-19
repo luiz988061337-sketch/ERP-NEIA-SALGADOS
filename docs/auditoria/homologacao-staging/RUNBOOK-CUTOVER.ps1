@@ -33,7 +33,7 @@ param(
   [string]$Url = $env:DATABASE_URL,
   [string]$BuildVersion = "1792429500000",
   [string]$BuildLabel = "cutover-2026-10-19-a1",
-  [string]$BuildSha256 = "e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1",
+  [string]$BuildSha256 = "9d13ed828e09e2936bd74f38cf20c115e0dc39711eda7417f7bfce1ad2203d1",
   [string]$Migrations = "C:\Users\User\ERP-NEIA-SALGADOS\drizzle\migrations",
   [string]$Saida = "C:\Users\User\ERP-NEIA-SALGADOS\docs\auditoria\homologacao-staging",
   # psql NAO esta no PATH nesta maquina: usar o caminho absoluto do PG16 portatil.
