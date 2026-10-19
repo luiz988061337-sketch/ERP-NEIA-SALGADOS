@@ -10,10 +10,14 @@ import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { PageHeader } from "@/components/admin/ui-admin";
 import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
+import { cabeNaRota } from "@/lib/central-atribuicao";
 import { notificarPedido } from "@/lib/notificacoes";
 import { brl, dataHora, hora, mensagemStatus, PAGAMENTO_LABEL, whatsappLink } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 import { useGpsTracking, GpsStatus, UseGpsTrackingReturn } from "@/hooks/useGpsTracking";
+
+// E9.1: trava de clique repetido no aceite (0 rows = conflito visível).
+const aceitandoEmVoo = new Set<string>();
 
 export const Route = createFileRoute("/motoboy")({
   head: () => ({
@@ -154,15 +158,27 @@ function Motoboy() {
   }
 
   async function aceitar(p: any) {
-    const { error } = await supabase
-      .from("pedidos")
-      .update({ motoboy_id: user!.id, aceito_em: new Date().toISOString(), status: "aguardando_motoboy" })
-      .eq("id", p.id)
-      .is("motoboy_id", null);
-    if (error) toast.error("Entrega já foi aceita por outro motoboy.");
-    else {
-      toast.success(`Você aceitou o pedido nº ${p.numero}. Taxa ${brl(p.taxa_motoboy)}. Toque em Iniciar para sair.`);
-      void notificarPedido({ client: supabase, pedidoId: p.id, status: "aguardando_motoboy", telefone: p.telefone, mensagem: mensagemStatus("aguardando_motoboy", p.cliente_nome, p.numero) });
+    // E9.1: legado preservado (claim de pedido sem dono); self-accept E5
+    // passa a valer na ativação. Trava + 0 linhas = conflito explícito.
+    if (aceitandoEmVoo.has(p.id)) return;
+    aceitandoEmVoo.add(p.id);
+    try {
+      const { data, error } = await supabase
+        .from("pedidos")
+        .update({ motoboy_id: user!.id, aceito_em: new Date().toISOString(), status: "aguardando_motoboy" })
+        .eq("id", p.id)
+        .is("motoboy_id", null)
+        .select("id");
+      if (error) {
+        toast.error("Entrega já foi aceita por outro motoboy.");
+      } else if (!data || data.length === 0) {
+        toast.error("Entrega já foi aceita por outro motoboy (conflito).");
+      } else {
+        toast.success(`Você aceitou o pedido nº ${p.numero}. Taxa ${brl(p.taxa_motoboy)}. Toque em Iniciar para sair.`);
+        void notificarPedido({ client: supabase, pedidoId: p.id, status: "aguardando_motoboy", telefone: p.telefone, mensagem: mensagemStatus("aguardando_motoboy", p.cliente_nome, p.numero) });
+      }
+    } finally {
+      aceitandoEmVoo.delete(p.id);
     }
     refresh();
   }
@@ -450,6 +466,13 @@ function RotaPanel({ pedidos, motoboyUserId }: { pedidos: any[]; motoboyUserId: 
   async function salvarRota() {
     setSalvando(true);
     try {
+      // Regra operacional: 3 paradas por rota (4ª+ exigiria autorização
+      // auditável, inexistente no fluxo local). Bloqueia antes de inserir.
+      if (!cabeNaRota(lista.length, false)) {
+        toast.error("Cada rota aceita no máximo 3 paradas. Fale com a central.");
+        setSalvando(false);
+        return;
+      }
       const { data: mb } = await supabase.from("motoboys").select("id").eq("user_id", motoboyUserId).maybeSingle();
       const motoboyId = (mb as any)?.id ?? null;
       const { data: rota, error } = await supabase.from("rotas_entrega").insert({ motoboy_id: motoboyId, status: "em_rota", saiu_em: new Date().toISOString() }).select("id").single();

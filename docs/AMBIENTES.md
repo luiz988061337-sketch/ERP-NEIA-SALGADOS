@@ -20,6 +20,45 @@ Como identificar: o ref aparece na URL do dashboard
 (`https://supabase.com/dashboard/project/<REF>`) e deve ser igual ao
 `VITE_SUPABASE_URL` do `.env` do app publicado.
 
+## Banco de teste (a criar — nunca use o Lovable para homologar)
+1. Crie um projeto gratuito em https://supabase.com/dashboard (ex.: `neia-teste`).
+2. No SQL Editor dele, rode NESTA ORDEM (cada bloco separado, conferindo o OK):
+   `0000` → `0001_migration` → `0001_neia_tipos_crm` → `0002_itens_rls` →
+   `0002_secure_loyalty_and_partners` → `0003` → `0004` → `0005` → `0006` →
+   `0007` → `0008` → `0009` → `0010` → `0011` → `0012` → `0013` → `0014` →
+   `0015` → `0016` → `0017` → `0018` → `0019` → `0020` → `0021` → `0022` →
+   `0023` → `0024` → `0025` → `0026` → `0027` → `0028` → `0029` → `0030` →
+   `0031` → `0032` → `0033` → `0034` → `0035` → `0036` → `0037` → `0038` →
+   `0039` → `0040` → `0041` → `0042` → `0043` → `0044` → `0045` → `0046` →
+   `0047` → `0048` → `0049` → `0050` → `0051` → `0052` → `0053` → `0054` →
+   `0055` → `0058` → `0059` → `0060` → `0064` → `0065` → `0066` → `0067` →
+   `0068` → `0069` → `0070` → `0071` → `0072` → `0077` → `0074` → `0075` →
+   `0076` → `0078` → `0079` (linha do enum SOZINHA primeiro!) → `0080` →
+   `0081` → `0082` → `0083`.
+   Pule sem falta: `0061`, `0062`, `0063`, `0073` (superseded/com sintaxe
+   inválida; a `0077` cobre o efeito delas).
+   Exceção do `ALTER TYPE` (0003 e 0079): a linha `ADD VALUE` roda sozinha,
+   uma por vez, fora de bloco com outras instruções.
+3. Crie 6 usuários em Authentication → Users (admin, atendente, producao,
+   motoboy, financeiro, contador) e rode, trocando os e-mails:
+   ```sql
+   INSERT INTO public.user_roles (user_id, role)
+   SELECT id, v.role FROM auth.users
+   CROSS JOIN (VALUES
+     ('admin@teste.com','admin'), ('atendente@teste.com','atendente'),
+     ('producao@teste.com','producao'), ('motoboy@teste.com','motoboy'),
+     ('financeiro@teste.com','financeiro'), ('contador@teste.com','contador')
+   ) AS v(email, role)
+   WHERE auth.users.email = v.email
+   ON CONFLICT DO NOTHING;
+   ```
+4. Local: copie `.env` para backup e aponte `VITE_SUPABASE_URL`,
+   `VITE_SUPABASE_PROJECT_ID` e `SUPABASE_*` para o projeto de teste +
+   `NEIA_AMBIENTE=staging` (o `proteger-dev.mjs` bloqueia produção).
+   `npm run dev` deve imprimir "ambiente validado".
+5. Smoke: login por papel → venda PDV → Pix manual → produção → entrega;
+   erro simulado nos itens; reenvio; dois Pix de mesmo valor.
+
 ## Regra
 - Produção (Lovable) é a única fonte oficial: rode aqui apenas as
   migrations `0075`→`0081` (já aplicadas) e as próximas numeradas.

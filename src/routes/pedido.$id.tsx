@@ -9,6 +9,8 @@ import { NotasCliente } from "@/components/pedido-notas";
 import { MapView } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl, dataHora, PAGAMENTO_LABEL } from "@/lib/format";
+import { decidirCancelamentoAtomico, type RpcClient } from "@/lib/reserva-integracao";
+import { BUILD_DE_CORTE } from "@/lib/corte";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, lojaTemEndereco, pontoDaLoja, useLojaConfig } from "@/lib/loja";
 import { useSession } from "@/lib/session";
 import { ativarPush, estadoPush } from "@/lib/push";
@@ -159,19 +161,46 @@ function Acompanhar() {
     if (!pedido || !["recebido"].includes(pedido.status)) return;
     if (!window.confirm(`Cancelar o pedido nº ${pedido.numero}?`)) return;
     setCancelando(true);
-    const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", pedido.id);
-    // Libera reservas e devolve estoque (0030). Fallback legado se RPC não existir.
-    try {
-      await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: pedido.id });
-    } catch { /* sem migration — segue para fallback */ }
-    try {
-      await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", pedido.id).eq("status", "ativa");
-    } catch { /* sem migration — segue */ }
-    setCancelando(false);
-    if (error) toast.error("Não foi possível cancelar. Fale com a loja.");
-    else {
+
+    // Cancelamento atômico (0093) — atrás de flag OFF. Flag OFF => caminho
+    // legado intacto. Flag ON + sucesso => RPC já cancelou e liberou. Flag ON
+    // sem attestation/erro => aborta (NUNCA cai no UPDATE direto).
+    const decisao = await decidirCancelamentoAtomico(
+      supabase as unknown as RpcClient,
+      pedido.id,
+      "cliente",
+    );
+    if (decisao.modo === "erro") {
+      setCancelando(false);
+      toast.error(decisao.mensagem);
+      return;
+    }
+    if (decisao.modo === "atomico") {
+      setCancelando(false);
       toast.success("Pedido cancelado.");
       queryClient.invalidateQueries({ queryKey: ["pedido", id] });
+      return;
+    }
+
+    // Cancelamento: no BUILD DE CORTE o caminho legado (UPDATE direto +
+    // liberar_reserva_atomica + UPDATE direto em reservas_estoque) NAO e
+    // compilado. O guard de versao + o lockdown de ACL bloqueiam bundles
+    // antigos; este bundle so cancela via `cancelar_pedido_atomico` (0093).
+    if (!BUILD_DE_CORTE) {
+      const { error } = await supabase.from("pedidos").update({ status: "cancelado" }).eq("id", pedido.id);
+      // Libera reservas e devolve estoque (0030). Fallback legado se RPC não existir.
+      try {
+        await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: pedido.id });
+      } catch { /* sem migration — segue para fallback */ }
+      try {
+        await supabase.from("reservas_estoque").update({ status: "cancelada" }).eq("pedido_id", pedido.id).eq("status", "ativa");
+      } catch { /* sem migration — segue */ }
+      setCancelando(false);
+      if (error) toast.error("Não foi possível cancelar. Fale com a loja.");
+      else {
+        toast.success("Pedido cancelado.");
+        queryClient.invalidateQueries({ queryKey: ["pedido", id] });
+      }
     }
   }
 

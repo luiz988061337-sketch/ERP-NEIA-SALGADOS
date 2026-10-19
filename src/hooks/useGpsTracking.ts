@@ -98,6 +98,7 @@ export function useGpsTracking({
 
   const watchIdRef = useRef<number | null>(null);
   const lastPositionRef = useRef<GpsPosition | null>(null);
+  const pendingPositionRef = useRef<GpsPosition | null>(null);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const offlineSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isOnlineRef = useRef(true);
@@ -190,6 +191,7 @@ export function useGpsTracking({
     }
 
     lastPositionRef.current = newPosition;
+    pendingPositionRef.current = newPosition;
     setCurrentPosition(newPosition);
     setLastUpdate(new Date(newPosition.timestamp));
     setStatus("atualizando");
@@ -200,19 +202,24 @@ export function useGpsTracking({
       return;
     }
 
-    // Throttle updates
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
+    // THROTTLE (não debounce): o watchPosition emite com frequência; limpar e
+    // reagendar o timer a cada emissão impedia o envio enquanto o motoboy se
+    // movia (o timer reiniciava antes de disparar — causa do "GPS atrasado").
+    // Agora há no máximo 1 envio por janela, sempre com a posição MAIS RECENTE.
+    if (updateTimeoutRef.current) return;
 
     updateTimeoutRef.current = setTimeout(async () => {
+      updateTimeoutRef.current = null;
+      const pendente = pendingPositionRef.current;
+      if (!pendente) return;
+
       if (!enabledRef.current || pedidoIdsRef.current.length === 0) {
         setStatus("ativo");
         return;
       }
 
       if (!isOnlineRef.current) {
-        addToOfflineQueue(newPosition);
+        addToOfflineQueue(pendente);
         setStatus("offline");
         return;
       }
@@ -220,17 +227,20 @@ export function useGpsTracking({
       try {
         const updates = pedidoIdsRef.current.map((pedidoId) =>
           supabase.from("pedidos").update({
-            motoboy_lat: newPosition.lat,
-            motoboy_lng: newPosition.lng,
-            motoboy_atualizado_em: new Date(newPosition.timestamp).toISOString(),
+            motoboy_lat: pendente.lat,
+            motoboy_lng: pendente.lng,
+            motoboy_atualizado_em: new Date(pendente.timestamp).toISOString(),
           }).eq("id", pedidoId)
         );
 
-        await Promise.all(updates);
+        const results = await Promise.all(updates);
+        // O Supabase não lança: erros vêm em `error`. Sem checar, a atualização
+        // falhava em silêncio e não entrava na fila offline.
+        if (results.some((r) => r.error)) throw results.find((r) => r.error)?.error;
         setStatus("ativo");
       } catch (err) {
         console.error("GPS update error:", err);
-        addToOfflineQueue(newPosition);
+        addToOfflineQueue(pendente);
         setStatus("offline");
         setError("Falha ao sincronizar localização. Tentando novamente...");
       }
@@ -315,6 +325,7 @@ export function useGpsTracking({
       clearTimeout(updateTimeoutRef.current);
       updateTimeoutRef.current = null;
     }
+    pendingPositionRef.current = null;
     setIsTracking(false);
     setStatus("indisponivel");
   }, []);

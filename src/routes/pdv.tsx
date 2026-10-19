@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -41,6 +41,8 @@ import {
   imagemProduto,
 } from "@/lib/catalog";
 import { calcTotals, isMultiploCombo } from "@/lib/totals";
+import { decidirCriacaoAtomica, type RpcClient } from "@/lib/criacao-atomica";
+import { BUILD_DE_CORTE } from "@/lib/corte";
 import { logAdmin } from "@/lib/operacao";
 
 export const Route = createFileRoute("/pdv")({
@@ -107,6 +109,8 @@ function PDV() {
   const [painel, setPainel] = useState<"venda" | "pedidos" | "vendas" | "config">("venda");
   const [soFavoritos, setSoFavoritos] = useState(false);
   const [relogio, setRelogio] = useState(agoraSP());
+  // Idempotência: mesma chave por tentativa; reenvio retorna o mesmo pedido.
+  const chaveRef = useRef("");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/pdv" }, replace: true });
@@ -281,9 +285,54 @@ function PDV() {
         agendadoISO ? `agendado ${new Date(agendadoISO).toLocaleString("pt-BR")}` : "",
         validos.length > 1 ? `Pagtos: ${partes}` : "",
       ].filter(Boolean);
+      if (!chaveRef.current) chaveRef.current = crypto.randomUUID();
+
+      // Criação atômica (0095) — atrás de flag OFF. Flag OFF => caminho legado
+      // intacto. Flag ON + sucesso => pula o legado. Flag ON sem attestation/
+      // erro => aborta (NUNCA cai no fallback inseguro).
+      let atomico = false;
+      let pedidoId = "";
+      let numero = 0;
+      {
+        const decisao = await decidirCriacaoAtomica(supabase as unknown as RpcClient, {
+          pedidoId: chaveRef.current,
+          canal: "pdv",
+          dados: {
+            cliente_nome: nomeCli.trim() || "Balcão",
+            telefone: telCli.trim(),
+            endereco: endCli.trim() || "Balcão",
+            bairro: "-",
+            cidade: "-",
+            tipo_entrega: "retirada",
+            forma_pagamento: forma,
+            observacoes: obsBits.join(" • "),
+            agendado_para: agendadoISO,
+            desconto_manual: Number(desconto) || 0,
+            pagamento_imediato: pagoNaHora,
+          },
+          itens: itens.map((i) => ({
+            produtoId: i.produto_id,
+            quantidade: i.quantidade,
+          })),
+        });
+        if (decisao.modo === "erro") {
+          toast.error(decisao.mensagem);
+          return;
+        }
+        if (decisao.modo === "atomico") {
+          pedidoId = decisao.pedido.id;
+          numero = decisao.pedido.numero;
+          atomico = true;
+        }
+      }
+
+      // No BUILD DE CORTE o caminho legado NAO e compilado: o bloco e removido
+      // do bundle (constant-folding de !BUILD_DE_CORTE). Nao ha fallback.
+      if (!BUILD_DE_CORTE && !atomico) {
       const res = await supabase
         .from("pedidos")
         .insert({
+          id: chaveRef.current,
           user_id: user!.id,
           cliente_nome: nomeCli.trim() || "Balcão",
           telefone: telCli.trim(),
@@ -304,32 +353,52 @@ function PDV() {
         })
         .select("id, numero")
         .single();
-      if (res.error || !res.data) throw res.error ?? new Error("insert falhou");
-      const pedidoId = (res.data as any).id as string;
-      const numero = (res.data as any).numero as number;
-      const { error: e2 } = await supabase
-        .from("pedido_itens")
-        .insert(
-          itens.map((i) => ({
-            pedido_id: pedidoId,
-            produto_id: i.produto_id,
-            nome: i.nome,
-            preco_unitario: i.preco,
-            quantidade: i.quantidade,
-          })),
-        );
-      if (e2) throw e2;
+      if (res.error || !res.data) {
+        if ((res.error as any)?.code === "23505") {
+          // Reenvio: recupera o pedido da mesma chave em vez de duplicar.
+          const rec = await supabase
+            .from("pedidos")
+            .select("id, numero")
+            .eq("id", chaveRef.current)
+            .single();
+          if (!rec.error && rec.data) {
+            toast.success(`Venda #${(rec.data as any).numero} já estava registrada.`);
+            chaveRef.current = "";
+            return;
+          }
+        }
+        throw res.error ?? new Error("insert falhou");
+      }
+      pedidoId = (res.data as any).id as string;
+      numero = (res.data as any).numero as number;
+      const { error: e2 } = await supabase.from("pedido_itens").insert(
+        itens.map((i) => ({
+          pedido_id: pedidoId,
+          produto_id: i.produto_id,
+          nome: i.nome,
+          preco_unitario: i.preco,
+          quantidade: i.quantidade,
+        })),
+      );
+      if (e2) {
+        // Compensação: desfaz o pedido vazio e mantém a comanda.
+        try {
+          await supabase.from("pedidos").delete().eq("id", pedidoId);
+        } catch {
+          /* best-effort */
+        }
+        throw new Error("Falha ao gravar itens — venda desfeita, comanda mantida. Tente de novo.");
+      }
       try {
-        await supabase
-          .from("pedido_status_historico")
-          .insert({
-            pedido_id: pedidoId,
-            de_status: null,
-            para_status: "recebido",
-            motivo: agendadoISO ? "pdv balcão agendado" : "pdv balcão",
-          });
+        await supabase.from("pedido_status_historico").insert({
+          pedido_id: pedidoId,
+          de_status: null,
+          para_status: "recebido",
+          motivo: agendadoISO ? "pdv balcão agendado" : "pdv balcão",
+        });
       } catch {
         /* sem migration — segue */
+      }
       }
       void logAdmin(
         "pedido_pdv",
@@ -348,6 +417,7 @@ function PDV() {
       setTel2Cli("");
       setEndCli("");
       setAgendadoPara("");
+      chaveRef.current = "";
       queryClient.invalidateQueries({ queryKey: ["pdv-vendas-hoje"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível finalizar.");

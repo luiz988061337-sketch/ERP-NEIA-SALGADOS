@@ -1,0 +1,49 @@
+{
+  "baseline": "homolog-0086",
+  "description": "Snapshot de homologacao no estado imediatamente anterior a 0087. Inclui schema e dados de seed/configuracao. NAO e um dump de producao.",
+  "source": "Copia de homolog_p0 (PG16.4) com os objetos de 0087-0098 removidos de forma controlada; nenhum dado de producao foi acessado.",
+  "snapshot_file": "baseline-0086.full.sql",
+  "snapshot_sha256": "4edddff00c3f488e9b715efc0abe38cafe966b688b2eb06bf34736353c2bc10a",
+  "snapshot_bytes": 360586,
+  "postgres": "16.4 (portable, 127.0.0.1:55435)",
+  "pre_0087_objects_removed_from_source_copy": [
+    "pedido_item_componentes",
+    "categorias.combo_preco_unit",
+    "criar_pedido_com_reserva",
+    "pedido_cobertura_reserva",
+    "exigir_reserva_producao",
+    "exigir_consumo_producao",
+    "cancelar_pedido_atomico",
+    "registrar_consumo_reserva",
+    "liberar_pedido_atomico",
+    "reservar_pedido_atomico",
+    "proteger_consistencia_financeira_pedido + trigger",
+    "reserva_proveniencia",
+    "reserva_proveniencia_config",
+    "reserva_consumos",
+    "reservas_estoque_prov_uk"
+  ],
+  "applied_in_order": [
+    {"file": "0087_reserva_consumos.sql", "sha256": "8d9b737ca7d54228c4f075768ad901bac83f41fa3c7bae156f7372cad60aaf74"},
+    {"file": "0088_reservar_estoque_atomica.sql", "sha256": "742887682015177361d76a70508e9398f55be2d60ed26514ceb1afdd0c070baa"},
+    {"file": "0089_reservar_pedido_atomico.sql", "sha256": "1fe4167e9efc8026268e09ddf20eceb435240d235aedbeb8476b5bae6879eff6"},
+    {"file": "0090_liberar_pedido_atomico.sql", "sha256": "77471eee9dda30e6e5a37d6b2537bc0a583f1534f7a9e1eb9a95801ee030d6c0"},
+    {"file": "0091_registrar_consumo_reserva.sql", "sha256": "bf2fda366dc4e5cfbcdd461466e7527e42f8c46d0a5908434539d86907a93397"},
+    {"file": "0092_reserva_proveniencia.sql", "sha256": "1c50a8340326f2bf0798c51f84a8776a632387734105c797e6114aa9760692db"},
+    {"file": "0093_cancelar_pedido_atomico.sql", "sha256": "271c73541e394cb09bdfc3598b39ea7fd65f3a089902dcdee39847e94da4af84"},
+    {"file": "0094_protecao_pagamento_cancelado.sql", "sha256": "7bde96a09b003e3302f7357f7ae54a00ff566246478878c0583168aec50a7f5f"},
+    {"file": "0095_criar_pedido_com_reserva.sql", "sha256": "da3f8912e1b78e3183e91025a4deb341e7731b8812ed45b61c72361f79c94001"},
+    {"file": "0096_reparo_parceiros_rls.sql", "sha256": "ab577a3279609a3fcfa37c15df83a4820b948f32c3560e4f3ea78c35a5c83ffe"},
+    {"file": "0097_modelagem_combo.sql", "sha256": "2059312f225d234e57521641ae863b3e0e9ed24227500adcc65558c606196da7"},
+    {"file": "0098_acl_menor_privilegio.sql", "sha256": "cfd14d8331f2f03589053c95793ab563ed6ee4cf343cbbf58962786e43bb3b0d"}
+  ],
+  "validated_results": {
+    "suite_pg16": "189/189 PASS",
+    "combo_pg16": "79/79 PASS",
+    "quarantine_pg16": "17/17 PASS",
+    "concurrency_pg16": "12/12 PASS",
+    "acl": "anon/PUBLIC/service_role sem EXECUTE; authenticated conforme matriz",
+    "date": "2026-10-19"
+  },
+  "production_note": "Antes do cutover, substituir este snapshot de homologacao por um dump read-only do banco real congelado (schema + seeds/config), com o mesmo manifesto e hash. Nao aplicar 0087-0098 duas vezes no banco de producao."
+}

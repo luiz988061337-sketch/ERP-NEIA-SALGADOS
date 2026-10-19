@@ -17,6 +17,9 @@
     "teste:insumos": "node scripts/insumos.test.mjs",
     "teste:ofx": "node scripts/ofx.test.mjs",
     "teste:precificacao": "node scripts/precificacao.test.mjs",
+    "teste:integracao": "node scripts/reserva-integracao.test.mjs",
+    "teste:criacao": "node scripts/criacao-atomica.test.mjs",
+    "teste:criacao-wrapper": "node scripts/criacao-atomica-wrapper.test.mjs",
     "verificar:banco": "node scripts/verificar-banco.mjs",
     "gerar:vapid": "node scripts/gerar-vapid.mjs",
     "format": "prettier --write ."

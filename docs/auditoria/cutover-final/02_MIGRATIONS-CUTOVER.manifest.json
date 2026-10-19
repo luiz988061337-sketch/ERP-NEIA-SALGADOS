@@ -1,0 +1,114 @@
+{
+  "gerado_em": "2026-10-19T19:07:31.943Z",
+  "consolidacao": "docs/auditoria/cutover-final/02_MIGRATIONS-CUTOVER.sql",
+  "conteudo": "verbatim (apenas cabecalhos de rastreio acrescentados)",
+  "ordem": [
+    "0087",
+    "0089",
+    "0090",
+    "0091",
+    "0092",
+    "0093",
+    "0094",
+    "0095",
+    "0096",
+    "0097",
+    "0098"
+  ],
+  "excluidas": [
+    {
+      "migration": "0088",
+      "motivo": "NÃO APLICAR — nenhum chamador vivo no bundle de corte"
+    }
+  ],
+  "migrations": [
+    {
+      "migration": "0087",
+      "arquivo_origem": "drizzle/migrations/0087_reserva_consumos.sql",
+      "sha256_origem": "8d9b737ca7d54228c4f075768ad901bac83f41fa3c7bae156f7372cad60aaf74",
+      "bytes_origem": 8565,
+      "natureza": "ESTRUTURAL",
+      "objetos": "tabela `reserva_consumos` + indices + RLS (base do consumo 0091)"
+    },
+    {
+      "migration": "0089",
+      "arquivo_origem": "drizzle/migrations/0089_reservar_pedido_atomico.sql",
+      "sha256_origem": "1fe4167e9efc8026268e09ddf20eceb435240d235aedbeb8476b5bae6879eff6",
+      "bytes_origem": 24658,
+      "natureza": "ATIVA",
+      "objetos": "RPC `reservar_pedido_atomico` (chamada internamente pela 0095)"
+    },
+    {
+      "migration": "0090",
+      "arquivo_origem": "drizzle/migrations/0090_liberar_pedido_atomico.sql",
+      "sha256_origem": "77471eee9dda30e6e5a37d6b2537bc0a583f1534f7a9e1eb9a95801ee030d6c0",
+      "bytes_origem": 29146,
+      "natureza": "ATIVA (interna)",
+      "objetos": "RPC `liberar_pedido_atomico` (chamada internamente pela 0093)"
+    },
+    {
+      "migration": "0091",
+      "arquivo_origem": "drizzle/migrations/0091_registrar_consumo_reserva.sql",
+      "sha256_origem": "bf2fda366dc4e5cfbcdd461466e7527e42f8c46d0a5908434539d86907a93397",
+      "bytes_origem": 25230,
+      "natureza": "ATIVA",
+      "objetos": "RPC `registrar_consumo_reserva` (retirada fisica parcial/total, idempotente)"
+    },
+    {
+      "migration": "0092",
+      "arquivo_origem": "drizzle/migrations/0092_reserva_proveniencia.sql",
+      "sha256_origem": "1c50a8340326f2bf0798c51f84a8776a632387734105c797e6114aa9760692db",
+      "bytes_origem": 12352,
+      "natureza": "ESTRUTURAL",
+      "objetos": "tabelas `reserva_proveniencia` + `reserva_proveniencia_config` (origem do `controlado`)"
+    },
+    {
+      "migration": "0093",
+      "arquivo_origem": "drizzle/migrations/0093_cancelar_pedido_atomico.sql",
+      "sha256_origem": "271c73541e394cb09bdfc3598b39ea7fd65f3a089902dcdee39847e94da4af84",
+      "bytes_origem": 31381,
+      "natureza": "ATIVA",
+      "objetos": "RPC `cancelar_pedido_atomico` (cancelamento com liberacao correta)"
+    },
+    {
+      "migration": "0094",
+      "arquivo_origem": "drizzle/migrations/0094_protecao_pagamento_cancelado.sql",
+      "sha256_origem": "7bde96a09b003e3302f7357f7ae54a00ff566246478878c0583168aec50a7f5f",
+      "bytes_origem": 23901,
+      "natureza": "ATIVA",
+      "objetos": "trigger de integridade financeira (bloqueia `cancelado`+`pago` e reabertura)"
+    },
+    {
+      "migration": "0095",
+      "arquivo_origem": "drizzle/migrations/0095_criar_pedido_com_reserva.sql",
+      "sha256_origem": "da3f8912e1b78e3183e91025a4deb341e7731b8812ed45b61c72361f79c94001",
+      "bytes_origem": 57569,
+      "natureza": "ATIVA (nucleo)",
+      "objetos": "RPC `criar_pedido_com_reserva` + `pedido_cobertura_reserva` (cria pedido+itens+reserva em 1 transacao)"
+    },
+    {
+      "migration": "0096",
+      "arquivo_origem": "drizzle/migrations/0096_reparo_parceiros_rls.sql",
+      "sha256_origem": "ab577a3279609a3fcfa37c15df83a4820b948f32c3560e4f3ea78c35a5c83ffe",
+      "bytes_origem": 3060,
+      "natureza": "ATIVA (RLS/GRANT)",
+      "objetos": "reforco de RLS/GRANT em parceiros/estoque"
+    },
+    {
+      "migration": "0097",
+      "arquivo_origem": "drizzle/migrations/0097_modelagem_combo.sql",
+      "sha256_origem": "2059312f225d234e57521641ae863b3e0e9ed24227500adcc65558c606196da7",
+      "bytes_origem": 5006,
+      "natureza": "ATIVA + ESTRUTURAL",
+      "objetos": "tabela `pedido_item_componentes` + coluna `categorias.combo_preco_unit` + seed dos 5 slugs"
+    },
+    {
+      "migration": "0098",
+      "arquivo_origem": "drizzle/migrations/0098_acl_menor_privilegio.sql",
+      "sha256_origem": "cfd14d8331f2f03589053c95793ab563ed6ee4cf343cbbf58962786e43bb3b0d",
+      "bytes_origem": 6975,
+      "natureza": "ATIVA (ACL)",
+      "objetos": "matriz de menor privilegio (revoke PUBLIC/anon/service_role)"
+    }
+  ]
+}

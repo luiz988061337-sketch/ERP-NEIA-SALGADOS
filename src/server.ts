@@ -44,12 +44,45 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// ===========================================================================
+// CACHE DO DOCUMENTO (protocolo de versão do frontend / corte)
+// ===========================================================================
+// Os assets têm nomes com hash de conteúdo (`/assets/*` => immutable), então o
+// cache longo deles é seguro. O DOCUMENTO HTML, porém, é o que aponta para o
+// bundle: se o navegador guardar o HTML antigo, ele continua pedindo os
+// assets antigos e roda o bundle antigo mesmo depois do corte.
+//
+// Por isso o documento nunca é cacheado no navegador. Quem controla a
+// versão mínima é o endpoint `/api/versao` (sempre `no-store`), que o bundle
+// lê no boot e que bloqueia bundles desatualizados.
+//
+// A barreira de segurança NÃO é o cache: é o lockdown de ACL no banco
+// (revoke de DML/RPC legadas) + o guard de versão.
+function normalizarCacheDocumento(response: Response): Response {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html")) return response;
+  if (response.headers.has("cache-control")) return response;
+  const headers = new Headers(response.headers);
+  headers.set(
+    "cache-control",
+    "no-store, no-cache, must-revalidate, max-age=0",
+  );
+  headers.set("pragma", "no-cache");
+  headers.set("expires", "0");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalizado = await normalizeCatastrophicSsrResponse(response);
+      return normalizarCacheDocumento(normalizado);
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

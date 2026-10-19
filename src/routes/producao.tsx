@@ -23,6 +23,13 @@ import {
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
 import { tempoFrituraPedido, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
 import {
+  DEPENDENCIAS_PADRAO,
+  FLAGS_INTEGRACAO,
+  registrarConsumoAtomico,
+  type DependenciasIntegracao,
+  type RpcClient,
+} from "@/lib/reserva-integracao";
+import {
   calcularProducao,
   classificarProcesso,
   estadoPrazoProducao,
@@ -37,8 +44,126 @@ import {
   type CalculoProducao,
 } from "@/lib/motor-producao";
 import { impressaoDireta, fichaDireta } from "@/lib/impressao";
+import { E6_IMPRESSAO_ATIVA } from "@/lib/impressao-etapas";
 import { notificarPedido } from "@/lib/notificacoes";
 import { useRoles, useSession } from "@/lib/session";
+
+// E9.1: trava de reenvio de ficha por evento (fora do estado React).
+const filaEmVoo = new Set<string>();
+
+/**
+ * Attestation EXPLICITA do chamador de producao. A flag de ambiente continua
+ * sendo o gate mestre; estas dependencias dizem que o painel foi implantado
+ * junto com a retirada fisica (0091/0087). Nao ha fallback: se a RPC falhar,
+ * a reserva permanece ativa e o operador ve o erro.
+ */
+const ATTESTACAO_CONSUMO: DependenciasIntegracao = {
+  ...DEPENDENCIAS_PADRAO,
+  registrar_consumo_0091: true,
+  reserva_consumos_0087: true,
+  producao_integrada: true,
+};
+
+type ReservaProducao = {
+  id: string;
+  pedido_id: string;
+  produto_id: string;
+  quantidade: number;
+  status: string;
+  nome: string;
+  consumido: number;
+  restante: number;
+};
+
+function RetiradaReserva({
+  reserva,
+  onAtualizado,
+}: {
+  reserva: ReservaProducao;
+  onAtualizado: () => void;
+}) {
+  const [qtd, setQtd] = useState(String(reserva.restante));
+  const [enviando, setEnviando] = useState(false);
+  const idem = useRef<{ q: number; key: string } | null>(null);
+
+  useEffect(() => {
+    setQtd(String(reserva.restante));
+    idem.current = null;
+  }, [reserva.id, reserva.restante]);
+
+  async function registrar() {
+    const n = Math.floor(Number(qtd));
+    if (!Number.isInteger(n) || n <= 0) {
+      toast.error("Informe uma quantidade inteira maior que zero.");
+      return;
+    }
+    if (n > reserva.restante) {
+      toast.error(`Restam apenas ${reserva.restante} un nesta reserva.`);
+      return;
+    }
+    if (!idem.current || idem.current.q !== n) {
+      idem.current = { q: n, key: crypto.randomUUID() };
+    }
+    setEnviando(true);
+    const r = await registrarConsumoAtomico(
+      supabase as unknown as RpcClient,
+      {
+        reservaId: reserva.id,
+        quantidade: n,
+        produtoId: reserva.produto_id,
+        idemKey: idem.current.key,
+        observacao: "Retirada fisica do freezer (producao)",
+      },
+      { dependencias: ATTESTACAO_CONSUMO },
+    );
+    setEnviando(false);
+
+    if (r.ok) {
+      if (r.estado === "ja_registrado") {
+        toast.info("Esta retirada ja estava registrada.");
+      } else {
+        toast.success(`${n} un de ${reserva.nome} retiradas do freezer.`);
+      }
+      idem.current = null;
+      onAtualizado();
+      return;
+    }
+    if (r.estado === "acima_do_restante") {
+      toast.error(`Restam apenas ${r.restante} un nesta reserva.`);
+      return;
+    }
+    if (r.estado === "desativado" || r.estado === "preparado") {
+      toast.error("Retirada atomica desativada ou sem dependencias declaradas.");
+      return;
+    }
+    toast.error(`Nao foi possivel registrar a retirada (${r.estado}).`);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded border border-border bg-card p-2">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold">{reserva.nome}</p>
+        <p className="text-[11px] text-muted-foreground">
+          Reservado {reserva.quantidade} · retirado {reserva.consumido} · restante{" "}
+          <strong className="text-foreground">{reserva.restante}</strong>
+        </p>
+      </div>
+      <Input
+        type="number"
+        min={1}
+        max={reserva.restante}
+        step={1}
+        value={qtd}
+        onChange={(e) => setQtd(e.target.value)}
+        className="h-8 w-20"
+        aria-label={`Quantidade a retirar de ${reserva.nome}`}
+      />
+      <Button size="sm" disabled={enviando || reserva.restante <= 0} onClick={registrar}>
+        {enviando ? "..." : "Retirar"}
+      </Button>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/producao")({
   head: () => ({
@@ -99,6 +224,73 @@ function Producao() {
       }
     },
   });
+
+  const idsPedidos = useMemo(() => (pedidos ?? []).map((p: any) => String(p.id)), [pedidos]);
+
+  // Reservas e consumos para a retirada fisica parcial. Leitura direta;
+  // RLS restringe aos pedidos que o papel de producao ja pode ver.
+  const { data: reservasProducao } = useQuery({
+    queryKey: ["producao-reservas", idsPedidos.join(",")],
+    enabled: !!autorizado && FLAGS_INTEGRACAO.consumo && idsPedidos.length > 0,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reservas_estoque")
+        .select("id, pedido_id, produto_id, quantidade, status, produtos(nome)")
+        .in("pedido_id", idsPedidos)
+        .in("status", ["ativa", "consumida"]);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const idsReservas = useMemo(
+    () => (reservasProducao ?? []).map((r: any) => String(r.id)),
+    [reservasProducao],
+  );
+
+  const { data: consumosProducao } = useQuery({
+    queryKey: ["producao-consumos", idsReservas.join(",")],
+    enabled: !!autorizado && FLAGS_INTEGRACAO.consumo && idsReservas.length > 0,
+    refetchInterval: 15000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reserva_consumos")
+        .select("reserva_id, quantidade")
+        .in("reserva_id", idsReservas);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const reservasPorPedido = useMemo(() => {
+    const consumidoPorReserva = new Map<string, number>();
+    for (const c of consumosProducao ?? []) {
+      consumidoPorReserva.set(
+        String(c.reserva_id),
+        (consumidoPorReserva.get(String(c.reserva_id)) ?? 0) + Number(c.quantidade ?? 0),
+      );
+    }
+    const mapa = new Map<string, ReservaProducao[]>();
+    for (const r of reservasProducao ?? []) {
+      const consumido = consumidoPorReserva.get(String(r.id)) ?? 0;
+      const restante = Math.max(0, Number(r.quantidade ?? 0) - consumido);
+      const linha: ReservaProducao = {
+        id: String(r.id),
+        pedido_id: String(r.pedido_id),
+        produto_id: String(r.produto_id),
+        quantidade: Number(r.quantidade ?? 0),
+        status: String(r.status),
+        nome: String(r.produtos?.nome ?? `Produto ${String(r.produto_id).slice(0, 8)}`),
+        consumido,
+        restante,
+      };
+      const lista = mapa.get(linha.pedido_id) ?? [];
+      lista.push(linha);
+      mapa.set(linha.pedido_id, lista);
+    }
+    return mapa;
+  }, [reservasProducao, consumosProducao]);
 
   useEffect(() => {
     if (!autorizado) return;
@@ -516,6 +708,26 @@ function Producao() {
           </p>
         ) : null}
 
+        {FLAGS_INTEGRACAO.consumo && (reservasPorPedido.get(String(p.id))?.length ?? 0) > 0 ? (
+          <details className="mt-3 rounded-lg border border-border bg-muted/40 p-2">
+            <summary className="cursor-pointer text-xs font-semibold">
+              Retirada fisica do freezer ({reservasPorPedido.get(String(p.id))!.length} produto(s))
+            </summary>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Registre SOMENTE o que saiu fisicamente. O restante continua reservado e o
+              pedido nao muda de status por esta acao.
+            </p>
+            <div className="mt-2 space-y-2">
+              {reservasPorPedido
+                .get(String(p.id))!
+                .filter((r) => r.restante > 0)
+                .map((r) => (
+                  <RetiradaReserva key={r.id} reserva={r} onAtualizado={recarregarReservas} />
+                ))}
+            </div>
+          </details>
+        ) : null}
+
         <div className="mt-3 flex flex-wrap gap-2">
           {p.status === "recebido" ? (
             <Button size="sm" onClick={() => mudarStatus(p, "em_producao", "produzindo")}>
@@ -556,7 +768,18 @@ function Producao() {
     );
   }
 
+  function recarregarReservas() {
+    queryClient.invalidateQueries({ queryKey: ["producao-reservas"] });
+    queryClient.invalidateQueries({ queryKey: ["producao-consumos"] });
+    queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
+  }
+
   async function mudarStatus(pedido: any, status: OrderStatus, producao_status: ProdStatus) {
+    // "Iniciar preparo" NÃO registra retirada física. Um clique no inicio do
+    // preparo nao prova que o pedido inteiro saiu do freezer. A retirada
+    // parcial tem uma acao explicita propria (detalhes "Retirada fisica do
+    // freezer", acima), que chama a 0091 com quantidade. O layout K7.2
+    // permanece intacto; a reserva continua ativa ate a retirada real.
     const { error } = await supabase
       .from("pedidos")
       .update({ status, producao_status })
@@ -602,16 +825,36 @@ function Producao() {
     // automaticamente ao entrar em produção ou ficar pronto (use os
     // botões manuais para os demais casos).
     if (status === "em_producao" || status === "pronto") {
+      // E9.1: trava de reenvio + uuid determinístico por evento (flag E6);
+      // desligada = legado (uuid com timestamp). Conflito = já enfileirado.
+      const chaveFila = `${pedido.id}:${status}`;
+      if (filaEmVoo.has(chaveFila)) return;
+      filaEmVoo.add(chaveFila);
       try {
-        await supabase.from("fila_impressao").insert({
-          trabalho_uuid: `${pedido.id}:${status}:${Date.now()}`,
+        const linha = {
+          trabalho_uuid: E6_IMPRESSAO_ATIVA ? chaveFila : `${chaveFila}:${Date.now()}`,
           pedido_id: pedido.id,
           tipo: "pedido",
           payload: `NEIA SALGADOS\nPEDIDO #${pedido.numero}\nSTATUS ${status}`,
           impressora: "Tanca TP-550",
-        });
+        };
+        if (E6_IMPRESSAO_ATIVA) {
+          const { data, error } = await supabase
+            .from("fila_impressao")
+            .upsert(linha, { onConflict: "trabalho_uuid", ignoreDuplicates: true })
+            .select("id");
+          if (error) throw error;
+          if (!data || data.length === 0) {
+            toast.info("Comanda deste evento já está na fila (sem duplicar).");
+          }
+        } else {
+          const { error } = await supabase.from("fila_impressao").insert(linha);
+          if (error) throw error;
+        }
       } catch {
         /* fila opcional */
+      } finally {
+        filaEmVoo.delete(chaveFila);
       }
     }
     queryClient.invalidateQueries({ queryKey: ["fila-producao"] });

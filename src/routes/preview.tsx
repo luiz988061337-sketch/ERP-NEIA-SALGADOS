@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Menu, X, ShoppingBag, LayoutDashboard, User, LogOut, Home, Package, Bike, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ function PreviewLayout() {
   const { staffOnly } = useStaffOnly();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -44,6 +45,20 @@ function PreviewLayout() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // K7.2/K8.1/K9/L1: painéis e previews com layout próprio isolado.
+  // Sem cabeçalho/rodapé públicos duplicados nessas rotas.
+  const ehPainelProducao = location.pathname.startsWith("/preview/producao-painel");
+  const ehCentralV2 = location.pathname.startsWith("/preview/central-entregas-v2");
+  const ehPedidosV2 = location.pathname.startsWith("/preview/pedidos-atendente-v2");
+  const ehL1 = location.pathname.startsWith("/preview/l1");
+  if (ehPainelProducao || ehCentralV2 || ehPedidosV2 || ehL1) {
+    return (
+      <main className="min-h-screen bg-neutral-950">
+        <Outlet />
+      </main>
+    );
+  }
 
   async function sair() {
     await queryClient.cancelQueries();

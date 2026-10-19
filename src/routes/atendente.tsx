@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, mensagemStatus, whatsappLink } from
 import { useRoles, useSession } from "@/lib/session";
 import { precoFinal, tipoVendaProduto, useCategorias, useProdutos } from "@/lib/catalog";
 import { MINIMO_COMBO, calcTotals } from "@/lib/totals";
+import { decidirCriacaoAtomica, type RpcClient } from "@/lib/criacao-atomica";
+import { BUILD_DE_CORTE } from "@/lib/corte";
 import { ajustarParaCombo } from "@/lib/cart";
 import { logAdmin } from "@/lib/operacao";
 import { normalizarTelefone } from "@/lib/crm";
@@ -43,6 +45,12 @@ function Atendente() {
   );
 
   const [buscaCli, setBuscaCli] = useState("");
+  // Idempotência: mesma chave por tentativa; reenvio retorna o mesmo pedido.
+  const chaveRef = useRef("");
+  function chaveAtendente() {
+    if (!chaveRef.current) chaveRef.current = crypto.randomUUID();
+    return chaveRef.current;
+  }
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [endereco, setEndereco] = useState("");
@@ -204,6 +212,7 @@ function Atendente() {
         entrega === "retirada" ? "online" : pagamento === "dinheiro" ? "na_entrega" : "online";
 
       const insertBody: Record<string, any> = {
+        id: chaveAtendente(),
         user_id: user.id,
         cliente_nome: nome.trim(),
         telefone: telefone.trim(),
@@ -227,9 +236,58 @@ function Atendente() {
       };
       let pedidoId = "";
       let numero = 0;
+      // Criação atômica (0095) — atrás de flag OFF. Flag OFF => caminho legado
+      // intacto. Flag ON + sucesso => pula o legado. Flag ON sem attestation/
+      // erro => aborta (NUNCA cai no fallback inseguro).
+      let atomico = false;
       {
+        const dadosAtendente: Record<string, unknown> = {
+          ...insertBody,
+          desconto_manual: Number(calcF.desconto) || 0,
+        };
+        const decisao = await decidirCriacaoAtomica(supabase as unknown as RpcClient, {
+          pedidoId: insertBody["id"] as string,
+          canal: "atendente",
+          dados: dadosAtendente,
+          itens: itens.map((i) => ({
+            produtoId: i.produto_id,
+            quantidade: i.quantidade,
+          })),
+        });
+        if (decisao.modo === "erro") {
+          toast.error(decisao.mensagem);
+          return;
+        }
+        if (decisao.modo === "atomico") {
+          pedidoId = decisao.pedido.id;
+          numero = decisao.pedido.numero;
+          atomico = true;
+        }
+      }
+      // No BUILD DE CORTE o caminho legado NAO e compilado: o bloco e removido
+      // do bundle (constant-folding de !BUILD_DE_CORTE). Nao ha fallback.
+      if (!BUILD_DE_CORTE && !atomico) {
         const res = await supabase.from("pedidos").insert(insertBody).select("id, numero").single();
-        if (res.error && String(res.error.message ?? "").includes("column")) {
+        if (res.error && (res.error as any).code === "23505") {
+          // Reenvio: recupera o pedido da mesma chave em vez de duplicar.
+          const rec = await supabase
+            .from("pedidos")
+            .select("id, numero")
+            .eq("id", insertBody["id"])
+            .single();
+          if (rec.error || !rec.data) throw res.error;
+          const { count } = await supabase
+            .from("pedido_itens")
+            .select("id", { count: "exact", head: true })
+            .eq("pedido_id", insertBody["id"]);
+          if ((count ?? 0) > 0) {
+            toast.success(`Pedido #${(rec.data as any).numero} já estava registrado.`);
+            chaveRef.current = "";
+            return;
+          }
+          pedidoId = (rec.data as any).id;
+          numero = (rec.data as any).numero;
+        } else if (res.error && String(res.error.message ?? "").includes("column")) {
           const {
             agendado_para: _a,
             agendamento_obs: _b,
@@ -248,24 +306,31 @@ function Atendente() {
           pedidoId = (res.data as any).id;
           numero = (res.data as any).numero;
         }
+      const { error: e2 } = await supabase.from("pedido_itens").insert(
+        itens.map((i) => ({
+          pedido_id: pedidoId,
+          produto_id: i.produto_id,
+          nome: i.nome,
+          preco_unitario: i.preco,
+          quantidade: i.quantidade,
+        })),
+      );
+      if (e2) {
+        // Compensação: desfaz o pedido vazio e mantém as linhas digitadas.
+        try {
+          await supabase.from("pedidos").delete().eq("id", pedidoId);
+        } catch {
+          /* best-effort */
+        }
+        throw new Error("Falha ao gravar itens — pedido desfeito, linhas mantidas. Tente de novo.");
       }
-      const { error: e2 } = await supabase
-        .from("pedido_itens")
-        .insert(
-          itens.map((i) => ({
-            pedido_id: pedidoId,
-            produto_id: i.produto_id,
-            nome: i.nome,
-            preco_unitario: i.preco,
-            quantidade: i.quantidade,
-          })),
-        );
-      if (e2) console.error(e2);
+      }
       void logAdmin("pedido_atendente", `#${numero} ${nome.trim()} ${brl(calcF.total)}`);
       setUltimo(numero);
       setLinhas([]);
       setObs("");
       setDesconto(0);
+      chaveRef.current = "";
       if (fora.length > 0) toast.warning(`Indisponíveis: ${fora.slice(0, 3).join(", ")}`);
       toast.success(`Pedido #${numero} registrado! Total ${brl(calcF.total)}`);
       const linhasTxt = itens

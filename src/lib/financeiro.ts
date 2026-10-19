@@ -92,6 +92,43 @@ export function totalContas(
     .reduce((s, c) => s + (Number(c.valor ?? 0) || 0), 0);
 }
 
+/**
+ * Monta a DRE a partir dos dados brutos (Etapa P, item 7 — centralizado).
+ * pedidos.total já é líquido de desconto, então a bruta recompõe
+ * (total + desconto) dos não cancelados; cancelados entram só na linha
+ * própria. Chamar com os mesmos critérios em todas as telas.
+ */
+export function montarDRE(
+  pedidos: {
+    total?: number | null;
+    desconto?: number | null;
+    status?: string | null;
+  }[],
+  contasPagas: { tipo?: string | null; categoria?: string | null; valor?: number | null }[],
+): LinhaDRE {
+  let bruta = 0;
+  let cancelamentos = 0;
+  let descontos = 0;
+  for (const p of pedidos ?? []) {
+    const t = Number(p.total ?? 0) || 0;
+    if (p.status === "cancelado") {
+      bruta += t;
+      cancelamentos += t;
+    } else {
+      bruta += t + (Number(p.desconto ?? 0) || 0);
+      descontos += Number(p.desconto ?? 0) || 0;
+    }
+  }
+  let cmv = 0;
+  let despesas = 0;
+  for (const c of contasPagas ?? []) {
+    if (c.tipo !== "pagar") continue;
+    if (c.categoria === "insumos") cmv += Number(c.valor ?? 0) || 0;
+    else despesas += Number(c.valor ?? 0) || 0;
+  }
+  return dreMensal({ bruta, cancelamentos, descontos, cmv, despesas });
+}
+
 export type LinhaDRE = {
   bruta: number;
   cancelamentos: number;

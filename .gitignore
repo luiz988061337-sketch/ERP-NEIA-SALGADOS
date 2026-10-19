@@ -39,3 +39,11 @@ dist-ssr
 .secrets-vapid.txt
 
 .vercel
+
+# Artefatos de scratch / build local (nao versionar)
+dist-l1-preview/
+build-pre-cutover.txt
+dev_out.txt
+preview_html.txt
+diag_preview.bat
+scripts-tests-summary.json

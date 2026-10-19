@@ -89,6 +89,8 @@ import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
 import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
 import { useRoles, useSession } from "@/lib/session";
+import { decidirCancelamentoAtomico, type RpcClient } from "@/lib/reserva-integracao";
+import { BUILD_DE_CORTE } from "@/lib/corte";
 import type { Role } from "@/lib/session";
 import type { PeriodoKey } from "@/lib/operacao";
 import { noIntervalo } from "@/lib/operacao";
@@ -677,9 +679,31 @@ function Admin() {
   }
 
   async function mudarStatusPedido(p: any, status: OrderStatus) {
+    // Cancelamento atômico (0093) — atrás de flag OFF. Flag OFF => caminho
+    // legado intacto. Flag ON + sucesso => RPC já cancelou e liberou. Flag ON
+    // sem attestation/erro => aborta (NUNCA cai no UPDATE direto).
+    if (status === "cancelado") {
+      const decisao = await decidirCancelamentoAtomico(
+        supabase as unknown as RpcClient,
+        p.id,
+        "admin",
+      );
+      if (decisao.modo === "erro") {
+        toast.error(decisao.mensagem);
+        return;
+      }
+      if (decisao.modo === "atomico") {
+        toast.success(`Pedido nº ${p.numero} cancelado e estoque liberado.`);
+        void logAdmin("pedido_status", `#${p.numero} → cancelado`);
+        queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+        return;
+      }
+    }
     // Cancelar devolve estoque primeiro (0030); o trigger 0042 reconcilia o resto.
     // Sem isso, produtos.estoque ficava debitado para sempre (vazamento).
-    if (status === "cancelado") {
+    // No BUILD DE CORTE este caminho legado NAO e compilado: o cancelamento
+    // passa obrigatoriamente por `cancelar_pedido_atomico` (0093/0090).
+    if (!BUILD_DE_CORTE && status === "cancelado") {
       try {
         await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: p.id });
       } catch {
@@ -691,6 +715,15 @@ function Admin() {
       } catch {
         /* sem migration */
       }
+    }
+    // No BUILD DE CORTE, o cancelamento SEMPRE passou pela RPC 0093 acima
+    // (o "modo legado" é impossível com a flag ligada). Esta trava é a
+    // defense-in-depth: mesmo que um fluxo novo chamasse `mudarStatusPedido`
+    // com "cancelado", o UPDATE direto jamais marcaria o pedido como
+    // cancelado — só a RPC atômica pode.
+    if (BUILD_DE_CORTE && status === "cancelado") {
+      toast.error("Cancelamento indisponível neste fluxo. Use a ação de cancelar.");
+      return;
     }
     const { error } = await supabase.from("pedidos").update({ status }).eq("id", p.id);
     if (error) toast.error(error?.message || "Não foi possível atualizar.");

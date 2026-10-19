@@ -17,6 +17,8 @@ import { precoFinal } from "@/lib/catalog";
 import { logAdmin } from "@/lib/operacao";
 import { montarWhatsApp } from "@/lib/inteligencia";
 import { FREQUENCIA_LABEL, diasAte, proximaData, type Frequencia } from "@/lib/recorrencia";
+import { decidirCriacaoAtomica, type RpcClient } from "@/lib/criacao-atomica";
+import { BUILD_DE_CORTE } from "@/lib/corte";
 
 export const Route = createFileRoute("/recorrentes")({
   validateSearch: z.object({ criar: z.string().optional() }).parse,
@@ -247,38 +249,75 @@ function Recorrentes() {
         total: calc.total,
       };
       let ped: { id: string; numero: number } | null = null;
+      let criadoAtomico = false;
       {
-        const res = await supabase.from("pedidos").insert(body).select("id, numero").single();
-        if (res.error && String(res.error.message ?? "").includes("column")) {
-          // Banco sem migrações — reenvia sem colunas novas
-          const {
-            cidade: _c,
-            agendado_para: _a,
-            agendamento_obs: _b,
-            tipo_evento: _t,
-            campanha_origem: _o,
-            ...legacy
-          } = body;
-          const retry = await supabase.from("pedidos").insert(legacy).select("id, numero").single();
-          if (retry.error || !retry.data) throw retry.error ?? new Error("insert falhou");
-          ped = retry.data;
-          toast.warning("Pedido criado sem cidade/agendamento — rode as migrações no Supabase.");
-        } else {
-          if (res.error || !res.data) throw res.error ?? new Error("insert falhou");
-          ped = res.data;
+        // Criação atômica (0095) — o bundle de corte NUNCA cria pedido sem
+        // reserva. Fora do corte, o caminho legado abaixo permanece intacto.
+        {
+          const decisao = await decidirCriacaoAtomica(supabase as unknown as RpcClient, {
+            pedidoId: crypto.randomUUID(),
+            canal: "checkout",
+            dados: {
+              cliente_nome: r.cliente_nome,
+              telefone: r.telefone,
+              endereco: r.endereco,
+              bairro: r.bairro,
+              cidade: r.cidade,
+              complemento: r.complemento,
+              referencia: r.referencia,
+              observacoes: `Recorrência ${r.frequencia}`,
+              forma_pagamento: r.forma_pagamento,
+              tipo_entrega: "entrega",
+            },
+            itens: validos.map((i) => ({
+              produtoId: i.produto_id ?? undefined,
+              nome: i.nome,
+              quantidade: i.quantidade,
+            })),
+          });
+          if (decisao.modo === "erro") throw new Error(decisao.mensagem);
+          if (decisao.modo === "atomico") {
+            ped = { id: decisao.pedido.id, numero: decisao.pedido.numero };
+            criadoAtomico = true;
+          }
+        }
+        if (!BUILD_DE_CORTE && !criadoAtomico) {
+          const res = await supabase.from("pedidos").insert(body).select("id, numero").single();
+          if (res.error && String(res.error.message ?? "").includes("column")) {
+            // Banco sem migrações — reenvia sem colunas novas
+            const {
+              cidade: _c,
+              agendado_para: _a,
+              agendamento_obs: _b,
+              tipo_evento: _t,
+              campanha_origem: _o,
+              ...legacy
+            } = body;
+            const retry = await supabase.from("pedidos").insert(legacy).select("id, numero").single();
+            if (retry.error || !retry.data) throw retry.error ?? new Error("insert falhou");
+            ped = retry.data;
+            toast.warning("Pedido criado sem cidade/agendamento — rode as migrações no Supabase.");
+          } else {
+            if (res.error || !res.data) throw res.error ?? new Error("insert falhou");
+            ped = res.data;
+          }
         }
       }
-      await supabase
-        .from("pedido_itens")
-        .insert(
-          validos.map((i) => ({
-            pedido_id: (ped as any).id,
-            produto_id: i.produto_id,
-            nome: i.nome,
-            preco_unitario: i.preco_unitario,
-            quantidade: i.quantidade,
-          })),
-        );
+      if (!criadoAtomico) {
+        // Só o caminho legado grava `pedido_itens` diretamente; a 0095 grava
+        // pedido + itens + reserva em UMA transação.
+        await supabase
+          .from("pedido_itens")
+          .insert(
+            validos.map((i) => ({
+              pedido_id: (ped as any).id,
+              produto_id: i.produto_id,
+              nome: i.nome,
+              preco_unitario: i.preco_unitario,
+              quantidade: i.quantidade,
+            })),
+          );
+      }
       const prox = proximaData(new Date().toISOString().slice(0, 10), r.frequencia as Frequencia);
       await supabase.from("pedidos_recorrentes").update({ proxima_execucao: prox }).eq("id", r.id);
       if (fora.length > 0) toast.warning(`Indisponíveis: ${fora.slice(0, 3).join(", ")}`);

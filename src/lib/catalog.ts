@@ -32,6 +32,8 @@ export type Categoria = {
   slug: string;
   ordem: number;
   ativo: boolean;
+  /** Preco unitario autoritativo do combo (migration 0097). */
+  combo_preco_unit?: string | number | null | undefined;
 };
 
 export type Produto = {

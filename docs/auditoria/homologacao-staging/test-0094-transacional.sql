@@ -1,0 +1,293 @@
+-- test-0094-transacional.sql — MATRIZ DE TESTES TRANSACIONAIS da 0094 (1.43–1.46).
+-- ============================================================================
+-- STATUS: NÃO EXECUTADO. Requer ambiente ISOLADO (Postgres + schema + stubs de
+-- auth.uid()/auth.jwt()), autorização expressa e backup. NÃO rodar em produção.
+-- Este arquivo é um ROTEIRO executável; os resultados NÃO foram verificados.
+-- Enquanto não houver execução real, NENHUM teste transacional é declarado
+-- aprovado. F5/F16 (concorrência) exigem DUAS sessões reais.
+--
+-- Objeto sob teste (§2 da 0094):
+--   trigger `trigger_proteger_consistencia_financeira`
+--     BEFORE UPDATE OF status, pagamento_status ON public.pedidos
+--     -> public.proteger_consistencia_financeira_pedido()
+--        (I)   NEW.status='cancelado' E NEW.pagamento_status='pago'      => ERRO
+--        (II)  v_confirmou (pendente->pago) E OLD.status='cancelado'     => ERRO
+--        (III) OLD.status='cancelado' E NEW.status<>'cancelado'          => ERRO
+--        (IV)  OLD.pagamento_status='pago' E NEW.pagamento_status IN
+--              ('pendente','falhou')                                     => ERRO
+--   §1 da 0094: `enfileirar_cupom` não emite NOVO cupom p/ pedido cancelado.
+--   Correções de aplicação da 1.43 (B, em pix/event.ts) são exercitadas por
+--   F7/F16 – SEM alterar esse arquivo nesta etapa.
+--
+-- PRÉ-CONDIÇÕES de ambiente isolado:
+--   - migrations .../0022/0041/0077/0084/0085/.../0093/0094 aplicadas;
+--   - auth.uid()/auth.jwt() de JWT sintético; papéis de teste (admin, financeiro,
+--     producao, atendente, cliente, service_role, anon);
+--   - fixtures DENTRO de transações revertidas (ROLLBACK).
+--
+--   Nomes/valores fictícios. P1=produto; PDx=pedido; R1=reserva.
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- FIXTURES (bloco revertido).
+-- ---------------------------------------------------------------------------
+-- DO $$
+-- BEGIN
+--   PERFORM set_config('request.jwt.claim.sub', <uuid_admin>, true);
+--   -- PD1 (recebido, pendente, pix, 46.00)  item P1; R1 ativa (0089).
+--   -- PD2 (recebido, pago,    pix, 60.00)  item P1; R2 ativa.
+--   -- PD3 (cancelado, pendente, pix, 46.00) reserva R3 liberada.
+--   -- PD4 (cancelado, pago,    pix, 10.00) LEGADO (combinação pré-existente).
+--   -- PD5 (recebido, pendente, pix, 15.00) item P1.
+--   -- PD6 (cancelado, pendente, pix, 20.00) com job J6 JÁ enfileirado.
+-- END $$;
+
+-- ===========================================================================
+-- F1 — `pago → pendente` BLOQUEADO (1.46/B.1). Fecha G1.
+--      Passos: UPDATE PD2 (pago, ativo) SET pagamento_status='pendente'.
+--      Esperado: ERRO (IV) 'pagamento_confirmado_nao_rebaixavel' (P0001);
+--                PD2 segue 'pago' (pagamento_em intacto). Nenhum caminho de
+--                cancelamento se abre por rebaixamento.
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='pendente' WHERE id=<PD2>;   -- ERRO
+
+-- ===========================================================================
+-- F2 — `pago → falhou` BLOQUEADO (1.46/B.2).
+--      Passos: UPDATE PD2 SET pagamento_status='falhou'.
+--      Esperado: ERRO (IV); PD2 segue 'pago'.
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='falhou' WHERE id=<PD2>;     -- ERRO
+
+-- ===========================================================================
+-- F3 — `pago → reembolsado` PERMITIDO e `→ cancelado` (1.45/B.3 / 1.46/B.3).
+--      (a) 'pago'→'reembolsado' PERMITIDO (saída sancionada; (IV) NÃO barra).
+--      (b) Pela 0093: cancelar pedido 'reembolsado' → 'pagamento_nao_elegivel'
+--          (D.3: reembolsado NÃO autoriza cancelamento pela 0093).
+--      (c) Por UPDATE direto: cancelado+reembolsado é permitido — risco D.4
+--          (caminho direto ainda existe). NÃO equiparar a reembolso comprovado.
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='reembolsado' WHERE id=<PD4>; -- OK
+-- SELECT public.cancelar_pedido_atomico(<PD4>);                            -- nao_elegivel
+-- UPDATE public.pedidos SET status='cancelado'             WHERE id=<PD4>; -- OK (direto)
+
+-- ===========================================================================
+-- F4 — Cancelamento LEGÍTIMO pela 0093 (1.45/F.4). Deve continuar funcionando.
+--      Passos: cancelar_pedido_atomico(<PD1 recebido/pendente>).
+--      Esperado: SUCESSO {'status':'cancelado',...}; status='cancelado';
+--                pagamento 'pendente'; liberação (0090) + histórico gravados.
+--                O §2 (nem (I)/(II)/(III)) NÃO interfere.
+-- ===========================================================================
+-- SELECT public.cancelar_pedido_atomico(<PD1>);
+
+-- ===========================================================================
+-- F5 — Reabertura de pedido CANCELADO (1.45/C.1/C.2). Deve ser BLOQUEADA.
+--      Ator admin:  UPDATE PD3 SET status='recebido';     -- ERRO (III)
+--                   UPDATE PD3 SET status='em_producao';  -- ERRO (III)
+--      Ator cliente/staff não-admin: já barrado pela matriz 0041 (não chega ao §2).
+--      service_role: UPDATE PD3 SET status='recebido';    -- ERRO (III)
+--      Esperado: 'reabertura_nao_permitida' (P0001); PD3 segue cancelado.
+-- ===========================================================================
+-- SET request.jwt.claim.sub = '<uuid_admin>';
+-- UPDATE public.pedidos SET status='recebido'    WHERE id=<PD3>;   -- ERRO
+-- UPDATE public.pedidos SET status='em_producao' WHERE id=<PD3>;   -- ERRO
+-- SET request.jwt.claim.role = 'service_role';
+-- UPDATE public.pedidos SET status='recebido'    WHERE id=<PD3>;   -- ERRO
+
+-- ===========================================================================
+-- F6 — Reabertura com RESERVA JÁ LIBERADA / reserva indeterminada (1.45/C.5/C.6).
+--      PD3 tem R3 liberada; PD4 tem reserva histórica indeterminada.
+--      Passos: UPDATE PD3/PD4 SET status='recebido'.
+--      Esperado: ERRO (III) — nenhuma reabertura (portanto, nenhuma re-reserva
+--                nem uso de estoque liberado). O §2 barra ANTES de qualquer
+--                efeito de estoque (que nem é tocado por este gatilho).
+-- ===========================================================================
+-- UPDATE public.pedidos SET status='recebido' WHERE id=<PD3>;   -- ERRO
+-- UPDATE public.pedidos SET status='recebido' WHERE id=<PD4>;   -- ERRO
+
+-- ===========================================================================
+-- F7 — Confirmação Pix DEPOIS do cancelamento (1.45/F.7 / B.6/B.7).
+--      Passos: (1) cancelar PD3; (2) webhook PD3 valor 46.00; (3) UPDATE manual
+--              PD3 SET pagamento_status='pago'.
+--      Esperado: (2) sem confirmação; evento 'CONFERIR';
+--                (3) ERRO (I)/(II) — não confirmar em pedido cancelado.
+-- ===========================================================================
+-- SELECT public.cancelar_pedido_atomico(<PD3>);
+-- -- POST /api/public/pix/event { amount: 46.00 }
+-- UPDATE public.pedidos SET pagamento_status='pago' WHERE id=<PD3>;   -- ERRO
+
+-- ===========================================================================
+-- F8 — Pagamento MANUAL indevido de pedido cancelado (1.45/F.8).
+--      Ator admin:      UPDATE PD3 SET pagamento_status='pago';   -- ERRO (I)
+--      Ator financeiro: idem                                       -- ERRO (I)
+--      Ator service_role: idem                                     -- ERRO (I)
+--      Legítimo: UPDATE PD5 (ativo) SET pagamento_status='pago'   -- OK (F10)
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='pago' WHERE id=<PD3>;   -- ERRO
+-- UPDATE public.pedidos SET pagamento_status='pago' WHERE id=<PD5>;   -- OK
+
+-- ===========================================================================
+-- F9 — Operações com `service_role` (SEM bypass, C.4).
+--      (a) PD2 → status='cancelado'       -- ERRO (I)
+--      (b) PD3 → pagamento_status='pago'  -- ERRO (I)
+--      (c) PD3 → status='recebido'        -- ERRO (III)
+--      (d) PD5 → pagamento_status='pago'  -- OK (recebido ativo)
+-- ===========================================================================
+-- SET request.jwt.claim.role = 'service_role';
+-- UPDATE public.pedidos SET status='cancelado'      WHERE id=<PD2>;  -- ERRO
+-- UPDATE public.pedidos SET pagamento_status='pago' WHERE id=<PD3>;  -- ERRO
+-- UPDATE public.pedidos SET status='recebido'       WHERE id=<PD3>;  -- ERRO
+-- UPDATE public.pedidos SET pagamento_status='pago' WHERE id=<PD5>;  -- OK
+
+-- ===========================================================================
+-- F10 — Conciliação financeira que NÃO altera indevidamente o pedido (1.45/F.10).
+--      (a) Confirmação de pedido ATIVO (financeiro.tsx: .eq('pagamento_status',
+--          'pendente')): PD5 → 'pago' → PERMITIDO; gatilho 0077 enfileira cupom.
+--      (b) Conciliação mirando pedido CANCELADO: PD3 → 'pago' → ERRO (I); o
+--          lançamento do extrato é preservado (não apagado por este gatilho).
+--      (c) Reembolso legítimo: PD4 (cancelado) → 'reembolsado' → PERMITIDO.
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='pago'       WHERE id=<PD5>; -- OK
+-- UPDATE public.pedidos SET pagamento_status='pago'       WHERE id=<PD3>; -- ERRO
+-- UPDATE public.pedidos SET pagamento_status='reembolsado' WHERE id=<PD4>; -- OK
+
+-- ===========================================================================
+-- F11 — Compatibilidade com os demais triggers (1.45/F.11).
+--      (a) PD3 no-op (status=status) → PERMITIDO (early-return; 0041 vê status
+--          igual). (b) UPDATE só de coluna neutra em PD4 (cancelado+pago legado)
+--          → o gatilho não é coluna-específico p/ essa coluna → PERMITIDO.
+--      (c) PD2 (pago) → 'em_producao' → PERMITIDO (§2 não bloqueia; 0041 admite).
+-- ===========================================================================
+-- UPDATE public.pedidos SET status=status               WHERE id=<PD3>; -- OK
+-- UPDATE public.pedidos SET observacoes='x'             WHERE id=<PD4>; -- OK
+-- UPDATE public.pedidos SET status='em_producao'        WHERE id=<PD2>; -- OK
+
+-- ===========================================================================
+-- F12 — Impressão (§1/D): pago+ativo gera cupom; cancelado NÃO; idempotência.
+--      (1) enfileirar_cupom(<PD5 pago/ativo>) → 1 job; repetir → não duplica.
+--      (2) enfileirar_cupom(<PD3 cancelado>) → nenhum job novo.
+--      (3) gerar_cupons_pedidos_pagos() (backfill) → não cria p/ cancelado.
+--      (4) O job J6 já existente (PD6) é PRESERVADO (não é apagado).
+-- ===========================================================================
+-- SELECT public.enfileirar_cupom(<PD5>);
+-- SELECT public.enfileirar_cupom(<PD3>);
+-- SELECT public.gerar_cupons_pedidos_pagos();
+
+-- ===========================================================================
+-- F13 — Webhook DUPLICADO (idempotência preservada; 1.43/B).
+--      Passos: enviar 2x o MESMO payload (mesmo event_hash).
+--      Esperado: 2ª chamada {ok:true, duplicado:true}; NÃO reconfirma.
+-- ===========================================================================
+-- -- POST /api/public/pix/event { mesmo payload }   (2x)
+
+-- ===========================================================================
+-- F14 — PRESERVAÇÃO do evento para conciliação (D / 1.43/B).
+--      Após F7, conferir: pix_notification_events permanece; status='CONFERIR';
+--      conferencia_motivo ∈ {'pedido_cancelado_antes_da_baixa',
+--      'pedido_mudou_antes_da_baixa'}; matched_order_id/processed_at
+--      preenchidos; admin_logs 'pix_conflito_cancelamento'. Nada apagado.
+-- ===========================================================================
+-- SELECT status, conferencia_motivo, matched_order_id, processed_at
+-- FROM public.pix_notification_events WHERE event_hash = '<hash de F7>';
+
+-- ===========================================================================
+-- F15 — Confirmação Pix ANTES do cancelamento (feliz).
+--      Passos: (1) webhook PD1 46.00 → confirma; (2) cancelar PD1.
+--      Esperado: (1) PD1 'pago', evento 'PROCESSADO', cupom enfileirado;
+--                (2) 0093 → 'pagamento_nao_elegivel' (não cancela pago).
+-- ===========================================================================
+-- -- (1) POST /api/public/pix/event { amount: 46.00 }
+-- SELECT public.cancelar_pedido_atomico(<PD1>);
+
+-- ===========================================================================
+-- F16 — Pix e cancelamento SIMULTÂNEOS (DUAS sessões). NÃO simular em 1 txn.
+--      Sessão A: UPDATE de baixa do Pix (eq pendente, neq cancelado) em PD1.
+--      Sessão B: cancelar_pedido_atomico(PD1).
+--      INVARIANTE: NUNCA existe cancelado+pago originado desta corrida.
+-- ===========================================================================
+-- -- psql #1: BEGIN; UPDATE public.pedidos SET pagamento_status='pago',
+-- --          pagamento_em=now() WHERE id=<PD1> AND pagamento_status='pendente'
+-- --          AND status<>'cancelado' RETURNING id;
+-- -- psql #2: SELECT public.cancelar_pedido_atomico(<PD1>);
+
+-- ===========================================================================
+-- GRUPO 1.46 — OCULTAÇÃO DE PAGAMENTO CONFIRMADO (regra IV; fecha G1)
+-- ===========================================================================
+-- Mapeamento 1.46/E (itens 1–10): F17↔E.1, F18↔E.2, F19↔E.3, F20↔E.4,
+-- F21↔E.5, F22↔E.6, F23↔E.7, F24↔E.8, F25↔E.9, F26↔E.10.
+
+-- ===========================================================================
+-- F17 — `pago → pendente` (1.46/E.1). BLOQUEADO (IV).            [= F1]
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='pendente' WHERE id=<PD2>;   -- ERRO
+
+-- ===========================================================================
+-- F18 — `pago → falhou` (1.46/E.2). BLOQUEADO (IV).              [= F2]
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='falhou' WHERE id=<PD2>;     -- ERRO
+
+-- ===========================================================================
+-- F19 — `pago → reembolsado` (1.46/E.3). PERMITIDO (saída sancionada).
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='reembolsado' WHERE id=<PD2>; -- OK
+
+-- ===========================================================================
+-- F20 — `pendente → pago` em pedido ATIVO (1.46/E.4). PERMITIDO.
+--      Confirmação legítima NÃO é barrada (admin ou baixa Pix). Cupom (0077)
+--      é enfileirado por ser pedido ativo.
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='pago', pagamento_em=now()
+--   WHERE id=<PD5>;   -- OK
+
+-- ===========================================================================
+-- F21 — `pendente → cancelado` pela 0093 (1.46/E.5). PERMITIDO.
+--      PD1 recebido/pendente → 0093 cancela + libera reservas + histórico (F4).
+-- ===========================================================================
+-- SELECT public.cancelar_pedido_atomico(<PD1>);   -- cancelado
+
+-- ===========================================================================
+-- F22 — Tentar CANCELAR um pedido PAGO (1.46/E.6). BLOQUEADO.
+--      (a) UPDATE direto status='cancelado' em PD2 (pago) → ERRO (I).
+--      (b) 0093 em PD2 → 'pagamento_nao_elegivel' (a 0093 não é UPDATE).
+-- ===========================================================================
+-- UPDATE public.pedidos SET status='cancelado' WHERE id=<PD2>;   -- ERRO (I)
+-- SELECT public.cancelar_pedido_atomico(<PD2>);                  -- pagamento_nao_elegivel
+
+-- ===========================================================================
+-- F23 — Contornar em DUAS atualizações / numa só (1.46/E.7). BLOQUEADO.
+--      Passo 1: PD2 'pago'→'pendente' → ERRO (IV); PD2 segue 'pago' (passo 2
+--      jamais alcança 'pendente').
+--      Atalho: SET status='cancelado', pagamento_status='pendente' em PD2
+--      (pago) numa SÓ instrução → ERRO (IV).
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='pendente' WHERE id=<PD2>;  -- ERRO (IV)
+-- UPDATE public.pedidos SET status='cancelado', pagamento_status='pendente'
+--   WHERE id=<PD2>;                                                      -- ERRO (IV)
+
+-- ===========================================================================
+-- F24 — Tentar via `service_role` (1.46/E.8). SEM bypass.
+--      (a) PD2 'pago'→'pendente' → ERRO (IV); (b) PD3 (cancelado) → 'pago'
+--      → ERRO (I); (c) PD2 status='cancelado' → ERRO (I).
+-- ===========================================================================
+-- SET request.jwt.claim.role = 'service_role';
+-- UPDATE public.pedidos SET pagamento_status='pendente' WHERE id=<PD2>; -- ERRO (IV)
+-- UPDATE public.pedidos SET pagamento_status='pago'     WHERE id=<PD3>; -- ERRO (I)
+-- UPDATE public.pedidos SET status='cancelado'          WHERE id=<PD2>; -- ERRO (I)
+
+-- ===========================================================================
+-- F25 — Pix recebido APÓS cancelamento (1.46/E.9).
+--      (1) PD3 cancelado; (2) webhook 46.00 → sem baixa; evento 'CONFERIR';
+--      (3) UPDATE manual pagamento_status='pago' em PD3 → ERRO (I).
+--      A evidência do Pix é PRESERVADA (ver F14).
+-- ===========================================================================
+-- -- (2) POST /api/public/pix/event { amount: 46.00 }
+-- UPDATE public.pedidos SET pagamento_status='pago' WHERE id=<PD3>;     -- ERRO (I)
+
+-- ===========================================================================
+-- F26 — Atualização legítima de pedido NÃO pago (1.46/E.10). PERMITIDO.
+--      (a) PD5 (pendente) → 'falhou' → OK ((IV) só protege 'pago');
+--      (b) PD5 → 'pendente' (no-op) → OK (early-return);
+--      (c) PD2 (pago) → 'em_producao' (só status) → OK (pagamento preservado).
+-- ===========================================================================
+-- UPDATE public.pedidos SET pagamento_status='falhou'  WHERE id=<PD5>;   -- OK
+-- UPDATE public.pedidos SET pagamento_status='pendente' WHERE id=<PD5>;  -- OK (no-op)
+-- UPDATE public.pedidos SET status='em_producao'       WHERE id=<PD2>;   -- OK

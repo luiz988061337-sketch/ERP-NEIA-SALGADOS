@@ -9,10 +9,12 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { PageHeader } from "@/components/admin/ui-admin";
 import { brl } from "@/lib/format";
+import { faixaCompetencia } from "@/lib/competencia";
 import { downloadCSV } from "@/lib/export";
 import {
   diferencaCaixa,
   dreMensal,
+  montarDRE,
   pontoEquilibrio,
   resumoConciliacao,
   saldoCaixaEsperado,
@@ -56,13 +58,14 @@ function Financeiro() {
     refetchInterval: 30000,
     queryFn: async () => {
       try {
+        const fx = faixaCompetencia(mes);
         const { data, error } = await supabase
           .from("pedidos")
           .select(
             "id, numero, total, desconto, pagamento_status, status, forma_pagamento, created_at",
           )
-          .gte("created_at", `${mes}-01`)
-          .lt("created_at", `${mes}-31`)
+          .gte("created_at", fx.ini)
+          .lt("created_at", fx.fim)
           .order("created_at", { ascending: false })
           .limit(2000);
         if (error) throw error;
@@ -197,10 +200,24 @@ function Financeiro() {
 
   async function gravarExtrato() {
     if (!previa?.length) return;
+    // Dedupe local: a UNIQUE (conta_bancaria_id, referencia) NÃO protege quando
+    // conta_bancaria_id é NULL (NULLs são distintos no Postgres) — e este insert
+    // não informa a conta. Usamos arquivo+linha como chave de idempotência para
+    // não duplicar ao reimportar o mesmo arquivo.
+    const { data: existentes } = await supabase
+      .from("extratos")
+      .select("linha")
+      .eq("arquivo", nomeArq);
+    const jaImportadas = new Set((existentes ?? []).map((r: any) => Number(r.linha)));
     let novos = 0;
+    let ignorados = 0;
     for (let i = 0; i < previa.length; i++) {
       const l = previa[i];
       if (!l) continue;
+      if (jaImportadas.has(i + 1)) {
+        ignorados += 1;
+        continue;
+      }
       const { error } = await supabase.from("extratos").insert({
         arquivo: nomeArq,
         linha: i + 1,
@@ -212,44 +229,72 @@ function Financeiro() {
       });
       if (!error) novos += 1;
     }
-    toast.success(`${novos} lançamento(s) importado(s). Duplicados ignorados.`);
+    toast.success(
+      `${novos} lançamento(s) importado(s)${ignorados > 0 ? `, ${ignorados} já existente(s) ignorado(s)` : ""}.`,
+    );
     setPrevia(null);
     setNomeArq("");
     queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
   }
 
   async function conciliar(ex: any, cand: { tipo: string; id: string }) {
+    const agora = new Date().toISOString();
+    // 1) Reserva o extrato (claim) apenas se ainda estiver pendente. Sem isso,
+    //    dois operadores conciliavam o mesmo lançamento duas vezes.
+    const { data: claim, error: eClaim } = await supabase
+      .from("extratos")
+      .update({ status: "conciliado", vinculo_tipo: cand.tipo, vinculo_id: cand.id })
+      .eq("id", ex.id)
+      .eq("status", "pendente")
+      .select("id");
+    if (eClaim) {
+      toast.error("Falha ao conciliar.");
+      return;
+    }
+    if (!claim || claim.length === 0) {
+      toast.error("Este lançamento já foi conciliado por outra pessoa.");
+      queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
+      return;
+    }
+
+    // 2) Aplica o vínculo no destino e confirma que 0 linhas = conflito.
+    let alvoOk = false;
     if (cand.tipo === "pedido") {
-      const agora = new Date().toISOString();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("pedidos")
         .update({ pagamento_status: "pago", pagamento_em: agora })
         .eq("id", cand.id)
-        .eq("pagamento_status", "pendente");
-      if (error) {
-        toast.error("Falha ao confirmar pedido.");
-        return;
-      }
+        .eq("pagamento_status", "pendente")
+        .select("id");
+      alvoOk = !error && !!data && data.length > 0;
     } else {
       const { data: c } = await supabase.from("contas").select("valor").eq("id", cand.id).single();
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("contas")
         .update({
           status: "paga",
           valor_pago: Number((c as any)?.valor ?? 0),
-          pago_em: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          pago_em: agora,
+          updated_at: agora,
         })
-        .eq("id", cand.id);
-      if (error) {
-        toast.error("Falha ao baixar conta.");
-        return;
-      }
+        .eq("id", cand.id)
+        .neq("status", "paga")
+        .select("id");
+      alvoOk = !error && !!data && data.length > 0;
     }
-    await supabase
-      .from("extratos")
-      .update({ status: "conciliado", vinculo_tipo: cand.tipo, vinculo_id: cand.id })
-      .eq("id", ex.id);
+
+    // 3) Destino já alterado/falhou: devolve o extrato para pendente (nada
+    //    conciliado). vinculo_tipo é NOT NULL DEFAULT '' — não usar null.
+    if (!alvoOk) {
+      await supabase
+        .from("extratos")
+        .update({ status: "pendente", vinculo_tipo: "", vinculo_id: null })
+        .eq("id", ex.id);
+      toast.error("Destino já alterado ou indisponível. Nada foi conciliado.");
+      queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
+      return;
+    }
+
     toast.success("Conciliado.");
     queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
@@ -303,27 +348,10 @@ function Financeiro() {
     ? saldoCaixaEsperado(Number(caixaAberto.saldo_inicial ?? 0), entPedidos + entContas, saiContas)
     : 0;
 
-  // DRE do mês (Etapa M, dados reais): bruta/cancelados/descontos dos pedidos;
-  // CMV = insumos pagos; despesas = demais contas pagas.
+  // DRE do mês centralizada (montarDRE: bruta recomposta, sem dedução dupla).
   const dre = useMemo(() => {
-    const lista = pedidos ?? [];
-    const bruta = lista
-      .filter((p: any) => p.status !== "cancelado")
-      .reduce((s: number, p: any) => s + (Number(p.total ?? 0) || 0), 0);
-    const cancelamentos = lista
-      .filter((p: any) => p.status === "cancelado")
-      .reduce((s: number, p: any) => s + (Number(p.total ?? 0) || 0), 0);
-    const descontos = lista
-      .filter((p: any) => p.status !== "cancelado")
-      .reduce((s: number, p: any) => s + (Number(p.desconto ?? 0) || 0), 0);
     const pagas = contasComStatus.filter((c: any) => c.tipo === "pagar" && c.efetivo === "paga");
-    const cmv = pagas
-      .filter((c: any) => c.categoria === "insumos")
-      .reduce((s: number, c: any) => s + (Number(c.valor ?? 0) || 0), 0);
-    const despesas = pagas
-      .filter((c: any) => c.categoria !== "insumos")
-      .reduce((s: number, c: any) => s + (Number(c.valor ?? 0) || 0), 0);
-    return dreMensal({ bruta, cancelamentos, descontos, cmv, despesas });
+    return montarDRE(pedidos ?? [], pagas);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidos, contas]);
   const mc = dre.liquida > 0 ? (dre.liquida - dre.cmv) / dre.liquida : 0;

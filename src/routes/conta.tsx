@@ -56,7 +56,7 @@ function Conta() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedidos")
-        .select("*, pedido_itens(*)")
+        .select("*, pedido_itens(*, pedido_item_componentes(*))")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -116,7 +116,14 @@ function Conta() {
   const { add, clear } = useCart();
 
   /** Recompõe itens com PREÇOS ATUAIS; informa indisponíveis. Retorna {adicionados, indisponiveis}. */
-  function montarItens(itens: { produto_id: string | null; nome: string; quantidade: number }[]) {
+  function montarItens(
+    itens: {
+      produto_id: string | null;
+      nome: string;
+      quantidade: number;
+      pedido_item_componentes?: { produto_id: string; quantidade: number }[] | null;
+    }[],
+  ) {
     const adicionados: string[] = [];
     const indisponiveis: string[] = [];
     const mantidos: string[] = [];
@@ -142,16 +149,54 @@ function Conta() {
         adicionados.push(prod.nome);
         continue;
       }
-      // Item de combo montado (sem produto_id): recalcula pela tabela vigente
+      // Item de combo montado (sem produto_id).
       const m = it.nome.match(/^Combo (.+?) (\d+)un/);
       const cat = m ? COMBO_CATEGORIAS.find((c) => c.nome === m[1]) : undefined;
       const total = m ? Number(m[2]) : NaN;
-      if (cat && Number.isFinite(total) && isMultiploCombo(total)) {
+      const componentes = (it.pedido_item_componentes ?? []).map((c) => ({
+        produtoId: c.produto_id,
+        quantidade: Number(c.quantidade),
+      }));
+
+      if (componentes.length > 0 && cat && Number.isFinite(total) && isMultiploCombo(total)) {
+        const soma = componentes.reduce((s, c) => s + c.quantidade, 0);
+        if (soma !== total) {
+          mantidos.push(it.nome);
+          continue;
+        }
+        const prods = componentes.map((c) => (produtos ?? []).find((p) => p.id === c.produtoId));
+        if (prods.some((p) => !p || !p.disponivel || p.estoque <= 0)) {
+          indisponiveis.push(it.nome);
+          continue;
+        }
+        const cats = new Set(prods.map((p) => p!.categoria_id));
+        if (cats.size !== 1) {
+          mantidos.push(it.nome);
+          continue;
+        }
+        const precoBanco = categorias?.find((c) => c.id === [...cats][0])?.combo_preco_unit;
         add(
           {
             id: `combo-${cat.slug}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
             nome: it.nome,
-            preco: cat.precoUnit,
+            preco: Number(precoBanco ?? cat.precoUnit),
+            imagem: null,
+            produtoId: null,
+            combo: true,
+            componentes,
+          },
+          total,
+        );
+        adicionados.push(it.nome);
+      } else if (cat && Number.isFinite(total) && isMultiploCombo(total)) {
+        // Pedido antigo sem composição: mantém o comportamento legado (sem
+        // componentes). A criação atômica rejeita este item em modo controlado.
+        const precoBanco = categorias?.find((c) => c.slug === cat.slug)?.combo_preco_unit;
+        add(
+          {
+            id: `combo-${cat.slug}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+            nome: it.nome,
+            preco: Number(precoBanco ?? cat.precoUnit),
             imagem: null,
             produtoId: null,
             combo: true,
@@ -169,7 +214,12 @@ function Conta() {
   }
 
   function repetirPedido(p: any) {
-    const itens = ((p.pedido_itens ?? []) as { produto_id: string | null; nome: string; quantidade: number }[]);
+    const itens = ((p.pedido_itens ?? []) as {
+      produto_id: string | null;
+      nome: string;
+      quantidade: number;
+      pedido_item_componentes?: { produto_id: string; quantidade: number }[] | null;
+    }[]);
     if (itens.length === 0) {
       toast.error("Este pedido não tem itens para repetir.");
       return;

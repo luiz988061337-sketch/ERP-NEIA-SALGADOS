@@ -1,5 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import {
+  escalarComponentes,
+  mesclarComponentes,
+  somaComponentes,
+  type ComponenteCombo,
+} from "./combo-componentes";
+
+export type { ComponenteCombo } from "./combo-componentes";
 
 export type CartItem = {
   id: string;
@@ -12,6 +20,12 @@ export type CartItem = {
   observacao?: string | null | undefined;
   /** true = combo montado: quantidade deve ser múltiplo de 50 (regra comercial). */
   combo?: boolean | undefined;
+  /**
+   * Composicao estruturada do combo (produto + quantidade em mini unidades).
+   * A soma deve ser igual a `quantidade`. Sem componentes, o combo e legado e
+   * nao pode ser criado pela via atomica (fail-closed no servidor).
+   */
+  componentes?: ComponenteCombo[] | undefined;
   /** Snapshot do estoque disponível (cap de compra); opcional para retrocompat. */
   estoque?: number | null | undefined;
 };
@@ -64,6 +78,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (combo && quantidade < MINIMO_COMBO) return;
       if (quantidade <= 0) return;
     }
+
+    // A composicao informada precisa fechar com o total efetivamente aceito.
+    // Se veio de um total diferente (ex.: cap de estoque), reescala em vez de
+    // gravar uma composicao que nao soma o item.
+    let novoItem: Omit<CartItem, "quantidade"> = item;
+    if (item.componentes?.length) {
+      const soma = somaComponentes(item.componentes);
+      if (soma > 0) {
+        novoItem = { ...item, componentes: escalarComponentes(item.componentes, soma, quantidade) };
+      }
+    }
+
     setItems((prev) => {
       const found = prev.find((i) => i.id === item.id);
       if (found) {
@@ -74,13 +100,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : Math.max(0, Math.floor(found.estoque));
           somado = Math.min(somado, max);
         }
-        return prev.map((i) =>
-          i.id === item.id
-            ? { ...i, quantidade: isComboItem(i) ? ajustarParaCombo(somado) : somado }
-            : i,
-        );
+        const total = isComboItem(found) ? ajustarParaCombo(somado) : somado;
+        const componentes = novoItem.componentes?.length
+          ? (() => {
+              const combinados = mesclarComponentes(found.componentes, novoItem.componentes);
+              const soma = somaComponentes(combinados);
+              return soma > 0 ? escalarComponentes(combinados, soma, total) : undefined;
+            })()
+          : found.componentes;
+        return prev.map((i) => (i.id === item.id ? { ...i, quantidade: total, componentes } : i));
       }
-      return [...prev, { ...item, quantidade }];
+      return [...prev, { ...novoItem, quantidade }];
     });
   }, []);
 
@@ -108,7 +138,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           n = Math.min(n, max);
           if (n < desejado) toast.warning(`Estoque máximo disponível: ${max} unidades.`);
         }
-        return [{ ...i, quantidade: isComboItem(i) ? ajustarParaCombo(n) : n }];
+        const total = isComboItem(i) ? ajustarParaCombo(n) : n;
+        const componentes = i.componentes?.length
+          ? escalarComponentes(i.componentes, i.quantidade, total)
+          : i.componentes;
+        return [{ ...i, quantidade: total, componentes }];
       }),
     );
   }, []);

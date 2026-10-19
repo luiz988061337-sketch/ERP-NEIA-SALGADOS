@@ -134,10 +134,12 @@ export const Route = createFileRoute("/api/public/pix/event")({
         const eventId = (ins.data as any).id as string;
 
         // 4. Candidatos: PIX pendentes, não cancelados, valor próximo.
+        // Forma filtrada no banco (só Pix entra no auto-confirm).
         const cand = await db
           .from("pedidos")
           .select("id,numero,total,forma_pagamento,pagamento_status,status")
           .eq("pagamento_status", "pendente")
+          .eq("forma_pagamento", "pix")
           .neq("status", "cancelado")
           .gte("total", valor - 0.01)
           .lte("total", valor + 0.01)
@@ -154,26 +156,59 @@ export const Route = createFileRoute("/api/public/pix/event")({
 
         if (decisao.acao === "confirmar") {
           const agora = new Date().toISOString();
+          // Baixa ATÔMICA e autossuficiente (Etapa 1.43/B): numa ÚNICA
+          // instrução exige pagamento ainda 'pendente' E o pedido NÃO cancelado.
+          // Não depende da leitura anterior dos candidatos (que é apenas uma
+          // pista): se o pedido foi cancelado entre a leitura e a baixa (ex.:
+          // 0093 cancelar_pedido_atomico), o próprio UPDATE deixa de casar e 0
+          // linhas são retornadas. O .select("id") comprova exatamente 1 linha
+          // afetada (sem .select a confirmação seria cega).
           const up = await db
             .from("pedidos")
             .update({ pagamento_status: "pago", pagamento_em: agora })
             .eq("id", decisao.pedidoId)
-            .eq("pagamento_status", "pendente");
+            .eq("pagamento_status", "pendente")
+            .neq("status", "cancelado")
+            .select("id");
           if (up.error || (Array.isArray(up.data) && up.data.length === 0)) {
-            // Pedido mudou entre a leitura e a baixa → conferir manual.
+            // Conflito (cancelamento concorrente, baixa já feita, etc.): NÃO
+            // confirmar. Reavaliar o estado atual para registrar um motivo fiel
+            // e PRESERVAR a evidência do PIX para conciliação financeira
+            // (o evento permanece, só muda de status; nada é descartado).
+            const atual = await db
+              .from("pedidos")
+              .select("status")
+              .eq("id", decisao.pedidoId)
+              .maybeSingle();
+            const st = (atual.data as { status?: string } | null)?.status ?? null;
+            const motivo =
+              st === "cancelado"
+                ? "pedido_cancelado_antes_da_baixa"
+                : "pedido_mudou_antes_da_baixa";
             await db
               .from("pix_notification_events")
               .update({
                 status: "CONFERIR",
-                conferencia_motivo: "pedido_mudou_antes_da_baixa",
+                conferencia_motivo: motivo,
                 matched_order_id: decisao.pedidoId,
                 processed_at: agora,
               })
               .eq("id", eventId);
+            try {
+              await db.from("admin_logs").insert({
+                actor: null,
+                acao: "pix_conflito_cancelamento",
+                detalhe:
+                  `pedido ${decisao.pedidoId} R$ ${valor.toFixed(2)} aparelho ${device_id} ` +
+                  `motivo=${motivo} status=${st ?? "desconhecido"}`,
+              });
+            } catch {
+              /* best-effort: a conferência já foi registrada em pix_notification_events */
+            }
             return Response.json({
               ok: true,
               status: "CONFERIR",
-              motivo: "pedido_mudou_antes_da_baixa",
+              motivo,
             });
           }
           await db

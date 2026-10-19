@@ -53,11 +53,16 @@ function imprimirTexto(texto: string): void {
     return;
   } catch { /* cai no fallback */ }
   // Usa impressora nomeada; se falhar, cai para padrão do Windows.
+  // Se o fallback aceitar o trabalho, NÃO lançar erro: lançar aqui marcaria
+  // "erro" um job que já foi impresso e o retry imprimiria duas vezes.
   try {
     execSync(`powershell -Command "Get-Content '${arq}' | Out-Printer -Name '${PRINTER}'"`, { stdio: "inherit" });
-  } catch {
+    return;
+  } catch {}
+  try {
     execSync(`powershell -Command "Get-Content '${arq}' | Out-Printer"`, { stdio: "inherit" });
-  }
+    return;
+  } catch {}
   throw new Error("Falha ao imprimir: texto enviado mas impressora não respondeu");
 }
 

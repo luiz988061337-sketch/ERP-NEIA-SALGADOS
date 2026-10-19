@@ -4,6 +4,8 @@
  * vendidos em múltiplos de 50") passam intactos; o resto vira uma mensagem
  * simples, sem "constraint", "uuid", "undefined" ou "database error".
  */
+import { mensagemProtecaoFinanceira } from "./pedido-status";
+
 export function mensagemDeErro(err: unknown, padrao = "Não foi possível concluir agora. Tente novamente."): string {
   if (!(err instanceof Error)) return padrao;
   const msg = err.message || "";
@@ -18,6 +20,10 @@ export function mensagemDeErro(err: unknown, padrao = "Não foi possível conclu
     "Estoque",
   ];
   if (deNegocio.some((m) => msg.includes(m))) return msg;
+
+  // Proteções financeiras da 0094: mensagem clara, antes da triagem técnica.
+  const protecao = mensagemProtecaoFinanceira(err);
+  if (protecao) return protecao;
 
   // Sinais de erro técnico do Supabase/Postgres.
   const tecnico =

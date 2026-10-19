@@ -40,19 +40,27 @@ import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as ApiVersaoRouteImport } from './routes/api/versao'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as PreviewIndexRouteImport } from './routes/preview/index'
 import { Route as PreviewCalculadoraRouteImport } from './routes/preview/calculadora'
 import { Route as PreviewCardapioRouteImport } from './routes/preview/cardapio'
 import { Route as PreviewCarrinhoRouteImport } from './routes/preview/carrinho'
+import { Route as PreviewCentralEntregasV2RouteImport } from './routes/preview/central-entregas-v2'
 import { Route as PreviewCheckoutRouteImport } from './routes/preview/checkout'
 import { Route as PreviewComboRouteImport } from './routes/preview/combo'
 import { Route as PreviewCozinhaInteligenteRouteImport } from './routes/preview/cozinha-inteligente'
+import { Route as PreviewL1EntregasRouteImport } from './routes/preview/l1-entregas'
+import { Route as PreviewL1GestaoRouteImport } from './routes/preview/l1-gestao'
+import { Route as PreviewL1PdvRouteImport } from './routes/preview/l1-pdv'
+import { Route as PreviewL1ProducaoRouteImport } from './routes/preview/l1-producao'
 import { Route as PreviewOperacaoIntegradaRouteImport } from './routes/preview/operacao-integrada'
 import { Route as PreviewPedidosRouteImport } from './routes/preview/pedidos'
+import { Route as PreviewPedidosAtendenteV2RouteImport } from './routes/preview/pedidos-atendente-v2'
 import { Route as PreviewPlanejamentoRouteImport } from './routes/preview/planejamento'
 import { Route as PreviewPrioridadeManualRouteImport } from './routes/preview/prioridade-manual'
 import { Route as PreviewProducaoNovaRouteImport } from './routes/preview/producao-nova'
+import { Route as PreviewProducaoPainelRouteImport } from './routes/preview/producao-painel'
 import { Route as PreviewSimuladorCardapioRouteImport } from './routes/preview/simulador-cardapio'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as PreviewAdminIndexRouteImport } from './routes/preview/admin/index'
@@ -222,6 +230,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiVersaoRoute = ApiVersaoRouteImport.update({
+  id: '/api/versao',
+  path: '/api/versao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedidoIdRoute = PedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
@@ -247,6 +260,12 @@ const PreviewCarrinhoRoute = PreviewCarrinhoRouteImport.update({
   path: '/carrinho',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewCentralEntregasV2Route =
+  PreviewCentralEntregasV2RouteImport.update({
+    id: '/central-entregas-v2',
+    path: '/central-entregas-v2',
+    getParentRoute: () => PreviewRoute,
+  } as any)
 const PreviewCheckoutRoute = PreviewCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -263,6 +282,26 @@ const PreviewCozinhaInteligenteRoute =
     path: '/cozinha-inteligente',
     getParentRoute: () => PreviewRoute,
   } as any)
+const PreviewL1EntregasRoute = PreviewL1EntregasRouteImport.update({
+  id: '/l1-entregas',
+  path: '/l1-entregas',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewL1GestaoRoute = PreviewL1GestaoRouteImport.update({
+  id: '/l1-gestao',
+  path: '/l1-gestao',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewL1PdvRoute = PreviewL1PdvRouteImport.update({
+  id: '/l1-pdv',
+  path: '/l1-pdv',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewL1ProducaoRoute = PreviewL1ProducaoRouteImport.update({
+  id: '/l1-producao',
+  path: '/l1-producao',
+  getParentRoute: () => PreviewRoute,
+} as any)
 const PreviewOperacaoIntegradaRoute =
   PreviewOperacaoIntegradaRouteImport.update({
     id: '/operacao-integrada',
@@ -274,6 +313,12 @@ const PreviewPedidosRoute = PreviewPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewPedidosAtendenteV2Route =
+  PreviewPedidosAtendenteV2RouteImport.update({
+    id: '/pedidos-atendente-v2',
+    path: '/pedidos-atendente-v2',
+    getParentRoute: () => PreviewRoute,
+  } as any)
 const PreviewPlanejamentoRoute = PreviewPlanejamentoRouteImport.update({
   id: '/planejamento',
   path: '/planejamento',
@@ -287,6 +332,11 @@ const PreviewPrioridadeManualRoute = PreviewPrioridadeManualRouteImport.update({
 const PreviewProducaoNovaRoute = PreviewProducaoNovaRouteImport.update({
   id: '/producao-nova',
   path: '/producao-nova',
+  getParentRoute: () => PreviewRoute,
+} as any)
+const PreviewProducaoPainelRoute = PreviewProducaoPainelRouteImport.update({
+  id: '/producao-painel',
+  path: '/producao-painel',
   getParentRoute: () => PreviewRoute,
 } as any)
 const PreviewSimuladorCardapioRoute =
@@ -383,18 +433,26 @@ export interface FileRoutesByFullPath {
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/preview/calculadora': typeof PreviewCalculadoraRoute
   '/preview/cardapio': typeof PreviewCardapioRoute
   '/preview/carrinho': typeof PreviewCarrinhoRoute
+  '/preview/central-entregas-v2': typeof PreviewCentralEntregasV2Route
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/l1-entregas': typeof PreviewL1EntregasRoute
+  '/preview/l1-gestao': typeof PreviewL1GestaoRoute
+  '/preview/l1-pdv': typeof PreviewL1PdvRoute
+  '/preview/l1-producao': typeof PreviewL1ProducaoRoute
   '/preview/operacao-integrada': typeof PreviewOperacaoIntegradaRoute
   '/preview/pedidos': typeof PreviewPedidosRoute
+  '/preview/pedidos-atendente-v2': typeof PreviewPedidosAtendenteV2Route
   '/preview/planejamento': typeof PreviewPlanejamentoRoute
   '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/producao-painel': typeof PreviewProducaoPainelRoute
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -440,18 +498,26 @@ export interface FileRoutesByTo {
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/preview/calculadora': typeof PreviewCalculadoraRoute
   '/preview/cardapio': typeof PreviewCardapioRoute
   '/preview/carrinho': typeof PreviewCarrinhoRoute
+  '/preview/central-entregas-v2': typeof PreviewCentralEntregasV2Route
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/l1-entregas': typeof PreviewL1EntregasRoute
+  '/preview/l1-gestao': typeof PreviewL1GestaoRoute
+  '/preview/l1-pdv': typeof PreviewL1PdvRoute
+  '/preview/l1-producao': typeof PreviewL1ProducaoRoute
   '/preview/operacao-integrada': typeof PreviewOperacaoIntegradaRoute
   '/preview/pedidos': typeof PreviewPedidosRoute
+  '/preview/pedidos-atendente-v2': typeof PreviewPedidosAtendenteV2Route
   '/preview/planejamento': typeof PreviewPlanejamentoRoute
   '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/producao-painel': typeof PreviewProducaoPainelRoute
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -499,18 +565,26 @@ export interface FileRoutesById {
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/preview/calculadora': typeof PreviewCalculadoraRoute
   '/preview/cardapio': typeof PreviewCardapioRoute
   '/preview/carrinho': typeof PreviewCarrinhoRoute
+  '/preview/central-entregas-v2': typeof PreviewCentralEntregasV2Route
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/l1-entregas': typeof PreviewL1EntregasRoute
+  '/preview/l1-gestao': typeof PreviewL1GestaoRoute
+  '/preview/l1-pdv': typeof PreviewL1PdvRoute
+  '/preview/l1-producao': typeof PreviewL1ProducaoRoute
   '/preview/operacao-integrada': typeof PreviewOperacaoIntegradaRoute
   '/preview/pedidos': typeof PreviewPedidosRoute
+  '/preview/pedidos-atendente-v2': typeof PreviewPedidosAtendenteV2Route
   '/preview/planejamento': typeof PreviewPlanejamentoRoute
   '/preview/prioridade-manual': typeof PreviewPrioridadeManualRoute
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
+  '/preview/producao-painel': typeof PreviewProducaoPainelRoute
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -559,18 +633,26 @@ export interface FileRouteTypes {
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
+    | '/api/versao'
     | '/pedido/$id'
     | '/preview/calculadora'
     | '/preview/cardapio'
     | '/preview/carrinho'
+    | '/preview/central-entregas-v2'
     | '/preview/checkout'
     | '/preview/combo'
     | '/preview/cozinha-inteligente'
+    | '/preview/l1-entregas'
+    | '/preview/l1-gestao'
+    | '/preview/l1-pdv'
+    | '/preview/l1-producao'
     | '/preview/operacao-integrada'
     | '/preview/pedidos'
+    | '/preview/pedidos-atendente-v2'
     | '/preview/planejamento'
     | '/preview/prioridade-manual'
     | '/preview/producao-nova'
+    | '/preview/producao-painel'
     | '/preview/simulador-cardapio'
     | '/preview/'
     | '/.lovable/oauth/consent'
@@ -616,18 +698,26 @@ export interface FileRouteTypes {
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
+    | '/api/versao'
     | '/pedido/$id'
     | '/preview/calculadora'
     | '/preview/cardapio'
     | '/preview/carrinho'
+    | '/preview/central-entregas-v2'
     | '/preview/checkout'
     | '/preview/combo'
     | '/preview/cozinha-inteligente'
+    | '/preview/l1-entregas'
+    | '/preview/l1-gestao'
+    | '/preview/l1-pdv'
+    | '/preview/l1-producao'
     | '/preview/operacao-integrada'
     | '/preview/pedidos'
+    | '/preview/pedidos-atendente-v2'
     | '/preview/planejamento'
     | '/preview/prioridade-manual'
     | '/preview/producao-nova'
+    | '/preview/producao-painel'
     | '/preview/simulador-cardapio'
     | '/preview'
     | '/.lovable/oauth/consent'
@@ -674,18 +764,26 @@ export interface FileRouteTypes {
     | '/producao'
     | '/recorrentes'
     | '/.well-known/oauth-protected-resource'
+    | '/api/versao'
     | '/pedido/$id'
     | '/preview/calculadora'
     | '/preview/cardapio'
     | '/preview/carrinho'
+    | '/preview/central-entregas-v2'
     | '/preview/checkout'
     | '/preview/combo'
     | '/preview/cozinha-inteligente'
+    | '/preview/l1-entregas'
+    | '/preview/l1-gestao'
+    | '/preview/l1-pdv'
+    | '/preview/l1-producao'
     | '/preview/operacao-integrada'
     | '/preview/pedidos'
+    | '/preview/pedidos-atendente-v2'
     | '/preview/planejamento'
     | '/preview/prioridade-manual'
     | '/preview/producao-nova'
+    | '/preview/producao-painel'
     | '/preview/simulador-cardapio'
     | '/preview/'
     | '/.lovable/oauth/consent'
@@ -733,6 +831,7 @@ export interface RootRouteChildren {
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  ApiVersaoRoute: typeof ApiVersaoRoute
   PedidoIdRoute: typeof PedidoIdRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicPixEventRoute: typeof ApiPublicPixEventRoute
@@ -957,6 +1056,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/versao': {
+      id: '/api/versao'
+      path: '/api/versao'
+      fullPath: '/api/versao'
+      preLoaderRoute: typeof ApiVersaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedido/$id': {
       id: '/pedido/$id'
       path: '/pedido/$id'
@@ -992,6 +1098,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewCarrinhoRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/central-entregas-v2': {
+      id: '/preview/central-entregas-v2'
+      path: '/central-entregas-v2'
+      fullPath: '/preview/central-entregas-v2'
+      preLoaderRoute: typeof PreviewCentralEntregasV2RouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/checkout': {
       id: '/preview/checkout'
       path: '/checkout'
@@ -1013,6 +1126,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewCozinhaInteligenteRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/l1-entregas': {
+      id: '/preview/l1-entregas'
+      path: '/l1-entregas'
+      fullPath: '/preview/l1-entregas'
+      preLoaderRoute: typeof PreviewL1EntregasRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/l1-gestao': {
+      id: '/preview/l1-gestao'
+      path: '/l1-gestao'
+      fullPath: '/preview/l1-gestao'
+      preLoaderRoute: typeof PreviewL1GestaoRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/l1-pdv': {
+      id: '/preview/l1-pdv'
+      path: '/l1-pdv'
+      fullPath: '/preview/l1-pdv'
+      preLoaderRoute: typeof PreviewL1PdvRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/l1-producao': {
+      id: '/preview/l1-producao'
+      path: '/l1-producao'
+      fullPath: '/preview/l1-producao'
+      preLoaderRoute: typeof PreviewL1ProducaoRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/operacao-integrada': {
       id: '/preview/operacao-integrada'
       path: '/operacao-integrada'
@@ -1025,6 +1166,13 @@ declare module '@tanstack/react-router' {
       path: '/pedidos'
       fullPath: '/preview/pedidos'
       preLoaderRoute: typeof PreviewPedidosRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/pedidos-atendente-v2': {
+      id: '/preview/pedidos-atendente-v2'
+      path: '/pedidos-atendente-v2'
+      fullPath: '/preview/pedidos-atendente-v2'
+      preLoaderRoute: typeof PreviewPedidosAtendenteV2RouteImport
       parentRoute: typeof PreviewRoute
     }
     '/preview/planejamento': {
@@ -1046,6 +1194,13 @@ declare module '@tanstack/react-router' {
       path: '/producao-nova'
       fullPath: '/preview/producao-nova'
       preLoaderRoute: typeof PreviewProducaoNovaRouteImport
+      parentRoute: typeof PreviewRoute
+    }
+    '/preview/producao-painel': {
+      id: '/preview/producao-painel'
+      path: '/producao-painel'
+      fullPath: '/preview/producao-painel'
+      preLoaderRoute: typeof PreviewProducaoPainelRouteImport
       parentRoute: typeof PreviewRoute
     }
     '/preview/simulador-cardapio': {
@@ -1139,14 +1294,21 @@ interface PreviewRouteChildren {
   PreviewCalculadoraRoute: typeof PreviewCalculadoraRoute
   PreviewCardapioRoute: typeof PreviewCardapioRoute
   PreviewCarrinhoRoute: typeof PreviewCarrinhoRoute
+  PreviewCentralEntregasV2Route: typeof PreviewCentralEntregasV2Route
   PreviewCheckoutRoute: typeof PreviewCheckoutRoute
   PreviewComboRoute: typeof PreviewComboRoute
   PreviewCozinhaInteligenteRoute: typeof PreviewCozinhaInteligenteRoute
+  PreviewL1EntregasRoute: typeof PreviewL1EntregasRoute
+  PreviewL1GestaoRoute: typeof PreviewL1GestaoRoute
+  PreviewL1PdvRoute: typeof PreviewL1PdvRoute
+  PreviewL1ProducaoRoute: typeof PreviewL1ProducaoRoute
   PreviewOperacaoIntegradaRoute: typeof PreviewOperacaoIntegradaRoute
   PreviewPedidosRoute: typeof PreviewPedidosRoute
+  PreviewPedidosAtendenteV2Route: typeof PreviewPedidosAtendenteV2Route
   PreviewPlanejamentoRoute: typeof PreviewPlanejamentoRoute
   PreviewPrioridadeManualRoute: typeof PreviewPrioridadeManualRoute
   PreviewProducaoNovaRoute: typeof PreviewProducaoNovaRoute
+  PreviewProducaoPainelRoute: typeof PreviewProducaoPainelRoute
   PreviewSimuladorCardapioRoute: typeof PreviewSimuladorCardapioRoute
   PreviewIndexRoute: typeof PreviewIndexRoute
   PreviewAdminEntregasRoute: typeof PreviewAdminEntregasRoute
@@ -1164,14 +1326,21 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewCalculadoraRoute: PreviewCalculadoraRoute,
   PreviewCardapioRoute: PreviewCardapioRoute,
   PreviewCarrinhoRoute: PreviewCarrinhoRoute,
+  PreviewCentralEntregasV2Route: PreviewCentralEntregasV2Route,
   PreviewCheckoutRoute: PreviewCheckoutRoute,
   PreviewComboRoute: PreviewComboRoute,
   PreviewCozinhaInteligenteRoute: PreviewCozinhaInteligenteRoute,
+  PreviewL1EntregasRoute: PreviewL1EntregasRoute,
+  PreviewL1GestaoRoute: PreviewL1GestaoRoute,
+  PreviewL1PdvRoute: PreviewL1PdvRoute,
+  PreviewL1ProducaoRoute: PreviewL1ProducaoRoute,
   PreviewOperacaoIntegradaRoute: PreviewOperacaoIntegradaRoute,
   PreviewPedidosRoute: PreviewPedidosRoute,
+  PreviewPedidosAtendenteV2Route: PreviewPedidosAtendenteV2Route,
   PreviewPlanejamentoRoute: PreviewPlanejamentoRoute,
   PreviewPrioridadeManualRoute: PreviewPrioridadeManualRoute,
   PreviewProducaoNovaRoute: PreviewProducaoNovaRoute,
+  PreviewProducaoPainelRoute: PreviewProducaoPainelRoute,
   PreviewSimuladorCardapioRoute: PreviewSimuladorCardapioRoute,
   PreviewIndexRoute: PreviewIndexRoute,
   PreviewAdminEntregasRoute: PreviewAdminEntregasRoute,
@@ -1221,6 +1390,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecorrentesRoute: RecorrentesRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  ApiVersaoRoute: ApiVersaoRoute,
   PedidoIdRoute: PedidoIdRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicPixEventRoute: ApiPublicPixEventRoute,

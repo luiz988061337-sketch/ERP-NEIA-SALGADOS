@@ -1,0 +1,38 @@
+{
+  "gerado_em": "2026-10-19T19:25:48.564Z",
+  "versao_build": "1792429500000",
+  "versao_fixada": true,
+  "rotulo_build": "cutover-2026-10-19-a1",
+  "sha256_bundle": "0006762e66db57ad532b78cec8da95d24fefa6dfc98f1eb01f86a4bd9bf05329",
+  "arquivos_no_bundle": 270,
+  "variaveis": {
+    "VITE_FF_CRIACAO_ATOMICA": "on",
+    "VITE_FF_CONSUMO_RESERVA": "on",
+    "VITE_FF_CANCELAMENTO_ATOMICO": "on",
+    "VITE_FF_RESERVA_ATOMICA": "off",
+    "VITE_BUILD_VERSION": "1792429500000",
+    "VITE_VERSAO_MINIMA": "1792429500000",
+    "VITE_BUILD_LABEL": "cutover-2026-10-19-a1"
+  },
+  "flags_observadas": {
+    "VITE_FF_CRIACAO_ATOMICA": "on",
+    "VITE_FF_RESERVA_ATOMICA": "off - 0089 e chamada internamente pela 0095 (SECURITY DEFINER); o cliente nunca a chama",
+    "VITE_FF_CONSUMO_RESERVA": "on",
+    "VITE_FF_CANCELAMENTO_ATOMICO": "on"
+  },
+  "marcadores_legados_ausentes_no_bundle": [
+    "rpc reservar_estoque_atomica",
+    "rpc liberar_reserva_atomica",
+    "insert direto reservas_estoque",
+    "update direto reservas_estoque",
+    "delete direto reservas_estoque",
+    "insert direto pedidos",
+    "insert direto estoque_movimentacoes"
+  ],
+  "fluxo_novo_presente_no_bundle": [
+    "rpc criar_pedido_com_reserva (0095)",
+    "rpc cancelar_pedido_atomico (0093)",
+    "rpc registrar_consumo_reserva (0091)"
+  ],
+  "publicacao": "NAO PUBLICADO - artefato somente local"
+}

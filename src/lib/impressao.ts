@@ -36,8 +36,11 @@ export function moedaCupom(v: number): string {
 
 /** Linha com preço à direita: "(50) Coxinha            R$ 80,00". */
 export function linhaItem(esquerda: string, direita: string): string {
-  const l = lin(esquerda);
+  // Reserva a largura do valor ANTES de truncar a descricao. Sem isso, um
+  // nome longo come o preco na ultima coluna e o cupom sai com "R$ 80,".
   const r = lin(direita);
+  const maxEsq = Math.max(1, LARGURA_CUPOM - r.length - 1);
+  const l = lin(esquerda).slice(0, maxEsq);
   const espacos = Math.max(1, LARGURA_CUPOM - l.length - r.length);
   return (l + " ".repeat(espacos) + r).slice(0, LARGURA_CUPOM);
 }
@@ -140,6 +143,10 @@ export async function impressaoDireta(client: any, pedido: any): Promise<void> {
     totalUnidades: totalUn,
     entregaRetirada: pedido.tipo_entrega === "retirada" ? "RETIRADA NA LOJA" : "ENTREGA",
     horario: pedido.agendado_para ? new Date(pedido.agendado_para).toLocaleString("pt-BR") : "o mais rapido possivel",
+    // O layout planejado imprime "Entrega prevista". Sem esta passagem, a
+    // linha nunca aparecia na impressao direta (o campo horario era calculado
+    // e descartado). Para pedido imediato, mantem o texto operacional.
+    prevista: pedido.agendado_para ? new Date(pedido.agendado_para).toLocaleString("pt-BR") : "o mais rapido possivel",
     endereco: pedido.tipo_entrega === "retirada" ? "Retirada na loja" : String(pedido.endereco ?? ""),
     pagamento: PAGAMENTO_LABEL[pedido.forma_pagamento] ?? String(pedido.forma_pagamento ?? ""),
     observacoes: pedido.observacoes ?? "",
@@ -153,14 +160,18 @@ export async function impressaoDireta(client: any, pedido: any): Promise<void> {
     taxaEntrega: pedido.taxa_entrega != null ? Number(pedido.taxa_entrega) : null,
     total: pedido.total != null ? Number(pedido.total) : null,
   });
+  // Anti-duplo-clique: chave determinística por janela de 10s. O
+  // trabalho_uuid é UNIQUE; um segundo clique na mesma janela colide (23505) e
+  // é tratado como \"já enfileirado\" — sem bloquear reimpressões posteriores.
+  const janela = Math.floor(Date.now() / 10000);
   const { error } = await client.from("fila_impressao").insert({
-    trabalho_uuid: `${pedido.id}:direta:${Date.now()}`,
+    trabalho_uuid: `${pedido.id}:direta:${janela}`,
     pedido_id: pedido.id,
     tipo: "pedido",
     payload,
     impressora: "Tanca TP-550",
   });
-  if (error) throw error;
+  if (error && (error as any).code !== "23505") throw error;
 }
 
 /** Ficha consolidada da cozinha (vários pedidos) — também direta. */

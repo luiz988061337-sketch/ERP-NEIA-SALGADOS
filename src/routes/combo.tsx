@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight, Minus, Package, Plus, ShoppingBag } from "lucide-react";
@@ -14,15 +14,15 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/combo")({
   head: () => ({
     meta: [
-      { title: "Monte seu combo — Néia Salgados" },
+      { title: "Monte seu combo â€” NÃ©ia Salgados" },
       {
         name: "description",
-        content: "Misture os sabores da categoria a partir de 1 unidade e feche múltiplos de 50.",
+        content: "Misture os sabores da categoria a partir de 1 unidade e feche mÃºltiplos de 50.",
       },
-      { property: "og:title", content: "Monte seu combo — Néia Salgados" },
+      { property: "og:title", content: "Monte seu combo â€” NÃ©ia Salgados" },
       {
         property: "og:description",
-        content: "Misture os sabores da categoria a partir de 1 unidade e feche múltiplos de 50.",
+        content: "Misture os sabores da categoria a partir de 1 unidade e feche mÃºltiplos de 50.",
       },
     ],
   }),
@@ -43,7 +43,11 @@ function Combo() {
   }, [staffOnly, painel, navigate]);
 
   const cat = COMBO_CATEGORIAS.find((c) => c.slug === slug) ?? null;
-  const catId = categorias?.find((c) => c.slug === slug)?.id;
+  const catDb = categorias?.find((c) => c.slug === slug);
+  const catId = catDb?.id;
+  // Preco autoritativo: banco (0097) quando configurado; fallback estatico
+  // apenas para ambientes ainda sem a migration. O servidor SEMPRE revalida.
+  const precoUnit = Number(catDb?.combo_preco_unit ?? cat?.precoUnit ?? 0);
   const itens = useMemo(
     () => (catId ? (produtos ?? []).filter((p) => p.categoria_id === catId && p.disponivel) : []),
     [produtos, catId],
@@ -54,7 +58,7 @@ function Combo() {
   const faltam = quantoFaltaCombo(total);
   const valido = isMultiploCombo(total);
   const alvo = total === 0 ? MINIMO_COMBO : resto === 0 ? total : total + faltam;
-  const valor = cat ? total * cat.precoUnit : 0;
+  const valor = cat ? total * precoUnit : 0;
   const progresso = total === 0 ? 0 : resto === 0 ? 100 : (resto / PASSO_COMBO) * 100;
 
   function escolher(novoSlug: string) {
@@ -79,7 +83,7 @@ function Combo() {
     if (!valido) {
       toast.error(
         total === 0
-          ? "Os combos são vendidos em múltiplos de 50 unidades. Toque em + para começar."
+          ? "Os combos sÃ£o vendidos em mÃºltiplos de 50 unidades. Toque em + para comeÃ§ar."
           : `Seu combo precisa ter ${alvo} unidades. Adicione mais ${faltam} unidades.`,
       );
       return;
@@ -87,14 +91,20 @@ function Combo() {
     const partes = itens
       .filter((p) => (qtds[p.id] ?? 0) > 0)
       .map((p) => `${qtds[p.id]}x ${saborCurto(p.nome)}`);
+    const componentes = itens
+      .filter((p) => (qtds[p.id] ?? 0) > 0)
+      .map((p) => ({ produtoId: p.id, quantidade: qtds[p.id]! }));
     add({
       id: `combo-${cat.slug}-${Date.now()}`,
       nome: `Combo ${cat.nome} ${total}un (${partes.join(", ")})`,
-      // preco = unitário da categoria; quantidade = unidades (múltiplo de 50).
-      preco: cat.precoUnit,
+      // preco = unitÃ¡rio da categoria; quantidade = unidades (mÃºltiplo de 50).
+      preco: precoUnit,
       imagem: null,
       produtoId: null,
       combo: true,
+      // Composicao estruturada: o servidor debita CADA produto desta lista.
+      // A soma e exatamente `total`; nao existe conversao de embalagem.
+      componentes,
     }, total);
     toast.success(`Combo de ${total} minis adicionado ao carrinho!`);
     navigate({ to: "/carrinho" });
@@ -108,13 +118,13 @@ function Combo() {
       <>
       <Button variant="ghost" size="sm" asChild className="mb-2">
         <Link to="/">
-          <ArrowLeft className="mr-1 size-4" /> Cardápio
+          <ArrowLeft className="mr-1 size-4" /> CardÃ¡pio
         </Link>
       </Button>
       <h1 className="font-display text-3xl">Monte seu combo</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Monte seu combo escolhendo os sabores que quiser. O total de cada categoria deve ser
-        50, 100, 150 unidades ou múltiplos de {PASSO_COMBO}. Congelados vendem por unidade no cardápio.
+        50, 100, 150 unidades ou mÃºltiplos de {PASSO_COMBO}. Congelados vendem por unidade no cardÃ¡pio.
       </p>
 
       {!cat ? (
@@ -150,7 +160,7 @@ function Combo() {
           <div className="flex items-center gap-2">
             <h2 className="font-display text-2xl">{cat.nome}</h2>
             <span className="text-sm text-muted-foreground">
-              {brl(cat.precoUnit)}/un
+              {brl(precoUnit)}/un
             </span>
             <button
               type="button"
@@ -163,7 +173,7 @@ function Combo() {
 
           {itens.length === 0 ? (
             <p className="mt-6 rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-              Nenhum sabor disponível nesta categoria no momento.
+              Nenhum sabor disponÃ­vel nesta categoria no momento.
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
@@ -187,7 +197,7 @@ function Combo() {
                     />
                     <div className="flex-1">
                       <p className="font-display leading-tight">{saborCurto(p.nome)}</p>
-                      <p className="text-xs text-muted-foreground">{brl(cat.precoUnit)}/un</p>
+                      <p className="text-xs text-muted-foreground">{brl(precoUnit)}/un</p>
                     </div>
                     <div className="flex items-center gap-1">
                       <Button
@@ -224,24 +234,24 @@ function Combo() {
               <span className="font-display text-lg text-primary">{brl(valor)}</span>
             </div>
             {valido && total > 0 ? (
-              <p className="mt-1 text-sm font-bold text-green-600">✓ Combo completo ({total}un)</p>
+              <p className="mt-1 text-sm font-bold text-green-600">âœ“ Combo completo ({total}un)</p>
             ) : null}
             <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progresso}%` }} />
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {total === 0
-                ? `Toque em + para começar — mínimo ${MINIMO_COMBO}un por categoria.`
+                ? `Toque em + para comeÃ§ar â€” mÃ­nimo ${MINIMO_COMBO}un por categoria.`
                 : valido
                   ? `Combo fechado em ${total}un! Pode adicionar ao carrinho.`
-                  : `Faltam ${faltam}un para fechar ${total + faltam}un (múltiplos de ${PASSO_COMBO}).`}
+                  : `Faltam ${faltam}un para fechar ${total + faltam}un (mÃºltiplos de ${PASSO_COMBO}).`}
             </p>
             <div className="mt-3 flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setQtds({})}>
                 Limpar
               </Button>
               <Button className="flex-1" disabled={!valido} onClick={adicionar}>
-                <ShoppingBag className="mr-1 size-4" /> Adicionar combo • {brl(valor)}
+                <ShoppingBag className="mr-1 size-4" /> Adicionar combo â€¢ {brl(valor)}
               </Button>
             </div>
           </div>
@@ -249,7 +259,7 @@ function Combo() {
       )}
 
       <p className="mt-6 flex items-center justify-center gap-1 text-center text-xs text-muted-foreground">
-        Prefere os pacotes prontos? <Link to="/" className="inline-flex items-center gap-0.5 underline">Ver cardápio <ArrowRight className="size-3" /></Link>
+        Prefere os pacotes prontos? <Link to="/" className="inline-flex items-center gap-0.5 underline">Ver cardÃ¡pio <ArrowRight className="size-3" /></Link>
       </p>
       </>
       )}

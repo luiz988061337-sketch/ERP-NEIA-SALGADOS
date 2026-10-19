@@ -31,6 +31,11 @@ import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 import { MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL } from "@/lib/entrega";
+import { E4_ATRIBUICAO_ATIVA, atribuirPedidoMotoboy, cabeNaRota } from "@/lib/central-atribuicao";
+
+// E9.1: travas de clique repetido por pedido (fora do estado React para
+// cobrir cliques antes do re-render). Não muda comportamento com flag off.
+const atribuindoEmVoo = new Set<string>();
 
 export const Route = createFileRoute("/central-entregas")({
   head: () => ({
@@ -514,21 +519,39 @@ function CentralEntregas() {
       toast.error("Motoboy sem login vinculado. Peça para ele abrir o /motoboy primeiro.");
       return;
     }
+    // E9.1: bloqueio de clique repetido (0 rows = conflito, não silêncio).
+    if (atribuindoEmVoo.has(pedidoId)) return;
+    atribuindoEmVoo.add(pedidoId);
     try {
-      // Espelha o aceite do motoboy: só motoboy_id, aceito_em e status mudam,
-      // apenas se ainda sem dono (condição de corrida perde com erro visível).
-      const { error } = await supabase
-        .from("pedidos")
-        .update({
-          motoboy_id: motoboy.user_id,
-          aceito_em: new Date().toISOString(),
-          status: "aguardando_motoboy",
-        })
-        .eq("id", pedidoId)
-        .is("motoboy_id", null)
-        .in("status", ["pronto", "aguardando_motoboy"]);
-      if (error) throw error;
-      toast.success(`Motoboy ${motoboy.nome} atribuído ao pedido #${pedidoId}`);
+      // E9.1: caminho transacional E4 atrás de flag; desligada = legado intacto.
+      if (E4_ATRIBUICAO_ATIVA) {
+        const r = await atribuirPedidoMotoboy(supabase as never, pedidoId, motoboyId);
+        if (!r.ok) {
+          toast.error(`Atribuição recusada (${r.codigo}): ${r.detalhe}`);
+          return;
+        }
+        toast.success(`Motoboy ${motoboy.nome} atribuído ao pedido #${pedidoId}`);
+      } else {
+        // Espelha o aceite do motoboy: só motoboy_id, aceito_em e status mudam,
+        // apenas se ainda sem dono (0 linhas = outro atribuiu primeiro).
+        const { data, error } = await supabase
+          .from("pedidos")
+          .update({
+            motoboy_id: motoboy.user_id,
+            aceito_em: new Date().toISOString(),
+            status: "aguardando_motoboy",
+          })
+          .eq("id", pedidoId)
+          .is("motoboy_id", null)
+          .in("status", ["pronto", "aguardando_motoboy"])
+          .select("id");
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          toast.error("Outro responsável atribuiu este pedido primeiro (conflito).");
+          return;
+        }
+        toast.success(`Motoboy ${motoboy.nome} atribuído ao pedido #${pedidoId}`);
+      }
       queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
       // Forçar refetch para mover card entre colunas
       setTimeout(
@@ -537,6 +560,8 @@ function CentralEntregas() {
       );
     } catch (e: any) {
       toast.error(e instanceof Error ? e.message : "Erro ao atribuir motoboy");
+    } finally {
+      atribuindoEmVoo.delete(pedidoId);
     }
   }
 
@@ -562,6 +587,14 @@ function CentralEntregas() {
     });
     if (invalidos.length > 0) {
       toast.error(`Não é possível criar rota: ${invalidos.length} pedido(ns) inválido(s).`);
+      return;
+    }
+
+    // Regra operacional: 3 paradas por rota. A 4ª+ exigiria autorização
+    // explícita auditável, que ainda NÃO existe no fluxo local. Bloqueia antes
+    // de criar a rota (evita rota órfã por limite de negócio).
+    if (!cabeNaRota(pedidosSelecionados.length, false)) {
+      toast.error("Cada rota aceita no máximo 3 paradas. Divida em mais de uma rota.");
       return;
     }
 

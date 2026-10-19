@@ -17,6 +17,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
 import { CartDock } from "@/components/cart-dock";
 import { SiteHeader } from "@/components/site-header";
+import { GuardaVersao } from "@/components/guarda-versao";
 import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
@@ -139,34 +140,41 @@ function RootComponent() {
 
   // Rotas internas (staff): sem chrome da loja pública — cada uma tem layout próprio.
   // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.
+  // Exceções pontuais: previews com layout próprio isolado (K7.2, K8.1, K9, L1).
   const ehStaff =
     /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp)/.test(
       pathname,
-    );
+    ) ||
+    pathname.startsWith("/preview/producao-painel") ||
+    pathname.startsWith("/preview/central-entregas-v2") ||
+    pathname.startsWith("/preview/pedidos-atendente-v2") ||
+    pathname.startsWith("/preview/l1");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        <div className="flex min-h-screen flex-col">
-          {ehStaff ? null : <SiteHeader />}
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          {ehStaff ? null : (
-            <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
-              <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
-                <p className="font-display text-base text-foreground">Néia Salgados</p>
-                <p className="mt-1">Salgados fritos, assados, congelados e kits para festa.</p>
-                <p className="mt-3 text-xs">
-                  © {new Date().getFullYear()} Néia Salgados. Todos os direitos reservados.
-                </p>
-              </div>
-            </footer>
-          )}
-        </div>
-        {ehStaff ? null : <CartDock />}
-        <Toaster position="top-center" richColors />
-      </CartProvider>
+      <GuardaVersao>
+        <CartProvider>
+          <div className="flex min-h-screen flex-col">
+            {ehStaff ? null : <SiteHeader />}
+            <main className="flex-1">
+              <Outlet />
+            </main>
+            {ehStaff ? null : (
+              <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
+                <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
+                  <p className="font-display text-base text-foreground">Néia Salgados</p>
+                  <p className="mt-1">Salgados fritos, assados, congelados e kits para festa.</p>
+                  <p className="mt-3 text-xs">
+                    © {new Date().getFullYear()} Néia Salgados. Todos os direitos reservados.
+                  </p>
+                </div>
+              </footer>
+            )}
+          </div>
+          {ehStaff ? null : <CartDock />}
+          <Toaster position="top-center" richColors />
+        </CartProvider>
+      </GuardaVersao>
     </QueryClientProvider>
   );
 }
