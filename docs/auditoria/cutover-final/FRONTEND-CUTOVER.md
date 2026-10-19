@@ -216,6 +216,7 @@ Camadas de proteção (nenhuma depende só de frontend):
 
 ## 9. CHECKLIST DE PUBLICAÇÃO
 
+- [ ] **Painel Lovable sem `VITE_*` divergentes** (ver precedência acima)
 - [ ] `BUILD-CUTOVER.json` presente, versão `1792429500000`, SHA conferido
 - [ ] `.env.production` commitado com as 7 variáveis
 - [ ] `node scripts/preflight-artefato.mjs` → `PREFLIGHT_ARTEFATO_OK`

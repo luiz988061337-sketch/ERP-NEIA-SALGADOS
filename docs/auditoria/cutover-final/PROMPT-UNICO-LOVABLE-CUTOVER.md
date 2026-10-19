@@ -117,6 +117,12 @@ VITE_BUILD_VERSION=1792429500000
 VITE_VERSAO_MINIMA=1792429500000
 VITE_BUILD_LABEL=cutover-2026-10-19-a1
 ```
+**ANTES de publicar:** o Vite aplica `process.env` DEPOIS dos arquivos `.env`,
+ou seja, **variaveis definidas no painel da Lovable VENCEM o `.env.production`**.
+Confira o painel do projeto: nenhuma das 7 `VITE_*` pode estar definida com
+valor divergente (ex.: `VITE_FF_CRIACAO_ATOMICA=off`), senao a plataforma
+publica o **bundle legado** - o oposto do corte.
+
 Publique. Depois confirme:
 ```bash
 curl -s -D- https://<host>/api/versao
