@@ -5,6 +5,49 @@
 
 ---
 
+## ⚠️ PRECEDÊNCIA DAS VARIÁVEIS NO BUILD DA PLATAFORMA (gate antes de publicar)
+
+O Vite carrega as variáveis nesta ordem (código de `vite/dist/node`, `loadEnv`):
+
+```js
+// 1) arquivos .env
+for (const [key, value] of Object.entries(parsed)) env[key] = value;
+// 2) .env.local / .env.[mode]
+Object.assign(env, getEnvs({ prefix }));
+// 3) process.env  <- VENCE TUDO
+for (const key in process.env) if (prefixes.some(p => key.startsWith(p))) env[key] = process.env[key];
+```
+
+**Consequência:** se o painel da Lovable tiver **qualquer** das 7 variáveis
+`VITE_*` definidas, elas **sobrescrevem** o `.env.production` versionado no
+repositório — e a plataforma pode publicar o **bundle legado** (flags OFF),
+exatamente o que o cutover proíbe.
+
+### Gate obrigatório ANTES de publicar
+
+| Verificação | Resultado esperado |
+|---|---|
+| No painel da Lovable (variáveis de ambiente do projeto), as 7 variáveis `VITE_*` **não estão definidas** | o `.env.production` versionado vence |
+| **OU** as 7 estão definidas **com os mesmos valores** do `.env.production` | equivalente |
+| Se alguma estiver definida com valor **divergente** (ex.: `VITE_FF_CRIACAO_ATOMICA=off`) | **CORRIGIR ANTES DE PUBLICAR** |
+
+### Como saber se o bundle publicado é o de corte
+
+```bash
+curl -s -D- https://neia-salgados.lovable.app/api/versao
+```
+
+| Resposta | Significado |
+|---|---|
+| `HTTP 200` + `"atual":"1792429500000"` | bundle de corte no ar |
+| `HTTP 404` na rota `/api/versao` | **bundle legado no ar** (a rota só existe no bundle novo) — **NÃO ABRIR VENDAS** |
+
+> O `404` é o sinal de que a rota `/api/versao` não existe — o que acontece
+> exatamente no bundle antigo. Não confunda com "rota ainda não publicada":
+> é o bundle anterior servindo.
+
+---
+
 ## 1. FLAGS EXATAS (compile-time)
 
 O build de corte é gerado a partir de **`.env.production`** (versionado no
