@@ -139,6 +139,27 @@ disparada no painel da Lovable.**
 
 ---
 
+## 4.2 PUBLICAÇÃO VERIFICADA (2026-10-19, 18:08)
+
+O bundle de corte está no ar em `https://neia-salgados.lovable.app`.
+
+| Verificação | Resultado |
+|---|---|
+| `GET /api/versao` | **HTTP 200** |
+| `cache-control` da rota | `no-store, no-cache, must-revalidate, max-age=0` |
+| `pragma` | `no-cache` |
+| Corpo | `{"ok":true,"atual":"1792429500000","minimo":"1792429500000","rotulo":"cutover-2026-10-19-a1","corte":true}` |
+| `GET /` (documento) | **HTTP 200**, `cache-control: no-store` |
+| Assets JS analisados | 37 |
+| Versão `1792429500000` no bundle servido | **PRESENTE** (`/assets/index-Cwqg5fui.js`, `/assets/client-Qn_LD1iS.js`) |
+| Marcadores legados no bundle servido | **0** |
+
+> O **piso de versão já está ativo** (`minimo=1792429500000` veio do
+> `.env.production` versionado). Definir `VERSAO_MINIMA` no runtime deixou de
+> ser obrigatório — passa a ser útil para elevar o piso depois, sem novo deploy.
+
+---
+
 ## 5. PASSOS RESTANTES
 
 | # | Passo | Critério de sucesso |
