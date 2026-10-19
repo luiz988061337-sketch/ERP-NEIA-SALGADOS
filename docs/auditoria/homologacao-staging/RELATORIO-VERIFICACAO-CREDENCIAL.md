@@ -98,7 +98,7 @@ usuário `postgres`, bancos `homolog_0086`, `homolog_baseline_test`, `homolog_cu
 | **Nenhuma reserva reconciliada** | — | ✅ não houve acesso de escrita |
 | **Nenhum backup gerado** | — | ✅ nenhum `pg_dump` executado |
 
-**Artefato de corte:** inalterado e íntegro — `1792429500000` / `cutover-2026-10-19-a1` / SHA-256 `0006762e66db57ad532b78cec8da95d24fefa6dfc98f1eb01f86a4bd9bf05329` (`PREFLIGHT_ARTEFATO_OK`).
+**Artefato de corte:** inalterado e íntegro — `1792429500000` / `cutover-2026-10-19-a1` / SHA-256 `e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1` (`PREFLIGHT_ARTEFATO_OK`).
 
 ---
 

@@ -1,9 +1,9 @@
 {
-  "gerado_em": "2026-10-19T19:25:48.564Z",
+  "gerado_em": "2026-10-19T19:58:18.955Z",
   "versao_build": "1792429500000",
   "versao_fixada": true,
   "rotulo_build": "cutover-2026-10-19-a1",
-  "sha256_bundle": "0006762e66db57ad532b78cec8da95d24fefa6dfc98f1eb01f86a4bd9bf05329",
+  "sha256_bundle": "e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1",
   "arquivos_no_bundle": 270,
   "variaveis": {
     "VITE_FF_CRIACAO_ATOMICA": "on",

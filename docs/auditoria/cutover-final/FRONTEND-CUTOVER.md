@@ -68,7 +68,7 @@ site legado no bundle ou se a versão não estiver gravada.
 
 | Item | Valor |
 |------|-------|
-| SHA-256 do bundle de referência | `0006762e66db57ad532b78cec8da95d24fefa6dfc98f1eb01f86a4bd9bf05329` |
+| SHA-256 do bundle de referência | `e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1` |
 | Manifesto | `docs/auditoria/homologacao-staging/BUILD-CUTOVER.json` |
 | Build mais recente validado | `1792429500000` / `cutover-2026-10-19-a1` |
 

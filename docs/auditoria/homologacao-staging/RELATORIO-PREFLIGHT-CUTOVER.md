@@ -12,7 +12,7 @@
 |------|-------|-------------|
 | Versão | `1792429500000` | ✅ manifesto = bundle |
 | Rótulo | `cutover-2026-10-19-a1` | ✅ |
-| SHA-256 esperado | `0006762e66db57ad532b78cec8da95d24fefa6dfc98f1eb01f86a4bd9bf05329` | ✅ **recalculado sobre o artefato em disco = idêntico** |
+| SHA-256 esperado | `e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1` | ✅ **recalculado sobre o artefato em disco = idêntico** |
 | Arquivos no bundle | 270 | ✅ confere com o manifesto |
 | Gerado em | 2026-10-19T17:06:37Z | ✅ |
 | Publicação | **NÃO PUBLICADO** | ✅ |

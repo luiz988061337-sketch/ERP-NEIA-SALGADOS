@@ -43,7 +43,7 @@ Com isso, as etapas 4→10 do runbook rodam de imediato.
 |------|-------|
 | Build de corte (versão) | `1792429500000` |
 | Rótulo do build | `cutover-2026-10-19-a1` |
-| SHA-256 do bundle | `0006762e66db57ad532b78cec8da95d24fefa6dfc98f1eb01f86a4bd9bf05329` |
+| SHA-256 do bundle | `e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1` |
 | Manifesto | `docs/auditoria/homologacao-staging/BUILD-CUTOVER.json` |
 | Gerado em | 2026-10-19T16:59:25Z |
 | Estado do artefato | **local — NÃO publicado** |

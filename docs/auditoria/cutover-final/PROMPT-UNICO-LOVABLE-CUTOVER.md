@@ -22,7 +22,7 @@ questione o plano, não improvise correções.**
 Artefato de corte (já gerado, validado e pronto):
   versão   : 1792429500000
   rótulo   : cutover-2026-10-19-a1
-  SHA-256  : 0006762e66db57ad532b78cec8da95d24fefa6dfc98f1eb01f86a4bd9bf05329
+  SHA-256  : e9ba86c973c40767b928e85f38722423983172348532ea01fdf2b8848e1ecdf1
   manifesto: docs/auditoria/homologacao-staging/BUILD-CUTOVER.json
 
 ## REGRAS INEGOCIÁVEIS
