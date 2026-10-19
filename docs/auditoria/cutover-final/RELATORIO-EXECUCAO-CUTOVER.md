@@ -99,6 +99,46 @@ abortaram antes de qualquer alteração; a correção foi reexecutar na ordem.
 
 ---
 
+## 4.1 BLOQUEIO ATUAL: A PUBLICAÇÃO É UM PASSO MANUAL
+
+O código está no repositório conectado e sincronizado com a Lovable, mas
+**a publicação não é automática no push**. Verificado em tempo real:
+
+| Verificação | Resultado |
+|---|---|
+| `GET https://neia-salgados.lovable.app/api/versao` (45 min de monitoramento, polling de 20 s) | **404 permanente** — a rota só existe no bundle novo |
+| Hash de asset no HTML servido | **inalterado** (`__l5e/assets-v1/0e8b479e-…`) → nenhuma build nova publicada |
+| `/api/versao` no `routeTree.gen.ts` commitado | ✅ presente (`id: '/api/versao'`) |
+| `/api/versao` no bundle local | ✅ presente |
+| Token/CLI de publish da Lovable no ambiente | ❌ **nenhum** |
+
+Conclusão: o código está pronto e sem bloqueador de build (typecheck e build
+locais passam com a nova dependência 2.26.5). **A publicação precisa ser
+disparada no painel da Lovable.**
+
+### Checklist do painel (Lovable)
+
+1. Confirmar que o projeto mostra o código novo (o commit `c39ec77`).
+2. **Variáveis de ambiente do projeto**: nenhuma das 7 `VITE_*` pode estar
+   definida com valor divergente — `process.env` vence o `.env.production`.
+   Se estiverem, corrigir/remover antes de publicar.
+3. **Publicar** (deploy do bundle).
+4. Validar:
+   ```bash
+   curl -s -D- https://neia-salgados.lovable.app/api/versao
+   ```
+   - `200` + `"atual":"1792429500000"` → bundle de corte no ar
+   - `404` → **bundle antigo ainda no ar** → NÃO ABRIR VENDAS
+5. Definir `VERSAO_MINIMA=1792429500000` no runtime do servidor.
+
+> ⚠️ **Enquanto o bundle antigo estiver no ar, NÃO ABRIR VENDAS**: o lockdown
+> já fecha o caminho de reserva legado, então o bundle antigo criaria pedido
+> **sem reserva** (com `controlado=true`, a cobertura falharia fechada e o
+> cancelamento via 0093 não liberaria crédito — seguro, porém o pedido ficaria
+> sem reserva).
+
+---
+
 ## 5. PASSOS RESTANTES
 
 | # | Passo | Critério de sucesso |
