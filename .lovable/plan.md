@@ -26,6 +26,14 @@ Prioridade: estabilidade e PIX automático. Sem pressa, uma etapa por semana. Na
 - Rodar a verificação de segurança e corrigir o que for apontado.
 - Registrar a versão aprovada; só então liberar as etapas do ERP (estoque, precificação, financeiro, contador).
 
+## Semana 5 — Arrumar o visual (celular primeiro)
+- Página inicial: topo limpo com logo, busca e categorias em faixa rolável; produtos em grade uniforme (mesmo tamanho de foto, nome, preço e botão).
+- Cabeçalho e menu iguais em todas as páginas; botão do carrinho fixo embaixo no celular.
+- Espaçamentos, tamanhos de texto e cores padronizados (vermelho/amarelo/branco da marca).
+- Telas da equipe (produção, motoboy, operação) com cartões claros e botões grandes.
+- Conferir cada página no celular (360px) e no computador antes de dar como pronto.
+- Pronto quando: nenhuma página com elementos sobrepostos, cortados ou desalinhados.
+
 ## Depois (quando estável)
 Seguir o documento do ERP, uma etapa por vez: estoque e insumos → precificação → financeiro → contador → gestão.
 
