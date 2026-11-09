@@ -17,6 +17,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
 import { CartDock } from "@/components/cart-dock";
 import { SiteHeader } from "@/components/site-header";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 import { GuardaVersao } from "@/components/guarda-versao";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -102,6 +103,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap",
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "icon", type: "image/svg+xml", href: "/icons/icon-192x192.svg", sizes: "192x192" },
+      { rel: "icon", type: "image/svg+xml", href: "/icons/icon-512x512.svg", sizes: "512x512" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
+      { rel: "manifest", href: "/manifest.json" },
     ],
   }),
   shellComponent: RootShell,
@@ -115,6 +120,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="pt-BR">
       <head>
         <HeadContent />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Néia Salgados" />
+        <meta name="theme-color" content="#0f172a" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
         {children}
@@ -137,6 +147,20 @@ function RootComponent() {
     });
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
+
+  // Registrar Service Worker do PWA (apenas em rotas públicas, não em admin/staff)
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw-neia.js", { scope: "/" })
+        .then((registration) => {
+          console.log("[PWA] Service Worker registrado:", registration.scope);
+        })
+        .catch((error) => {
+          console.warn("[PWA] Falha ao registrar Service Worker:", error);
+        });
+    }
+  }, []);
 
   // Rotas internas (staff): sem chrome da loja pública — cada uma tem layout próprio.
   // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844">
+  <rect width="390" height="844" fill="#f8fafc"/>
+  <rect x="0" y="0" width="390" height="60" fill="#0f172a"/>
+  <text x="20" y="40" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#ffffff">Néia Salgados</text>
+  <rect x="20" y="100" width="350" height="600" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" rx="16"/>
+  <text x="40" y="140" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e293b">Cardápio</text>
+  <rect x="40" y="170" width="310" height="320" fill="#f1f5f9" rx="12"/>
+  <text x="60" y="200" font-family="Arial, sans-serif" font-size="16" fill="#64748b">Mini Coxinha</text>
+  <text x="60" y="220" font-family="Arial, sans-serif" font-size="14" fill="#0f172a">R$ 4,90</text>
+  <rect x="60" y="250" width="120" height="80" fill="#e2e8f0" rx="8"/>
+  <rect x="200" y="250" width="90" height="80" fill="#e2e8f0" rx="8"/>
+  <text x="60" y="350" font-family="Arial, sans-serif" font-size="16" fill="#1e293b">Mini Esfiha</text>
+  <text x="60" y="370" font-family="Arial, sans-serif" font-size="14" fill="#0f172a">R$ 5,50</text>
+  <rect x="60" y="400" width="120" height="80" fill="#e2e8f0" rx="8"/>
+  <rect x="200" y="400" width="90" height="80" fill="#e2e8f0" rx="8"/>
+  <text x="40" y="500" font-family="Arial, sans-serif" font-size="14" fill="#64748b">🥨 Salgados fritos, assados e congelados</text>
+  <text x="40" y="520" font-family="Arial, sans-serif" font-size="14" fill="#64748b">📦 Kits para festa e bebidas</text>
+</svg>

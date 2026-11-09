@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 export function SiteHeader() {
   const { totalItens } = useCart();
@@ -371,6 +372,7 @@ export function SiteHeader() {
           </DropdownMenu>
         </div>
       </div>
+      {!staffOnly && <PWAInstallButton />}
     </header>
   );
 }
