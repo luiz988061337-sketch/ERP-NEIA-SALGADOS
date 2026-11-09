@@ -1,0 +1,128 @@
+{
+  "name": "Néia Salgados",
+  "short_name": "Néia Salgados",
+  "description": "Cardápio de salgados fritos, assados, congelados, mini salgados, kits para festa e bebidas com entrega em casa.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["food", "shopping"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.svg",
+      "sizes": "72x72",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.svg",
+      "sizes": "96x96",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.svg",
+      "sizes": "128x128",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.svg",
+      "sizes": "144x144",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.svg",
+      "sizes": "152x152",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.svg",
+      "sizes": "384x384",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-mobile.svg",
+      "sizes": "390x844",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "Cardápio Néia Salgados - Home"
+    },
+    {
+      "src": "/screenshots/screenshot-carrinho.svg",
+      "sizes": "390x844",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "label": "Cardápio Néia Salgados - Carrinho"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Cardápio",
+      "short_name": "Cardápio",
+      "description": "Ver todos os produtos e categorias",
+      "url": "/",
+      "icons": [{ "src": "/icons/icon-96x96.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Carrinho",
+      "short_name": "Carrinho",
+      "description": "Ver itens no carrinho",
+      "url": "/carrinho",
+      "icons": [{ "src": "/icons/icon-96x96.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Montar Combo",
+      "short_name": "Combo",
+      "description": "Montar seu combo personalizado",
+      "url": "/combo",
+      "icons": [{ "src": "/icons/icon-96x96.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Meus Pedidos",
+      "short_name": "Meus Pedidos",
+      "description": "Acompanhar seus pedidos",
+      "url": "/conta",
+      "icons": [{ "src": "/icons/icon-96x96.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    }
+  ]
+}
