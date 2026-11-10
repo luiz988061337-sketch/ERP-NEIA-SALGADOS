@@ -637,7 +637,6 @@ function SectionDados({
         queryClient.invalidateQueries({ queryKey: ["perfil", user!.id] });
       }
       if (emailNovo && emailNovo !== (user?.email ?? "")) {
-        // @ts-expect-error Tipos do @supabase/auth-js não instalados no ambiente local
         const { error: eEmail } = await supabaseAuth.auth.updateUser({ email: emailNovo });
         if (eEmail) {
           toast.error("Não foi possível salvar o e-mail. Verifique o formato.");

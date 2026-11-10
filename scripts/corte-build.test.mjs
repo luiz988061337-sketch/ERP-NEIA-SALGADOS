@@ -74,7 +74,7 @@ ok(
 // ---------------------------------------------------------------------------
 ok(RI.ATTESTACAO_CANCELAMENTO.cancelar_pedido_0093 === true, "corte: attestation 0093 verdadeira");
 ok(RI.ATTESTACAO_CANCELAMENTO.liberar_pedido_0090 === true, "corte: attestation 0090 verdadeira");
-ok(RI.ATTESTACAO_CANCELAMENTO.controlado_ativo === true, "corte: attestation controlado=true");
+ok(RI.ATTESTACAO_CANCELAMENTO.regime_proveniencia_ativo === true, "corte: attestation regime_proveniencia_ativo=true");
 ok(
   RI.ATTESTACAO_CANCELAMENTO.cancelamentos_diretos_migrados === true,
   "corte: attestation cancelamentos diretos migrados",

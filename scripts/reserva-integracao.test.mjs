@@ -26,7 +26,7 @@ const DEPS_OK = {
   registrar_consumo_0091: true,
   proveniencia_0092: true,
   cancelar_pedido_0093: true,
-  controlado_ativo: true,
+  regime_proveniencia_ativo: true,
   fallback_checkout_removido: true,
   cancelamentos_diretos_migrados: true,
   producao_integrada: true,

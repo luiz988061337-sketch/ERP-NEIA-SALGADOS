@@ -1,0 +1,1284 @@
+-- 0102: CUTOVER criacao atomica de pedidos com reserva (0095 adaptada ao staging)
+-- ============================================================================
+-- CUTOVER TRANSACIONAL FINAL — ruioyioynwwwiqbjznoa — 2026-11-10.
+-- Adaptação da 0095 ao banco staging real (ver "ADAPTAÇÕES" abaixo). Regime da
+-- proveniência PERMANECE controlado=false (conservador): não há janela de
+-- transição; a prova de integridade sob este regime é o LEDGER
+-- (estoque_movimentacoes), igual à 0099. A 0100 (liberar_pedido_atomico) lê o
+-- regime em runtime da mesma forma, garantindo que reservas criadas agora sejam
+-- liberáveis no cancelamento: SISTEMA COERENTE com controlado=false.
+--
+-- ADAPTAÇÕES ÚNICAS vs 0095 ORIGINAL:
+--   1. Montagem (item sem produto_id) falha fechado em TODA entrada
+--      (montagem_sem_modelagem): categorias.combo_preco_unit não existe neste
+--      banco e não há produtos de montagem modelados (0 linhas). O checkout que
+--      usa a 0095 nunca envia item sem produto_id.
+--      (Equivale ao "passo 5 → controlado=true" do plano antigo: com esta
+--      adaptação o sistema é coeso com controlado=false; quando a equipe
+--      decidir ativar o regime controlado, 0088/0089/0100 já leem a flag.)
+--
+-- ============================================================================
+-- (cabeçalho original da 0095, mantido para rastreabilidade — os itens "NAO
+-- APLICADA" e "ordem implantacao" referem-se à versão pré-cutover)
+-- ============================================================================
+-- 0095: criacao atomica de pedidos com reserva de estoque (PREPARADA, NAO APLICADA)
+-- ============================================================================
+-- ETAPA 1.52 — ESTA MIGRATION NAO FOI APLICADA E NAO DEVE SER APLICADA NESTA
+-- ETAPA. Ela apenas prepara, localmente, a funcao transacional e a protecao de
+-- producao (funcao de trigger SEM trigger instalado).
+--
+-- OBJETIVO
+--   Criar pedido + itens + reserva de estoque em UMA unica transacao, para
+--   checkout, PDV e atendimento, sem compensacao por DELETE e sem escrita
+--   direta em reservas_estoque.
+--
+-- O QUE ESTA MIGRATION NAO FAZ
+--   * Nao altera tabelas, colunas, constraints, policies ou dados.
+--   * Nao altera nenhuma funcao existente (inclui 0088/0089/0090/0093/0094).
+--   * Nao instala trigger (a protecao de producao esta preparada no bloco 7).
+--   * Nao ativa reserva_proveniencia_config.controlado.
+--   * Nao altera checkout, PDV, atendimento, producao, admin, cliente ou Pix.
+--
+-- DEPENDENCIAS (verificar no ambiente isolado antes de usar)
+--   * 0042  estoque_movimentacoes (comprovante de debito)
+--   * 0087  reserva_consumos (consumo fisico; exigida pela 0090)
+--   * 0089  public.reservar_pedido_atomico(uuid) -> jsonb  (chamada interna)
+--   * 0092  reserva_proveniencia + reserva_proveniencia_config.controlado=false
+--   * 0006  cupons.cliente_telefone/validade_ini/validade_fim/max_usos/produtos_ids
+--   * 0040/0045  pedidos.cidade/cep/tipo_imovel/apartamento/bloco/torre/andar/interfone/pode_subir
+--   * 0063  pedidos.pagamento_modalidade
+--   * 0084  pedidos.aceito_em_atendente etc. (nao usados aqui)
+--
+-- ORDEM DE IMPLANTACAO / CUTOVER COORDENADO (NAO executar nesta etapa)
+--   0. Baseline: aplicar 0096 (reparo de RLS/GRANT de parceiros) depois de
+--      0028/0065 e antes de expor a loja; nao altera a 0095.
+--   1. Estruturas INERTES: 0087 + 0092 (+ 0091/0093/0095, que nao alteram
+--      comportamento por si so).
+--      ATENCAO: 0088/0094 NAO sao inertes. 0088 substitui a RPC viva
+--      reservar_estoque_atomica; 0094 instala trigger BEFORE UPDATE em pedidos e
+--      recria enfileirar_cupom. Tratar 0088/0094 como migrations de CUTOVER.
+--   2. Publicar codigo novo com TODAS as flags OFF.
+--   3. Testes transacionais obrigatorios aprovados (T1-T20).
+--   4. Eliminar os caminhos legados (fallback de reserva, cancelamento direto).
+--   5. controlado = true (provedor de proveniencia ativo).
+--   6. MESMA janela: habilitar as flags dos novos chamadores.
+--   7. Smoke tests imediatos.
+--   NUNCA habilitar 0089/0095 com controlado=false: a 0089 so grava o marcador
+--   reserva_proveniencia quando controlado=true; reserva criada sem marcador
+--   pode ser rejeitada pela 0090 no cancelamento. Cutover coordenado, sem
+--   janela em que reserva nova exista sem proveniencia.
+--
+-- SEGURANCA
+--   Funcoes SECURITY DEFINER com search_path fixo. O owner precisa ser dono de
+--   pedidos/pedido_itens/reservas_estoque/produtos/pedido_status_historico e ter
+--   EXECUTE em public.reservar_pedido_atomico(uuid). Confirmar proowner x
+--   relowner e ausencia de FORCE ROW LEVEL SECURITY no ambiente isolado.
+-- ============================================================================
+
+-- ============================================================================
+-- 1. RPC PRINCIPAL
+-- ============================================================================
+-- Contrato:
+--   public.criar_pedido_com_reserva(
+--     p_id     uuid,    -- id do pedido (idempotencia; PK de pedidos)
+--     p_canal  text,    -- 'checkout' | 'pdv' | 'atendente'
+--     p_dados  jsonb,   -- dados NAO financeiros do pedido (ver chaves abaixo)
+--     p_itens  jsonb    -- [{produto_id, nome?, quantidade, observacao?}, ...]
+--   ) RETURNS jsonb
+--
+-- Chaves aceitas em p_dados (todas opcionais salvo indicacao):
+--   cliente_nome (obrigatorio), telefone (obrigatorio),
+--   tipo_entrega (obrigatorio: 'entrega'|'retirada'),
+--   forma_pagamento (obrigatorio: pix|dinheiro|credito|debito),
+--   endereco, bairro, cidade, cep, complemento, referencia, observacoes,
+--   tipo_imovel (casa|apartamento), apartamento, bloco, torre, andar,
+--   interfone, pode_subir (boolean),
+--   cpf_cnpj, nome_fiscal, origem_cliente,
+--   agendado_para (ISO-8601 futuro), agendamento_obs,
+--   tipo_evento, campanha_origem,
+--   destino_lat, destino_lng (numeros),
+--   cupom (codigo; revalidado no servidor),
+--   pagamento_imediato (boolean; SOMENTE canal pdv e forma <> pix).
+--
+-- Chaves IGNORADAS (nunca lidas): user_id, status, numero, subtotal, total,
+--   desconto, taxa_entrega, pagamento_status, pagamento_modalidade, preco,
+--   preco_unitario. Valores financeiros sao sempre recalculados aqui.
+--
+-- Status de retorno (sempre jsonb):
+--   criado | ja_criado | canal_invalido | permissao_negada | entrada_invalida |
+--   dados_invalidos | itens_invalidos | quantidade_invalida | produto_inexistente |
+--   produto_indisponivel | regra_combo | montagem_sem_modelagem |
+--   cupom_invalido | cupom_esgotado |
+--   dependencia_ausente | estoque_insuficiente | reconciliacao_pendente |
+--   reservas_ausentes | idempotencia_divergente | pedido_de_outro_usuario |
+--   inconsistencia_financeira | erro_interno
+--
+-- Atomicidade: o INSERT do pedido, o INSERT dos itens, a chamada a 0089 e o
+-- historico ficam no MESMO bloco interno com EXCEPTION. Qualquer falha da 0089
+-- e convertida em RAISE (SQLSTATE P0095) e o bloco interno e revertido por
+-- completo; a funcao retorna o JSON da falha sem persistir nada.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.criar_pedido_com_reserva(
+  p_id    uuid,
+  p_canal text,
+  p_dados jsonb,
+  p_itens jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid            uuid := auth.uid();
+  v_dados          jsonb := COALESCE(p_dados, '{}'::jsonb);
+  v_itens          jsonb := COALESCE(p_itens, '[]'::jsonb);
+  v_canal          text;
+  v_elem           jsonb;
+  v_ped            record;
+  v_prod           record;
+  v_cupom          record;
+  v_lock_id        uuid;
+  v_pid            uuid;
+  v_qtd            integer;
+  v_linhas         integer := 0;
+  v_preco          numeric(10,2);
+  v_subtotal       numeric(10,2) := 0;
+  v_desc           numeric(10,2) := 0;
+  v_taxa           numeric(10,2) := 0;
+  v_total          numeric(10,2) := 0;
+  v_numero         integer;
+  v_n              bigint;
+  v_cliente        text;
+  v_telefone       text;
+  v_endereco       text;
+  v_bairro         text;
+  v_cidade         text;
+  v_cep            text;
+  v_complemento    text;
+  v_referencia     text;
+  v_obs            text;
+  v_tipo_imovel    text;
+  v_apartamento    text;
+  v_bloco          text;
+  v_torre          text;
+  v_andar          text;
+  v_interfone      text;
+  v_pode_subir     boolean := false;
+  v_cpf            text;
+  v_nome_fiscal    text;
+  v_origem_cliente text;
+  v_tipo_entrega   text;
+  v_forma          text;
+  v_modalidade     text;
+  v_pag_status     text := 'pendente';
+  v_pag_em         timestamptz := NULL;
+  v_agendado       timestamptz := NULL;
+  v_ag_obs         text := '';
+  v_tipo_evento    text := '';
+  v_campanha       text := '';
+  v_lat            double precision := NULL;
+  v_lng            double precision := NULL;
+  v_cupom_cod      text;
+  v_desc_manual    numeric(10,2) := 0;
+  v_loja_end       text;
+  v_loja_bai       text;
+  v_loja_cid       text;
+  v_taxa_txt       text;
+  v_nome_item      text;
+  v_obs_item       text;
+  v_comp           jsonb;
+  v_comp_pid       uuid;
+  v_comp_qtd       integer;
+  v_comp_soma      integer;
+  v_comp_n         integer;
+  v_comp_cat       uuid;
+  v_comp_ids       uuid[];
+  v_cat            record;
+  v_item_id        uuid;
+  v_res            jsonb;
+  v_detail         text;
+  v_req_fp         text[];
+  v_db_fp          text[];
+  v_motivo_hist    text;
+  v_cob            jsonb;
+BEGIN
+  --------------------------------------------------------------------------
+  -- 1.1 Autenticacao, canal e autorizacao (sempre no banco)
+  --------------------------------------------------------------------------
+  IF p_id IS NULL THEN
+    RETURN jsonb_build_object('status', 'entrada_invalida', 'motivo', 'p_id');
+  END IF;
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('status', 'permissao_negada', 'motivo', 'sem_sessao');
+  END IF;
+
+  v_canal := lower(btrim(COALESCE(p_canal, '')));
+  IF v_canal NOT IN ('checkout', 'pdv', 'atendente') THEN
+    RETURN jsonb_build_object('status', 'canal_invalido');
+  END IF;
+
+  -- O parametro de canal NUNCA concede privilegio: ele apenas EXIGE papel.
+  -- Um cliente comum so pode usar 'checkout'. Staff pode usar qualquer canal.
+  IF v_canal IN ('pdv', 'atendente')
+     AND NOT (public.has_role(v_uid, 'admin'::public.app_role)
+              OR public.has_role(v_uid, 'atendente'::public.app_role)) THEN
+    RETURN jsonb_build_object('status', 'permissao_negada', 'motivo', 'canal_staff');
+  END IF;
+
+  IF jsonb_typeof(v_dados) <> 'object' THEN
+    RETURN jsonb_build_object('status', 'entrada_invalida', 'motivo', 'p_dados');
+  END IF;
+  IF jsonb_typeof(v_itens) <> 'array' THEN
+    RETURN jsonb_build_object('status', 'entrada_invalida', 'motivo', 'p_itens');
+  END IF;
+  IF jsonb_array_length(v_itens) = 0 THEN
+    RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'vazio');
+  END IF;
+
+  --------------------------------------------------------------------------
+  -- 1.2 Serializacao por id (mesma chave) e verificacao de idempotencia
+  --------------------------------------------------------------------------
+  PERFORM pg_advisory_xact_lock(hashtext('criar_pedido_com_reserva:' || p_id::text));
+
+  SELECT * INTO v_ped FROM public.pedidos WHERE id = p_id;
+  IF FOUND THEN
+    -- Autorizacao: somente o dono (cliente ou operador que criou) pode repetir.
+    IF v_ped.user_id IS DISTINCT FROM v_uid THEN
+      RETURN jsonb_build_object('status', 'pedido_de_outro_usuario');
+    END IF;
+
+    -- Canal original registrado no historico de criacao.
+    SELECT motivo INTO v_motivo_hist
+      FROM public.pedido_status_historico
+     WHERE pedido_id = p_id AND de_status IS NULL AND para_status = 'recebido'
+     ORDER BY created_at ASC, id ASC
+     LIMIT 1;
+    IF v_motivo_hist IS DISTINCT FROM ('criacao_atomica:' || v_canal) THEN
+      RETURN jsonb_build_object('status', 'idempotencia_divergente', 'motivo', 'canal');
+    END IF;
+
+    -- Correspondencia dos itens (produto + quantidade; combo pela composicao
+    -- estruturada, com fallback para montagem textual legada).
+    SELECT array_agg(x ORDER BY x) INTO v_req_fp
+      FROM (
+        SELECT CASE
+                 WHEN NULLIF(btrim(e.valor->>'produto_id'), '') IS NULL
+                   THEN CASE
+                          WHEN jsonb_typeof(e.valor->'componentes') = 'array'
+                           AND jsonb_array_length(e.valor->'componentes') > 0
+                            THEN 'C:' || COALESCE((
+                              SELECT string_agg(
+                                       lower(btrim(c.valor->>'produto_id')) || ':' ||
+                                       COALESCE(NULLIF(regexp_replace(c.valor->>'quantidade', '[^0-9]', '', 'g'), ''), '0'),
+                                       ',' ORDER BY lower(btrim(c.valor->>'produto_id'))
+                                     )
+                                FROM jsonb_array_elements(e.valor->'componentes') AS c(valor)
+                            ), '') || ':' ||
+                            (CASE WHEN (e.valor->>'quantidade') ~ '^[0-9]{1,9}$'
+                                  THEN (e.valor->>'quantidade')::int ELSE 0 END)::text
+                          ELSE 'M:' || COALESCE(btrim(e.valor->>'nome'), '') || ':' ||
+                               (CASE WHEN (e.valor->>'quantidade') ~ '^[0-9]{1,9}$'
+                                     THEN (e.valor->>'quantidade')::int ELSE 0 END)::text
+                        END
+                 ELSE 'P:' || lower(btrim(e.valor->>'produto_id')) || ':' ||
+                        (CASE WHEN (e.valor->>'quantidade') ~ '^[0-9]{1,9}$'
+                              THEN (e.valor->>'quantidade')::int ELSE 0 END)::text
+               END AS x
+          FROM jsonb_array_elements(v_itens) AS e(valor)
+      ) s;
+
+    SELECT array_agg(x ORDER BY x) INTO v_db_fp
+      FROM (
+        SELECT CASE
+                 WHEN i.produto_id IS NULL
+                   THEN CASE
+                          WHEN EXISTS (
+                            SELECT 1 FROM public.pedido_item_componentes c
+                             WHERE c.pedido_item_id = i.id
+                          )
+                            THEN 'C:' || COALESCE((
+                              SELECT string_agg(
+                                       lower(c.produto_id::text) || ':' || c.quantidade::text,
+                                       ',' ORDER BY lower(c.produto_id::text)
+                                     )
+                                FROM public.pedido_item_componentes c
+                               WHERE c.pedido_item_id = i.id
+                            ), '') || ':' || i.quantidade::text
+                          ELSE 'M:' || i.nome || ':' || i.quantidade::text
+                        END
+                 ELSE 'P:' || lower(i.produto_id::text) || ':' || i.quantidade::text
+               END AS x
+          FROM public.pedido_itens i
+         WHERE i.pedido_id = p_id
+      ) s;
+
+    IF v_req_fp IS DISTINCT FROM v_db_fp THEN
+      RETURN jsonb_build_object('status', 'idempotencia_divergente', 'motivo', 'itens');
+    END IF;
+
+    -- Correspondencia dos dados principais da solicitacao original.
+    IF v_ped.cliente_nome IS DISTINCT FROM btrim(v_dados->>'cliente_nome')
+       OR v_ped.telefone IS DISTINCT FROM btrim(v_dados->>'telefone')
+       OR v_ped.tipo_entrega IS DISTINCT FROM lower(btrim(COALESCE(v_dados->>'tipo_entrega', '')))
+       OR v_ped.forma_pagamento::text IS DISTINCT FROM lower(btrim(COALESCE(v_dados->>'forma_pagamento', '')))
+       OR v_ped.cupom IS DISTINCT FROM NULLIF(upper(btrim(COALESCE(v_dados->>'cupom', ''))), '')
+       OR v_ped.agendado_para IS DISTINCT FROM
+            (CASE WHEN jsonb_typeof(v_dados->'agendado_para') = 'string'
+                   AND btrim(COALESCE(v_dados->>'agendado_para', '')) <> ''
+                  THEN (v_dados->>'agendado_para')::timestamptz
+                  ELSE NULL END)
+    THEN
+      RETURN jsonb_build_object('status', 'idempotencia_divergente', 'motivo', 'dados');
+    END IF;
+
+    -- Reservas obrigatorias: leitura pura (nao reserva nem baixa de novo).
+    v_cob := public.pedido_cobertura_reserva(p_id);
+    IF COALESCE(v_cob->>'status', '') = 'coberto' THEN
+      SELECT COALESCE(SUM(i.preco_unitario * i.quantidade), 0), count(*)
+        INTO v_subtotal, v_n
+        FROM public.pedido_itens i
+       WHERE i.pedido_id = p_id;
+      IF v_n = 0
+         OR abs(v_subtotal - v_ped.subtotal) > 0.005
+         OR v_ped.desconto < 0
+         OR v_ped.desconto > v_ped.subtotal
+         OR abs(v_ped.total - GREATEST(v_ped.subtotal + v_ped.taxa_entrega - v_ped.desconto, 0)) > 0.005
+      THEN
+        RETURN jsonb_build_object('status', 'inconsistencia_financeira');
+      END IF;
+      RETURN jsonb_build_object(
+        'status', 'ja_criado',
+        'pedido_id', p_id,
+        'numero', v_ped.numero,
+        'total', v_ped.total,
+        'cobertura', v_cob
+      );
+    END IF;
+    IF COALESCE(v_cob->>'status', '') = 'sem_reserva' THEN
+      RETURN jsonb_build_object(
+        'status', 'reservas_ausentes',
+        'pedido_id', p_id,
+        'numero', v_ped.numero,
+        'cobertura', v_cob
+      );
+    END IF;
+    RETURN jsonb_build_object(
+      'status', 'reconciliacao_pendente',
+      'pedido_id', p_id,
+      'numero', v_ped.numero,
+      'cobertura', v_cob
+    );
+  END IF;
+
+  --------------------------------------------------------------------------
+  -- 1.3 Dependencia da reserva atomica (checada ANTES de qualquer escrita)
+  --------------------------------------------------------------------------
+  IF to_regprocedure('public.reservar_pedido_atomico(uuid)') IS NULL THEN
+    RETURN jsonb_build_object(
+      'status', 'dependencia_ausente',
+      'dependencia', 'public.reservar_pedido_atomico(uuid)'
+    );
+  END IF;
+
+  --------------------------------------------------------------------------
+  -- 1.4 Validacao dos dados nao financeiros
+  --------------------------------------------------------------------------
+  v_cliente := btrim(COALESCE(v_dados->>'cliente_nome', ''));
+  IF length(v_cliente) NOT BETWEEN 2 AND 120 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'cliente_nome');
+  END IF;
+
+  v_telefone := btrim(COALESCE(v_dados->>'telefone', ''));
+  IF length(regexp_replace(v_telefone, '\D', '', 'g')) NOT BETWEEN 10 AND 13 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'telefone');
+  END IF;
+
+  v_tipo_entrega := lower(btrim(COALESCE(v_dados->>'tipo_entrega', '')));
+  IF v_tipo_entrega NOT IN ('entrega', 'retirada') THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'tipo_entrega');
+  END IF;
+
+  v_forma := lower(btrim(COALESCE(v_dados->>'forma_pagamento', '')));
+  IF v_forma NOT IN ('pix', 'dinheiro', 'credito', 'debito') THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'forma_pagamento');
+  END IF;
+
+  v_cep := regexp_replace(COALESCE(v_dados->>'cep', ''), '\D', '', 'g');
+  IF v_cep = '' THEN
+    v_cep := NULL;
+  ELSIF length(v_cep) <> 8 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'cep');
+  END IF;
+
+  v_cpf := regexp_replace(COALESCE(v_dados->>'cpf_cnpj', ''), '\D', '', 'g');
+  IF v_cpf = '' THEN
+    v_cpf := NULL;
+  ELSIF length(v_cpf) NOT IN (11, 14) THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'cpf_cnpj');
+  END IF;
+
+  v_complemento := btrim(COALESCE(v_dados->>'complemento', ''));
+  v_referencia  := btrim(COALESCE(v_dados->>'referencia', ''));
+  v_obs         := btrim(COALESCE(v_dados->>'observacoes', ''));
+  IF length(v_complemento) > 200 OR length(v_referencia) > 200 OR length(v_obs) > 1000 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'texto_longo');
+  END IF;
+
+  v_tipo_imovel := NULLIF(lower(btrim(COALESCE(v_dados->>'tipo_imovel', ''))), '');
+  IF v_tipo_imovel IS NOT NULL AND v_tipo_imovel NOT IN ('casa', 'apartamento') THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'tipo_imovel');
+  END IF;
+
+  v_apartamento := NULLIF(btrim(COALESCE(v_dados->>'apartamento', '')), '');
+  v_bloco       := NULLIF(btrim(COALESCE(v_dados->>'bloco', '')), '');
+  v_torre       := NULLIF(btrim(COALESCE(v_dados->>'torre', '')), '');
+  v_andar       := NULLIF(btrim(COALESCE(v_dados->>'andar', '')), '');
+  v_interfone   := NULLIF(btrim(COALESCE(v_dados->>'interfone', '')), '');
+  IF COALESCE(length(v_apartamento), 0) > 50
+     OR COALESCE(length(v_bloco), 0) > 50
+     OR COALESCE(length(v_torre), 0) > 50
+     OR COALESCE(length(v_andar), 0) > 50
+     OR COALESCE(length(v_interfone), 0) > 50 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'endereco_estruturado');
+  END IF;
+
+  IF jsonb_typeof(v_dados->'pode_subir') = 'boolean' THEN
+    v_pode_subir := (v_dados->>'pode_subir')::boolean;
+  END IF;
+
+  v_nome_fiscal    := NULLIF(btrim(COALESCE(v_dados->>'nome_fiscal', '')), '');
+  v_origem_cliente := NULLIF(btrim(COALESCE(v_dados->>'origem_cliente', '')), '');
+  IF COALESCE(length(v_nome_fiscal), 0) > 120 OR COALESCE(length(v_origem_cliente), 0) > 120 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'texto_longo');
+  END IF;
+
+  v_tipo_evento := btrim(COALESCE(v_dados->>'tipo_evento', ''));
+  v_campanha    := btrim(COALESCE(v_dados->>'campanha_origem', ''));
+  IF length(v_tipo_evento) > 80 OR length(v_campanha) > 80 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'texto_longo');
+  END IF;
+
+  v_ag_obs := btrim(COALESCE(v_dados->>'agendamento_obs', ''));
+  IF length(v_ag_obs) > 200 THEN
+    RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'agendamento_obs');
+  END IF;
+
+  IF jsonb_typeof(v_dados->'agendado_para') = 'string'
+     AND btrim(COALESCE(v_dados->>'agendado_para', '')) <> '' THEN
+    BEGIN
+      v_agendado := (v_dados->>'agendado_para')::timestamptz;
+    EXCEPTION WHEN OTHERS THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'agendado_para');
+    END;
+    IF v_agendado <= now() THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'agendado_para');
+    END IF;
+  END IF;
+
+  IF jsonb_typeof(v_dados->'destino_lat') = 'number' THEN
+    v_lat := (v_dados->>'destino_lat')::double precision;
+    IF v_lat NOT BETWEEN -90 AND 90 THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'destino_lat');
+    END IF;
+  END IF;
+  IF jsonb_typeof(v_dados->'destino_lng') = 'number' THEN
+    v_lng := (v_dados->>'destino_lng')::double precision;
+    IF v_lng NOT BETWEEN -180 AND 180 THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'destino_lng');
+    END IF;
+  END IF;
+
+  --------------------------------------------------------------------------
+  -- 1.5 Endereco e taxa de entrega (fonte confiavel)
+  --------------------------------------------------------------------------
+  -- A taxa NAO vem do navegador. A fonte preferencial e a coluna opcional
+  -- loja_config.taxa_entrega, lida via to_jsonb para nao exigir a coluna nem
+  -- inventa-la. Se a coluna ainda nao existir, PRESERVA o valor equivalente ao
+  -- comportamento atual do sistema (R$ 6) no servidor; RETIRADA usa taxa 0.
+  SELECT NULLIF(btrim(lc.endereco), ''),
+         NULLIF(btrim(lc.bairro), ''),
+         NULLIF(btrim(lc.cidade), ''),
+         (to_jsonb(lc)->>'taxa_entrega')
+    INTO v_loja_end, v_loja_bai, v_loja_cid, v_taxa_txt
+    FROM public.loja_config lc
+   WHERE lc.id = true;
+
+  IF v_tipo_entrega = 'entrega' THEN
+    v_endereco := btrim(COALESCE(v_dados->>'endereco', ''));
+    v_bairro   := btrim(COALESCE(v_dados->>'bairro', ''));
+    v_cidade   := btrim(COALESCE(v_dados->>'cidade', ''));
+    IF length(v_endereco) NOT BETWEEN 5 AND 300 THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'endereco');
+    END IF;
+    IF length(v_bairro) NOT BETWEEN 2 AND 100 THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'bairro');
+    END IF;
+    IF length(v_cidade) NOT BETWEEN 2 AND 100 THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'cidade');
+    END IF;
+    -- Mesma regra do trigger 0045/0047. Validar aqui evita que o trigger
+    -- transforme um erro de preenchimento em 'erro_interno' (P0001) e
+    -- devolve o campo culpado sem escrever pedido/reserva.
+    IF v_tipo_imovel = 'apartamento' AND v_apartamento IS NULL THEN
+      RETURN jsonb_build_object('status', 'dados_invalidos', 'campo', 'apartamento');
+    END IF;
+
+    -- Configuravel server-side; default preserva o comportamento atual (R$ 6).
+    v_taxa := CASE
+                WHEN v_taxa_txt IS NOT NULL
+                     AND btrim(v_taxa_txt) <> ''
+                     AND btrim(v_taxa_txt) ~ '^[0-9]+(\.[0-9]{1,2})?$'
+                  THEN round(btrim(v_taxa_txt)::numeric, 2)
+                ELSE 6
+              END;
+  ELSE
+    v_endereco := btrim(COALESCE(v_dados->>'endereco', ''));
+    IF v_endereco = '' THEN
+      v_endereco := COALESCE(v_loja_end, 'Retirada na loja');
+    END IF;
+    v_bairro := COALESCE(NULLIF(btrim(COALESCE(v_dados->>'bairro', '')), ''), v_loja_bai, '');
+    v_cidade := COALESCE(NULLIF(btrim(COALESCE(v_dados->>'cidade', '')), ''), v_loja_cid, '');
+    v_taxa := 0;
+  END IF;
+
+  --------------------------------------------------------------------------
+  -- 1.6 Itens: validacao de UUID/quantidade, bloqueio de produtos e precos
+  --------------------------------------------------------------------------
+  -- 1.6.1 Formato dos identificadores (evita cast invalido mais adiante).
+  FOR v_elem IN SELECT e.valor FROM jsonb_array_elements(v_itens) AS e(valor) LOOP
+    IF NULLIF(btrim(v_elem->>'produto_id'), '') IS NOT NULL
+       AND btrim(v_elem->>'produto_id') !~*
+           '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+      RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'produto_id');
+    END IF;
+    IF (v_elem->>'quantidade') IS NULL
+       OR (v_elem->>'quantidade') !~ '^[0-9]{1,9}$' THEN
+      RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'quantidade');
+    END IF;
+
+    -- Combo/montagem: a composicao e uma lista de produto + quantidade.
+    IF NULLIF(btrim(v_elem->>'produto_id'), '') IS NULL THEN
+      IF v_elem ? 'componentes'
+         AND jsonb_typeof(v_elem->'componentes') IS DISTINCT FROM 'array' THEN
+        RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'componentes');
+      END IF;
+      IF jsonb_typeof(v_elem->'componentes') = 'array' THEN
+        FOR v_comp IN SELECT c.valor FROM jsonb_array_elements(v_elem->'componentes') AS c(valor) LOOP
+          IF NULLIF(btrim(v_comp->>'produto_id'), '') IS NULL
+             OR btrim(v_comp->>'produto_id') !~*
+                '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+            RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'componente_produto_id');
+          END IF;
+          IF (v_comp->>'quantidade') IS NULL
+             OR (v_comp->>'quantidade') !~ '^[0-9]{1,9}$'
+             OR (v_comp->>'quantidade')::int <= 0 THEN
+            RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'componente_quantidade');
+          END IF;
+        END LOOP;
+      END IF;
+    ELSIF jsonb_typeof(v_elem->'componentes') = 'array'
+          AND jsonb_array_length(v_elem->'componentes') > 0 THEN
+      -- Item de catalogo normal nao aceita composicao (evita debito duplo).
+      RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'componentes_em_produto');
+    END IF;
+  END LOOP;
+
+  -- 1.6.2 Bloqueio deterministico dos produtos (L2 antes de criar o pedido;
+  -- o pedido novo ainda nao e visivel a outras transacoes, entao nao ha
+  -- inversao perigosa em relacao a L1). Inclui os componentes do combo.
+  FOR v_pid IN
+    SELECT DISTINCT pid
+      FROM (
+        SELECT (e.valor->>'produto_id')::uuid AS pid
+          FROM jsonb_array_elements(v_itens) AS e(valor)
+         WHERE NULLIF(btrim(e.valor->>'produto_id'), '') IS NOT NULL
+        UNION
+        SELECT (c.valor->>'produto_id')::uuid AS pid
+          FROM jsonb_array_elements(v_itens) AS e(valor)
+          CROSS JOIN LATERAL jsonb_array_elements(
+            CASE WHEN jsonb_typeof(e.valor->'componentes') = 'array'
+                 THEN e.valor->'componentes'
+                 ELSE '[]'::jsonb END
+          ) AS c(valor)
+         WHERE NULLIF(btrim(e.valor->>'produto_id'), '') IS NULL
+      ) s
+     ORDER BY pid
+  LOOP
+    SELECT p.id INTO v_lock_id FROM public.produtos p WHERE p.id = v_pid FOR UPDATE;
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status', 'produto_inexistente', 'produto_id', v_pid);
+    END IF;
+  END LOOP;
+
+  -- 1.6.3 Subtotal e regras comerciais. Combo (produto_id NULL) e aceito
+  -- SOMENTE com composicao estruturada e preco de categoria configurado no
+  -- banco. A soma dos componentes deve ser exatamente a quantidade do combo.
+  FOR v_elem IN SELECT e.valor FROM jsonb_array_elements(v_itens) AS e(valor) LOOP
+    v_qtd := (v_elem->>'quantidade')::int;
+    v_pid := NULLIF(btrim(v_elem->>'produto_id'), '')::uuid;
+    IF v_pid IS NULL THEN
+      -- ADAPTAÇÃO CUTOVER 0102: montagem (item sem produto_id) falha fechado.
+      -- Motivo: categorias.combo_preco_unit NÃO existe neste banco
+      -- (ruioyioynwwwiqbjznoa) e não há produtos de montagem modelados
+      -- (pedido_itens.produto_id IS NULL = 0 linhas; pedido_item_componentes
+      -- vazia). Nesta versão NENHUM item sem produto é aceito: nada é criado,
+      -- a transação termina limpa e sem débito. A UI (checkout de corte) nunca
+      -- envia item sem produto_id. Modelo de montagem deve ser revalidado e
+      -- schema migrado antes de reabrir este caminho.
+      RETURN jsonb_build_object(
+        'status', 'montagem_sem_modelagem',
+        'item', COALESCE(NULLIF(btrim(v_elem->>'nome'), ''), '(sem nome)')
+      );
+    END IF;
+
+    SELECT p.nome, p.preco, p.preco_promocional, p.disponivel, p.estoque,
+           p.tipo_venda::text
+      INTO v_prod
+      FROM public.produtos p
+     WHERE p.id = v_pid;
+
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status', 'produto_inexistente', 'produto_id', v_pid);
+    END IF;
+    IF NOT v_prod.disponivel THEN
+      RETURN jsonb_build_object('status', 'produto_indisponivel', 'produto_id', v_pid);
+    END IF;
+    IF COALESCE(v_prod.tipo_venda, 'combo_50') = 'combo_50'
+       AND (v_qtd < 50 OR v_qtd % 50 <> 0) THEN
+      RETURN jsonb_build_object(
+        'status', 'regra_combo',
+        'produto_id', v_pid,
+        'quantidade', v_qtd,
+        'minimo', 50,
+        'passo', 50
+      );
+    END IF;
+
+    v_preco := COALESCE(v_prod.preco_promocional, v_prod.preco);
+    v_subtotal := v_subtotal + (v_preco * v_qtd);
+    v_linhas := v_linhas + 1;
+  END LOOP;
+
+  IF v_linhas = 0 THEN
+    RETURN jsonb_build_object('status', 'itens_invalidos', 'motivo', 'sem_itens');
+  END IF;
+  v_subtotal := round(v_subtotal, 2);
+
+  --------------------------------------------------------------------------
+  -- 1.7 Cupom (revalidado no servidor; lock seraliza usos concorrentes)
+  --------------------------------------------------------------------------
+  v_cupom_cod := NULLIF(upper(btrim(COALESCE(v_dados->>'cupom', ''))), '');
+  IF v_cupom_cod IS NOT NULL THEN
+    SELECT * INTO v_cupom
+      FROM public.cupons
+     WHERE codigo = v_cupom_cod
+     FOR UPDATE;
+
+    IF NOT FOUND THEN
+      RETURN jsonb_build_object('status', 'cupom_invalido', 'motivo', 'nao_encontrado');
+    END IF;
+    IF NOT v_cupom.ativo THEN
+      RETURN jsonb_build_object('status', 'cupom_invalido', 'motivo', 'inativo');
+    END IF;
+    IF v_cupom.validade_ini IS NOT NULL AND v_cupom.validade_ini > now() THEN
+      RETURN jsonb_build_object('status', 'cupom_invalido', 'motivo', 'validade');
+    END IF;
+    IF v_cupom.validade_fim IS NOT NULL AND v_cupom.validade_fim < now() THEN
+      RETURN jsonb_build_object('status', 'cupom_invalido', 'motivo', 'validade');
+    END IF;
+    IF btrim(COALESCE(v_cupom.cliente_telefone, '')) <> ''
+       AND regexp_replace(v_cupom.cliente_telefone, '\D', '', 'g')
+           <> regexp_replace(v_telefone, '\D', '', 'g') THEN
+      RETURN jsonb_build_object('status', 'cupom_invalido', 'motivo', 'cliente');
+    END IF;
+    IF v_cupom.minimo > 0 AND v_subtotal < v_cupom.minimo THEN
+      RETURN jsonb_build_object('status', 'cupom_invalido', 'motivo', 'minimo');
+    END IF;
+    IF v_cupom.produtos_ids IS NOT NULL
+       AND jsonb_typeof(v_cupom.produtos_ids) = 'array' THEN
+      IF jsonb_array_length(v_cupom.produtos_ids) > 0 THEN
+        IF NOT EXISTS (
+          SELECT 1
+            FROM jsonb_array_elements(v_itens) AS e(valor)
+           WHERE NULLIF(btrim(e.valor->>'produto_id'), '') IS NOT NULL
+             AND btrim(e.valor->>'produto_id') IN (
+               SELECT jsonb_array_elements_text(v_cupom.produtos_ids)
+             )
+        ) THEN
+          RETURN jsonb_build_object('status', 'cupom_invalido', 'motivo', 'produtos');
+        END IF;
+      END IF;
+    END IF;
+    IF v_cupom.max_usos > 0 THEN
+      SELECT count(*) INTO v_n
+        FROM public.pedidos p
+       WHERE p.cupom = v_cupom_cod AND p.status <> 'cancelado';
+      IF v_n >= v_cupom.max_usos THEN
+        RETURN jsonb_build_object('status', 'cupom_esgotado', 'max_usos', v_cupom.max_usos);
+      END IF;
+    END IF;
+
+    IF v_cupom.tipo = 'percentual' THEN
+      v_desc := v_subtotal * v_cupom.valor / 100;
+    ELSE
+      v_desc := v_cupom.valor;
+    END IF;
+    v_desc := round(GREATEST(0, LEAST(v_desc, v_subtotal)), 2);
+  END IF;
+
+  --------------------------------------------------------------------------
+  -- 1.7b Desconto manual (somente PDV/atendimento com papel autorizado)
+  --------------------------------------------------------------------------
+  -- NUNCA confiar cegamente no navegador: o desconto manual so e aceito quando
+  -- o canal e staff (pdv/atendente) E o papel e admin|atendente. O valor vem de
+  -- p_dados.desconto_manual (numerico >= 0); e somado ao desconto de cupom e
+  -- limitado ao subtotal (total nunca negativo). Nao ha limite percentual
+  -- inventado — o limite e o proprio subtotal.
+  IF v_canal IN ('pdv', 'atendente')
+     AND (public.has_role(v_uid, 'admin'::public.app_role)
+          OR public.has_role(v_uid, 'atendente'::public.app_role))
+     AND jsonb_typeof(v_dados->'desconto_manual') = 'number'
+     AND (v_dados->>'desconto_manual')::numeric >= 0 THEN
+    v_desc_manual := round((v_dados->>'desconto_manual')::numeric, 2);
+  END IF;
+  v_desc := round(GREATEST(0, LEAST(v_desc + v_desc_manual, v_subtotal)), 2);
+
+  --------------------------------------------------------------------------
+  -- 1.8 Pagamento (derivado no servidor; nunca lido do navegador)
+  --------------------------------------------------------------------------
+  -- Regra 0063: na_entrega somente para entrega + dinheiro.
+  v_modalidade := CASE
+                    WHEN v_tipo_entrega = 'entrega' AND v_forma = 'dinheiro'
+                      THEN 'na_entrega'
+                    ELSE 'online'
+                  END;
+
+  -- PDV com pagamento imediato fora do Pix pode nascer pago. Pix permanece
+  -- pendente ate o webhook. Checkout/atendimento sempre nascem pendentes.
+  IF v_canal = 'pdv' AND v_forma <> 'pix'
+     AND jsonb_typeof(v_dados->'pagamento_imediato') = 'boolean' THEN
+    IF (v_dados->>'pagamento_imediato')::boolean THEN
+      v_pag_status := 'pago';
+      v_pag_em := now();
+    END IF;
+  END IF;
+
+  v_total := round(GREATEST(v_subtotal + v_taxa - v_desc, 0), 2);
+
+  --------------------------------------------------------------------------
+  -- 1.9 Escrita + reserva + historico no MESMO bloco interno
+  --------------------------------------------------------------------------
+  BEGIN
+    INSERT INTO public.pedidos (
+      id, user_id, cliente_nome, telefone, endereco, bairro, cidade, cep,
+      complemento, referencia, observacoes,
+      tipo_imovel, apartamento, bloco, torre, andar, interfone, pode_subir,
+      cpf_cnpj, nome_fiscal, origem_cliente,
+      tipo_entrega, forma_pagamento, pagamento_modalidade,
+      pagamento_status, pagamento_em,
+      subtotal, taxa_entrega, desconto, total, cupom,
+      destino_lat, destino_lng, agendado_para, agendamento_obs,
+      tipo_evento, campanha_origem
+    ) VALUES (
+      p_id, v_uid, v_cliente, v_telefone, v_endereco, v_bairro, v_cidade, v_cep,
+      v_complemento, v_referencia, v_obs,
+      v_tipo_imovel, v_apartamento, v_bloco, v_torre, v_andar, v_interfone,
+      v_pode_subir,
+      v_cpf, v_nome_fiscal, v_origem_cliente,
+      v_tipo_entrega, v_forma::public.pagamento, v_modalidade,
+      v_pag_status, v_pag_em,
+      v_subtotal, v_taxa, v_desc, v_total, v_cupom_cod,
+      v_lat, v_lng, v_agendado, v_ag_obs,
+      v_tipo_evento, v_campanha
+    )
+    RETURNING numero INTO v_numero;
+
+    -- Nome vem do catalogo (fonte confiavel); observacao do item e opcional.
+    FOR v_elem IN SELECT e.valor FROM jsonb_array_elements(v_itens) AS e(valor) LOOP
+      v_qtd := (v_elem->>'quantidade')::int;
+      v_pid := NULLIF(btrim(v_elem->>'produto_id'), '')::uuid;
+
+      IF v_pid IS NULL THEN
+        -- ADAPTAÇÃO CUTOVER 0102: caminho morto (inacessível) — a validação
+        -- acima REJEITA todo item sem produto_id (montagem_sem_modelagem).
+        -- Mantido apenas como cinto de segurança: nunca deve executar.
+        RAISE EXCEPTION USING
+          ERRCODE = 'P0095',
+          MESSAGE = 'montagem_sem_modelagem',
+          DETAIL  = '{"status":"montagem_sem_modelagem"}';
+      END IF;
+
+      SELECT p.nome, p.preco, p.preco_promocional
+        INTO v_prod
+        FROM public.produtos p
+       WHERE p.id = v_pid;
+
+      v_preco := COALESCE(v_prod.preco_promocional, v_prod.preco);
+      v_obs_item := btrim(COALESCE(v_elem->>'observacao', ''));
+      v_nome_item := v_prod.nome ||
+                     CASE WHEN v_obs_item <> ''
+                          THEN ' (obs: ' || v_obs_item || ')'
+                          ELSE '' END;
+
+      INSERT INTO public.pedido_itens (
+        pedido_id, produto_id, nome, preco_unitario, quantidade
+      ) VALUES (
+        p_id, v_pid, v_nome_item, v_preco, v_qtd
+      );
+    END LOOP;
+
+    -- Reserva atomica: debita estoque, grava reservas + comprovante no ledger.
+    v_res := public.reservar_pedido_atomico(p_id);
+    IF v_res IS NULL
+       OR COALESCE(v_res->>'status', '') NOT IN ('reservado', 'ja_reservado') THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'P0095',
+        MESSAGE = 'reserva_nao_confirmada',
+        DETAIL  = COALESCE(v_res::text, '{"status":"reserva_nula"}');
+    END IF;
+
+    -- Historico obrigatorio DENTRO do bloco: falha aqui desfaz tudo.
+    INSERT INTO public.pedido_status_historico (
+      pedido_id, de_status, para_status, actor, motivo
+    ) VALUES (
+      p_id, NULL, 'recebido', v_uid, 'criacao_atomica:' || v_canal
+    );
+
+  EXCEPTION
+    WHEN SQLSTATE 'P0095' THEN
+      GET STACKED DIAGNOSTICS v_detail = PG_EXCEPTION_DETAIL;
+      -- O bloco interno ja foi revertido (pedido/itens/reserva/historico).
+      RETURN COALESCE(NULLIF(v_detail, ''), '{"status":"reserva_nao_confirmada"}')::jsonb;
+  END;
+
+  RETURN jsonb_build_object(
+    'status', 'criado',
+    'pedido_id', p_id,
+    'numero', v_numero,
+    'canal', v_canal,
+    'subtotal', v_subtotal,
+    'taxa_entrega', v_taxa,
+    'desconto', v_desc,
+    'total', v_total,
+    'pagamento_status', v_pag_status,
+    'pagamento_modalidade', v_modalidade,
+    'reserva', v_res
+  );
+
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Nao expor SQLERRM (pode conter valores de dados). Nao ha escrita parcial:
+    -- o bloco que escreveu ja foi revertido antes de chegar aqui.
+    RETURN jsonb_build_object('status', 'erro_interno', 'sqlstate', SQLSTATE);
+END;
+$$;
+
+COMMENT ON FUNCTION public.criar_pedido_com_reserva(uuid, text, jsonb, jsonb) IS
+$$Criacao atomica de pedido + itens + reserva (checkout/pdv/atendente).
+- Autorizacao no banco: auth.uid(); pdv/atendente exigem admin|atendente.
+- user_id = auth.uid() (no PDV/atendimento e o operador, nao o cliente final;
+  o cliente real fica em cliente_nome/telefone e o operador no historico.actor).
+- Valores financeiros recalculados no servidor: preco do catalogo
+  (COALESCE(preco_promocional, preco)), cupom revalidado, taxa de entrega lida de
+  loja_config.taxa_entrega (via to_jsonb; ausente => default server-side R$ 6),
+  desconto manual (somente pdv/atendente com papel admin|atendente).
+- Atomicidade: pedido+itens+reservar_pedido_atomico+historico no mesmo bloco;
+  falha da reserva => RAISE P0095 => rollback integral do bloco.
+- Idempotencia: advisory lock por id + historico 'criacao_atomica:<canal>' +
+  conferencia de autorizacao, itens, dados e cobertura (leitura pura).
+- Montagem (produto_id NULL) falha fechado (montagem_sem_modelagem): ADAPTACAO
+  CUTOVER 0102 — categorias.combo_preco_unit nao existe neste banco, logo
+  TODO item sem produto_id e rejeitado na validacao (zero criacao).
+- Nao escreve direto em reservas_estoque e nao usa DELETE como compensacao.$$;
+
+-- ACL (CUTOVER 0102): default privileges do Supabase concedem EXECUTE direto a
+-- anon/authenticated/service_role em funções novas — o REVOKE FROM PUBLIC sozinho
+-- não remove esses grants. Menor privilégio: anon/service_role SEM EXECUTE;
+-- authenticated apenas na RPC principal e na leitura de cobertura.
+REVOKE ALL ON FUNCTION public.criar_pedido_com_reserva(uuid, text, jsonb, jsonb) FROM PUBLIC, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.criar_pedido_com_reserva(uuid, text, jsonb, jsonb) TO authenticated;
+
+-- ============================================================================
+-- 2. COBERTURA DE RESERVA (somente leitura; usada pela idempotencia e pelo gate)
+-- ============================================================================
+-- Retorna:
+--   coberto              -> todos os itens reservaveis com debito comprovado
+--   sem_reserva          -> falta cobertura (faltante = unidades sem reserva)
+--   reconciliacao_pendente -> liberada/cancelada, excesso, debito ou proveniencia
+--   montagem             -> pedido so com itens de montagem (sem reserva)
+--   cancelado            -> pedido cancelado (gate nao se aplica)
+--   pedido_invalido      -> inexistente/sem itens
+--   pedido_de_outro_usuario -> chamador sem permissao (somente se auth.uid() != NULL)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.pedido_cobertura_reserva(p_pedido_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid        uuid := auth.uid();
+  v_dono       uuid;
+  v_status     public.order_status;
+  v_itens      bigint := 0;
+  v_unidades   integer := 0;
+  v_montagem   integer := 0;
+  v_cobertas   integer := 0;
+  v_faltante   integer := 0;
+  v_linha      record;
+  v_cob        integer;
+  v_controlado boolean := false;
+  v_tem_prov   boolean := false;
+BEGIN
+  SELECT p.status, p.user_id INTO v_status, v_dono
+    FROM public.pedidos p
+   WHERE p.id = p_pedido_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('status', 'pedido_invalido', 'motivo', 'nao_encontrado');
+  END IF;
+
+  -- Protecao de leitura: dono ou staff. auth.uid() NULL = contexto interno.
+  IF v_uid IS NOT NULL
+     AND v_dono IS DISTINCT FROM v_uid
+     AND NOT (public.has_role(v_uid, 'admin'::public.app_role)
+              OR public.has_role(v_uid, 'atendente'::public.app_role)
+              OR public.has_role(v_uid, 'producao'::public.app_role)) THEN
+    RETURN jsonb_build_object('status', 'pedido_de_outro_usuario');
+  END IF;
+
+  IF v_status = 'cancelado' THEN
+    RETURN jsonb_build_object('status', 'cancelado');
+  END IF;
+
+  SELECT count(*), COALESCE(SUM(i.quantidade), 0)
+    INTO v_itens, v_unidades
+    FROM public.pedido_itens i
+   WHERE i.pedido_id = p_pedido_id;
+  IF v_itens = 0 THEN
+    RETURN jsonb_build_object('status', 'pedido_invalido', 'motivo', 'sem_itens');
+  END IF;
+
+  SELECT COALESCE(SUM(i.quantidade), 0)
+    INTO v_montagem
+    FROM public.pedido_itens i
+   WHERE i.pedido_id = p_pedido_id
+     AND i.produto_id IS NULL
+     AND NOT EXISTS (
+       SELECT 1 FROM public.pedido_item_componentes c
+        WHERE c.pedido_item_id = i.id
+     );
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pedido_itens i
+     WHERE i.pedido_id = p_pedido_id AND i.produto_id IS NOT NULL
+  ) AND NOT EXISTS (
+    SELECT 1
+      FROM public.pedido_itens i
+      JOIN public.pedido_item_componentes c ON c.pedido_item_id = i.id
+     WHERE i.pedido_id = p_pedido_id
+  ) THEN
+    RETURN jsonb_build_object(
+      'status', 'montagem',
+      'itens', v_itens,
+      'unidades', v_unidades,
+      'montagem', v_montagem
+    );
+  END IF;
+
+  IF to_regclass('public.reserva_proveniencia_config') IS NOT NULL THEN
+    SELECT c.controlado INTO v_controlado
+      FROM public.reserva_proveniencia_config c
+     WHERE c.id = true;
+    v_controlado := COALESCE(v_controlado, false);
+  END IF;
+  v_tem_prov := to_regclass('public.reserva_proveniencia') IS NOT NULL;
+  IF v_controlado AND NOT v_tem_prov THEN
+    RETURN jsonb_build_object(
+      'status', 'reconciliacao_pendente',
+      'motivo', 'proveniencia_indisponivel'
+    );
+  END IF;
+
+  -- Reserva liberada/cancelada em pedido ativo e inconsistencia: bloqueia.
+  IF EXISTS (
+    SELECT 1 FROM public.reservas_estoque r
+     WHERE r.pedido_id = p_pedido_id AND r.status IN ('liberada', 'cancelada')
+  ) THEN
+    RETURN jsonb_build_object(
+      'status', 'reconciliacao_pendente',
+      'motivo', 'reserva_liberada_ou_cancelada',
+      'unidades', v_unidades,
+      'montagem', v_montagem
+    );
+  END IF;
+
+  FOR v_linha IN
+    SELECT pid AS produto_id, SUM(qtd)::int AS solicitado
+      FROM (
+        SELECT i.produto_id AS pid, i.quantidade AS qtd
+          FROM public.pedido_itens i
+         WHERE i.pedido_id = p_pedido_id AND i.produto_id IS NOT NULL
+        UNION ALL
+        SELECT c.produto_id AS pid, c.quantidade AS qtd
+          FROM public.pedido_itens i
+          JOIN public.pedido_item_componentes c ON c.pedido_item_id = i.id
+         WHERE i.pedido_id = p_pedido_id
+      ) s
+     GROUP BY pid
+     ORDER BY pid
+  LOOP
+    SELECT COALESCE(SUM(r.quantidade), 0)::int
+      INTO v_cob
+      FROM public.reservas_estoque r
+     WHERE r.pedido_id = p_pedido_id
+       AND r.produto_id = v_linha.produto_id
+       AND r.status IN ('ativa', 'consumida');
+
+    IF v_cob > v_linha.solicitado THEN
+      RETURN jsonb_build_object(
+        'status', 'reconciliacao_pendente',
+        'motivo', 'cobertura_excedente',
+        'produto_id', v_linha.produto_id,
+        'solicitado', v_linha.solicitado,
+        'coberto', v_cob
+      );
+    END IF;
+    IF v_cob < v_linha.solicitado THEN
+      v_faltante := v_faltante + (v_linha.solicitado - v_cob);
+    END IF;
+    v_cobertas := v_cobertas + v_cob;
+
+    -- Cada reserva ativa/consumida precisa do debito correspondente no ledger.
+    IF EXISTS (
+      SELECT 1
+        FROM public.reservas_estoque r
+       WHERE r.pedido_id = p_pedido_id
+         AND r.produto_id = v_linha.produto_id
+         AND r.status IN ('ativa', 'consumida')
+         AND COALESCE((
+           SELECT SUM(-m.quantidade)
+             FROM public.estoque_movimentacoes m
+            WHERE m.referencia_tipo = 'reserva_estoque'
+              AND m.referencia_id = r.id
+              AND m.tipo = 'reserva'
+              AND m.quantidade < 0
+         ), 0) <> r.quantidade
+    ) THEN
+      RETURN jsonb_build_object(
+        'status', 'reconciliacao_pendente',
+        'motivo', 'debito_nao_comprovado',
+        'produto_id', v_linha.produto_id
+      );
+    END IF;
+
+    -- Proveniencia exigida somente quando o regime controlado esta ligado.
+    IF v_controlado THEN
+      IF EXISTS (
+        SELECT 1
+          FROM public.reservas_estoque r
+         WHERE r.pedido_id = p_pedido_id
+           AND r.produto_id = v_linha.produto_id
+           AND r.status = 'ativa'
+           AND NOT EXISTS (
+             SELECT 1 FROM public.reserva_proveniencia rp WHERE rp.reserva_id = r.id
+           )
+      ) THEN
+        RETURN jsonb_build_object(
+          'status', 'reconciliacao_pendente',
+          'motivo', 'proveniencia_ausente',
+          'produto_id', v_linha.produto_id
+        );
+      END IF;
+    END IF;
+  END LOOP;
+
+  IF v_faltante > 0 THEN
+    RETURN jsonb_build_object(
+      'status', 'sem_reserva',
+      'faltante', v_faltante,
+      'unidades', v_unidades,
+      'cobertas', v_cobertas,
+      'montagem', v_montagem
+    );
+  END IF;
+
+  RETURN jsonb_build_object(
+    'status', 'coberto',
+    'unidades', v_unidades,
+    'cobertas', v_cobertas,
+    'montagem', v_montagem
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION public.pedido_cobertura_reserva(uuid) IS
+$$Leitura pura da cobertura de reserva de um pedido.
+- Confere quantidade por produto (ativa+consumida) x itens reservaveis.
+- Exige debito comprovado em estoque_movimentacoes por reserva.
+- Bloqueia se houver reserva liberada/cancelada em pedido ativo, excesso,
+  debito ausente ou proveniencia ausente (quando controlado=true).
+- Montagem pura retorna 'montagem' (nao reservavel; nao declara cobertura).
+- Autorizacao: dono ou staff (admin/atendente/producao); auth.uid() NULL =
+  contexto interno (trigger/migration).$$;
+
+REVOKE ALL ON FUNCTION public.pedido_cobertura_reserva(uuid) FROM PUBLIC, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.pedido_cobertura_reserva(uuid) TO authenticated;
+
+-- ============================================================================
+-- 3. GATE DE PRODUCAO — FUNCAO DE TRIGGER PREPARADA, TRIGGER NAO INSTALADO
+-- ============================================================================
+-- ATENCAO: instalar o trigger altera o comportamento imediatamente, mesmo que o
+-- novo checkout esteja atras de flag. Por isso o CREATE TRIGGER esta comentado.
+--
+-- Politica de transicao exigida antes de instalar:
+--   * reconciliar/decidir os pedidos historicos em 'recebido' que nao tenham
+--     cobertura comprovada (as 19 reservas legadas + pedidos antigos);
+--   * ativar reserva_proveniencia_config.controlado=true somente depois;
+--   * instalar o trigger em migration/etapa separada, com auditoria.
+-- Enquanto controlado=false a funcao (se instalada) fica inerte.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.exigir_reserva_producao()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_controlado boolean := false;
+  v_cob        jsonb;
+BEGIN
+  -- So age quando o pedido SAI de 'recebido' para algo operacional.
+  IF OLD.status <> 'recebido' OR NEW.status IN ('recebido', 'cancelado') THEN
+    RETURN NEW;
+  END IF;
+
+  IF to_regclass('public.reserva_proveniencia_config') IS NOT NULL THEN
+    SELECT c.controlado INTO v_controlado
+      FROM public.reserva_proveniencia_config c
+     WHERE c.id = true;
+    v_controlado := COALESCE(v_controlado, false);
+  END IF;
+  IF NOT v_controlado THEN
+    RETURN NEW;
+  END IF;
+
+  v_cob := public.pedido_cobertura_reserva(NEW.id);
+  -- SOMENTE cobertura integral libera a producao. 'montagem' NAO e cobertura:
+  -- itens de montagem nao possuem reserva/composicao comprovada no banco.
+  IF COALESCE(v_cob->>'status', '') = 'coberto' THEN
+    RETURN NEW;
+  END IF;
+
+  RAISE EXCEPTION
+    'Pedido % sem cobertura de reserva para producao (status=%, motivo=%)',
+    NEW.id,
+    COALESCE(v_cob->>'status', 'desconhecido'),
+    COALESCE(v_cob->>'motivo', '')
+    USING ERRCODE = 'P0001';
+END;
+$$;
+
+COMMENT ON FUNCTION public.exigir_reserva_producao() IS
+$$Trigger (NAO INSTALADO) que bloqueia a saida de 'recebido' para status
+operacionais quando controlado=true e pedido_cobertura_reserva nao retorna
+'exatamente coberto'. 'montagem' NAO libera: item sem produto/composicao nao
+tem cobertura integral comprovada. Cobre transicoes alternativas (ex.: admin indo direto
+para 'pronto') porque olha qualquer saida de 'recebido', exceto 'cancelado'.
+Nao instalar antes da reconciliacao dos pedidos historicos em 'recebido'.$$;
+
+REVOKE ALL ON FUNCTION public.exigir_reserva_producao() FROM PUBLIC, anon, authenticated, service_role;
+
+-- ----------------------------------------------------------------------------
+-- 3.0b DEFESA DE CONSUMO — FUNCAO DE TRIGGER PREPARADA, TRIGGER NAO INSTALADO
+-- ----------------------------------------------------------------------------
+-- Quando controlado=true e o pedido sai de 'recebido' para producao, TODA
+-- reserva ativa precisa ter retirada fisica registrada em reserva_consumos
+-- (0087). Sem isso, o pedido nao avanca. NAO INSTALAR antes do cutover
+-- coordenado (mesma janela do controlado=true).
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.exigir_consumo_producao()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_controlado boolean := false;
+BEGIN
+  IF OLD.status <> 'recebido' OR NEW.status IN ('recebido', 'cancelado') THEN
+    RETURN NEW;
+  END IF;
+
+  IF to_regclass('public.reserva_proveniencia_config') IS NOT NULL THEN
+    SELECT c.controlado INTO v_controlado
+      FROM public.reserva_proveniencia_config c
+     WHERE c.id = true;
+    v_controlado := COALESCE(v_controlado, false);
+  END IF;
+  IF NOT v_controlado THEN
+    RETURN NEW;
+  END IF;
+  IF to_regclass('public.reserva_consumos') IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+      FROM public.reservas_estoque r
+     WHERE r.pedido_id = NEW.id
+       AND r.status = 'ativa'
+       AND NOT EXISTS (SELECT 1 FROM public.reserva_consumos rc WHERE rc.reserva_id = r.id)
+  ) THEN
+    RAISE EXCEPTION
+      'Pedido % possui reserva sem retirada fisica registrada', NEW.id
+      USING ERRCODE = 'P0001';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+COMMENT ON FUNCTION public.exigir_consumo_producao() IS
+$$Trigger (NAO INSTALADO) que bloqueia a saida de 'recebido' para producao quando
+controlado=true e alguma reserva ativa nao tem retirada fisica registrada em
+reserva_consumos (0087). NAO instalar antes do cutover coordenado.$$;
+
+REVOKE ALL ON FUNCTION public.exigir_consumo_producao() FROM PUBLIC, anon, authenticated, service_role;
+
+-- ----------------------------------------------------------------------------
+-- 3.1 INSTALACAO FUTURA (descomentar SOMENTE na etapa de ativacao, apos a
+--     reconciliacao dos pedidos historicos e com controlado=true). NAO
+--     descomentar nesta etapa.
+-- ----------------------------------------------------------------------------
+-- CREATE TRIGGER trigger_exigir_reserva_producao
+--   BEFORE UPDATE OF status ON public.pedidos
+--   FOR EACH ROW
+--   WHEN (OLD.status = 'recebido' AND NEW.status NOT IN ('recebido', 'cancelado'))
+--   EXECUTE FUNCTION public.exigir_reserva_producao();
+-- CREATE TRIGGER trigger_exigir_consumo_producao
+--   BEFORE UPDATE OF status ON public.pedidos
+--   FOR EACH ROW
+--   WHEN (OLD.status = 'recebido' AND NEW.status NOT IN ('recebido', 'cancelado'))
+--   EXECUTE FUNCTION public.exigir_consumo_producao();
+
+-- ============================================================================
+-- 4. DEPENDENCIAS E LIMITES DOCUMENTADOS (nao executado)
+-- ============================================================================
+-- * taxa de entrega: a coluna loja_config.taxa_entrega e OPCIONAL. Quando existe,
+--   e lida via to_jsonb; quando ausente, a funcao usa o default server-side
+--   R$ 6,00 (preserva o comportamento atual). RETIRADA = 0. Configurar outro
+--   valor e decisao comercial (config/migration propria).
+-- * montagem (produto_id NULL): combo.tsx usa COMBO_CATEGORIAS (constante do
+--   frontend; categorias nao tem preco) e nao existe tabela de composicao.
+--   A RPC rejeita com montagem_sem_modelagem; producao de pedidos antigos com
+--   montagem e tratada pela cobertura ('montagem').
+-- * desconto manual de PDV/atendimento: IMPLEMENTADO para canais pdv/atendente
+--   e papeis admin|atendente. Valor numerico >= 0, somado ao cupom e limitado
+--   ao subtotal. O checkout NAO aceita desconto manual.
+-- * pedidos sem reserva criados por caminhos antigos continuam possiveis ate o
+--   trigger ser instalado; o RPC novo, sozinho, nao fecha esses caminhos.
+-- * o gate de producao depende de controlado=true; ativar controlado antes de
+--   reconciliar os pedidos historicos em 'recebido' pode bloquea-los.
+-- ============================================================================

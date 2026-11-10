@@ -72,7 +72,7 @@ export type DependenciasIntegracao = {
   registrar_consumo_0091: boolean;
   proveniencia_0092: boolean;
   cancelar_pedido_0093: boolean;
-  controlado_ativo: boolean;
+  regime_proveniencia_ativo: boolean;
   fallback_checkout_removido: boolean;
   cancelamentos_diretos_migrados: boolean;
   producao_integrada: boolean;
@@ -87,7 +87,7 @@ export const DEPENDENCIAS_PADRAO: DependenciasIntegracao = {
   registrar_consumo_0091: false,
   proveniencia_0092: false,
   cancelar_pedido_0093: false,
-  controlado_ativo: false,
+  regime_proveniencia_ativo: false,
   fallback_checkout_removido: false,
   cancelamentos_diretos_migrados: false,
   producao_integrada: false,
@@ -100,6 +100,14 @@ export const DEPENDENCIAS_PADRAO: DependenciasIntegracao = {
  * `pedidos` + `liberar_reserva_atomica` + UPDATE direto em `reservas_estoque`)
  * é removido pelo mesmo interruptor de build; logo estas afirmações são
  * verdadeiras no bundle, não otimistas.
+ *
+ * `regime_proveniencia_ativo` (ADAPTAÇÃO CUTOVER, antes `controlado_ativo`)
+ * atesta que o regime de proveniência está INSTALADO e lido em runtime pela
+ * 0100 — com `controlado=true` (marcador obrigatório) OU `controlado=false`
+ * (regime conservador: a prova de integridade é o LEDGER — exatamente 1 débito
+ * coerente por reserva ativa; 0100/0088/0089 leem a flag via to_regclass).
+ * NÃO declara qual regime foi escolhido, tampouco pressupõe fail-closed por
+ * marcador: a variante vigente no staging é `controlado=false`.
  */
 export const DEPENDENCIAS_CANCELAMENTO_CORTE: DependenciasIntegracao = {
   ...DEPENDENCIAS_PADRAO,
@@ -107,7 +115,7 @@ export const DEPENDENCIAS_CANCELAMENTO_CORTE: DependenciasIntegracao = {
   liberar_pedido_0090: true,
   cancelar_pedido_0093: true,
   proveniencia_0092: true,
-  controlado_ativo: true,
+  regime_proveniencia_ativo: true,
   fallback_checkout_removido: true,
   cancelamentos_diretos_migrados: true,
 };
@@ -123,9 +131,11 @@ export const ATTESTACAO_CANCELAMENTO: DependenciasIntegracao = BUILD_DE_CORTE_CA
  *     duas rotas de reserva, uma delas sem débito — C.7).
  *   - consumo: 0091 + 0087 + produção integrada (a retirada física não pode ser
  *     tratada como obrigatória antes da implantação coordenada — C.5).
- *   - cancelamento: 0093 + 0090 + 0089 + 0092 + controlado ativo + cancelamentos
- *     diretos migrados + fallback removido. Sem isso, a 0090 falha fechada
- *     (sem marcador) e restariam caminhos diretos inseguros (C.6).
+ *   - cancelamento: 0093 + 0090 + 0089 + 0092 + regime de proveniência ativo
+ *     (definido e lido em runtime: controlado=true exigindo marcador OU
+ *     controlado=false com liberação por prova de LEDGER) + cancelamentos
+ *     diretos migrados + fallback removido. Sem isso, a 0100 falha fechada
+ *     e restariam caminhos diretos inseguros (C.6).
  */
 export const REQUISITOS: Record<OperacaoIntegracao, readonly ChaveDependencia[]> = {
   reserva: ["reservar_pedido_0089", "proveniencia_0092", "fallback_checkout_removido"],
@@ -135,7 +145,7 @@ export const REQUISITOS: Record<OperacaoIntegracao, readonly ChaveDependencia[]>
     "liberar_pedido_0090",
     "reservar_pedido_0089",
     "proveniencia_0092",
-    "controlado_ativo",
+    "regime_proveniencia_ativo",
     "cancelamentos_diretos_migrados",
     "fallback_checkout_removido",
   ],
