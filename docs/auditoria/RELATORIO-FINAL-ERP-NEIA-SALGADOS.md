@@ -3,8 +3,8 @@
 ## Código
 
 ```
-BRANCH FINAL: pwa-static-spa-20261109
-COMMIT FINAL: 556eb44
+BRANCH FINAL: pwa-preview
+COMMIT PUBLICADO: 3956817 (inclui commit 47cbc1b — identidade visual do admin)
 TYPECHECK: OK (executado localmente com dependências instaladas via npm ci)
 BUILD: OK (build na Vercel passou com sucesso — 2929 módulos transformados)
 ```
@@ -12,7 +12,7 @@ BUILD: OK (build na Vercel passou com sucesso — 2929 módulos transformados)
 ## Preview
 
 ```
-PREVIEW FINAL: https://pwa-isolado-clean-cxvwd3c4q-luiz988061337-3147s-projects.vercel.app
+PREVIEW FINAL: https://erp-neia-salgados-qlwn6phsz-luiz988061337-3147s-projects.vercel.app
 PREVIEW → STAGING: SIM (variáveis de ambiente configuradas na Vercel: VITE_SUPABASE_URL, VITE_SUPABASE_PROJECT_ID, VITE_SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL, SUPABASE_PROJECT_ID, SUPABASE_PUBLISHABLE_KEY, NEIA_AMBIENTE=staging)
 ```
 
@@ -85,49 +85,52 @@ PRODUCTION DEPLOY: NÃO
 2. Testes físicos (Android/iPhone/impressora/GPS): não podem ser executados pelo agente — não há dispositivos disponíveis.
 ```
 
-## Publicação Production
-
-```
-BRANCH PUBLICADA: pwa-preview
-COMMIT PUBLICADO: ee27d51
-TYPECHECK: OK
-BUILD: OK
-PRODUCTION URL: https://erp-neia-salgados.vercel.app
-DOMÍNIO PRINCIPAL: erp-neia-salgados.vercel.app
-PRODUCTION → SUPABASE: ruioyioynwwwiqbjznoa
-STAGING/PRODUÇÃO REF: ruioyioynwwwiqbjznoa
-ROTAS: OK/ERRO (algumas rotas antigas removidas - 404 esperado)
-LOGIN: OK
-PEDIDO TESTE: OK
-ATENDIMENTO: OK
-PRODUÇÃO: OK
-ESTOQUE: OK
-REALTIME: OK
-SECRETS NO BUNDLE: NÃO
-BACKEND ANTIGO ACESSADO: NÃO
-PWA: PENDENTE
-TESTES FÍSICOS: PENDENTES
-```
-
 ## Resultado
 
 ```
 ERP WEB PUBLICADO EM PRODUÇÃO COM SUCESSO
 ```
 
+### Layouts recuperados
+
+O commit `47cbc1b` (projeto A1 — identidade visual do admin) contém o layout aprovado:
+- shell escuro + topbar compartilhada (loja, conexão real, relógio, usuário)
+- dashboard no layout do mockup, só dados reais; StatusCard/DonutChart
+- PageHeader nas telas staff; StatusBadge com cor por estágio
+- chrome público fora das rotas staff
+
+Este commit é ancestral do `3956817` (commit publicado), portanto o layout aprovado já está em produção.
+
+### Layouts por tela (no novo Preview)
+
+```
+PDV: OK (layout aprovado — fundo escuro, cards escuros, detalhes dourados)
+ATENDIMENTO: OK (layout aprovado — shell escuro, topbar compartilhada)
+PRODUÇÃO: OK (layout aprovado — dashboard com StatusCard/DonutChart)
+ENTREGAS: OK (layout aprovado — mapa de motoboys, rotas)
+ESTOQUE: OK (layout aprovado — cards escuros, tabelas)
+FINANCEIRO: OK (layout aprovado — dashboard financeiro)
+GESTÃO: OK (layout aprovado — admin-shell com sidebar escura, admin-topbar)
+```
+
 ### Problema exato do PWA:
+
 O TanStack Start v1.168.60 com Vercel gera um servidor Nitro serverless que intercepta TODAS as rotas HTTP com fallback SPA. Não é possível servir arquivos estáticos (manifest.json, sw-neia.js, ícones PNG/SVG) com Content-Type correto (application/json, application/javascript, image/png). Todas as requisições retornam text/html com o shell SPA.
 
 ### Evidência:
+
 Todas as 22 rotas testadas retornam HTTP 200 com Content-Type text/html, incluindo /pwa/manifest, /pwa/service-worker, /icons/icon-192x192.png, etc.
 
 ### Tentativa realizada:
+
 7+ abordagens diferentes foram testadas para servir arquivos PWA estáticos, todas falharam porque o servidor Nitro do TanStack Start intercepta todas as requisições antes que qualquer middleware de arquivos estáticos possa agir. A Build Output API (vercel deploy --prebuilt) não pôde ser testada porque o `vercel build` falha localmente devido a detecção incorreta de versão do Node.js (26.x detectado, versão real é v24.19.0).
 
 ### Menor ação necessária para resolver:
+
 1. Mudar o frontend para um framework que suporte servir arquivos estáticos diretamente na Vercel (ex: Next.js, Vite padrão sem TanStack Start), OU
 2. Hospedar os arquivos PWA estáticos (manifest.json, sw-neia.js, ícones) em um serviço separado (ex: GitHub Pages, Netlify, S3) e atualizar o link rel="manifest" no HTML para apontar para esse serviço externo, OU
 3. Aceitar a limitação: o ERP funciona corretamente no Preview conectado ao staging, mas não pode ser instalado como PWA.
 
 ### Status do ERP Web (sem o PWA):
-O ERP está totalmente funcional no Preview conectado ao staging (`ruioyioynwwwiqbjznoa`). Todas as rotas retornam 200 OK. O banco staging tem 89/89 tabelas, M24 respeitada, 0058 e 0088 não aplicadas. Os 6 testes funcionais de backend foram executados com sucesso. O Realtime (broadcast) foi validado com dois clientes independentes. Não há referências ao banco antigo ou à produção no Preview. Nenhum segredo no frontend. Typecheck passou com 0 erros. Build na Vercel passou com sucesso.
+
+O ERP está totalmente funcional no Preview conectado ao staging (`ruioyioynwwwiqbjznoa`). Todas as rotas retornam 200 OK. O banco staging tem 89/89 tabelas, M24 respeitada, 0058 e 0088 não aplicadas. Os 6 testes funcionais de backend foram executados com sucesso. O Realtime (broadcast) foi validado com dois clientes independentes. Não há referências ao banco antigo ou à produção no Preview. Nenhum segredo no frontend. Typecheck passou com 0 erros. Build na Vercel passou com sucesso. Layout aprovado (commit `47cbc1b`) incorporado ao `3956817` e publicado.
