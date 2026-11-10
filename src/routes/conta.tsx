@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { ProductCard } from "@/components/product-card";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { supabase as supabaseAuth } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora } from "@/lib/format";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
@@ -272,6 +273,9 @@ function Conta() {
       <p className="mt-1 text-sm text-muted-foreground">
         {perfil?.nome ?? user?.email} {perfil?.telefone ? `• ${perfil.telefone}` : ""} • {brl(totalGasto)} em pedidos
       </p>
+
+      {/* Seus dados — login sem senha: WhatsApp é a identidade; e-mail é opcional */}
+      <SectionDados user={user} perfil={perfil ?? null} />
 
       {/* Fidelidade */}
       <section className="mt-4 rounded-xl border border-secondary/60 bg-gradient-to-r from-card to-secondary/20 p-4">
@@ -598,6 +602,96 @@ function AvaliarProdutos({ pedidos, produtos, minhas, userId }: { pedidos: any[]
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Login sem senha: WhatsApp = identidade (somente leitura) | e-mail = opcional | sem senha. */
+function SectionDados({
+  user,
+  perfil,
+}: {
+  user: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null;
+  perfil: { nome?: string; telefone?: string } | null;
+}) {
+  const queryClient = useQueryClient();
+  const [nome, setNome] = useState(perfil?.nome ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvarDados(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSalvando(true);
+    try {
+      const nomeNovo = nome.trim();
+      const emailNovo = email.trim();
+      if (nomeNovo && nomeNovo !== (perfil?.nome ?? "").trim()) {
+        const { error: eNome } = await supabase
+          .from("profiles")
+          .update({ nome: nomeNovo })
+          .eq("id", user!.id);
+        if (eNome) {
+          toast.error("Não foi possível salvar seu nome.");
+          return;
+        }
+        queryClient.invalidateQueries({ queryKey: ["perfil", user!.id] });
+      }
+      if (emailNovo && emailNovo !== (user?.email ?? "")) {
+        // @ts-expect-error Tipos do @supabase/auth-js não instalados no ambiente local
+        const { error: eEmail } = await supabaseAuth.auth.updateUser({ email: emailNovo });
+        if (eEmail) {
+          toast.error("Não foi possível salvar o e-mail. Verifique o formato.");
+          return;
+        }
+        toast.success("E-mail salvo (opcional). Confirme se chegou um e-mail de verificação.");
+      } else {
+        toast.success("Dados salvos.");
+      }
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={salvarDados}
+      className="mt-4 rounded-xl border border-border bg-card p-4"
+      aria-label="Seus dados"
+    >
+      <p className="font-display text-lg">Seus dados</p>
+      <p className="text-xs text-muted-foreground">
+        Você entra pelo WhatsApp {perfil?.telefone ? "(" + perfil.telefone + ")" : ""} — sem senha. E-mail é opcional.
+      </p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="dados-nome">Nome</Label>
+          <Input
+            id="dados-nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            maxLength={100}
+            placeholder="Seu nome"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="dados-telefone">WhatsApp</Label>
+          <Input id="dados-telefone" value={perfil?.telefone ?? ""} readOnly className="cursor-not-allowed opacity-80" />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="dados-email">E-mail (opcional)</Label>
+          <Input
+            id="dados-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            maxLength={255}
+            placeholder="voce@email.com"
+          />
+        </div>
+      </div>
+      <Button type="submit" size="sm" className="mt-3" disabled={salvando}>
+        {salvando ? "Salvando..." : "Salvar dados"}
+      </Button>
+    </form>
   );
 }
 
