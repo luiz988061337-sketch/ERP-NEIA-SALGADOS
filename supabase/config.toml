@@ -1,1 +1,4 @@
-project_id = "iqirsunzgavsuhgyjjsi"
+project_id = "ruioyioynwwwiqbjznoa"
+
+[auth]
+enable_anonymous_sign_ins = true

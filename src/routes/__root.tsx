@@ -16,6 +16,7 @@ import { Toaster } from "@/components/ui/sonner";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
+import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
 import { CartDock } from "@/components/cart-dock";
 import { SiteHeader } from "@/components/site-header";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
@@ -139,6 +140,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
+
+  // Acesso direto do cliente: primeira visita cria sessão anônima nos
+  // bastidores (sem tela de login). Sessões existentes são preservadas.
+  useEffect(() => {
+    void garantirSessaoAnonima();
+  }, []);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {

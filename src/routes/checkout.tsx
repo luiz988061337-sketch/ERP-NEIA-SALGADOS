@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Copy, Loader2, QrCode, Trophy } from "lucide-react";
@@ -14,6 +14,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useCart, isComboItem } from "@/lib/cart";
 import { BackButton } from "@/components/back-button";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
+import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA } from "@/lib/format";
 import { notificarPush } from "@/lib/push";
 import { calcTotals, isMultiploCombo } from "@/lib/totals";
@@ -78,6 +79,7 @@ function Checkout() {
   const { user, loading } = useSession();
   const { staffOnly, painel } = useStaffOnly();
   const { data: perfil } = usePerfil(user?.id);
+  const queryClient = useQueryClient();
   const { items, subtotal, clear } = useCart();
   const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "credito" | "debito">("pix");
   const [cupomTexto, setCupomTexto] = useState("");
@@ -168,9 +170,10 @@ function Checkout() {
   }, [staffOnly, painel, navigate]);
 
   useEffect(() => {
-    if (!loading && !user)
-      navigate({ to: "/auth", search: { redirect: "/checkout" }, replace: true });
-  }, [loading, user, navigate]);
+    // Acesso direto do cliente: sem login visível. Se não houver sessão,
+    // cria uma sessão anônima em segundo plano (sem OTP/senha/Twilio).
+    if (!loading && !user) void garantirSessaoAnonima();
+  }, [loading, user]);
 
   useEffect(() => {
     if (!loading && user && items.length === 0) navigate({ to: "/carrinho", replace: true });
@@ -247,6 +250,10 @@ function Checkout() {
   }
 
   async function finalizar(e: React.FormEvent<HTMLFormElement>) {
+    // Sessão anônima garantida nos bastidores antes de gravar o pedido.
+    await garantirSessaoAnonima();
+    const sessao = await supabase.auth.getSession();
+    const uidSessao = (sessao.data.session?.user ?? null)?.id ?? null;
     e.preventDefault();
     if (!user) return;
     const form = new FormData(e.currentTarget);
@@ -467,7 +474,7 @@ function Checkout() {
         tipoEntrega === "retirada" ? "online" : pagamento === "dinheiro" ? "na_entrega" : "online";
 
       const insertBody: Record<string, any> = {
-        user_id: user.id,
+        user_id: uidSessao ?? user.id,
         cliente_nome: parsed.data.cliente_nome,
         telefone: parsed.data.telefone,
         endereco: isRetirada
@@ -716,6 +723,26 @@ function Checkout() {
         /* sem migration — segue */
       }
       }
+
+      // Acesso sem senha: persistir Nome + WhatsApp no perfil uma única vez
+      // (permissões próprias por RLS). Próximos pedidos reaproveitam os dados.
+      try {
+        const nomeAtual = String(perfil?.nome ?? "");
+        const telAtual = String(perfil?.telefone ?? "");
+        if (!nomeAtual.trim() || !telAtual.trim()) {
+          await supabase
+            .from("profiles")
+            .update({
+              nome: nomeAtual.trim() || parsed.data.cliente_nome,
+              telefone: telAtual.trim() || parsed.data.telefone,
+            })
+            .eq("id", user.id);
+          queryClient.invalidateQueries({ queryKey: ["perfil", user.id] });
+        }
+      } catch {
+        /* best-effort — não bloqueia o pedido */
+      }
+
       try {
         const totalUnidades = itensValidados.reduce((a, i) => a + i.quantidade, 0);
         const prepMin = Math.ceil(tempoFritura(totalUnidades) / 60) + 40;

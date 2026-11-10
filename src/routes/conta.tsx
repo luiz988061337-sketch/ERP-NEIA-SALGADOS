@@ -14,6 +14,7 @@ import { supabase as supabaseAuth } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { brl, dataHora } from "@/lib/format";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
+import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
 import { useAvaliacoes, useCategorias, useProdutos, precoFinal, tipoVendaProduto, type Produto } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { COMBO_CATEGORIAS } from "@/lib/combo";
@@ -48,7 +49,7 @@ function Conta() {
   }, [staffOnly, painel, navigate]);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/conta" }, replace: true });
+    if (!loading && !user) void garantirSessaoAnonima();
   }, [loading, user, navigate]);
 
   const { data: pedidos } = useQuery({
