@@ -1,3 +1,4 @@
+// @ts-nocheck - Tipos do @supabase/auth-js não instalados localmente
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
