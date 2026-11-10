@@ -250,13 +250,19 @@ function Checkout() {
   }
 
   async function finalizar(e: React.FormEvent<HTMLFormElement>) {
+    // O evento sintético do React deixa de expor `currentTarget` depois de
+    // qualquer `await` (fica null). Por isso capturamos o formulário e
+    // chamamos preventDefault() de forma SÍNCRONA, ANTES de qualquer operação
+    // assíncrona — caso contrário `new FormData(e.currentTarget)` lança
+    // "parameter 1 is not of type 'HTMLFormElement'" e o pedido nunca é criado.
+    e.preventDefault();
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
     // Sessão anônima garantida nos bastidores antes de gravar o pedido.
     await garantirSessaoAnonima();
     const sessao = await supabase.auth.getSession();
     const uidSessao = (sessao.data.session?.user ?? null)?.id ?? null;
-    e.preventDefault();
     if (!user) return;
-    const form = new FormData(e.currentTarget);
     const parsed = schema.safeParse({
       // Na retirada os inputs de endereço nem existem no DOM (form.get = null):
       // normaliza para "" aqui (a obrigatoriedade p/ entrega é checada abaixo).
