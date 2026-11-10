@@ -78,24 +78,14 @@ export function SiteHeader() {
               <Link to="/ajuda">Ajuda</Link>
             </Button>
           )}
-          {staffOnly ? null : (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/historia">História</Link>
-            </Button>
-          )}
           {user && !staffOnly ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/conta">Meus pedidos</Link>
             </Button>
           ) : null}
-          {user && (!staffOnly || isAtendente) ? (
+          {isAtendente ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/orcamentos">Orçamentos</Link>
-            </Button>
-          ) : null}
-          {user && !staffOnly ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/recorrentes">Recorrentes</Link>
             </Button>
           ) : null}
           {isAtendente ? (
@@ -108,7 +98,7 @@ export function SiteHeader() {
               <Link to="/pdv">PDV Balcão</Link>
             </Button>
           ) : null}
-          {user ? (
+          {staffOnly ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/equipe">Equipe</Link>
             </Button>
@@ -136,11 +126,6 @@ export function SiteHeader() {
           {isAdmin ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">Admin</Link>
-            </Button>
-          ) : null}
-          {isAdmin ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/gestao">Gestão</Link>
             </Button>
           ) : null}
           {isAdmin ? (
@@ -247,17 +232,10 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
-                {user && (!staffOnly || isAtendente) ? (
+                {isAtendente ? (
                   <DropdownMenuItem asChild>
                     <Link to="/orcamentos">
                       <LayoutDashboard className="mr-2 size-4" /> Orçamentos
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {user && !staffOnly ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/recorrentes">
-                      <LayoutDashboard className="mr-2 size-4" /> Recorrentes
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
@@ -314,14 +292,9 @@ export function SiteHeader() {
                   <Link to="/conta">Meus pedidos</Link>
                 </DropdownMenuItem>
               ) : null}
-              {user && (!staffOnly || isAtendente) ? (
+              {isAtendente ? (
                 <DropdownMenuItem asChild>
                   <Link to="/orcamentos">Orçamentos</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {user && !staffOnly ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/recorrentes">Recorrentes</Link>
                 </DropdownMenuItem>
               ) : null}
               {isAtendente ? (
@@ -334,7 +307,7 @@ export function SiteHeader() {
                   <Link to="/pdv">PDV Balcão</Link>
                 </DropdownMenuItem>
               ) : null}
-              {user ? (
+              {staffOnly ? (
                 <DropdownMenuItem asChild>
                   <Link to="/equipe">Equipe</Link>
                 </DropdownMenuItem>
@@ -362,11 +335,6 @@ export function SiteHeader() {
               {isAdmin ? (
                 <DropdownMenuItem asChild>
                   <Link to="/admin">Admin</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {isAdmin ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/gestao">Gestão</Link>
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>
