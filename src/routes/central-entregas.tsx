@@ -756,6 +756,7 @@ function CentralEntregas() {
           await supabase.auth.signOut();
           navigate({ to: "/auth", replace: true });
         }}
+        onVoltar={() => navigate({ to: "/" })}
       />
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="relative mb-4 min-h-36 overflow-hidden rounded-xl shadow-[var(--shadow-card)]">

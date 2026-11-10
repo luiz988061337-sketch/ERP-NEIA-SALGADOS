@@ -362,6 +362,7 @@ function Recorrentes() {
           await supabase.auth.signOut();
           navigate({ to: "/auth", replace: true });
         }}
+        onVoltar={() => navigate({ to: "/" })}
       />
       <div className="mx-auto max-w-3xl space-y-4 px-4 py-8">
         <div className="flex items-center gap-3">

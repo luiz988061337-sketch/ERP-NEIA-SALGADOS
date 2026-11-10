@@ -102,6 +102,7 @@ function CrmConfig() {
           await supabase.auth.signOut();
           navigate({ to: "/auth", replace: true });
         }}
+        onVoltar={() => navigate({ to: "/" })}
       />
       <div className="mx-auto max-w-2xl px-4 py-8">
         <PageHeader

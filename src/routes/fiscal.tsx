@@ -257,6 +257,7 @@ function Fiscal() {
           await supabase.auth.signOut();
           navigate({ to: "/auth", replace: true });
         }}
+        onVoltar={() => navigate({ to: "/" })}
       />
       <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
         <div className="flex items-center gap-3">

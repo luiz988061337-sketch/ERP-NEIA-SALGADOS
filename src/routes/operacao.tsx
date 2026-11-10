@@ -110,7 +110,7 @@ function Operacao() {
               </a>
             </span>
           }
-        />
+      />
         <ul className="rounded-xl border border-border bg-card p-4 text-sm">
           {oQuePrecisaAtencao(lista, criticos).map((a) => (
             <li key={a}>• {a}</li>

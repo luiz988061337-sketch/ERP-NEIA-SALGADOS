@@ -311,6 +311,7 @@ function Contador() {
           await supabase.auth.signOut();
           navigate({ to: "/auth", replace: true });
         }}
+        onVoltar={() => navigate({ to: "/" })}
       />
       <div className="mx-auto max-w-6xl space-y-4 px-4 py-8">
         <PageHeader

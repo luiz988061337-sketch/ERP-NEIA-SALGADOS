@@ -265,7 +265,7 @@ function Orcamentos() {
               ) : null}
             </div>
           }
-        />
+      />
 
         {modo === "lista" ? (
           <ul className="mt-4 space-y-2">
