@@ -47,3 +47,6 @@ dev_out.txt
 preview_html.txt
 diag_preview.bat
 scripts-tests-summary.json
+
+.vercel
+.env*
