@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
 import { useCart, isComboItem } from "@/lib/cart";
+import { BackButton } from "@/components/back-button";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA } from "@/lib/format";
 import { notificarPush } from "@/lib/push";
@@ -1298,6 +1299,7 @@ function Checkout() {
           </div>
         </section>
 
+        <BackButton label="Voltar" className="w-full" />
         <Button type="submit" size="lg" className="w-full" disabled={enviando}>
           {enviando ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
           Confirmar pedido • {brl(totalFinalUI)}

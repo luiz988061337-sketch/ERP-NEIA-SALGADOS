@@ -6,6 +6,7 @@ import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BackButton } from "@/components/back-button";
 import { useCart, isComboItem } from "@/lib/cart";
 import { supabase } from "@/integrations/supabase/client";
 import { brl, TAXA_ENTREGA } from "@/lib/format";
@@ -238,6 +239,7 @@ const { data: categorias } = useCategorias();
       ) : null}
 
       <div className="mt-4 flex gap-2">
+        <BackButton label="Voltar" />
         <Button asChild variant="outline" className="flex-1">
           <Link to="/">Continuar comprando</Link>
         </Button>
