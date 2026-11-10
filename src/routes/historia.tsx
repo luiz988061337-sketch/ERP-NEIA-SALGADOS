@@ -1,8 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/historia")({
   head: () => ({ meta: [{ title: "Nossa História — Néia Salgados" }] }),
-  component: Historia,
+  component: () => {
+    const navigate = useNavigate();
+    useEffect(() => {
+      navigate({ to: "/", replace: true });
+    }, [navigate]);
+    return null;
+  },
 });
 
 function Historia() {

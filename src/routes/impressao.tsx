@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
@@ -16,11 +16,18 @@ export const Route = createFileRoute("/impressao")({
 
 function Fila() {
   const navigate = useNavigate();
-  const { user } = useSession();
+  const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const isStaff =
     roles?.includes("admin") || roles?.includes("producao") || roles?.includes("atendente");
   const [enviando, setEnviando] = useState(false);
+
+  // Padrão uniforme das rotas staff: anônimo vai para /auth em vez de ver a
+  // mensagem de acesso restrito antes de saber se está logado.
+  useEffect(() => {
+    if (!loading && !user)
+      navigate({ to: "/auth", search: { redirect: "/impressao" }, replace: true });
+  }, [loading, user, navigate]);
   const fila = useQuery({
     queryKey: ["fila-impressao"],
     enabled: !!isStaff,

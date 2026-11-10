@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +20,17 @@ export const Route = createFileRoute("/operacao")({
 
 function Operacao() {
   const navigate = useNavigate();
-  const { user } = useSession();
+  const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const qc = useQueryClient();
   const isAdmin = roles?.includes("admin");
+
+  // Padrão uniforme das rotas staff: anônimo vai para /auth em vez de ver a
+  // mensagem de acesso restrito antes de saber se está logado.
+  useEffect(() => {
+    if (!loading && !user)
+      navigate({ to: "/auth", search: { redirect: "/operacao" }, replace: true });
+  }, [loading, user, navigate]);
   const pedidos = useQuery({
     queryKey: ["op-pedidos"],
     enabled: !!isAdmin,

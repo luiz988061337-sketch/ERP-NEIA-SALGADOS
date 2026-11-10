@@ -28,11 +28,26 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 
+function lerEnv(chave: string): string | undefined {
+  // Cliente (build-time, Vite): substituição estática — é o caminho normal do navegador.
+  const doVite = (import.meta.env as Record<string, string | undefined>)[chave];
+  if (typeof doVite === "string" && doVite) return doVite;
+  // SSR (servidor): process.env só existe no Node. No navegador, `process` é
+  // undefined e o acesso direto (process.env.X) lançava ReferenceError antes
+  // de qualquer mensagem útil — o erro aparecia longe da configuração, no
+  // Proxy do cliente, sem toast nenhum. A checagem tipada mantém o mesmo
+  // nome de variável (SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY).
+  if (typeof process !== "undefined" && process.env) {
+    const doNode = (process.env as Record<string, string | undefined>)[chave];
+    if (typeof doNode === "string" && doNode) return doNode;
+  }
+  return undefined;
+}
+
 function createSupabaseClient() {
-  // Use import.meta.env for client-side (Vite build-time replacement)
-  // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env['VITE_SUPABASE_URL'] || process.env['SUPABASE_URL'];
-  const SUPABASE_PUBLISHABLE_KEY = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'] || process.env['SUPABASE_PUBLISHABLE_KEY'];
+  const SUPABASE_URL = lerEnv("VITE_SUPABASE_URL") ?? lerEnv("SUPABASE_URL");
+  const SUPABASE_PUBLISHABLE_KEY =
+    lerEnv("VITE_SUPABASE_PUBLISHABLE_KEY") ?? lerEnv("SUPABASE_PUBLISHABLE_KEY");
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [

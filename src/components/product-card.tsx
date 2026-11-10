@@ -94,16 +94,16 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
           </span>
         ) : null}
 
-        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-          <div>
+        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-1">
             {promo ? (
-              <span className="mr-1 text-xs text-muted-foreground line-through">{brl(produto.preco)}</span>
+              <span className="text-xs text-muted-foreground line-through">{brl(produto.preco)}</span>
             ) : null}
             <span className="font-display text-lg text-primary">{brl(preco)}</span>
           </div>
           <Button
             size="sm"
-            className="min-h-[40px] px-4 font-bold"
+            className="ml-auto min-h-[40px] shrink-0 px-4 font-bold"
             disabled={indisponivel}
             onClick={adicionar}
             aria-label={`Adicionar ${produto.nome} ao pedido`}

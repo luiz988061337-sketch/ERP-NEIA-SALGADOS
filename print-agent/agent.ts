@@ -12,7 +12,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const URL = process.env.SUPABASE_URL ?? "";
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const PUBLISHABLE = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
 const ANON = process.env.SUPABASE_ANON_KEY ?? "";
 const STAFF_EMAIL = process.env.STAFF_EMAIL ?? "";
 const STAFF_PASSWORD = process.env.STAFF_PASSWORD ?? "";
@@ -25,21 +25,67 @@ const MAX_TENT = Number(process.env.MAX_TENTATIVAS ?? 5);
 const RETRY_MIN = Number(process.env.RETRY_MIN ?? 2);
 const STUCK_MIN = 5;
 
-if (!URL || (!SERVICE && (!ANON || !STAFF_EMAIL || !STAFF_PASSWORD))) {
-  console.error("Configure no .env do print-agent: SUPABASE_URL + (SUPABASE_SERVICE_ROLE_KEY ou SUPABASE_ANON_KEY + STAFF_EMAIL + STAFF_PASSWORD de um usuário admin/atendente/producao).");
+const SB_KEY = PUBLISHABLE || ANON;
+const faltando: string[] = [];
+if (!URL) faltando.push("SUPABASE_URL");
+if (!SB_KEY) faltando.push("SUPABASE_PUBLISHABLE_KEY (ou SUPABASE_ANON_KEY como fallback)");
+if (!STAFF_EMAIL) faltando.push("STAFF_EMAIL");
+if (!STAFF_PASSWORD) faltando.push("STAFF_PASSWORD");
+if (faltando.length > 0) {
+  console.error(
+    "Configuração inválida para o agente de impressão: variáveis ausentes — " +
+      faltando.join(", ") +
+      ". O agente exige SUPABASE_URL + (SUPABASE_PUBLISHABLE_KEY ou SUPABASE_ANON_KEY) + STAFF_EMAIL + STAFF_PASSWORD; o uso de SUPABASE_SERVICE_ROLE_KEY não é permitido neste agente.",
+  );
   process.exit(1);
 }
 
-const sb = createClient(URL, SERVICE || ANON);
+const sb = createClient(URL, SB_KEY);
 
-if (!SERVICE) {
+type AuthState = "AUTH_LOGIN" | "AUTH_OK" | "AUTH_REFRESH_FAILED" | "AUTH_RELOGIN" | "AUTH_RELOGIN_FAILED" | "AUTH_RECOVERED";
+let authState: AuthState = "AUTH_LOGIN";
+let tentRelogin = 0;
+const MAX_TENT_RELOGIN = 3;
+
+async function loginAgente(): Promise<boolean> {
   const { error } = await sb.auth.signInWithPassword({ email: STAFF_EMAIL, password: STAFF_PASSWORD });
   if (error) {
-    console.error("Login do agente falhou. Use um usuário com papel admin, atendente ou producao.", error.message);
-    process.exit(1);
+    authState = "AUTH_RELOGIN_FAILED";
+    console.log("INFO auth: falha no login staff; estado AUTH_RELOGIN_FAILED.");
+    return false;
   }
-  console.log(`Agente logado como ${STAFF_EMAIL} (sessão com refresh automático).`);
+  authState = "AUTH_OK";
+  console.log("INFO auth: autenticacao staff ok; estado AUTH_OK.");
+  return true;
 }
+
+async function iniciarAgente(): Promise<void> {
+  const ok = await loginAgente();
+  if (!ok) process.exit(1);
+}
+
+async function tickComAuth(): Promise<void> {
+  try {
+    await tick();
+  } catch (e) {
+    const msg = String((e as Error)?.message ?? "");
+    const falhaAuth = /auth|session|jwt|refresh|token|login/i.test(msg);
+    if (falhaAuth && authState === "AUTH_OK" && tentRelogin < MAX_TENT_RELOGIN) {
+      tentRelogin += 1;
+      authState = "AUTH_RELOGIN";
+      console.log("INFO auth: sessao indisponivel; tentando novo login staff.");
+      const ok = await loginAgente();
+      if (ok) {
+        authState = "AUTH_RECOVERED";
+        await tick();
+        return;
+      }
+    }
+    throw e;
+  }
+}
+
+await iniciarAgente();
 
 function imprimirTexto(texto: string): void {
   const arq = join(tmpdir(), `neia-${Date.now()}.txt`);
@@ -97,6 +143,6 @@ async function tick(): Promise<void> {
   }
 }
 
-setInterval(() => { tick().catch(console.error); }, POLL);
+setInterval(() => { tickComAuth().catch(console.error); }, POLL);
 console.log(`Agente Tanca rodando: impressora="${PRINTER}" poll=${POLL}ms`);
-void tick();
+void tickComAuth();

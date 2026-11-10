@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,18 @@ export const Route = createFileRoute("/fiscal")({
 
 function Fiscal() {
   const navigate = useNavigate();
-  const { user } = useSession();
+  const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const qc = useQueryClient();
   const isAdmin = roles?.includes("admin") || roles?.includes("financeiro");
   const [docSel, setDocSel] = useState<any>(null);
+
+  // Padrão uniforme das rotas staff (clientes.tsx:87 etc.): anônimo vai para /auth.
+  // Antes: `roles && !isAdmin` deixava o shell completo render para usuário sem sessão.
+  useEffect(() => {
+    if (!loading && !user)
+      navigate({ to: "/auth", search: { redirect: "/fiscal" }, replace: true });
+  }, [loading, user, navigate]);
 
   const empresa = useQuery({
     queryKey: ["empresa-fiscal"],

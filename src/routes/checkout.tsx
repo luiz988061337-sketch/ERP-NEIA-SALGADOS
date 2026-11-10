@@ -22,8 +22,6 @@ import { useCrmSettings } from "@/lib/crm";
 import { registrarEventoCarrinho } from "@/lib/inteligencia";
 import { gerarPix } from "@/lib/pix";
 import { QrPixLocal } from "@/components/qr-pix-local";
-import { textoCupom } from "@/lib/impressao";
-import { tempoFritura } from "@/lib/cozinha";
 import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
@@ -716,72 +714,11 @@ function Checkout() {
       }
       }
       try {
-        const totalUnidades = itensValidados.reduce((a, i) => a + i.quantidade, 0);
-        const prepMin = Math.ceil(tempoFritura(totalUnidades) / 60) + 40;
-        const fmtH = (d: Date) => d.toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-        const iniPrev = new Date(Date.now() + prepMin * 60000);
-        const fimPrev = new Date(iniPrev.getTime() + 30 * 60000);
-        const payloadCozinha = textoCupom({
-          numero: (pedido as any).numero,
-          dataHora: new Date().toLocaleString("pt-BR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          cliente: parsed.data.cliente_nome,
-          telefone: parsed.data.telefone,
-          itens: itensValidados.map((i) => ({
-            qtd: i.quantidade,
-            nome: i.nome,
-            precoUnit: i.preco,
-          })),
-          totalUnidades,
-          entregaRetirada: isRetirada ? "RETIRADA NA LOJA" : "ENTREGA",
-          horario: agendadoPara
-            ? new Date(agendadoPara).toLocaleString("pt-BR")
-            : "o mais rapido possivel",
-          endereco: isRetirada
-            ? enderecoLojaTexto || "Retirada na loja"
-            : `${parsed.data.endereco} — ${parsed.data.cidade}`,
-          pagamento: PAGAMENTO_LABEL[pagamento] ?? pagamento,
-          observacoes: obsFinal ?? "",
-          status: "PENDENTE_PGTO",
-          bairro: isRetirada ? null : parsed.data.bairro,
-          cidade: isRetirada ? null : parsed.data.cidade,
-          cep: isRetirada ? null : parsed.data.cep || null,
-          complemento: isRetirada ? null : parsed.data.complemento || null,
-          referencia: isRetirada ? null : parsed.data.referencia || null,
-          subtotal: subtotalValidado,
-          taxaEntrega: taxaEntregaFinal,
-          total: totalFinal,
-          pedidosCliente: (qtdPedidos ?? 0) + 1,
-          motoboy: null,
-          prevista: `${fmtH(iniPrev)} - ${fmtH(fimPrev)}`,
-          agendadoEm:
-            quando === "agendar"
-              ? new Date().toLocaleString("pt-BR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : null,
-          agendadoPara: agendadoPara
-            ? new Date(agendadoPara)
-                .toLocaleString("pt-BR", {
-                  weekday: "short",
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-                .replace(/\./g, "") + "h"
-            : null,
-        });
+        // Impressão do cupom NÃO é feita no cliente: a fila_impressao do pedido
+        // é criada no servidor (trigger trg_gerar_cupom_apos_itens e
+        // trg_pagamento_confirmado do baseline 0086, via enfileirar_cupom).
+        // O antigo INSERT manual + payloadCozinhado foram removidos; o payload
+        // construído em memoria nunca era enfileirado (variavel morta).
         let pts = 0;
         try {
           const { data: creditados } = await supabase.rpc("creditar_pontos_pedido", {
@@ -795,18 +732,6 @@ function Checkout() {
         clear();
         void notificarPush(supabase, (pedido as any).id, "recebido");
         toast.success(`Pedido nº ${(pedido as any).numero} recebido! +${pts} pts fidelidade`);
-        const linhas = itensValidados
-          .map((i) => `* ${i.quantidade}x ${i.nome} — ${brl(i.preco * i.quantidade)}`)
-          .join("\n");
-        const quandoTxt =
-          quando === "agendar" && agendadoPara
-            ? `\n\nReceber em: ${new Date(agendadoPara).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}${agendamentoObs ? ` (${agendamentoObs})` : ""}`
-            : "\n\nReceber: o mais rápido possível";
-        const eventoTxt = tipoEvento ? `\nTipo de evento: ${tipoEvento}` : "";
-        const ehApto = !isRetirada && parsed.data.tipo_imovel === "apartamento";
-        const condTxt = ehApto
-          ? `\nApto: ${parsed.data.apartamento || "-"}${parsed.data.bloco ? ` • Bloco/Torre: ${parsed.data.bloco}` : ""}${parsed.data.andar ? ` • Andar: ${parsed.data.andar}` : ""}${parsed.data.interfone ? ` • Interfone: ${parsed.data.interfone}` : ""}${String(parsed.data.pode_subir ?? "") === "on" ? " • autorizado subir" : ""}`
-          : "";
         navigate({ to: "/pedido/$id", params: { id: (pedido as any).id } });
         chaveRef.current = "";
       } catch (e) {

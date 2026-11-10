@@ -106,5 +106,22 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1"
-  }
+  },
+  "version": "1.0.0",
+  "description": "Implement exactly the screenshot and nothing else",
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luiz988061337-sketch/ERP-NEIA-SALGADOS.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/luiz988061337-sketch/ERP-NEIA-SALGADOS/issues"
+  },
+  "homepage": "https://github.com/luiz988061337-sketch/ERP-NEIA-SALGADOS#readme"
 }

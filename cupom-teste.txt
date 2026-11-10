@@ -1,0 +1,34 @@
+               PARA ENTREGA
+==========================================
+           06/11/2026, 16:28:39
+        Entrega prevista: 40-60min
+              Neia Salgados
+==========================================
+               Pedido #1042
+------------------------------------------
+Itens
+(2) Coxinha Frango Com Catupiry   R$ 13,00
+..........................................
+(1) Esfiha Carne                   R$ 7,00
+..........................................
+(3) Pao De Queijo                 R$ 13,50
+..........................................
+------------------------------------------
+Cliente
+Nome: Maria Silva Santos
+Telefone: (11) 98888-1234
+Quantidade de pedidos: 03
+Entrega: Rua das Flores, 123 - apto 51
+Bairro: Centro - Sao Paulo
+CEP: 01010-000
+Comp: Portao 2
+Ref: Ao lado da padaria
+Entregador: Carlos
+------------------------------------------
+Pagamento
+Forma de Pagamento: PIX
+Subtotal:                         R$ 33,50
+Taxa de entrega:                   R$ 6,00
+Total:                            R$ 39,50
+Obs: Sem cebola no coxinha
+==========================================

@@ -40,6 +40,9 @@ dist-ssr
 
 .vercel
 
+# Sessao local do agente de impressao (tokens de refresh) - nunca versionar
+print-agent/.sessao.json
+
 # Artefatos de scratch / build local (nao versionar)
 dist-l1-preview/
 build-pre-cutover.txt

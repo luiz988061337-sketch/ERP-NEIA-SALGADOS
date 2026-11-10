@@ -35,7 +35,13 @@ export const Route = createFileRoute("/gestao")({
     meta: [{ title: "Gestão — Néia Salgados" }],
     links: [{ rel: "stylesheet", href: "/src/l1-preview.css" }],
   }),
-  component: Gestao,
+  component: () => {
+    const navigate = useNavigate();
+    useEffect(() => {
+      navigate({ to: "/admin", search: { aba: "dono" }, replace: true });
+    }, [navigate]);
+    return null;
+  },
 });
 
 function faixa(mes: string, desloc: number): { ini: string; fim: string; ref: string } {

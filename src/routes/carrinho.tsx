@@ -237,7 +237,7 @@ const { data: categorias } = useCategorias();
         </section>
       ) : null}
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <Button asChild variant="outline" className="flex-1">
           <Link to="/">Continuar comprando</Link>
         </Button>

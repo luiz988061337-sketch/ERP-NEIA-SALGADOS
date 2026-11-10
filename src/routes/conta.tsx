@@ -332,7 +332,6 @@ function Conta() {
                     <Link to="/pedido/$id" params={{ id: p.id }}>Ver pedido</Link>
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => repetirPedido(p)}>Repetir pedido</Button>
-                  <Button size="sm" variant="outline" onClick={() => navigate({ to: "/recorrentes", search: { criar: p.id } })}>Tornar recorrente</Button>
                 </div>
               </li>
             ))}

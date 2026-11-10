@@ -9,7 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import "dotenv/config";
 
 const URL = process.env.SUPABASE_URL ?? "";
-const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const PUBLISHABLE = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
 const ANON = process.env.SUPABASE_ANON_KEY ?? "";
 const STAFF_EMAIL = process.env.STAFF_EMAIL ?? "";
 const STAFF_PASSWORD = process.env.STAFF_PASSWORD ?? "";
@@ -18,8 +18,8 @@ const VAPID_PRIV = process.env.VAPID_PRIVATE_KEY ?? "";
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT ?? "mailto:contato@neiasalgados.com.br";
 const POLL = Number(process.env.POLL_PUSH_MS ?? 20000);
 
-if (!URL || (!SERVICE && (!ANON || !STAFF_EMAIL || !STAFF_PASSWORD))) {
-  console.error("Configure no .env do print-agent: SUPABASE_URL + (SERVICE_ROLE ou ANON + STAFF_*).");
+if (!URL || (!PUBLISHABLE && !ANON) || !STAFF_EMAIL || !STAFF_PASSWORD) {
+  console.error("Configure no .env do print-agent: SUPABASE_URL + (SUPABASE_PUBLISHABLE_KEY ou SUPABASE_ANON_KEY) + STAFF_EMAIL + STAFF_PASSWORD.");
   process.exit(1);
 }
 if (!VAPID_PUB || !VAPID_PRIV) {
@@ -27,13 +27,11 @@ if (!VAPID_PUB || !VAPID_PRIV) {
   process.exit(1);
 }
 
-const sb = createClient(URL, SERVICE || ANON);
-if (!SERVICE) {
-  const { error } = await sb.auth.signInWithPassword({ email: STAFF_EMAIL, password: STAFF_PASSWORD });
-  if (error) {
-    console.error("Login do agente push falhou.", error.message);
-    process.exit(1);
-  }
+const sb = createClient(URL, PUBLISHABLE || ANON);
+const { error } = await sb.auth.signInWithPassword({ email: STAFF_EMAIL, password: STAFF_PASSWORD });
+if (error) {
+  console.error("Login do agente push falhou.", error.message);
+  process.exit(1);
 }
 
 // ---------- base64url ----------

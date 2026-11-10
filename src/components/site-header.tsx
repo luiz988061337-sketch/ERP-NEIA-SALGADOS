@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingBag, User, LogOut, LayoutDashboard, ChefHat, Bike, Menu, Truck } from "lucide-react";
+import { ShoppingBag, User, LogOut, LayoutDashboard, Menu } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/neia-logo.png.asset.json";
 import { useCart } from "@/lib/cart";
@@ -23,12 +23,7 @@ export function SiteHeader() {
   const queryClient = useQueryClient();
 
   const isAdmin = roles?.includes("admin");
-  const isContador = roles?.includes("contador") || isAdmin;
-  const isFinanceiro = roles?.includes("financeiro") || isAdmin;
-  const isProducao = roles?.includes("producao") || isAdmin;
-  const isMotoboy = roles?.includes("motoboy") || isAdmin;
   const isAtendente = roles?.includes("atendente") || isAdmin;
-  const isEntregas = isProducao || isMotoboy || isAtendente;
 
   async function sair() {
     await queryClient.cancelQueries();
@@ -76,11 +71,6 @@ export function SiteHeader() {
               <Link to="/ajuda">Ajuda</Link>
             </Button>
           )}
-          {staffOnly ? null : (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/historia">História</Link>
-            </Button>
-          )}
           {user && !staffOnly ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/conta">Meus pedidos</Link>
@@ -89,66 +79,6 @@ export function SiteHeader() {
           {user && (!staffOnly || isAtendente) ? (
             <Button asChild variant="ghost" size="sm">
               <Link to="/orcamentos">Orçamentos</Link>
-            </Button>
-          ) : null}
-          {user && !staffOnly ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/recorrentes">Recorrentes</Link>
-            </Button>
-          ) : null}
-          {isAtendente ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/atendente">Novo pedido</Link>
-            </Button>
-          ) : null}
-          {isAtendente ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/pdv">PDV Balcão</Link>
-            </Button>
-          ) : null}
-          {user ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/equipe">Equipe</Link>
-            </Button>
-          ) : null}
-          {isContador ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/contador">Contador</Link>
-            </Button>
-          ) : null}
-          {isProducao ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/producao">Produção</Link>
-            </Button>
-          ) : null}
-          {isMotoboy ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/motoboy">Entregas</Link>
-            </Button>
-          ) : null}
-          {isEntregas ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/central-entregas">Central</Link>
-            </Button>
-          ) : null}
-          {isAdmin ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/admin">Admin</Link>
-            </Button>
-          ) : null}
-          {isAdmin ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/gestao">Gestão</Link>
-            </Button>
-          ) : null}
-          {isAdmin ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/clientes">Clientes</Link>
-            </Button>
-          ) : null}
-          {isAdmin ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/campanhas">Campanhas</Link>
             </Button>
           ) : null}
         </nav>
@@ -182,94 +112,15 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                {isProducao ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/producao">
-                      <ChefHat className="mr-2 size-4" /> Painel de produção
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isMotoboy ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/motoboy">
-                      <Bike className="mr-2 size-4" /> Painel do motoboy
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isEntregas ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/central-entregas">
-                      <Truck className="mr-2 size-4" /> Central de entregas
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
+                <DropdownMenuItem asChild>
+                  <Link to="/equipe">
+                    <User className="mr-2 size-4" /> Equipe
+                  </Link>
+                </DropdownMenuItem>
                 {isAdmin ? (
                   <DropdownMenuItem asChild>
                     <Link to="/admin">
                       <LayoutDashboard className="mr-2 size-4" /> Administração
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isAdmin ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/clientes">
-                      <LayoutDashboard className="mr-2 size-4" /> Clientes (CRM)
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isAdmin ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/campanhas">
-                      <LayoutDashboard className="mr-2 size-4" /> Campanhas
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isFinanceiro ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/financeiro">
-                      <LayoutDashboard className="mr-2 size-4" /> Financeiro
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isContador ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/contador">
-                      <LayoutDashboard className="mr-2 size-4" /> Contador
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isAdmin ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/crm-config">
-                      <LayoutDashboard className="mr-2 size-4" /> Config CRM
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {user && (!staffOnly || isAtendente) ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/orcamentos">
-                      <LayoutDashboard className="mr-2 size-4" /> Orçamentos
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {user && !staffOnly ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/recorrentes">
-                      <LayoutDashboard className="mr-2 size-4" /> Recorrentes
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isAtendente ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/atendente">
-                      <LayoutDashboard className="mr-2 size-4" /> Novo pedido
-                    </Link>
-                  </DropdownMenuItem>
-                ) : null}
-                {isAtendente ? (
-                  <DropdownMenuItem asChild>
-                    <Link to="/pdv">
-                      <LayoutDashboard className="mr-2 size-4" /> PDV Balcão
                     </Link>
                   </DropdownMenuItem>
                 ) : null}
@@ -317,54 +168,14 @@ export function SiteHeader() {
                   <Link to="/orcamentos">Orçamentos</Link>
                 </DropdownMenuItem>
               ) : null}
-              {user && !staffOnly ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/recorrentes">Recorrentes</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {isAtendente ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/atendente">Novo pedido</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {isAtendente ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/pdv">PDV Balcão</Link>
-                </DropdownMenuItem>
-              ) : null}
               {user ? (
                 <DropdownMenuItem asChild>
                   <Link to="/equipe">Equipe</Link>
                 </DropdownMenuItem>
               ) : null}
-              {isContador ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/contador">Contador</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {isProducao ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/producao">Produção</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {isMotoboy ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/motoboy">Entregas</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {isEntregas ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/central-entregas">Central</Link>
-                </DropdownMenuItem>
-              ) : null}
               {isAdmin ? (
                 <DropdownMenuItem asChild>
-                  <Link to="/admin">Admin</Link>
-                </DropdownMenuItem>
-              ) : null}
-              {isAdmin ? (
-                <DropdownMenuItem asChild>
-                  <Link to="/gestao">Gestão</Link>
+                  <Link to="/admin">Administração</Link>
                 </DropdownMenuItem>
               ) : null}
             </DropdownMenuContent>

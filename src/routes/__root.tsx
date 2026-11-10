@@ -162,8 +162,11 @@ function RootComponent() {
             {ehStaff ? null : (
               <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
                 <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
-                  <p className="font-display text-base text-foreground">Néia Salgados</p>
+                  <p className="font-display text-base text-foreground">Néia Salgados — BUILD 302e457</p>
                   <p className="mt-1">Salgados fritos, assados, congelados e kits para festa.</p>
+                  <p className="mt-1 text-xs opacity-80">
+                    ERP BUILD TESTE 302e457
+                  </p>
                   <p className="mt-3 text-xs">
                     © {new Date().getFullYear()} Néia Salgados. Todos os direitos reservados.
                   </p>

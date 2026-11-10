@@ -302,7 +302,27 @@ function Financeiro() {
   }
 
   async function ignorarExtrato(id: string) {
-    await supabase.from("extratos").update({ status: "ignorado" }).eq("id", id);
+    // Proteção contra concorrência: "ignorar" só pode agir sobre lançamento
+    // ainda pendente. Sem o filtro .eq("status","pendente") + verificação de
+    // linhas, um operador mais lento sobrescrevia um extrato já conciliado
+    // (via conciliar) ou já ignorado por outra pessoa. Ambos os estados
+    // possíveis virariam "ignorado" sem trilha de quem os alterou.
+    const { data: claim, error } = await supabase
+      .from("extratos")
+      .update({ status: "ignorado" })
+      .eq("id", id)
+      .eq("status", "pendente")
+      .select("id");
+    if (error) {
+      toast.error("Falha ao ignorar o lançamento.");
+      return;
+    }
+    if (!claim || claim.length === 0) {
+      toast.error("Este lançamento já foi conciliado ou ignorado por outra pessoa.");
+      queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
+      return;
+    }
+    toast.success("Lançamento ignorado.");
     queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
   }
 

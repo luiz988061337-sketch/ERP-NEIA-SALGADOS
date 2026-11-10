@@ -10,7 +10,7 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { EmptyState, PageHeader } from "@/components/admin/ui-admin";
 import { brl } from "@/lib/format";
-import { faixaCompetencia } from "@/lib/competencia";
+import { faixaCompetencia, hojeSP } from "@/lib/competencia";
 import { logAdmin } from "@/lib/operacao";
 import { useRoles, useSession } from "@/lib/session";
 
@@ -26,9 +26,11 @@ function Equipe() {
   const queryClient = useQueryClient();
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
-  const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7));
-  const [acertoIni, setAcertoIni] = useState(() => new Date().toISOString().slice(0, 10));
-  const [acertoFim, setAcertoFim] = useState(() => new Date().toISOString().slice(0, 10));
+  // Datas iniciais em horário de SP (não UTC): após 21h BRT a virada de dia/mês
+  // em UTC aponta para o dia seguinte. Offset fixo -03:00 (competencia.ts).
+  const [mes, setMes] = useState(() => hojeSP().slice(0, 7));
+  const [acertoIni, setAcertoIni] = useState(() => hojeSP());
+  const [acertoFim, setAcertoFim] = useState(() => hojeSP());
   const [acertoMoto, setAcertoMoto] = useState("");
 
   useEffect(() => {
@@ -200,7 +202,10 @@ function Equipe() {
       toast.error("Seu usuário não está vinculado a um funcionário.");
       return;
     }
-    const hoje = new Date().toISOString().slice(0, 10);
+    // Dia corrente em horário de SP: usar ISO/UTC põe o ponto no dia seguinte
+    // para registros feitos após 21h BRT (furia histórico e folha diária).
+    // O instante da entrada/saida continua em ISO UTC absoluto.
+    const hoje = hojeSP();
     const agora = new Date().toISOString();
     const aberto = (pontos ?? []).find(
       (p: any) => p.funcionario_id === meuFunc.id && p.data === hoje && !p.saida,
@@ -247,7 +252,7 @@ function Equipe() {
     const { error } = await supabase.from("vales").insert({
       funcionario_id: funcId,
       valor,
-      data: String(f.get("data") ?? new Date().toISOString().slice(0, 10)),
+      data: String(f.get("data") ?? hojeSP()),
       descricao: String(f.get("descricao") ?? ""),
       created_by: user!.id,
     });
@@ -578,7 +583,7 @@ function Equipe() {
                   <Input
                     name="data"
                     type="date"
-                    defaultValue={new Date().toISOString().slice(0, 10)}
+                    defaultValue={hojeSP()}
                   />
                 </div>
                 <div className="space-y-1">

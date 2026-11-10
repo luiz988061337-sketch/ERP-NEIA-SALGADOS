@@ -48,16 +48,26 @@ function AuthPage() {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     setCarregando(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(form.get("email")).trim(),
-      password: String(form.get("senha")),
-    });
-    setCarregando(false);
-    if (error) {
-      toast.error("Não foi possível entrar. Confira e-mail e senha.");
-      return;
+    // try/finally: setCarregando(false) roda SEMPRE — antes, uma exceção
+    // (ex.: cliente Supabase indisponível) deixava o botão desabilitado para
+    // sempre e o usuário sem nenhuma explicação. O catch mostra mensagem
+    // amigável e NUNCA vaza o texto interno do erro (que pode conter nomes de
+    // variáveis de ambiente, URLs ou detalhes do backend).
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: String(form.get("email")).trim(),
+        password: String(form.get("senha")),
+      });
+      if (error) {
+        toast.error("Não foi possível entrar. Confira e-mail e senha.");
+        return;
+      }
+      toast.success("Bem-vindo de volta!");
+    } catch {
+      toast.error("Não foi possível entrar. Confira e-mail e senha ou tente novamente em alguns instantes.");
+    } finally {
+      setCarregando(false);
     }
-    toast.success("Bem-vindo de volta!");
   }
 
   async function cadastrar(e: React.FormEvent<HTMLFormElement>) {
@@ -80,21 +90,28 @@ function AuthPage() {
       return;
     }
     setCarregando(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.senha,
-      options: {
-        emailRedirectTo: window.location.origin + destino,
-        data: { nome: parsed.data.nome, telefone: parsed.data.telefone },
-      },
-    });
-    setCarregando(false);
-    if (error) {
-      toast.error(error.message.includes("registered") ? "Este e-mail já tem conta." : "Não foi possível cadastrar.");
-      return;
-    }
-    if (!data.session) {
-      setAviso("Enviamos um e-mail de confirmação. Confirme para acessar sua conta.");
+    // Mesmo contrato do entrar(): finally garante o estado do botão e o catch
+    // evita rejeição não tratada sem mensagem.
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.senha,
+        options: {
+          emailRedirectTo: window.location.origin + destino,
+          data: { nome: parsed.data.nome, telefone: parsed.data.telefone },
+        },
+      });
+      if (error) {
+        toast.error(error.message.includes("registered") ? "Este e-mail já tem conta." : "Não foi possível cadastrar.");
+        return;
+      }
+      if (!data.session) {
+        setAviso("Enviamos um e-mail de confirmação. Confirme para acessar sua conta.");
+      }
+    } catch {
+      toast.error("Não foi possível cadastrar. Tente novamente em alguns instantes.");
+    } finally {
+      setCarregando(false);
     }
   }
 
@@ -108,14 +125,19 @@ function AuthPage() {
     }
     setCarregando(true);
     const phone = tel.startsWith("55") ? `+${tel}` : `+55${tel}`;
-    const { error } = await supabase.auth.signInWithOtp({ phone, options: { channel: "whatsapp" as never } });
-    setCarregando(false);
-    if (error) {
-      toast.error("WhatsApp OTP indisponível. Ative o provider Phone/WhatsApp no Supabase ou entre por e-mail.");
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ phone, options: { channel: "whatsapp" as never } });
+      if (error) {
+        toast.error("WhatsApp OTP indisponível. Ative o provider Phone/WhatsApp no Supabase ou entre por e-mail.");
+        return;
+      }
+      setWhatsEnviadoPara(phone);
+      toast.success("Código enviado no seu WhatsApp! Digite abaixo para entrar.");
+    } catch {
+      toast.error("Não foi possível enviar o código. Tente novamente em alguns instantes.");
+    } finally {
+      setCarregando(false);
     }
-    setWhatsEnviadoPara(phone);
-    toast.success("Código enviado no seu WhatsApp! Digite abaixo para entrar.");
   }
 
   async function verificarCodigo(e: React.FormEvent<HTMLFormElement>) {
@@ -128,13 +150,18 @@ function AuthPage() {
       return;
     }
     setCarregando(true);
-    const { error } = await supabase.auth.verifyOtp({ phone: whatsEnviadoPara, token, type: "sms" });
-    setCarregando(false);
-    if (error) {
+    try {
+      const { error } = await supabase.auth.verifyOtp({ phone: whatsEnviadoPara, token, type: "sms" });
+      if (error) {
+        toast.error("Código inválido ou expirado. Tente novamente.");
+        return;
+      }
+      toast.success("Bem-vindo!");
+    } catch {
       toast.error("Código inválido ou expirado. Tente novamente.");
-      return;
+    } finally {
+      setCarregando(false);
     }
-    toast.success("Bem-vindo!");
   }
 
   async function recuperar(e: React.FormEvent<HTMLFormElement>) {
@@ -144,11 +171,15 @@ function AuthPage() {
       toast.error("Informe um e-mail válido para recuperar a senha.");
       return;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) toast.error("Não foi possível enviar o e-mail.");
-    else toast.success("Enviamos um link para redefinir sua senha.");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) toast.error("Não foi possível enviar o e-mail.");
+      else toast.success("Enviamos um link para redefinir sua senha.");
+    } catch {
+      toast.error("Não foi possível enviar o e-mail. Tente novamente em alguns instantes.");
+    }
   }
 
   return (

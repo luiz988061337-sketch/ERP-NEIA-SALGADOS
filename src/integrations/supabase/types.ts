@@ -236,6 +236,7 @@ export type Database = {
       categorias: {
         Row: {
           ativo: boolean
+          combo_preco_unit: number | null
           id: string
           nome: string
           ordem: number
@@ -243,6 +244,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          combo_preco_unit?: number | null
           id?: string
           nome: string
           ordem?: number
@@ -250,6 +252,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          combo_preco_unit?: number | null
           id?: string
           nome?: string
           ordem?: number
@@ -3547,6 +3550,182 @@ export type Database = {
         }
         Relationships: []
       }
+      pedido_item_componentes: {
+        Row: {
+          created_at: string
+          id: string
+          pedido_item_id: string
+          produto_id: string
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pedido_item_id: string
+          produto_id: string
+          quantidade: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pedido_item_id?: string
+          produto_id?: string
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_item_componentes_pedido_item_id_fkey"
+            columns: ["pedido_item_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_item_componentes_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reserva_consumos: {
+        Row: {
+          created_at: string
+          funcionario_id: string
+          id: string
+          idem_key: string
+          observacao: string | null
+          pedido_id: string
+          produto_id: string
+          quantidade: number
+          reserva_id: string
+        }
+        Insert: {
+          created_at?: string
+          funcionario_id: string
+          id?: string
+          idem_key: string
+          observacao?: string | null
+          pedido_id: string
+          produto_id: string
+          quantidade: number
+          reserva_id: string
+        }
+        Update: {
+          created_at?: string
+          funcionario_id?: string
+          id?: string
+          idem_key?: string
+          observacao?: string | null
+          pedido_id?: string
+          produto_id?: string
+          quantidade?: number
+          reserva_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reserva_consumos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserva_consumos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserva_consumos_reserva_id_fkey"
+            columns: ["reserva_id"]
+            isOneToOne: false
+            referencedRelation: "reservas_estoque"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reserva_proveniencia: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          estoque_movimentacao_id: string
+          origem: string
+          pedido_id: string
+          produto_id: string
+          quantidade: number
+          reserva_id: string
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          estoque_movimentacao_id: string
+          origem: string
+          pedido_id: string
+          produto_id: string
+          quantidade: number
+          reserva_id: string
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          estoque_movimentacao_id?: string
+          origem?: string
+          pedido_id?: string
+          produto_id?: string
+          quantidade?: number
+          reserva_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reserva_proveniencia_mov_fk"
+            columns: ["estoque_movimentacao_id"]
+            isOneToOne: true
+            referencedRelation: "estoque_movimentacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserva_proveniencia_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserva_proveniencia_reserva_fk"
+            columns: ["reserva_id", "pedido_id", "produto_id", "quantidade"]
+            isOneToOne: false
+            referencedRelation: "reservas_estoque"
+            referencedColumns: ["id", "pedido_id", "produto_id", "quantidade"]
+          },
+        ]
+      }
+      reserva_proveniencia_config: {
+        Row: {
+          ativado_em: string | null
+          ativado_por: string | null
+          controlado: boolean
+          id: boolean
+          observacao: string | null
+        }
+        Insert: {
+          ativado_em?: string | null
+          ativado_por?: string | null
+          controlado?: boolean
+          id?: boolean
+          observacao?: string | null
+        }
+        Update: {
+          ativado_em?: string | null
+          ativado_por?: string | null
+          controlado?: boolean
+          id?: boolean
+          observacao?: string | null
+        }
+        Relationships: []
+      }
       reservas_estoque: {
         Row: {
           created_at: string
@@ -3883,6 +4062,14 @@ export type Database = {
         Returns: number
       }
       creditar_pontos_pedido: { Args: { p_pedido_id: string }; Returns: number }
+      cancelar_pedido_atomico: {
+        Args: { p_motivo?: string; p_pedido_id: string }
+        Returns: Json
+      }
+      criar_pedido_com_reserva: {
+        Args: { p_canal: string; p_dados: Json; p_id: string; p_itens: Json }
+        Returns: Json
+      }
       enfileirar_cupom: { Args: { p_pedido_id: string }; Returns: undefined }
       enfileirar_evento_cozinha: {
         Args: { p_evento: string; p_pedido_id: string }
@@ -3907,6 +4094,7 @@ export type Database = {
           resultado: string
         }[]
       }
+      liberar_pedido_atomico: { Args: { p_pedido_id: string }; Returns: Json }
       liberar_reserva_atomica: {
         Args: { p_pedido_id: string }
         Returns: number
@@ -3924,6 +4112,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      pedido_cobertura_reserva: { Args: { p_pedido_id: string }; Returns: Json }
       registrar_mov_estoque:
         | {
             Args: {
@@ -3960,7 +4149,18 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: undefined
       }
+      reservar_pedido_atomico: { Args: { p_pedido_id: string }; Returns: Json }
       resgatar_fidelidade: { Args: { p_telefone: string }; Returns: string }
+      registrar_consumo_reserva: {
+        Args: {
+          p_idem_key: string
+          p_observacao?: string
+          p_produto_id?: string
+          p_quantidade: number
+          p_reserva_id: string
+        }
+        Returns: Json
+      }
       retirar_pedido_cliente: {
         Args: { p_exigir_conferencia?: boolean; p_pedido_id: string }
         Returns: {

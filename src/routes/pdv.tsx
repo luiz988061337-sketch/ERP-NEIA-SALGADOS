@@ -168,6 +168,20 @@ function PDV() {
 
   const comandaN = String((vendasHoje?.length ?? 0) + 1).padStart(4, "0");
 
+  // Regra dos Hooks: TODO hook fica ANTES de qualquer early-return de permissão
+  // (roles muda de undefined para carregado e, se um hook vier depois do
+  // return condicional, o React quebra a renderização por número de hooks
+  // diferente entre renders).
+  const totaisVendas = useMemo(() => {
+    const lista = vendasHoje ?? [];
+    const total = lista.reduce((s: number, v: any) => s + (Number(v.total) || 0), 0);
+    const porMeio: Record<string, number> = {};
+    for (const v of lista)
+      porMeio[String(v.forma_pagamento ?? "?")] =
+        (porMeio[String(v.forma_pagamento ?? "?")] ?? 0) + (Number(v.total) || 0);
+    return { qtd: lista.length, total, porMeio };
+  }, [vendasHoje]);
+
   function adicionar(p: any) {
     const slug = slugPorCategoria.get(p.categoria_id) ?? "";
     const tipo = tipoVendaProduto(p, slug);
@@ -455,16 +469,6 @@ function PDV() {
       </main>
     );
   }
-
-  const totaisVendas = useMemo(() => {
-    const lista = vendasHoje ?? [];
-    const total = lista.reduce((s: number, v: any) => s + (Number(v.total) || 0), 0);
-    const porMeio: Record<string, number> = {};
-    for (const v of lista)
-      porMeio[String(v.forma_pagamento ?? "?")] =
-        (porMeio[String(v.forma_pagamento ?? "?")] ?? 0) + (Number(v.total) || 0);
-    return { qtd: lista.length, total, porMeio };
-  }, [vendasHoje]);
 
   return (
     <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">

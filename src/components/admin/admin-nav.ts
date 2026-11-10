@@ -1,11 +1,14 @@
 import {
   Bike,
+  Briefcase,
+  BarChart3,
   Calculator,
   ChefHat,
   ClipboardList,
   CookingPot,
   Crown,
   Factory,
+  Handshake,
   ImageIcon,
   KeyRound,
   LayoutDashboard,
@@ -53,6 +56,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { value: "pedidos", label: "Pedidos", icon: ClipboardList },
       { value: "producao", label: "Produção", icon: CookingPot, href: "/producao" },
       { value: "central", label: "Central de Entregas", icon: Truck, href: "/central-entregas" },
+      { value: "atendimento", label: "Atendimento", icon: Handshake, href: "/atendente" },
       { value: "pdv", label: "PDV / Balcão", icon: ReceiptText, href: "/pdv" },
       { value: "clientes", label: "Clientes", icon: Users },
       { value: "produtos", label: "Produtos", icon: Package },
@@ -82,8 +86,11 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     label: "Gestão",
     items: [
+      { value: "dono", label: "Relatório do dono", icon: BarChart3 },
       { value: "metas", label: "Metas", icon: Target },
       { value: "comercial", label: "Comercial", icon: Crown },
+      { value: "equipe", label: "Equipe", icon: Briefcase, href: "/equipe" },
+      { value: "contador", label: "Contador", icon: Users, href: "/contador" },
       { value: "motoboys", label: "Motoboys", icon: Bike },
       { value: "impressao", label: "Impressão", icon: Printer },
     ],
@@ -100,6 +107,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
 /** Titulo e descricao de cada aba, exibidos no cabecalho da pagina. */
 export const ADMIN_ABA_TITULO: Record<string, string> = {
   dashboard: "Dashboard",
+  dono: "Relatório do dono",
   pedidos: "Pedidos",
   produtos: "Produtos",
   clientes: "Clientes",
@@ -124,6 +132,7 @@ export const ADMIN_ABA_TITULO: Record<string, string> = {
 
 export const ADMIN_ABA_DESCRICAO: Record<string, string> = {
   dashboard: "Resumo da operação em tempo real.",
+  dono: "Faturamento, DRE, margem por produto, bairros e alertas do mês.",
   pedidos: "Acompanhe, imprima e mova cada pedido pelo fluxo.",
   produtos: "Catálogo, preços, categorias e estoque.",
   clientes: "Base de clientes, histórico e contatos.",
