@@ -18,6 +18,7 @@ import {
   pontoEquilibrio,
   resumoConciliacao,
   saldoCaixaEsperado,
+  splitProdutosEntrega,
   statusConta,
   totalContas,
 } from "@/lib/financeiro";
@@ -662,6 +663,15 @@ function Financeiro() {
               <span>Receita bruta</span>
               <strong>{brl(dre.bruta)}</strong>
             </p>
+            {/* 0103: split Produtos × Entrega (a taxa já está dentro da bruta). */}
+            {(() => {
+              const sp = splitProdutosEntrega(pedidos ?? []);
+              return sp.total > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Produtos {brl(sp.produtos)} • Entrega {brl(sp.entrega)} • Total {brl(sp.total)}
+                </p>
+              ) : null;
+            })()}
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>(−) Cancelamentos</span>
               <strong>{brl(dre.cancelamentos)}</strong>

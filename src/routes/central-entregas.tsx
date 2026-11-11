@@ -721,6 +721,27 @@ function CentralEntregas() {
           <strong>Cliente:</strong> {p.cliente_nome}
         </p>
         <p className="text-sm text-muted-foreground">{destino}</p>
+        {/* 0103: distância • taxa da entrega (snapshot do pedido). */}
+        {p.tipo_entrega !== "retirada" &&
+        (p.distancia_km != null || p.taxa_entrega != null) ? (
+          <p className="mt-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary/40 px-2 py-0.5 text-xs font-semibold">
+              <Truck className="size-3" />
+              {p.distancia_km != null
+                ? `${Number(p.distancia_km).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`
+                : "—"}
+              {p.taxa_entrega != null ? ` • ${brl(Number(p.taxa_entrega))}` : ""}
+            </span>
+            {p.destino_lat != null && p.destino_lng != null ? (
+              <span
+                className="ml-2 text-xs text-muted-foreground"
+                title={`${p.destino_lat}, ${p.destino_lng}`}
+              >
+                📍 ponto confirmado
+              </span>
+            ) : null}
+          </p>
+        ) : null}
         <p className="text-sm">
           Total: {brl(p.total)} • {PAGAMENTO_LABEL[p.forma_pagamento] ?? p.forma_pagamento}
         </p>

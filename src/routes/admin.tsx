@@ -87,6 +87,7 @@ import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/uploa
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { LojaPanel } from "@/components/admin/loja-panel";
+import { EntregasConfigPanel } from "@/components/admin/entregas-config-panel";
 import { InsumosAdmin } from "@/components/admin/estoque/insumos-admin";
 import { FichasAdmin } from "@/components/admin/estoque/fichas-admin";
 import { FornecedoresAdmin } from "@/components/admin/estoque/fornecedores-admin";
@@ -1272,6 +1273,9 @@ function Admin() {
             localizarNoMapa={localizarNoMapa}
             salvarLoja={salvarLoja}
           />
+        </TabsContent>
+        <TabsContent value="entregas" className="mt-4">
+          <EntregasConfigPanel />
         </TabsContent>
         <TabsContent value="avaliacoes" className="mt-4">
           <section className="rounded-xl border border-border bg-card p-5">

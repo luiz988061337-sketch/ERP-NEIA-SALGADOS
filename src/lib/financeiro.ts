@@ -186,3 +186,30 @@ export function pontoEquilibrio(custosFixos: number, margemContribuicao: number)
   if (mc <= 0) return null;
   return (Number(custosFixos) || 0) / mc;
 }
+
+/**
+ * 0103 — Split Produtos × Entrega dos pedidos não cancelados.
+ * A taxa de entrega já entra no total do pedido; esta função apenas
+ * separa as partes para exibição (Produtos + Entrega = Total).
+ */
+export function splitProdutosEntrega(pedidos: {
+  subtotal?: number | null;
+  taxa_entrega?: number | null;
+  total?: number | null;
+  status?: string | null;
+}[]): { produtos: number; entrega: number; total: number } {
+  let produtos = 0;
+  let entrega = 0;
+  let total = 0;
+  for (const p of pedidos ?? []) {
+    if (p.status === "cancelado") continue;
+    produtos += Number(p.subtotal ?? 0) || 0;
+    entrega += Number(p.taxa_entrega ?? 0) || 0;
+    total += Number(p.total ?? 0) || 0;
+  }
+  return {
+    produtos: Math.round(produtos * 100) / 100,
+    entrega: Math.round(entrega * 100) / 100,
+    total: Math.round(total * 100) / 100,
+  };
+}
