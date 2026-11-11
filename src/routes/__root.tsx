@@ -177,6 +177,16 @@ function RootComponent() {
                   <p className="mt-3 text-xs">
                     © {new Date().getFullYear()} Néia Salgados. Todos os direitos reservados.
                   </p>
+                  <p className="mt-3">
+                    <a
+                      href="/auth"
+                      className="text-link underline cursor-pointer"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Área interna
+                    </a>
+                  </p>
                 </div>
               </footer>
             )}
