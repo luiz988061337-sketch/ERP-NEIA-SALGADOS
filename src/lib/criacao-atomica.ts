@@ -255,6 +255,8 @@ export type StatusErroCriacao =
   | "idempotencia_divergente"
   | "pedido_de_outro_usuario"
   | "inconsistencia_financeira"
+  | "entregas_desativadas"
+  | "fora_da_area"
   | "erro_interno";
 
 export type CoberturaResumida = {
@@ -399,6 +401,8 @@ export function interpretarCriacao(data: unknown): ResultadoCriacao {
     case "configuracao_ausente":
     case "dependencia_ausente":
     case "estoque_insuficiente":
+    case "entregas_desativadas":
+    case "fora_da_area":
     case "erro_interno":
       return erroNegocio(status, obj);
     default:
@@ -555,6 +559,9 @@ export const MENSAGENS_CRIACAO: Readonly<Record<string, string>> = {
   configuracao_ausente: "Configuração comercial ausente (ex.: taxa de entrega).",
   dependencia_ausente: "Dependência de banco ausente para concluir o pedido.",
   estoque_insuficiente: "Estoque insuficiente para concluir o pedido.",
+  entregas_desativadas:
+    "A entrega está temporariamente desativada. Escolha retirada na loja.",
+  fora_da_area: "Este endereço está fora da nossa área de entrega.",
   erro_interno: "Falha interna — o pedido NÃO foi confirmado.",
   erro_tecnico: "Falha técnica — a operação NÃO foi confirmada.",
 };
