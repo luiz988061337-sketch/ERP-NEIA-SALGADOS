@@ -29,7 +29,8 @@ export function SiteHeader() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    // Volta para a loja pública (o acesso interno é bloqueado pelos guards de cada rota).
+    navigate({ to: "/", replace: true });
   }
 
   return (
@@ -130,11 +131,7 @@ export function SiteHeader() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button asChild size="sm">
-              <Link to="/auth">Entrar</Link>
-            </Button>
-          )}
+          ) : null}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

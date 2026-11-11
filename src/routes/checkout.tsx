@@ -25,6 +25,7 @@ import { QrPixLocal } from "@/components/qr-pix-local";
 import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
 import { geocodificarEndereco } from "@/components/map-view";
+import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
 import { validarAgendamento, mensagemLotado, janelaLotada } from "@/lib/horario";
 import { decidirCriacaoAtomica, type RpcClient } from "@/lib/criacao-atomica";
@@ -165,9 +166,8 @@ function Checkout() {
   }, [staffOnly, painel, navigate]);
 
   useEffect(() => {
-    if (!loading && !user)
-      navigate({ to: "/auth", search: { redirect: "/checkout" }, replace: true });
-  }, [loading, user, navigate]);
+    if (!loading && !user) void garantirSessaoAnonima();
+  }, [loading, user]);
 
   useEffect(() => {
     if (!loading && user && items.length === 0) navigate({ to: "/carrinho", replace: true });
@@ -244,9 +244,20 @@ function Checkout() {
   }
 
   async function finalizar(e: React.FormEvent<HTMLFormElement>) {
+    // O evento sintético do React deixa de expor `currentTarget` depois de
+    // qualquer `await` — por isso capturamos o formulário de forma SÍNCRONA,
+    // ANTES de qualquer operação assíncrona.
     e.preventDefault();
-    if (!user) return;
     const form = new FormData(e.currentTarget);
+    // Sessão anônima garantida nos bastidores antes de gravar o pedido
+    // (cliente pede sem login; funcionário logado preserva a própria sessão).
+    await garantirSessaoAnonima();
+    const sessao = await supabase.auth.getSession();
+    const uidPedido = (sessao.data.session?.user ?? null)?.id ?? user?.id ?? null;
+    if (!uidPedido) {
+      toast.error("Não foi possível iniciar seu pedido. Tente novamente.");
+      return;
+    }
     const parsed = schema.safeParse({
       // Na retirada os inputs de endereço nem existem no DOM (form.get = null):
       // normaliza para "" aqui (a obrigatoriedade p/ entrega é checada abaixo).
@@ -464,7 +475,7 @@ function Checkout() {
         tipoEntrega === "retirada" ? "online" : pagamento === "dinheiro" ? "na_entrega" : "online";
 
       const insertBody: Record<string, any> = {
-        user_id: user.id,
+        user_id: uidPedido,
         cliente_nome: parsed.data.cliente_nome,
         telefone: parsed.data.telefone,
         endereco: isRetirada

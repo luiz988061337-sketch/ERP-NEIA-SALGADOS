@@ -671,9 +671,14 @@ function Calculadora() {
                 size="lg"
                 variant="outline"
                 className="flex-1"
-                onClick={() => navigate({ to: "/auth", search: { redirect: "/calculadora" } })}
+                onClick={() =>
+                  toast.info(
+                    "Contas de acesso são exclusivas da equipe. Envie o orçamento pelo WhatsApp ou copie para guardar.",
+                  )
+                }
               >
-                Entrar para salvar
+                <Save className="mr-2 size-4" />
+                Salvar orçamento
               </Button>
             )}
           </div>

@@ -106,8 +106,7 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
 
   async function toggleFavorito(produtoId: string) {
     if (!user) {
-      toast.info("Entre na sua conta para favoritar produtos.");
-      navigate({ to: "/auth", search: { redirect: "/" } });
+      toast.info("Um instante — preparando seu acesso para favoritar...");
       return;
     }
     if (favoritos?.includes(produtoId)) {

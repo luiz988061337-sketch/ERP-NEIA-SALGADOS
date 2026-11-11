@@ -46,9 +46,7 @@ function Conta() {
     if (staffOnly && painel) navigate({ to: painel, replace: true });
   }, [staffOnly, painel, navigate]);
 
-  useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/conta" }, replace: true });
-  }, [loading, user, navigate]);
+  // Guard de convidado tratado no render (sem redirecionar para /auth).
 
   const { data: pedidos } = useQuery({
     queryKey: ["meus-pedidos", user?.id],
@@ -264,6 +262,22 @@ function Conta() {
 
   if (staffOnly) {
     return <p className="p-10 text-center text-muted-foreground">Abrindo seu painel...</p>;
+  }
+
+  // Sem conta: cliente não usa login — pede direto pelo cardápio (sem /auth).
+  if (!loading && !user) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <h1 className="font-display text-2xl">Meus pedidos</h1>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Aqui ficam os pedidos de quem tem conta. Você pode pedir direto pelo cardápio, sem login —
+          basta informar nome e WhatsApp no checkout.
+        </p>
+        <Button asChild className="mt-6">
+          <Link to="/">Ver cardápio</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
