@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession, useStaffOnly } from "@/lib/session";
+import { useSession, useStaffOnly, useRoles } from "@/lib/session";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -30,6 +30,8 @@ function AuthPage() {
   const search = useSearch({ from: "/auth" });
   const { user } = useSession();
   const { staffOnly, painel, rolesPronto } = useStaffOnly();
+  const { data: roles } = useRoles(user?.id);
+  const isAdmin = roles?.includes("admin") ?? false;
   const [carregando, setCarregando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [whatsEnviadoPara, setWhatsEnviadoPara] = useState<string | null>(null);
@@ -39,10 +41,12 @@ function AuthPage() {
 
   useEffect(() => {
     if (!user || !rolesPronto) return;
-    if (staffOnly && painel && destino === "/") navigate({ to: painel, replace: true });
+    // Admin sempre vai para /admin, independente de staffOnly
+    if (isAdmin && destino === "/") navigate({ to: "/admin", replace: true });
+    else if (staffOnly && painel && destino === "/") navigate({ to: painel, replace: true });
     else if (destino.includes("?")) window.location.replace(destino);
     else navigate({ to: destino, replace: true });
-  }, [user, destino, navigate, staffOnly, painel, rolesPronto]);
+  }, [user, destino, navigate, staffOnly, painel, rolesPronto, isAdmin]);
 
   async function entrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -173,7 +177,7 @@ function AuthPage() {
     }
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/redefinir-senha`,
       });
       if (error) toast.error("Não foi possível enviar o e-mail.");
       else toast.success("Enviamos um link para redefinir sua senha.");

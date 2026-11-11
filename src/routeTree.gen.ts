@@ -39,6 +39,7 @@ import { Route as PdvRouteImport } from './routes/pdv'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
+import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as ApiVersaoRouteImport } from './routes/api/versao'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
@@ -222,6 +223,11 @@ const ProducaoRoute = ProducaoRouteImport.update({
 const RecorrentesRoute = RecorrentesRouteImport.update({
   id: '/recorrentes',
   path: '/recorrentes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
@@ -432,6 +438,7 @@ export interface FileRoutesByFullPath {
   '/preview': typeof PreviewRouteWithChildren
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -497,6 +504,7 @@ export interface FileRoutesByTo {
   '/pdv': typeof PdvRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -564,6 +572,7 @@ export interface FileRoutesById {
   '/preview': typeof PreviewRouteWithChildren
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -632,6 +641,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/producao'
     | '/recorrentes'
+    | '/redefinir-senha'
     | '/.well-known/oauth-protected-resource'
     | '/api/versao'
     | '/pedido/$id'
@@ -697,6 +707,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/producao'
     | '/recorrentes'
+    | '/redefinir-senha'
     | '/.well-known/oauth-protected-resource'
     | '/api/versao'
     | '/pedido/$id'
@@ -763,6 +774,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/producao'
     | '/recorrentes'
+    | '/redefinir-senha'
     | '/.well-known/oauth-protected-resource'
     | '/api/versao'
     | '/pedido/$id'
@@ -830,6 +842,7 @@ export interface RootRouteChildren {
   PreviewRoute: typeof PreviewRouteWithChildren
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
+  RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiVersaoRoute: typeof ApiVersaoRoute
   PedidoIdRoute: typeof PedidoIdRoute
@@ -1047,6 +1060,13 @@ declare module '@tanstack/react-router' {
       path: '/recorrentes'
       fullPath: '/recorrentes'
       preLoaderRoute: typeof RecorrentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/redefinir-senha': {
+      id: '/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/redefinir-senha'
+      preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/oauth-protected-resource': {
@@ -1388,6 +1408,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreviewRoute: PreviewRouteWithChildren,
   ProducaoRoute: ProducaoRoute,
   RecorrentesRoute: RecorrentesRoute,
+  RedefinirSenhaRoute: RedefinirSenhaRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiVersaoRoute: ApiVersaoRoute,
