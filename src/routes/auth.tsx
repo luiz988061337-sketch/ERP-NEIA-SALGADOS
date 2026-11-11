@@ -163,7 +163,7 @@ function AuthPage() {
           className="w-full text-xs text-muted-foreground underline"
         >
           Esqueci minha senha
-        </button>
+        </Button>
         {mostrarRecuperar ? (
           <form onSubmit={recuperar} className="space-y-2 rounded-lg bg-muted p-3">
             <Label htmlFor="email-rec">E-mail da conta</Label>
@@ -171,7 +171,7 @@ function AuthPage() {
               <Input id="email-rec" name="email-rec" type="email" required placeholder="voce@email.com" className="bg-background" />
               <Button type="submit" variant="outline" disabled={carregando}>
                 Enviar link
-              </button>
+              </Button>
             </div>
           </form>
         ) : null}
@@ -258,7 +258,7 @@ function AuthPage() {
           className="w-full text-xs text-muted-foreground underline"
         >
           Esqueci minha senha
-        </button>
+        </Button>
         {mostrarRecuperar ? (
           <form onSubmit={recuperar} className="space-y-2 rounded-lg bg-muted p-3">
             <Label htmlFor="email-rec">E-mail da conta</Label>
