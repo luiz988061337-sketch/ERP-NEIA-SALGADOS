@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Copy, Loader2, QrCode, Trophy } from "lucide-react";
+import { MapPin, LocateFixed, Loader2, QrCode, Trophy, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,21 @@ import { gerarPix } from "@/lib/pix";
 import { QrPixLocal } from "@/components/qr-pix-local";
 import { mensagemDeErro } from "@/lib/erros";
 import { precoFinal } from "@/lib/catalog";
-import { geocodificarEndereco } from "@/components/map-view";
+import {
+  geocodificarEndereco,
+  geocodificarCompleto,
+  distanciaRotaKm,
+  MapaPinAjustavel,
+  type EnderecoDetalhado,
+} from "@/components/map-view";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
+import {
+  useConfigEntrega,
+  modoPorKm,
+  calcularTaxaPreview,
+  formatarKm,
+  type PrevisaoTaxa,
+} from "@/lib/config-entrega";
 import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
 import { validarAgendamento, mensagemLotado, janelaLotada } from "@/lib/horario";
@@ -92,6 +106,72 @@ function Checkout() {
   const funilRef = useRef(false);
   // Idempotência: mesma chave por tentativa; reenvio retorna o mesmo pedido.
   const chaveRef = useRef("");
+
+  // -----------------------------------------------------------------------
+  // ENDEREÇO INTELIGENTE (0103) — autocomplete, confirmação visual, GPS e
+  // taxa por km. O cliente NUNCA define a taxa: o preview vem do SERVIDOR
+  // (calcular_taxa_entrega) e a cobrança é recalculada de novo na criação.
+  // -----------------------------------------------------------------------
+  const { data: cfgEntrega } = useConfigEntrega();
+  const porKm = modoPorKm(cfgEntrega);
+  const [selEnd, setSelEnd] = useState<EnderecoDetalhado | null>(null);
+  const [semNumero, setSemNumero] = useState(false);
+  const [pinFinal, setPinFinal] = useState<{ lat: number; lng: number } | null>(null);
+  const [rotaKm, setRotaKm] = useState<number | null>(null);
+  const [taxaPrev, setTaxaPrev] = useState<PrevisaoTaxa | null>(null);
+  const [calculandoTaxa, setCalculandoTaxa] = useState(false);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+  const [salvarEnd, setSalvarEnd] = useState(true);
+  const [mapaAberto, setMapaAberto] = useState(false);
+  const calcSeqRef = useRef(0);
+
+  // Entregas desativadas na config => o cliente só pode retirar.
+  useEffect(() => {
+    if (cfgEntrega && !cfgEntrega.aceitar_entregas && tipoEntrega !== "retirada") {
+      setTipoEntrega("retirada");
+    }
+  }, [cfgEntrega?.aceitar_entregas]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Recálculo da rota + taxa SEMPRE que o ponto final confirmado mudar
+  // (endereço, número, pin ajustado no mapa). Nunca mantém a taxa do
+  // endereço anterior. Guard de sequência evita resposta fora de ordem.
+  useEffect(() => {
+    if (tipoEntrega !== "entrega" || !porKm) {
+      setTaxaPrev(null);
+      setRotaKm(null);
+      return;
+    }
+    const destino =
+      pinFinal ?? (selEnd ? { lat: selEnd.lat, lng: selEnd.lng } : null);
+    if (!destino) {
+      setTaxaPrev(null);
+      setRotaKm(null);
+      return;
+    }
+    const seq = ++calcSeqRef.current;
+    setCalculandoTaxa(true);
+    void (async () => {
+      let rota: number | null = null;
+      if (cfgEntrega?.origem_lat != null && cfgEntrega?.origem_lng != null) {
+        const r = await distanciaRotaKm(
+          { lat: cfgEntrega.origem_lat, lng: cfgEntrega.origem_lng },
+          destino,
+        );
+        if (calcSeqRef.current !== seq) return;
+        rota = r?.km ?? null;
+      }
+      setRotaKm(rota);
+      const prev = await calcularTaxaPreview({
+        lat: destino.lat,
+        lng: destino.lng,
+        distanciaKm: rota,
+        subtotal,
+      });
+      if (calcSeqRef.current !== seq) return;
+      setTaxaPrev(prev);
+      setCalculandoTaxa(false);
+    })();
+  }, [selEnd, pinFinal, tipoEntrega, porKm, subtotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (funilRef.current || loading || !user || items.length === 0) return;
@@ -174,8 +254,18 @@ function Checkout() {
   }, [loading, user, items.length, navigate]);
 
   const desconto = cupom?.desconto ?? 0;
-  const { taxaEntrega, total } = calcTotals({ subtotal, taxaEntrega: TAXA_ENTREGA, desconto });
-  const taxaEntregaFinalUI = tipoEntrega === "retirada" ? 0 : taxaEntrega;
+  // Taxa exibida: quando o regime por km está ativo e o servidor respondeu o
+  // preview, mostra a taxa REAL (distância × valor por km). Antes do cliente
+  // escolher o endereço (ou fora do regime), mantém o padrão atual (R$ 6).
+  const taxaPrevValida =
+    tipoEntrega === "entrega" &&
+    porKm &&
+    taxaPrev != null &&
+    taxaPrev.modo === "config" &&
+    taxaPrev.aceitarEntregas &&
+    !taxaPrev.foraDaArea;
+  const taxaEntregaUI = taxaPrevValida ? (taxaPrev as PrevisaoTaxa).taxa : TAXA_ENTREGA;
+  const taxaEntregaFinalUI = tipoEntrega === "retirada" ? 0 : taxaEntregaUI;
   const totalFinalUI = Math.max(0, subtotal - desconto) + taxaEntregaFinalUI;
   const pontosGanhos = calcPontos(totalFinalUI, {
     ativo: settings?.fid_ativo ?? true,
@@ -202,6 +292,26 @@ function Checkout() {
     (document.getElementById("bairro") as HTMLInputElement).value = e.bairro;
     (document.getElementById("complemento") as HTMLInputElement).value = e.complemento ?? "";
     (document.getElementById("referencia") as HTMLInputElement).value = e.referencia ?? "";
+    // Endereço salvo já georreferenciado: reutiliza as coordenadas confirmadas
+    // (nunca inventa). Sem lat/lng salvo, o cliente confirma no mapa/GPS.
+    if (typeof e.lat === "number" && typeof e.lng === "number" && e.lat && e.lng) {
+      setSelEnd({
+        completo: `${e.rua}, ${e.numero}`,
+        logradouro: String(e.rua ?? ""),
+        numero: String(e.numero ?? ""),
+        bairro: String(e.bairro ?? ""),
+        cidade: String(e.cidade ?? ""),
+        uf: String(e.uf ?? ""),
+        cep: String(e.cep ?? ""),
+        lat: e.lat,
+        lng: e.lng,
+        placeId: String(e.place_id ?? ""),
+        precisao: String(e.precisao ?? "APPROXIMATE"),
+        nivel: e.precisao === "ROOFTOP" || e.precisao === "RANGE_INTERPOLATED" ? "preciso" : "aproximado",
+      });
+      setPinFinal({ lat: e.lat, lng: e.lng });
+      setMapaAberto(true);
+    }
   }
 
   async function aplicarCupom() {
@@ -241,6 +351,122 @@ function Checkout() {
     }
     setCupom({ codigo, desconto: res.desconto });
     toast.success(`Cupom ${codigo} aplicado!`);
+  }
+
+  // -----------------------------------------------------------------------
+  // ENDEREÇO INTELIGENTE — handlers
+  // -----------------------------------------------------------------------
+
+  /** Sugestão selecionada no autocomplete: preenche os campos e exige
+   * confirmação visual do ponto (mapa) quando o resultado é aproximado. */
+  function aoEscolherEndereco(d: EnderecoDetalhado) {
+    setEnderecoId("");
+    setSelEnd(d);
+    setPinFinal({ lat: d.lat, lng: d.lng });
+    setGpsAccuracy(null);
+    setMapaAberto(true);
+    const elEnd = document.getElementById("endereco") as HTMLInputElement | null;
+    const elBai = document.getElementById("bairro") as HTMLInputElement | null;
+    const elCid = document.getElementById("cidade") as HTMLInputElement | null;
+    const elCep = document.getElementById("cep") as HTMLInputElement | null;
+    if (elEnd) elEnd.value = d.numero ? `${d.logradouro}, ${d.numero}` : d.logradouro;
+    if (elBai) elBai.value = d.bairro;
+    if (elCid) elCid.value = d.cidade;
+    if (elCep) elCep.value = d.cep;
+    if (!d.numero && !semNumero) {
+      toast.message("Informe o número da casa", {
+        description: "Digite o número no campo Endereço e toque em “Atualizar local no mapa”.",
+      });
+    } else if (d.nivel === "aproximado") {
+      toast.message("LOCALIZAÇÃO APROXIMADA", {
+        description: "Confirme o ponto no mapa ou ajuste o pin antes de confirmar o pedido.",
+      });
+    }
+  }
+
+  /** Regeocodifica o endereço DIGITADO (ex.: depois de incluir o número).
+   * Nunca usa só CEP e nunca inventa coordenadas: falha => mensagem clara. */
+  async function atualizarLocalDigitado() {
+    const v = (id: string) =>
+      (document.getElementById(id) as HTMLInputElement | null)?.value?.trim() ?? "";
+    const end = v("endereco");
+    if (end.length < 4) {
+      toast.error("Informe o endereço completo (rua e número) primeiro.");
+      return;
+    }
+    const bai = v("bairro");
+    const cid = v("cidade");
+    const uf = selEnd?.uf ?? "";
+    const texto = [end, bai, cid, uf].filter(Boolean).join(", ");
+    const d = await geocodificarCompleto(texto);
+    if (!d) {
+      toast.error(
+        "Não foi possível localizar esse endereço no mapa. Confira rua, número e cidade.",
+      );
+      return;
+    }
+    setSelEnd(d);
+    setPinFinal({ lat: d.lat, lng: d.lng });
+    setGpsAccuracy(null);
+    setMapaAberto(true);
+    if (d.nivel === "aproximado") {
+      toast.message("LOCALIZAÇÃO APROXIMADA", {
+        description: "Ajuste o pin no mapa para o ponto exato da entrega.",
+      });
+    } else {
+      toast.success("Local confirmado no mapa.");
+    }
+  }
+
+  /** GPS do celular — somente após ação explícita do usuário. Converte as
+   * coordenadas em endereço, exige confirmação e valida a precisão. */
+  async function usarLocalizacaoAtual() {
+    if (!("geolocation" in navigator)) {
+      toast.error("Seu navegador não suporta localização.");
+      return;
+    }
+    toast.loading("Obtendo sua localização…", { id: "gps" });
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const acc = Math.round(pos.coords.accuracy);
+        setGpsAccuracy(acc);
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const d = await geocodificarCompleto(`${lat},${lng}`);
+        if (d) {
+          setSelEnd(d);
+          const elEnd = document.getElementById("endereco") as HTMLInputElement | null;
+          const elBai = document.getElementById("bairro") as HTMLInputElement | null;
+          const elCid = document.getElementById("cidade") as HTMLInputElement | null;
+          const elCep = document.getElementById("cep") as HTMLInputElement | null;
+          if (elEnd) elEnd.value = d.numero ? `${d.logradouro}, ${d.numero}` : d.logradouro;
+          if (elBai) elBai.value = d.bairro;
+          if (elCid) elCid.value = d.cidade;
+          if (elCep && d.cep) elCep.value = d.cep;
+        }
+        setPinFinal({ lat, lng });
+        setMapaAberto(true);
+        if (acc > 200) {
+          toast.warning(
+            `Sua localização está imprecisa (~${acc} m). Confirme o endereço ou ajuste o ponto no mapa.`,
+            { id: "gps" },
+          );
+        } else {
+          toast.success(`Localização obtida (precisão ~${acc} m). Confirme o ponto no mapa.`, {
+            id: "gps",
+          });
+        }
+      },
+      (err) => {
+        toast.error(
+          err.code === err.PERMISSION_DENIED
+            ? "Permissão de localização negada. Busque o endereço manualmente."
+            : "Não foi possível obter sua localização. Busque o endereço manualmente.",
+          { id: "gps" },
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
   }
 
   async function finalizar(e: React.FormEvent<HTMLFormElement>) {
@@ -295,6 +521,10 @@ function Checkout() {
       return;
     }
     if (tipoEntrega === "entrega") {
+      if (cfgEntrega && !cfgEntrega.aceitar_entregas) {
+        toast.error("A entrega está temporariamente desativada. Escolha retirada na loja.");
+        return;
+      }
       if ((parsed.data.endereco ?? "").length < 6) {
         toast.error("Informe rua e número.");
         return;
@@ -305,6 +535,23 @@ function Checkout() {
       }
       if ((parsed.data.cidade ?? "").length < 2) {
         toast.error("Informe a cidade.");
+        return;
+      }
+      // Número obrigatório, com opção explícita "Sem número" (0103).
+      if (!semNumero && !/\d/.test(parsed.data.endereco ?? "")) {
+        toast.error("Informe o número da casa ou marque “Meu endereço não tem número”.");
+        return;
+      }
+      // Precisão obrigatória: no regime por km a coordenada final confirmada
+      // (mapa/pin ou GPS) é exigida — nunca só CEP, nunca coordenada inventada.
+      if (porKm && !pinFinal) {
+        toast.error(
+          "Confirme o local da entrega: busque o endereço e ajuste o ponto no mapa.",
+        );
+        return;
+      }
+      if (taxaPrevValida === false && taxaPrev?.foraDaArea) {
+        toast.error("Este endereço está fora da nossa área de entrega.");
         return;
       }
     }
@@ -455,17 +702,23 @@ function Checkout() {
       const calc = calcTotals({ subtotal: subtotalValidado, taxaEntrega: TAXA_ENTREGA, desconto });
       const isRetirada = tipoEntrega === "retirada";
       const taxaEntregaFinal = isRetirada ? 0 : calc.taxaEntrega;
-      const totalFinal = Math.max(0, subtotalValidado - calc.desconto) + taxaEntregaFinal;
-      const obsFinal =
+      const totalFinal = Math.max(0, subtotalValidado - calc.desconto) + taxaEntregaFinal;      const obsFinal =
         pagamento === "dinheiro" && parsed.data.troco
           ? `${parsed.data.observacoes} [Troco para ${parsed.data.troco}]`.trim()
           : parsed.data.observacoes;
 
+      // Coordenada final confirmada: pin ajustado no mapa / GPS / sugestão
+      // escolhida. Sem seleção: tenta geocodificar o endereço digitado
+      // (best-effort legado). NUNCA inventa coordenadas.
       const coords = isRetirada
         ? null
-        : await geocodificarEndereco(
-            `${parsed.data.endereco}, ${parsed.data.bairro}, ${parsed.data.cidade}`,
-          ).catch(() => null);
+        : pinFinal
+          ? pinFinal
+          : selEnd
+            ? { lat: selEnd.lat, lng: selEnd.lng }
+            : await geocodificarEndereco(
+                `${parsed.data.endereco}, ${parsed.data.bairro}, ${parsed.data.cidade}`,
+              ).catch(() => null);
 
       // Determinar modalidade de pagamento: online vs na_entrega
       // - dinheiro: sempre na_entrega (não existe pagamento online em dinheiro)
@@ -516,6 +769,12 @@ function Checkout() {
         cupom: cupom?.codigo ?? null,
         destino_lat: coords?.lat ?? null,
         destino_lng: coords?.lng ?? null,
+        // 0103: distância de rota calculada no cliente (Google Directions) e
+        // identidade do endereço. O SERVIDOR valida a distância contra a linha
+        // reta origem->destino e recalcula a taxa — cliente nunca define taxa.
+        distancia_km: isRetirada ? null : (rotaKm ?? null),
+        endereco_estado: isRetirada ? null : (selEnd?.uf ?? null),
+        endereco_place_id: isRetirada ? null : (selEnd?.placeId || null),
         agendado_para: agendadoPara,
         agendamento_obs: agendamentoObs,
         tipo_evento: tipoEvento,
@@ -740,6 +999,40 @@ function Checkout() {
           /* pedido segue mesmo sem pontos */
         }
 
+        // 0103: salva o endereço (com as coordenadas FINAIS confirmadas) para
+        // "Usar endereço salvo". Falha aqui não afeta o pedido (best-effort).
+        if (salvarEnd && !isRetirada && uidPedido) {
+          try {
+            const partesEnd = String(parsed.data.endereco ?? "").split(",");
+            await supabase.from("enderecos").insert({
+              user_id: uidPedido,
+              rua:
+                selEnd?.logradouro ||
+                partesEnd[0]?.trim() ||
+                String(parsed.data.endereco ?? ""),
+              numero:
+                selEnd?.numero ||
+                partesEnd.slice(1).join(",").trim() ||
+                "S/N",
+              bairro: String(parsed.data.bairro ?? ""),
+              cidade: selEnd?.cidade || String(parsed.data.cidade ?? ""),
+              uf: selEnd?.uf || null,
+              cep:
+                String(parsed.data.cep ?? "")
+                  .replace(/\D/g, "")
+                  .slice(0, 8) || null,
+              lat: pinFinal?.lat ?? selEnd?.lat ?? coords?.lat ?? null,
+              lng: pinFinal?.lng ?? selEnd?.lng ?? coords?.lng ?? null,
+              place_id: selEnd?.placeId || null,
+              precisao: selEnd?.precisao || null,
+              complemento: String(parsed.data.complemento ?? ""),
+              referencia: String(parsed.data.referencia ?? ""),
+            });
+          } catch {
+            /* best-effort: pedido segue sem o endereço salvo */
+          }
+        }
+
         clear();
         void notificarPush(supabase, (pedido as any).id, "recebido");
         toast.success(`Pedido nº ${(pedido as any).numero} recebido! +${pts} pts fidelidade`);
@@ -810,17 +1103,26 @@ function Checkout() {
           <div className="space-y-2">
             <Label>Como deseja receber? *</Label>
             <div className="grid gap-2 sm:grid-cols-2">
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm">
+              <label
+                className={`flex cursor-pointer items-center gap-3 rounded-lg border border-border p-3 text-sm ${
+                  cfgEntrega && !cfgEntrega.aceitar_entregas ? "opacity-50" : ""
+                }`}
+              >
                 <input
                   type="radio"
                   name="tipoEntrega"
+                  disabled={cfgEntrega ? !cfgEntrega.aceitar_entregas : false}
                   checked={tipoEntrega === "entrega"}
                   onChange={() => setTipoEntrega("entrega")}
                 />
                 <div>
                   <div className="font-semibold">Entrega</div>
                   <div className="text-xs text-muted-foreground">
-                    No seu endereço (taxa {brl(TAXA_ENTREGA)})
+                    {calculandoTaxa && tipoEntrega === "entrega"
+                      ? "Calculando a taxa pelo seu endereço…"
+                      : porKm
+                        ? "No seu endereço (taxa pela distância)"
+                        : `No seu endereço (taxa ${brl(TAXA_ENTREGA)})`}
                   </div>
                 </div>
               </label>
@@ -840,6 +1142,16 @@ function Checkout() {
           </div>
           {tipoEntrega === "entrega" ? (
             <>
+              {/* Busca inteligente de endereço (rua, avenida, CEP,
+                  condomínio, estabelecimento) com geocoding preciso. */}
+              <div className="space-y-1.5">
+                <Label>Buscar endereço *</Label>
+                <AddressAutocomplete aoSelecionar={aoEscolherEndereco} />
+                <p className="text-xs text-muted-foreground">
+                  Encontre sua rua, avenida, CEP ou condomínio. Depois confira o número e o ponto
+                  no mapa.
+                </p>
+              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="endereco">Endereço e número *</Label>
                 <Input
@@ -883,6 +1195,109 @@ function Checkout() {
               <div className="space-y-1.5">
                 <Label htmlFor="referencia">Ponto de referência</Label>
                 <Input id="referencia" name="referencia" placeholder="Próximo à praça" />
+              </div>
+
+              {/* Confirmar local da entrega — mapa com pin ajustável + GPS */}
+              <div className="space-y-3 rounded-lg border border-border bg-muted/40 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      if (pinFinal) setMapaAberto(!mapaAberto);
+                      else await atualizarLocalDigitado();
+                    }}
+                  >
+                    <MapPin className="mr-1 size-3.5" />
+                    📍 Confirmar local da entrega
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void usarLocalizacaoAtual()}
+                  >
+                    <LocateFixed className="mr-1 size-3.5" />
+                    Usar minha localização atual
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => void atualizarLocalDigitado()}
+                  >
+                    Atualizar local com o endereço digitado
+                  </Button>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={semNumero}
+                    onChange={(e) => setSemNumero(e.target.checked)}
+                  />
+                  Meu endereço não tem número (opção explícita)
+                </label>
+                {calculandoTaxa ? (
+                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" /> Calculando distância e taxa…
+                  </p>
+                ) : null}
+                {porKm && taxaPrevValida ? (
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Distância:</span>{" "}
+                    <strong>{formatarKm(taxaPrev.distanciaKm)}</strong>
+                    <span className="mx-2 text-muted-foreground">•</span>
+                    <span className="text-muted-foreground">Taxa de entrega:</span>{" "}
+                    <strong>{brl(taxaPrev.taxa)}</strong>
+                    {taxaPrev.entregaGratis ? (
+                      <span className="ml-2 text-xs text-success">(entrega grátis)</span>
+                    ) : null}
+                    {taxaPrev.fonte === "linha_reta" ? (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (distância aproximada em linha reta)
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                {taxaPrev?.foraDaArea ? (
+                  <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
+                    Este endereço está fora da nossa área de entrega.
+                  </p>
+                ) : null}
+                {gpsAccuracy != null ? (
+                  <p className="text-xs text-muted-foreground">
+                    Precisão do GPS: ~{gpsAccuracy} m
+                    {gpsAccuracy > 200
+                      ? " — localização imprecisa: ajuste o ponto no mapa."
+                      : ""}
+                  </p>
+                ) : null}
+                {mapaAberto && pinFinal ? (
+                  <div className="space-y-1">
+                    <MapaPinAjustavel
+                      lat={pinFinal.lat}
+                      lng={pinFinal.lng}
+                      onChange={(lat, lng) => setPinFinal({ lat, lng })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Confira se o pin está na entrada correta (casa, portaria, prédio). Arraste
+                      para ajustar — o texto do endereço não muda.
+                    </p>
+                  </div>
+                ) : mapaAberto && !pinFinal ? (
+                  <p className="text-xs text-muted-foreground">
+                    Busque o endereço acima para mostrar o mapa.
+                  </p>
+                ) : null}
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={salvarEnd}
+                    onChange={(e) => setSalvarEnd(e.target.checked)}
+                  />
+                  Salvar este endereço para os próximos pedidos
+                </label>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
@@ -1217,7 +1632,11 @@ function Checkout() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">
-                {tipoEntrega === "retirada" ? "Retirada na loja" : "Entrega (1x)"}
+                {tipoEntrega === "retirada"
+                  ? "Retirada na loja"
+                  : porKm && taxaPrev?.distanciaKm != null
+                    ? `Entrega (${formatarKm(taxaPrev.distanciaKm)})`
+                    : "Entrega"}
               </span>
               <span>{brl(taxaEntregaFinalUI)}</span>
             </div>

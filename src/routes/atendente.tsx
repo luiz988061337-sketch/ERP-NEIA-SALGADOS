@@ -18,6 +18,20 @@ import { BUILD_DE_CORTE } from "@/lib/corte";
 import { ajustarParaCombo } from "@/lib/cart";
 import { logAdmin } from "@/lib/operacao";
 import { normalizarTelefone } from "@/lib/crm";
+import {
+  distanciaRotaKm,
+  geocodificarCompleto,
+  MapaPinAjustavel,
+  type EnderecoDetalhado,
+} from "@/components/map-view";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
+import {
+  useConfigEntrega,
+  modoPorKm,
+  calcularTaxaPreview,
+  formatarKm,
+  type PrevisaoTaxa,
+} from "@/lib/config-entrega";
 
 export const Route = createFileRoute("/atendente")({
   head: () => ({ meta: [{ title: "Novo Pedido (atendente) — Néia Salgados" }] }),
@@ -67,6 +81,86 @@ function Atendente() {
   const [enviando, setEnviando] = useState(false);
   const [ultimo, setUltimo] = useState<number | null>(null);
 
+  // -----------------------------------------------------------------------
+  // ENDEREÇO INTELIGENTE + TAXA POR KM (0103) — mesmo fluxo do checkout.
+  // O atendente pode ajustar a taxa manualmente (auditado no servidor).
+  // -----------------------------------------------------------------------
+  const { data: cfgEntrega } = useConfigEntrega();
+  const porKm = modoPorKm(cfgEntrega);
+  const [selEnd, setSelEnd] = useState<EnderecoDetalhado | null>(null);
+  const [pinFinal, setPinFinal] = useState<{ lat: number; lng: number } | null>(null);
+  const [taxaPrev, setTaxaPrev] = useState<PrevisaoTaxa | null>(null);
+  const [calculandoTaxa, setCalculandoTaxa] = useState(false);
+  const [ajusteTaxa, setAjusteTaxa] = useState<string>("");
+  const [ajusteMotivo, setAjusteMotivo] = useState<string>("");
+  const [mapaAberto, setMapaAberto] = useState(false);
+  const calcSeqRef = useRef(0);
+
+  // Recálculo da rota + taxa sempre que o ponto final confirmado mudar.
+  useEffect(() => {
+    if (entrega !== "entrega" || !porKm) {
+      setTaxaPrev(null);
+      return;
+    }
+    const destino = pinFinal ?? (selEnd ? { lat: selEnd.lat, lng: selEnd.lng } : null);
+    if (!destino) {
+      setTaxaPrev(null);
+      return;
+    }
+    const seq = ++calcSeqRef.current;
+    setCalculandoTaxa(true);
+    void (async () => {
+      const subLocal = linhas.reduce((a, l) => a + l.preco * l.quantidade, 0);
+      let rota: number | null = null;
+      if (cfgEntrega?.origem_lat != null && cfgEntrega?.origem_lng != null) {
+        const r = await distanciaRotaKm(
+          { lat: cfgEntrega.origem_lat, lng: cfgEntrega.origem_lng },
+          destino,
+        );
+        if (calcSeqRef.current !== seq) return;
+        rota = r?.km ?? null;
+      }
+      const prev = await calcularTaxaPreview({
+        lat: destino.lat,
+        lng: destino.lng,
+        distanciaKm: rota,
+        subtotal: subLocal,
+      });
+      if (calcSeqRef.current !== seq) return;
+      setTaxaPrev(prev);
+      setCalculandoTaxa(false);
+    })();
+  }, [selEnd, pinFinal, entrega, porKm, linhas]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function aoEscolherEnderecoAtendente(d: EnderecoDetalhado) {
+    setSelEnd(d);
+    setPinFinal({ lat: d.lat, lng: d.lng });
+    setMapaAberto(true);
+    setEndereco(d.numero ? `${d.logradouro}, ${d.numero}` : d.logradouro);
+    if (d.bairro) setBairro(d.bairro);
+    if (d.cidade) setCidade(d.cidade);
+  }
+
+  /** Regeocodifica o endereço digitado (ex.: depois de incluir o número). */
+  async function atualizarLocalAtendente() {
+    if (endereco.trim().length < 4) {
+      toast.error("Informe o endereço completo (rua e número) primeiro.");
+      return;
+    }
+    const texto = [endereco.trim(), bairro.trim(), cidade.trim(), selEnd?.uf ?? ""]
+      .filter(Boolean)
+      .join(", ");
+    const d = await geocodificarCompleto(texto);
+    if (!d) {
+      toast.error("Não foi possível localizar esse endereço no mapa. Confira os dados.");
+      return;
+    }
+    setSelEnd(d);
+    setPinFinal({ lat: d.lat, lng: d.lng });
+    setMapaAberto(true);
+    if (d.numero && !/\d/.test(endereco)) setEndereco(`${d.logradouro}, ${d.numero}`);
+  }
+
   useEffect(() => {
     if (!loading && !user)
       navigate({ to: "/auth", search: { redirect: "/atendente" }, replace: true });
@@ -100,9 +194,24 @@ function Atendente() {
   });
 
   const subtotal = linhas.reduce((a, l) => a + l.preco * l.quantidade, 0);
+  // Taxa REAL do servidor quando o regime por km respondeu; padrão R$ 6 caso
+  // contrário (legado). Ajuste manual do atendente aparece no resumo.
+  const taxaPrevValida =
+    entrega === "entrega" &&
+    porKm &&
+    taxaPrev != null &&
+    taxaPrev.modo === "config" &&
+    taxaPrev.aceitarEntregas &&
+    !taxaPrev.foraDaArea;
+  const taxaBase = taxaPrevValida ? (taxaPrev as PrevisaoTaxa).taxa : TAXA_ENTREGA;
+  const taxaAjustadaNum = ajusteTaxa.trim() === "" ? null : Number(ajusteTaxa);
+  const taxaEfetiva =
+    taxaAjustadaNum != null && Number.isFinite(taxaAjustadaNum) && taxaAjustadaNum >= 0
+      ? Math.round(taxaAjustadaNum * 100) / 100
+      : taxaBase;
   const calc = calcTotals({
     subtotal,
-    taxaEntrega: entrega === "entrega" ? TAXA_ENTREGA : 0,
+    taxaEntrega: entrega === "entrega" ? taxaEfetiva : 0,
     desconto,
   });
 
@@ -166,6 +275,29 @@ function Atendente() {
       toast.error("Informe a cidade.");
       return;
     }
+    if (entrega === "entrega" && cfgEntrega && !cfgEntrega.aceitar_entregas) {
+      toast.error("A entrega está desativada nas configurações. Use retirada.");
+      return;
+    }
+    if (entrega === "entrega" && porKm && !pinFinal) {
+      toast.error("Confirme o ponto no mapa: busque o endereço e ajuste o pin.");
+      return;
+    }
+    if (entrega === "entrega" && taxaPrev?.foraDaArea) {
+      toast.error("Este endereço está fora da área de entrega configurada.");
+      return;
+    }
+    // Ajuste manual: valor zerado EXIGE motivo (auditoria server-side).
+    if (
+      entrega === "entrega" &&
+      taxaAjustadaNum != null &&
+      taxaAjustadaNum !== taxaBase &&
+      taxaAjustadaNum === 0 &&
+      ajusteMotivo.trim() === ""
+    ) {
+      toast.error("Taxa zerada exige motivo (cortesia, promoção, erro operacional…).");
+      return;
+    }
     let agendadoPara: string | null = null;
     if (quando === "agendar") {
       const dt = new Date(agendamento);
@@ -201,7 +333,7 @@ function Atendente() {
       if (itens.length === 0) throw new Error("Nenhum item disponível no momento.");
       const calcF = calcTotals({
         subtotal: sub,
-        taxaEntrega: entrega === "entrega" ? TAXA_ENTREGA : 0,
+        taxaEntrega: entrega === "entrega" ? taxaEfetiva : 0,
         desconto,
       });
       // Determinar modalidade de pagamento: online vs na_entrega
@@ -233,6 +365,13 @@ function Atendente() {
         agendado_para: agendadoPara,
         agendamento_obs: "",
         tipo_evento: "",
+        // 0103: ponto final confirmado + distância de rota. O servidor
+        // revalida a distância e recalcula a taxa (cliente/staff não define).
+        destino_lat: entrega === "entrega" ? (pinFinal?.lat ?? selEnd?.lat ?? null) : null,
+        destino_lng: entrega === "entrega" ? (pinFinal?.lng ?? selEnd?.lng ?? null) : null,
+        distancia_km: entrega === "entrega" ? (taxaPrev?.distanciaKm ?? null) : null,
+        endereco_estado: entrega === "entrega" ? (selEnd?.uf ?? null) : null,
+        endereco_place_id: entrega === "entrega" ? (selEnd?.placeId || null) : null,
       };
       let pedidoId = "";
       let numero = 0;
@@ -244,6 +383,14 @@ function Atendente() {
         const dadosAtendente: Record<string, unknown> = {
           ...insertBody,
           desconto_manual: Number(calcF.desconto) || 0,
+          // Ajuste manual AUDITADO da taxa de entrega (só staff autorizado,
+          // config.ajuste_manual = true; taxa 0 exige motivo).
+          entrega_ajuste:
+            entrega === "entrega" &&
+            taxaAjustadaNum != null &&
+            taxaAjustadaNum !== taxaBase
+              ? { taxa_final: taxaAjustadaNum, motivo: ajusteMotivo.trim() || null }
+              : undefined,
         };
         const decisao = await decidirCriacaoAtomica(supabase as unknown as RpcClient, {
           pedidoId: insertBody["id"] as string,
@@ -488,24 +635,83 @@ function Atendente() {
             </button>
           </div>
           {entrega === "entrega" ? (
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5 sm:col-span-1">
-                <Label>Endereço *</Label>
-                <Input
-                  value={endereco}
-                  onChange={(e) => setEndereco(e.target.value)}
-                  placeholder="Rua, número"
+            <>
+              <div className="space-y-1.5">
+                <Label>Buscar endereço do cliente</Label>
+                <AddressAutocomplete
+                  aoSelecionar={aoEscolherEnderecoAtendente}
+                  placeholder="Rua, avenida, CEP, condomínio…"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>Bairro</Label>
-                <Input value={bairro} onChange={(e) => setBairro(e.target.value)} />
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1.5 sm:col-span-1">
+                  <Label>Endereço *</Label>
+                  <Input
+                    value={endereco}
+                    onChange={(e) => setEndereco(e.target.value)}
+                    placeholder="Rua, número"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Bairro</Label>
+                  <Input value={bairro} onChange={(e) => setBairro(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Cidade</Label>
+                  <Input value={cidade} onChange={(e) => setCidade(e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Cidade</Label>
-                <Input value={cidade} onChange={(e) => setCidade(e.target.value)} />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void atualizarLocalAtendente()}
+                >
+                  📍 Atualizar local no mapa
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => mapaAberto && pinFinal ? setMapaAberto(false) : setMapaAberto(true)}
+                >
+                  {mapaAberto ? "Fechar mapa" : "Confirmar local da entrega"}
+                </Button>
               </div>
-            </div>
+              {calculandoTaxa ? (
+                <p className="text-xs text-muted-foreground">Calculando distância e taxa…</p>
+              ) : null}
+              {porKm && taxaPrevValida ? (
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Distância:</span>{" "}
+                  <strong>{formatarKm(taxaPrev.distanciaKm)}</strong>
+                  <span className="mx-2 text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">Taxa:</span>{" "}
+                  <strong>{brl(taxaPrev.taxa)}</strong>
+                  {taxaPrev.entregaGratis ? (
+                    <span className="ml-2 text-xs text-success">(grátis)</span>
+                  ) : null}
+                </p>
+              ) : null}
+              {taxaPrev?.foraDaArea ? (
+                <p className="rounded-lg bg-destructive/10 p-2 text-xs text-destructive">
+                  Endereço fora da área de entrega configurada.
+                </p>
+              ) : null}
+              {mapaAberto && pinFinal ? (
+                <div className="space-y-1">
+                  <MapaPinAjustavel
+                    lat={pinFinal.lat}
+                    lng={pinFinal.lng}
+                    onChange={(lat, lng) => setPinFinal({ lat, lng })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Arraste o pin para a entrada correta antes de confirmar o pedido.
+                  </p>
+                </div>
+              ) : null}
+            </>
           ) : null}
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -564,6 +770,27 @@ function Atendente() {
               <Label>Observação</Label>
               <Input value={obs} onChange={(e) => setObs(e.target.value)} maxLength={200} />
             </div>
+            {entrega === "entrega" && cfgEntrega?.ajuste_manual !== false ? (
+              <div className="space-y-1.5">
+                <Label>
+                  Taxa manual (calculada: {brl(taxaBase)}) — vazio = usar calculada
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={ajusteTaxa}
+                  onChange={(e) => setAjusteTaxa(e.target.value)}
+                  placeholder={String(taxaBase)}
+                />
+                <Input
+                  value={ajusteMotivo}
+                  onChange={(e) => setAjusteMotivo(e.target.value)}
+                  maxLength={200}
+                  placeholder="Motivo do ajuste (obrigatório se taxa R$ 0)"
+                />
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -573,8 +800,20 @@ function Atendente() {
             <span>{brl(subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Entrega</span>
-            <span>{brl(entrega === "entrega" ? TAXA_ENTREGA : 0)}</span>
+            <span className="text-muted-foreground">
+              Entrega
+              {porKm && taxaPrev?.distanciaKm != null
+                ? ` (${formatarKm(taxaPrev.distanciaKm)})`
+                : ""}
+            </span>
+            <span>
+              {brl(entrega === "entrega" ? taxaEfetiva : 0)}
+              {entrega === "entrega" && taxaEfetiva !== taxaBase ? (
+                <span className="ml-1 text-xs text-muted-foreground line-through">
+                  {brl(taxaBase)}
+                </span>
+              ) : null}
+            </span>
           </div>
           {desconto > 0 ? (
             <div className="flex justify-between">
