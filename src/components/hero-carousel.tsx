@@ -79,14 +79,6 @@ export function HeroCarousel({ itens, carregando }: { itens: HeroCarouselItem[];
             <h1 className="font-display text-3xl leading-tight sm:text-5xl">
               {itens[indice]?.legenda || "Salgados quentinhos na sua porta"}
             </h1>
-            <p className="mt-3 text-sm text-white/85 sm:text-base">
-              Fritos, assados, congelados e kits para festa. Peça agora e receba em minutos.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link to="/combo" className="rounded-full bg-white/20 px-4 py-2 text-sm font-semibold backdrop-blur hover:bg-white/30">
-                Monte seu combo
-              </Link>
-            </div>
           </div>
         </div>
       </div>
