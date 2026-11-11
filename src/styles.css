@@ -269,10 +269,97 @@
   }
 }
 
-/* Sidebar escura do Admin (Projeto A1). Escopo .admin-dark: a loja pública
-   nunca usa essa classe, então nada muda fora do admin. Especificidade
-   (0,2,0) vence o `bg-sidebar` fixo interno do componente (0,1,0). */
-.admin-dark [data-sidebar="sidebar"] {
-  background-color: #09090b;
-  color: #e4e4e7;
+/* --- Tokens erp-dark (aplicados via classe .erp-dark no <html> ou <body>) ---
+     A loja pública (.light) nunca recebe essa classe, então as regras abaixo
+     ficam isoladas. Todos os valores seguem a especificação oficial (seção 4–6). */
+
+html.erp-dark {
+  --erp-bg: #0D0F10;
+  --erp-surface: #111416;
+  --erp-surface-2: #1A1E20;
+  --erp-input: #202426;
+  --erp-gold: #D29034;
+  --erp-gold-strong: #E5A63A;
+  --erp-gold-bright: #F4B942;
+  --erp-green: #11B96A;
+  --erp-blue: #1687C8;
+  --erp-orange: #F28A1A;
+  --erp-red: #E34835;
+  --erp-text: #F6F7F7;
+  --erp-text-muted: #90989C;
+  --erp-border: rgba(226,160,52,.60);
+  --erp-border-soft: rgba(255,255,255,.08);
 }
+
+/* Override dos tokens Tailwind sob .erp-dark */
+html.erp-dark body {
+  background-color: var(--erp-bg) !important;
+  color: var(--erp-text) !important;
+}
+
+/* Cards e superfícies */
+html.erp-dark [data-card="main"] {
+  background-color: var(--erp-surface) !important;
+  border-color: var(--erp-border) !important;
+}
+html.erp-dark [data-card="secondary"] {
+  background-color: var(--erp-surface-2) !important;
+  border-color: var(--erp-border-soft) !important;
+}
+
+/* Inputs e campos */
+html.erp-dark input, html.erp-dark select, html.erp-dark textarea {
+  background-color: var(--erp-input) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  color: var(--erp-text) !important;
+}
+html.erp-dark input:focus, html.erp-dark select:focus, html.erp-dark textarea:focus {
+  border-color: var(--erp-gold) !important;
+  box-shadow: 0 0 0 3px rgba(244,185,66,.15) !important;
+}
+
+/* Tabelas */
+html.erp-dark table th {
+  background-color: #1A1E20 !important;
+  border-color: var(--erp-border-soft) !important;
+  color: var(--erp-text-muted) !important;
+}
+html-erp-dark table td {
+  border-color: var(--erp-border-soft) !important;
+  color: var(--erp-text-muted) !important;
+}
+html-erp-dark table tbody tr:hover {
+  background-color: rgba(255,255,255,.025) !important;
+}
+
+/* Badges */
+html-erp-dark .badge-status { border-radius: 999px !important; padding: 2px 8px !important; font-size: 10px !important; }
+
+/* Glow dourado em containers */
+html-erp-dark [data-gold-glow] {
+  box-shadow: 0 0 18px rgba(244,185,66,.12) !important;
+}
+html-erp-dark [data-gold-glow-strong] {
+  box-shadow: 0 0 24px rgba(244,185,66,.20) !important;
+}
+
+/* Sidebar escura */
+html-erp-dark [data-sidebar="sidebar"] {
+  background-color: #09090b !important;
+  color: #e4e4e7 !important;
+}
+
+/* Hover cards */
+html-erp-dark [data-card="main"]:hover {
+  border-color: var(--erp-gold-strong) !important;
+}
+
+/* Status colors */
+html-erp-dark .status-ok { color: var(--erp-green) !important; }
+html-erp-dark .status-blue { color: var(--erp-blue) !important; }
+html-erp-dark .status-orange { color: var(--erp-orange) !important; }
+html-erp-dark .status-red { color: var(--erp-red) !important; }
+
+/* --- Manter loja pública intacta --- */
+html.light,
+html:not(.erp-dark) { --erp-bg: initial !important; }

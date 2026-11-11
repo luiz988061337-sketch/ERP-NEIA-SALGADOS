@@ -81,43 +81,26 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Néia Salgados — Delivery de salgados" },
-      {
-        name: "description",
-        content: "Peça salgados fritos, assados, congelados e kits para festa com entrega rápida.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap",
-      },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-    ],
-  }),
-  shellComponent: RootShell,
-  component: RootComponent,
-  notFoundComponent: NotFoundComponent,
-  errorComponent: ErrorComponent,
-});
-
+// Shell para rotas staff (admin, pdv, producao, etc.) - aplica tema escuro
 function RootShell({ children }: { children: ReactNode }) {
+  // Determina se a rota é staff baseado no pathname
+  const { pathname } = useLocation();
+
+  const ehStaff =
+    /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp)/.test(
+      pathname,
+    ) ||
+    pathname.startsWith("/preview/producao-painel") ||
+    pathname.startsWith("/preview/central-entregas-v2") ||
+    pathname.startsWith("/preview/pedidos-atendente-v2") ||
+    pathname.startsWith("/preview/l1");
+
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={ehStaff ? "erp-dark" : ""}>
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className={ehStaff ? "erp-dark" : ""}>
         {children}
         <Scripts />
       </body>
@@ -125,6 +108,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// Componente principal das rotas publicas
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
@@ -190,11 +174,41 @@ function RootComponent() {
                 </div>
               </footer>
             )}
+            {ehStaff ? null : <CartDock />}
+            <Toaster position="top-center" richColors />
           </div>
-          {ehStaff ? null : <CartDock />}
-          <Toaster position="top-center" richColors />
         </CartProvider>
       </GuardaVersao>
     </QueryClientProvider>
   );
 }
+
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "Néia Salgados — Delivery de salgados" },
+      {
+        name: "description",
+        content: "Peça salgados fritos, assados, congelados e kits para festa com entrega rápida.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito+Sans:wght@400;600;700&display=swap",
+      },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+    ],
+  }),
+  shellComponent: RootShell,
+  component: RootComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
+});
