@@ -103,8 +103,11 @@ function Campanhas() {
   if (roles && !isAdmin)
     return <p className="p-10 text-center">Acesso restrito ao administrador.</p>;
 
-  async function criarCampanha() {
-    if (!cfg.campanhas_habilitadas) {
+  /** A campanha NUNCA é enviada automaticamente por ser criada. O envio real
+   *  é sempre manual (WhatsApp individual) e exige status "pronta" — o botão
+   *  de aprovação explícito registra essa decisão do administrador. */
+  async function salvarCampanha(status: "rascunho" | "pronta") {
+    if (status === "pronta" && !cfg.campanhas_habilitadas) {
       toast.error("Campanhas desabilitadas em Configurações → CRM.");
       return;
     }
@@ -133,28 +136,32 @@ function Campanhas() {
           },
           mensagem_template: mensagem,
           link_rastreavel: link,
-          status: "pronta",
+          status,
           created_by: user!.id,
         })
         .select("id")
         .single();
       if (error) throw error;
-      const recips = aptos.slice(0, 500).map((c) => ({
-        campaign_id: (camp as any).id,
-        telefone_norm: c.telefone_norm,
-        nome_snapshot: c.nome,
-        variaveis: {
-          dias_sem_comprar: c.dias_sem_comprar,
-          ultimo_pedido: c.ultimo_pedido,
-          ultimo_valor: c.ultimo_valor,
-          total_pedidos: c.total_pedidos,
-          total_gasto: c.total_gasto,
-        },
-        status: "apto",
-      }));
-      const { error: e2 } = await supabase.from("crm_recipients").insert(recips);
-      if (e2) throw e2;
-      toast.success(`Campanha criada com ${recips.length} clientes aptos.`);
+      if (status === "pronta") {
+        const recips = aptos.slice(0, 500).map((c) => ({
+          campaign_id: (camp as any).id,
+          telefone_norm: c.telefone_norm,
+          nome_snapshot: c.nome,
+          variaveis: {
+            dias_sem_comprar: c.dias_sem_comprar,
+            ultimo_pedido: c.ultimo_pedido,
+            ultimo_valor: c.ultimo_valor,
+            total_pedidos: c.total_pedidos,
+            total_gasto: c.total_gasto,
+          },
+          status: "apto",
+        }));
+        const { error: e2 } = await supabase.from("crm_recipients").insert(recips);
+        if (e2) throw e2;
+        toast.success(`Campanha aprovada com ${recips.length} clientes aptos.`);
+      } else {
+        toast.success("Rascunho salvo. Nenhum destinatário registrado ainda.");
+      }
     } catch (e) {
       console.error(e);
       toast.error("Não foi possível salvar. Rode a migração 0001 (tabelas crm_*) no Supabase.");
@@ -191,6 +198,22 @@ function Campanhas() {
             </div>
             <div className="space-y-1.5">
               <Label>Dias sem comprar (mínimo)</Label>
+              <div className="flex gap-1.5">
+                {[30, 60, 90].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDiasMin(d)}
+                    className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                      diasMin === d
+                        ? "border-[#C49A43] bg-[#F5EBD2] text-[#A9813A]"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {d} dias
+                  </button>
+                ))}
+              </div>
               <Input
                 type="number"
                 min={1}
@@ -243,8 +266,11 @@ function Campanhas() {
             <p className="mt-1 whitespace-pre-wrap">{previa}</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={criarCampanha} disabled={salvando || aptos.length === 0}>
-              {salvando ? "Salvando…" : `Salvar campanha (${aptos.length})`}
+            <Button variant="outline" onClick={() => void salvarCampanha("rascunho")} disabled={salvando || aptos.length === 0}>
+              Salvar rascunho
+            </Button>
+            <Button onClick={() => void salvarCampanha("pronta")} disabled={salvando || aptos.length === 0}>
+              {salvando ? "Salvando…" : `Aprovar e salvar como pronta (${aptos.length})`}
             </Button>
             {exemplo ? (
               <Button
