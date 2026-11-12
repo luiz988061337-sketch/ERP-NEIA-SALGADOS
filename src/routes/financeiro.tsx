@@ -717,7 +717,7 @@ function Financeiro() {
               />
               <Legend
                 formatter={(value) => (
-                  <span style={{ color: "#64748B", fontSize: 11, textTransform: "uppercase" }}>
+                  <span style={{ color: "#A09A8E", fontSize: 11, textTransform: "uppercase" }}>
                     {value}
                   </span>
                 )}

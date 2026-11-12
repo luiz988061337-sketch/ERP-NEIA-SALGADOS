@@ -455,7 +455,7 @@ export function DashboardAdmin({
                     formatter={(value) => (
                       <span
                         style={{
-                          color: "#64748B",
+                          color: "#A09A8E",
                           fontSize: 11,
                           textTransform: "uppercase",
                           fontWeight: 600,

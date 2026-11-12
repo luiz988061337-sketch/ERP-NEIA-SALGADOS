@@ -3,24 +3,30 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Componentes estruturais compartilhados do ERP (identidade clara).
+ * Componentes estruturais compartilhados do ERP (identidade premium escura/dourada).
  * Uso exclusivo do painel interno — a loja pública não importa nada daqui.
- * Todos seguem a paleta oficial: fundo claro #F8F9FA + dourado #C49A43
- * como destaque + cores de status (verde/azul/laranja/vermelho).
+ * Paleta: fundo preto/grafite, cards escuros, bordas douradas brilhantes,
+ * textos brancos, destaque em amarelo/dourado vivo, status em verde/azul/laranja/vermelho.
  */
 
 export const ERP_COLORS = {
-  gold: "#C49A43",
-  goldStrong: "#A9813A",
-  goldLight: "#F5EBD2",
-  green: "#21835D",
-  blue: "#2563EB",
-  orange: "#F59E0B",
-  red: "#DC2626",
-  gray: "#64748B",
+  gold: "#D4A94A",
+  goldStrong: "#F2CE6B",
+  goldLight: "rgba(212,169,74,.14)",
+  goldVeryLight: "rgba(212,169,74,.08)",
+  green: "#35C97C",
+  blue: "#5B93F5",
+  orange: "#F5A623",
+  red: "#F16A6A",
+  purple: "#A78BFA",
+  gray: "#A09A8E",
+  // Tokens de sombra e borda
+  line: "rgba(201,162,75,0.26)",
+  lineStrong: "rgba(201,162,75,0.45)",
 } as const;
 
-/** Cabeçalho de módulo: ícone dourado + título grande + subtítulo + status à direita. */
+/** Cabeçalho de módulo: ícone dourado + título grande + subtítulo + status à direita.
+ * Fundo escuro com contorno dourado leve. */
 export function ModuleHeader({
   icone: Icone,
   titulo,
@@ -37,11 +43,11 @@ export function ModuleHeader({
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div className="flex items-center gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[rgba(196,154,67,.45)] bg-[#F5EBD2]">
-          <Icone className="size-5 text-[#A9813A]" aria-hidden />
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[#D4A94A] bg-[#1A1712]">
+          <Icone className="size-5 text-[#F2CE6B]" aria-hidden />
         </span>
         <div className="min-w-0">
-          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-tight text-foreground">
+          <h1 className="font-display text-xl font-bold uppercase leading-tight tracking-tight text-foreground">
             {titulo}
           </h1>
           {subtitulo ? (
@@ -60,44 +66,37 @@ export function ModuleHeader({
 /** Indicador de status ● texto, com cor. */
 export function StatusDot({
   label,
-  cor = "#21835D",
+  cor = "#35C97C",
 }: {
   label: string;
   cor?: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E7EB] bg-[#F1F5F9] px-2.5 py-1 text-xs font-medium text-[#202B3A]">
-      <span
-        className="inline-block size-2 rounded-full"
-        style={{ backgroundColor: cor }}
-        aria-hidden
-      />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D4A94A] bg-[#1A1712] px-2.5 py-1 text-xs font-medium text-[#F4F1EA]">
+      <span className="inline-block size-2 rounded-full" style={{ backgroundColor: cor }} aria-hidden />
       {label}
     </span>
   );
 }
 
 /** Badge pill pequeno com cor de status. */
-export type BadgeTom = "ok" | "info" | "atencao" | "perigo" | "neutro" | "extra";
-
-export const BADGE_TOM_STYLE: Record<BadgeTom, { bg: string; texto: string }> = {
-  ok: { bg: "rgba(33,131,93,.12)", texto: "#21835D" },
-  info: { bg: "rgba(37,99,235,.10)", texto: "#2563EB" },
-  atencao: { bg: "rgba(245,158,11,.16)", texto: "#B45309" },
-  perigo: { bg: "rgba(220,38,38,.10)", texto: "#DC2626" },
-  neutro: { bg: "rgba(15,23,42,.06)", texto: "#64748B" },
-  extra: { bg: "rgba(124,58,237,.10)", texto: "#7C3AED" },
-};
-
 export function StatusBadge({
   tom = "neutro",
   children,
   className,
 }: {
-  tom?: BadgeTom;
+  tom?: "ok" | "info" | "atencao" | "perigo" | "neutro" | "extra";
   children: ReactNode;
   className?: string;
 }) {
+  const BADGE_TOM_STYLE: Record<"ok" | "info" | "atencao" | "perigo" | "neutro" | "extra", { bg: string; texto: string }> = {
+    ok: { bg: "rgba(53,201,124,.18)", texto: "#35C97C" },
+    info: { bg: "rgba(91,147,245,.16)", texto: "#5B93F5" },
+    atencao: { bg: "rgba(245,166,35,.18)", texto: "#F5B301" },
+    perigo: { bg: "rgba(241,106,106,.16)", texto: "#F16A6A" },
+    neutro: { bg: "rgba(255,255,255,.05)", texto: "#A09A8E" },
+    extra: { bg: "rgba(167,139,250,.14)", texto: "#A78BFA" },
+  };
   const t = BADGE_TOM_STYLE[tom];
   return (
     <span
@@ -112,7 +111,40 @@ export function StatusBadge({
   );
 }
 
-/** Card de métrica compacto: ícone circular + label + valor + delta opcional. */
+/** Badge maior (para uso em cards/grids). */
+export function StatusBadgeLarge({
+  tom = "neutro",
+  children,
+  className,
+}: {
+  tom?: "ok" | "info" | "atencao" | "perigo" | "neutro" | "extra";
+  children: ReactNode;
+  className?: string;
+}) {
+  const BADGE_TOM_STYLE: Record<"ok" | "info" | "atencao" | "perigo" | "neutro" | "extra", { bg: string; texto: string }> = {
+    ok: { bg: "rgba(53,201,124,.18)", texto: "#35C97C" },
+    info: { bg: "rgba(91,147,245,.16)", texto: "#5B93F5" },
+    atencao: { bg: "rgba(245,166,35,.18)", texto: "#F5B301" },
+    perigo: { bg: "rgba(241,106,106,.16)", texto: "#F16A6A" },
+    neutro: { bg: "rgba(255,255,255,.05)", texto: "#A09A8E" },
+    extra: { bg: "rgba(167,139,250,.14)", texto: "#A78BFA" },
+  };
+  const t = BADGE_TOM_STYLE[tom];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-[9px] font-semibold uppercase tracking-wide",
+        className,
+      )}
+      style={{ backgroundColor: t.bg, color: t.texto }}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Card de métrica compacto: ícone circular + label + valor + delta opcional.
+ * Fundo escuro com contorno dourado, ícone dourado vivo. */
 export function MetricCard({
   icone: Icone,
   label,
@@ -131,17 +163,16 @@ export function MetricCard({
   const body = (
     <>
       <span
-        className="flex size-9 shrink-0 items-center justify-center rounded-full"
-        style={{ backgroundColor: `${cor}1A` }}
+        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#D4A94A] bg-[#1A1712]"
       >
         <Icone className="size-4" style={{ color: cor }} aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </p>
         <p className="truncate font-display text-xl font-bold leading-tight">{valor}</p>
-        {detalhe ? <p className="truncate text-[11px] text-muted-foreground">{detalhe}</p> : null}
+        {detalhe ? <p className="truncate text-[9px] text-muted-foreground">{detalhe}</p> : null}
       </div>
     </>
   );
@@ -150,20 +181,21 @@ export function MetricCard({
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[72px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-3 text-left shadow-card transition-colors hover:border-[rgba(196,154,67,.55)]"
+        className="erp-btn-gold min-h-[64px] items-center gap-3 rounded-xl border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-[#14120C] shadow-card transition-colors"
       >
         {body}
       </button>
     );
   }
   return (
-    <div className="flex min-h-[72px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-card">
+    <div className="flex min-h-[64px] items-center gap-3 rounded-xl border border-[#D4A94A] bg-[#1A1712] shadow-card">
       {body}
     </div>
   );
 }
 
-/** Card de seção com título compacto e ações no cabeçalho. */
+/** Card de seção com título compacto e ações no cabeçalho.
+ * Fundo escuro com contorno dourado forte. */
 export function SectionCard({
   titulo,
   acoes,
@@ -180,13 +212,13 @@ export function SectionCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-card",
+        "overflow-hidden rounded-xl border border-[#D4A94A] bg-[#1A1712] shadow-card",
         className,
       )}
     >
       {titulo || acoes ? (
-        <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">{titulo}</h3>
+        <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-[#D4A94A] px-3 py-2">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">{titulo}</h3>
           {acoes ? <div className="flex flex-wrap items-center gap-1.5">{acoes}</div> : null}
         </header>
       ) : null}
@@ -195,7 +227,7 @@ export function SectionCard({
   );
 }
 
-/** Tabela clara compacta (linhas 40-44px, header cinza-claro, hover leve). */
+/** Tabela compacta visual escuro/dourado. */
 export function DarkTable({
   colunas,
   children,
@@ -209,14 +241,14 @@ export function DarkTable({
 }) {
   return (
     <div className={cn("overflow-x-auto", className)}>
-      <table className="w-full border-collapse text-[12px]">
+      <table className="w-full border-collapse text-[11px]">
         <thead>
-          <tr className="border-b border-[#E5E7EB] bg-[#F8F9FA]">
+          <tr className="border-b border-[#D4A94A] bg-[#1A1712]">
             {colunas.map((c, i) => (
               <th
                 key={i}
                 className={cn(
-                  "px-2.5 py-2 text-left text-[10px] font-bold uppercase tracking-wide text-muted-foreground",
+                  "px-2.5 py-2 text-left text-[9px] font-bold uppercase tracking-wide text-foreground",
                   i === 0 && "rounded-tl-md",
                   i === colunas.length - 1 && "rounded-tr-md",
                 )}
@@ -226,7 +258,7 @@ export function DarkTable({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#EEF1F5]">{children}</tbody>
+        <tbody className="divide-y divide-[#2A2721]">{children}</tbody>
       </table>
       {vazio && (
         <p className="px-3 py-6 text-center text-xs text-muted-foreground">{vazio}</p>
@@ -238,11 +270,12 @@ export function DarkTable({
 /** Linha de tabela padrão. */
 export function DarkTableRow({ children }: { children: ReactNode }) {
   return (
-    <tr className="transition-colors hover:bg-[rgba(15,23,42,.02)]">{children}</tr>
+    <tr className="transition-colors hover:bg-[#211F18]">{children}</tr>
   );
 }
 
-/** Coluna de kanban com header colorido (produção/atendimento). */
+/** Coluna de kanban com header colorido (produção/atendimento).
+ * Headers escuros com contorno dourado e fundo levemente tintado. */
 export function KanbanColumn({
   titulo,
   contador,
@@ -259,19 +292,19 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-[#F8F9FA]",
+        "flex min-w-0 flex-col overflow-hidden rounded-xl border border-[#D4A94A] bg-[#1A1712]",
         className,
       )}
     >
       <header
-        className="flex min-h-[42px] shrink-0 items-center justify-between gap-2 px-3 py-2"
+        className="flex min-h-[40px] shrink-0 items-center justify-between gap-2 px-3 py-2"
         style={{ backgroundColor: `${cor}14`, borderBottom: `2px solid ${cor}` }}
       >
         <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: cor }}>
           {titulo}
         </h3>
         <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+          className="rounded-full px-2 py-0.5 text-[9px] font-bold"
           style={{ backgroundColor: `${cor}26`, color: cor }}
         >
           {contador}
@@ -282,7 +315,7 @@ export function KanbanColumn({
   );
 }
 
-/** Botão de ação padronizado. */
+/** Botão de ação padronizado com gradiente dourado premium. */
 export function ActionButton({
   children,
   onClick,
@@ -301,11 +334,11 @@ export function ActionButton({
   const base =
     "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold uppercase tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
-    gold: "min-h-[34px] border border-[#C49A43] bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A] hover:brightness-105",
+    gold: "erp-btn-gold min-h-[34px] border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-[#14120C] hover:brightness-105",
     ghost:
-      "min-h-[34px] border border-[#E5E7EB] bg-white text-[#202B3A] hover:border-[rgba(196,154,67,.55)] hover:bg-[#F5EBD2]",
+      "min-h-[34px] border border-[#2A2721] bg-[#1A1712] text-[#F4F1EA] hover:border-[#D4A94A] hover:bg-[#F2CE6B] hover:text-[#14120C]",
     danger:
-      "min-h-[34px] border border-[rgba(220,38,38,.4)] bg-[rgba(220,38,38,.08)] text-[#DC2626] hover:bg-[rgba(220,38,38,.16)]",
+      "min-h-[34px] border border-[#F16A6A] bg-[#140E0E] text-[#F16A6A] hover:bg-[#2A0E0E]",
   } as const;
   return (
     <button
@@ -319,7 +352,8 @@ export function ActionButton({
   );
 }
 
-/** Card que envolve um gráfico (título + corpo do gráfico). */
+/** Card que envolve um gráfico (título + corpo do gráfico).
+ * Fundo escuro com contorno dourado. */
 export function ChartCard({
   titulo,
   acoes,
@@ -336,15 +370,17 @@ export function ChartCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-card",
+        "overflow-hidden rounded-xl border border-[#D4A94A] bg-[#1A1712] shadow-card",
         className,
       )}
     >
-      <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">{titulo}</h3>
+      <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[#D4A94A] px-3 py-2">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-foreground">{titulo}</h3>
         {acoes}
       </header>
       <div className={cn("p-3", altura)}>{children}</div>
     </section>
   );
 }
+
+export type BadgeTom = "ok" | "info" | "atencao" | "perigo" | "neutro" | "extra";

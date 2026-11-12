@@ -1,0 +1,269 @@
+/* ============================================================================
+   ERP Néia Salgados — TEMA ESCURO PREMIUM (replicação da referência aprovada)
+   Fundo preto/grafite + painéis escuros + bordas douradas brilhantes.
+   Escopo estrito: apenas rotas staff (html.erp-admin). A loja pública nunca
+   recebe essa classe, então NADA aqui afeta o site.
+   Carregado depois de styles.css (ver src/routes/__root.tsx).
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. TOKENS — paleta escura premium + override dos tokens semânticos
+   ------------------------------------------------------------------------- */
+
+html.erp-admin {
+  color-scheme: dark;
+
+  /* Paleta bruta da marca (modo escuro premium) */
+  --erp-bg: #0b0a08;
+  --erp-surface: #151412;
+  --erp-surface-2: #1d1b17;
+  --erp-surface-3: #262319;
+  --erp-input: #100f0d;
+  --erp-gold: #d4a94a;
+  --erp-gold-strong: #f2ce6b;
+  --erp-gold-deep: #a9813a;
+  --erp-gold-light: rgba(212, 169, 74, 0.14);
+  --erp-green: #35c97c;
+  --erp-blue: #5b93f5;
+  --erp-orange: #f5a623;
+  --erp-red: #f16a6a;
+  --erp-purple: #a78bfa;
+  --erp-text: #f4f1ea;
+  --erp-text-muted: #a09a8e;
+  --erp-line: rgba(201, 162, 75, 0.26);
+  --erp-line-strong: rgba(201, 162, 75, 0.45);
+
+  /* Override dos tokens semânticos usados por bg-card, border-border,
+     bg-muted, text-foreground etc. — todo o painel interno fica escuro. */
+  --background: var(--erp-bg);
+  --foreground: var(--erp-text);
+  --card: var(--erp-surface);
+  --card-foreground: var(--erp-text);
+  --popover: #1b1915;
+  --popover-foreground: var(--erp-text);
+  --primary: var(--erp-gold);
+  --primary-foreground: #14120c;
+  --secondary: var(--erp-surface-2);
+  --secondary-foreground: var(--erp-text);
+  --muted: var(--erp-surface-2);
+  --muted-foreground: var(--erp-text-muted);
+  --accent: var(--erp-gold-light);
+  --accent-foreground: var(--erp-gold-strong);
+  --destructive: var(--erp-red);
+  --destructive-foreground: #2a0e0e;
+  --success: var(--erp-green);
+  --success-foreground: #062b18;
+  --border: var(--erp-line);
+  --input: rgba(201, 162, 75, 0.22);
+  --ring: var(--erp-gold);
+  --chart-1: var(--erp-gold);
+  --chart-2: var(--erp-blue);
+  --chart-3: var(--erp-green);
+  --chart-4: var(--erp-orange);
+  --chart-5: var(--erp-red);
+  --sidebar: #100f0d;
+  --sidebar-foreground: var(--erp-text);
+  --sidebar-primary: var(--erp-gold);
+  --sidebar-primary-foreground: #14120c;
+  --sidebar-accent: rgba(212, 169, 74, 0.12);
+  --sidebar-accent-foreground: var(--erp-gold-strong);
+  --sidebar-border: rgba(201, 162, 75, 0.22);
+  --sidebar-ring: var(--erp-gold);
+  --radius: 0.8rem;
+
+  /* Sombra premium: brilho dourado sutil + profundidade */
+  --shadow-card:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 30px -16px rgba(0, 0, 0, 0.7),
+    0 0 26px -12px rgba(212, 169, 74, 0.22);
+}
+
+/* Fundo da página: preto profundo com vinheta dourada suave */
+html.erp-admin body {
+  background-color: var(--erp-bg);
+  background-image:
+    radial-gradient(1100px 640px at 50% -8%, rgba(212, 169, 74, 0.07), transparent 62%),
+    radial-gradient(900px 500px at 100% 100%, rgba(212, 169, 74, 0.04), transparent 60%);
+  background-attachment: fixed;
+  color: var(--erp-text);
+}
+
+/* Scrollbar escura e fina */
+html.erp-admin * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 162, 75, 0.35) transparent;
+}
+html.erp-admin *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+html.erp-admin *::-webkit-scrollbar-track {
+  background: transparent;
+}
+html.erp-admin *::-webkit-scrollbar-thumb {
+  background: rgba(201, 162, 75, 0.3);
+  border-radius: 999px;
+}
+html.erp-admin *::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 169, 74, 0.55);
+}
+
+/* Seleção de texto com tom dourado */
+html.erp-admin ::selection {
+  background: rgba(212, 169, 74, 0.35);
+}
+
+/* ---------------------------------------------------------------------------
+   2. CAMADA DE REMAPEAMENTO — cores claras fixas (hex em classes utilitárias
+   do Tailwind) convertidas para o tema escuro. Isso re-pele TODOS os módulos
+   de uma vez, sem editar cada ocorrência.
+   ------------------------------------------------------------------------- */
+
+/* Superfícies claras → painéis escuros */
+html.erp-admin .bg-white,
+html.erp-admin .bg-\[\#FFFFFF\] {
+  background-color: var(--erp-surface);
+}
+html.erp-admin .bg-\[\#F8F9FA\],
+html.erp-admin .bg-\[\#F1F5F9\] {
+  background-color: var(--erp-surface-2);
+}
+html.erp-admin .bg-\[\#E5E7EB\] {
+  background-color: var(--erp-line);
+}
+html.erp-admin .bg-\[\#F5EBD2\] {
+  background-color: var(--erp-gold-light);
+}
+
+/* Textos escuros/cinza-claro → branco e cinza quente */
+html.erp-admin .text-\[\#202B3A\],
+html.erp-admin .text-\[\#475569\] {
+  color: var(--erp-text);
+}
+html.erp-admin .text-\[\#64748B\],
+html.erp-admin .text-\[\#94A3B8\],
+html.erp-admin .text-\[\#90989C\] {
+  color: var(--erp-text-muted);
+}
+
+/* Dourados → mais vivos sobre fundo escuro */
+html.erp-admin .text-\[\#A9813A\],
+html.erp-admin .text-\[\#C49A43\] {
+  color: #e8c15a;
+}
+html.erp-admin .text-\[\#B45309\] {
+  color: #f5b301;
+}
+
+/* Cores de status → versões vivas (verde vivo, azul, vermelho) */
+html.erp-admin .text-\[\#21835D\] {
+  color: var(--erp-green);
+}
+html.erp-admin .text-\[\#2563EB\] {
+  color: var(--erp-blue);
+}
+html.erp-admin .text-\[\#DC2626\] {
+  color: var(--erp-red);
+}
+html.erp-admin .bg-\[\#21835D\] {
+  background-color: var(--erp-green);
+}
+html.erp-admin .bg-\[\#2563EB\] {
+  background-color: var(--erp-blue);
+}
+html.erp-admin .bg-\[\#DC2626\] {
+  background-color: var(--erp-red);
+}
+html.erp-admin .bg-\[\#F59E0B\] {
+  background-color: var(--erp-orange);
+}
+html.erp-admin .bg-\[\#7C3AED\] {
+  background-color: var(--erp-purple);
+}
+html.erp-admin .bg-\[\#C49A43\] {
+  background-color: var(--erp-gold);
+}
+
+/* Bordas e divisores → dourado sutil */
+html.erp-admin .border-\[\#E5E7EB\],
+html.erp-admin .border-\[\#EEF1F5\] {
+  border-color: var(--erp-line);
+}
+html.erp-admin .border-\[\#C49A43\] {
+  border-color: var(--erp-line-strong);
+}
+html.erp-admin .divide-\[\#EEF1F5\] > :where(:not(:last-child)) {
+  border-color: var(--erp-line);
+}
+
+/* Tinta escura sobre claro (hover de tabela etc.) → tinta clara sobre escuro */
+html.erp-admin .hover\:bg-\[rgba\(15\,23\,42\,\.02\)\]:hover,
+html.erp-admin .hover\:bg-\[rgba\(15\,23\,42\,\.03\)\]:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+html.erp-admin .hover\:bg-\[rgba\(15\,23\,42\,\.04\)\]:hover,
+html.erp-admin .hover\:bg-\[rgba\(15\,23\,42\,\.05\)\]:hover,
+html.erp-admin .hover\:bg-\[rgba\(15\,23\,42\,\.06\)\]:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+html.erp-admin .bg-\[rgba\(15\,23\,42\,\.06\)\] {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+html.erp-admin .hover\:bg-\[\#F1F5F9\]:hover,
+html.erp-admin .hover\:bg-\[\#F8F9FA\]:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+html.erp-admin .hover\:bg-\[\#F5EBD2\]:hover {
+  background-color: var(--erp-gold-light);
+}
+html.erp-admin .hover\:bg-\[\#CBD5E1\]:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+html.erp-admin .hover\:text-\[\#202B3A\]:hover {
+  color: var(--erp-text);
+}
+html.erp-admin .hover\:text-\[\#A9813A\]:hover {
+  color: #e8c15a;
+}
+html.erp-admin .hover\:text-\[\#DC2626\]:hover {
+  color: var(--erp-red);
+}
+
+/* Texto placeholder visível no escuro */
+html.erp-admin ::placeholder {
+  color: rgba(160, 154, 142, 0.65);
+}
+
+/* ---------------------------------------------------------------------------
+   3. DETALHES PREMIUM — molduras com brilho dourado, títulos e gradientes
+   ------------------------------------------------------------------------- */
+
+/* Botão dourado com brilho (visual do "Finalizar Pedido") */
+html.erp-admin .erp-btn-gold {
+  background-image: linear-gradient(180deg, #f2ce6b 0%, #d4a94a 55%, #b8892f 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 4px 14px -4px rgba(212, 169, 74, 0.45);
+}
+
+/* Card com moldura dourada forte (destaques como pedidos urgentes) */
+html.erp-admin .erp-frame-gold {
+  border-color: var(--erp-line-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 22px -8px rgba(212, 169, 74, 0.35),
+    0 10px 30px -16px rgba(0, 0, 0, 0.7);
+}
+
+/* Barras de rolagem e foco com anel dourado */
+html.erp-admin :focus-visible {
+  outline: 2px solid rgba(212, 169, 74, 0.55);
+  outline-offset: 1px;
+}
+
+/* Reduce-motion respeitado — nada anima além do padrão do sistema */
+@media (prefers-reduced-motion: reduce) {
+  html.erp-admin * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

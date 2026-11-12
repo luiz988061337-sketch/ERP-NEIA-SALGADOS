@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
+import erpDarkCss from "../erp-dark.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
 import { CartDock } from "@/components/cart-dock";
@@ -87,7 +88,7 @@ function RootShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
 
   const ehStaff =
-    /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp)/.test(
+    /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp|equipe|contador|gestao)/.test(
       pathname,
     ) ||
     pathname.startsWith("/preview/producao-painel") ||
@@ -133,7 +134,7 @@ function RootComponent() {
   // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.
   // Exceções pontuais: previews com layout próprio isolado (K7.2, K8.1, K9, L1).
   const ehStaff =
-    /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp)/.test(
+    /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp|equipe|contador|gestao)/.test(
       pathname,
     ) ||
     pathname.startsWith("/preview/producao-painel") ||
@@ -193,6 +194,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      // Tema escuro premium do ERP — só surte efeito em rotas staff (html.erp-admin)
+      { rel: "stylesheet", href: erpDarkCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
