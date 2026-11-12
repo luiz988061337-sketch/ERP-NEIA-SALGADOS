@@ -414,14 +414,14 @@ export function PainelMetrica({
         <Icone className="size-[18px]" aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="line-clamp-2 text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
           {label}
         </p>
-        <p className="truncate font-display text-xl font-bold leading-tight text-foreground">
+        <p className="truncate font-display text-lg font-bold leading-tight text-foreground sm:text-xl">
           {valor}
         </p>
       </div>
-      {delta ? <div className="shrink-0 text-right">{delta}</div> : null}
+      {delta ? <div className="hidden shrink-0 text-right sm:block">{delta}</div> : null}
     </>
   );
   const cls =
