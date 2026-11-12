@@ -27,12 +27,18 @@ function loadMaps(): Promise<void> {
       resolve();
     };
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&callback=__initNeiaMaps${
+    // libraries=places é OBRIGATÓRIO para AutocompleteService/SessionToken;
+    // language/region garantem sugestões em português com viés Brasil.
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&callback=__initNeiaMaps&libraries=places&language=pt-BR&region=br${
       channel ? `&channel=${channel}` : ""
     }`;
     script.async = true;
     script.onerror = () => reject(new Error("Falha ao carregar o mapa"));
     document.head.appendChild(script);
+  });
+  // Se o carregamento falhar, limpa o cache para permitir nova tentativa.
+  loaderPromise.catch(() => {
+    loaderPromise = null;
   });
   return loaderPromise;
 }
@@ -152,6 +158,17 @@ export type EnderecoDetalhado = {
 
 export type PredicaoEndereco = { placeId: string; descricao: string };
 
+/**
+ * Token de sessão do Places: reutilizado durante uma mesma interação de
+ * digitação (cobra 1 sessão por seleção em vez de por tecla) e renovado
+ * quando o usuário seleciona um endereço.
+ */
+let placeSessionToken: unknown = null;
+function tokenSessao(g: any): unknown {
+  if (!placeSessionToken) placeSessionToken = new g.maps.places.AutocompleteSessionToken();
+  return placeSessionToken;
+}
+
 function componente(ac: any[], tipo: string, modo: "long" | "short" = "long"): string {
   const c = ac?.find?.((x: any) => (x.types ?? []).includes(tipo));
   return c ? (modo === "long" ? c.long_name : c.short_name) : "";
@@ -178,21 +195,27 @@ async function comGeocoder<T>(
   return (res?.results ?? []) as T;
 }
 
-/** Sugestões de endereço (rua, avenida, CEP, estabelecimento — conforme o provedor). */
+/** Sugestões de endereço (rua, avenida, CEP, estabelecimento — conforme o provedor).
+ *  Retorna null quando o serviço/provedor falhou (API indisponível) — distinto
+ *  de uma busca sem resultados ([]), para a UI mostrar estados honestos. */
 export async function autocompletarEnderecos(
   texto: string,
-): Promise<PredicaoEndereco[]> {
+): Promise<PredicaoEndereco[] | null> {
   const t = texto.trim();
   if (t.length < 3) return [];
   try {
     await loadMaps();
     const g = (window as any).google;
+    if (!g?.maps?.places?.AutocompleteService) {
+      console.error("Biblioteca Places indisponível no carregador do Maps");
+      return null;
+    }
     const service = new g.maps.places.AutocompleteService();
     const res = await service.getPlacePredictions({
       input: t,
       componentRestrictions: { country: "br" },
       // Sessão por interação: melhora o custo/qualidade do autocomplete.
-      sessionToken: new g.maps.places.AutocompleteSessionToken(),
+      sessionToken: tokenSessao(g),
     });
     return (res?.predictions ?? []).map((p: any) => ({
       placeId: p.place_id as string,
@@ -200,7 +223,7 @@ export async function autocompletarEnderecos(
     }));
   } catch (e) {
     console.error("Autocomplete indisponível", e);
-    return [];
+    return null;
   }
 }
 
@@ -210,6 +233,8 @@ export async function detalharPlaceId(
 ): Promise<EnderecoDetalhado | null> {
   try {
     const results = await comGeocoder<any>({ placeId });
+    // Fim da sessão do Places (seleção consumida) — próxima digitação renova.
+    placeSessionToken = null;
     const r = results?.[0];
     if (!r) return null;
     const ac = r.address_components ?? [];
