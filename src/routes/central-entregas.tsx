@@ -762,6 +762,45 @@ function CentralEntregas() {
     ? (pedidosFiltrados ?? []).filter(casaBusca)
     : (pedidosFiltrados ?? []);
 
+  /* Pontos do mapa dominante: destinos dos pedidos + posições dos motoboys.
+     Mesma lógica do mapa antigo, unificada em um único MapView no topo. */
+  const pontosMapa = useMemo(() => {
+    const pts: { lat: number; lng: number; label: string; color: string }[] = [];
+    for (const p of pedidosFiltrados ?? []) {
+      if (p.destino_lat != null && p.destino_lng != null) {
+        pts.push({
+          lat: p.destino_lat,
+          lng: p.destino_lng,
+          label: `Pedido ${p.numero}`,
+          color: "primary",
+        });
+      }
+    }
+    for (const m of motoboys ?? []) {
+      const ultimoPedido = (pedidos ?? [])
+        .filter((p: any) => p.motoboy_id === m.user_id)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0];
+      if (ultimoPedido && ultimoPedido.motoboy_lat != null && ultimoPedido.motoboy_lng != null) {
+        // Idade da localização em segundos (motoboy_atualizado_em; fallback created_at).
+        // Regra técnica: >120s (~2 intervalos de 15s + margem) = desatualizada.
+        const ref = ultimoPedido.motoboy_atualizado_em ?? ultimoPedido.created_at;
+        const msDiff = Math.abs(new Date().getTime() - new Date(ref).getTime());
+        const idadeSegundos = Math.round(msDiff / 1000);
+        const desatualizada = idadeSegundos > 120;
+        pts.push({
+          lat: ultimoPedido.motoboy_lat,
+          lng: ultimoPedido.motoboy_lng,
+          label: `Motoboy ${m.nome}${desatualizada ? " ⚠ desatualizada" : ""}`,
+          color: "success",
+        });
+      }
+    }
+    return pts;
+  }, [pedidosFiltrados, motoboys, pedidos]);
+
   if (!autorizado) {
     return (
       <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
@@ -832,20 +871,136 @@ function CentralEntregas() {
           />
         </div>
 
-        <div className="mb-4 grid gap-4 lg:grid-cols-3">
+        {/* ========== MAPA DOMINANTE + PAINEL MOTOBOYS (reforma estrutural) ========== */}
+        <div className="mb-4 grid gap-3 lg:grid-cols-[2fr_1fr]">
           <section
-            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] lg:col-span-2"
-            aria-label="Entregas em andamento"
+            id="secao-mapa"
+            className="overflow-hidden rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+            aria-label="Mapa de entregas em tempo real"
           >
-            <h2 className="text-sm font-bold">Entregas em Andamento</h2>
+            <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-[rgba(255,255,255,.08)] px-3 py-2">
+              <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+                Mapa de Entregas
+              </h2>
+              <span className="text-[10px] uppercase text-muted-foreground">
+                Pedidos e motoboys em tempo real
+              </span>
+            </header>
+            <div className="h-[420px] p-2 lg:h-[560px]">
+              {pontosMapa.length > 0 ? (
+                <MapView pontos={pontosMapa as any} />
+              ) : (
+                <p className="grid h-full place-items-center text-sm text-muted-foreground">
+                  Nenhum ponto no mapa ainda — aguardando pedidos com localização confirmada.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <div className="space-y-3">
+            <section
+              className="rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+              aria-label="Motoboys"
+            >
+              <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[rgba(255,255,255,.08)] px-3 py-2">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+                  Motoboys
+                </h2>
+                <span className="rounded-full bg-[rgba(255,255,255,.06)] px-2 py-0.5 text-[10px] font-bold text-[#90989C]">
+                  {(resumoCentral.motos ?? []).length}
+                </span>
+              </header>
+              <ul className="space-y-2 p-3">
+                {(resumoCentral.motos ?? []).map((m: any) => {
+                  const st = String(m.status ?? "").toLowerCase();
+                  const corDot =
+                    st.includes("rota") || st.includes("em rota")
+                      ? "#1687C8"
+                      : st.includes("dispon")
+                        ? "#11B96A"
+                        : "#7A8387";
+                  return (
+                    <li
+                      key={m.nome}
+                      className="flex items-center gap-2.5 rounded-lg bg-[#1A1E20] px-2.5 py-2"
+                    >
+                      <span
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-[#141414]"
+                        style={{ backgroundColor: corDot }}
+                        aria-hidden
+                      >
+                        {(m.nome ?? "?").charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <p className="truncate text-sm font-semibold">{m.nome}</p>
+                        <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <span
+                            className="inline-block size-1.5 rounded-full"
+                            style={{ backgroundColor: corDot }}
+                            aria-hidden
+                          />
+                          {m.status} • {m.entregas} entrega(s)
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+                {(resumoCentral.motos ?? []).length === 0 && (
+                  <li className="text-xs text-muted-foreground">Sem motoboys cadastrados.</li>
+                )}
+              </ul>
+            </section>
+
+            <section
+              className="rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+              aria-label="Resumo do dia"
+            >
+              <header className="flex min-h-[42px] items-center border-b border-[rgba(255,255,255,.08)] px-3 py-2">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+                  Resumo do Dia
+                </h2>
+              </header>
+              <ul className="space-y-1 p-3 text-xs">
+                <li className="flex justify-between rounded bg-[#1A1E20] px-2.5 py-1.5">
+                  <span className="text-muted-foreground">Entregas realizadas</span>
+                  <b className="text-[#2ED988]">{resumoCentral.entreguesHoje.length}</b>
+                </li>
+                <li className="flex justify-between rounded bg-[#1A1E20] px-2.5 py-1.5">
+                  <span className="text-muted-foreground">Em rota</span>
+                  <b className="text-[#4DA9E0]">{resumoCentral.emRota.length}</b>
+                </li>
+                <li className="flex justify-between rounded bg-[#1A1E20] px-2.5 py-1.5">
+                  <span className="text-muted-foreground">Aguardando</span>
+                  <b className="text-[#F5A34A]">{resumoCentral.aguardando.length}</b>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </div>
+
+        {/* ========== PEDIDOS EM ROTA ========== */}
+        <section
+          className="mb-4 overflow-hidden rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+          aria-label="Pedidos em rota"
+        >
+          <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[rgba(255,255,255,.08)] px-3 py-2">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+              Pedidos em Rota
+            </h2>
+            <span className="text-[10px] uppercase text-muted-foreground">
+              Clique para ver histórico/rastreio
+            </span>
+          </header>
+          <div className="p-2">
             {resumoCentral.emAndamento.length > 0 ? (
-              <ul className="mt-1 divide-y divide-border">
-                <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_80px_64px_24px]">
+              <ul className="divide-y divide-[rgba(255,255,255,.06)]">
+                <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px]">
                   <span>Nº</span>
                   <span>Cliente</span>
                   <span className="hidden sm:block">Endereço</span>
                   <span>Motoboy</span>
                   <span>Status</span>
+                  <span className="hidden sm:block">KM</span>
                   <span className="hidden sm:block">Saída</span>
                   <span />
                 </li>
@@ -854,9 +1009,9 @@ function CentralEntregas() {
                     <button
                       type="button"
                       onClick={() => verHistoricoPedido(p.id)}
-                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-1 py-1.5 text-left text-xs hover:bg-muted sm:grid-cols-[64px_1fr_1fr_96px_80px_64px_24px] sm:text-[13px]"
+                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-[rgba(255,255,255,.03)] sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px] sm:text-[13px]"
                     >
-                      <span className="font-bold">#{p.numero}</span>
+                      <span className="font-bold text-[#F4B942]">#{p.numero}</span>
                       <span className="truncate">{p.cliente_nome}</span>
                       <span className="hidden truncate text-muted-foreground sm:block">
                         {p.endereco ?? "—"}
@@ -867,6 +1022,11 @@ function CentralEntregas() {
                       <span>
                         <StatusBadge status={p.status} />
                       </span>
+                      <span className="hidden text-[11px] font-semibold sm:block">
+                        {p.distancia_km != null
+                          ? `${Number(p.distancia_km).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`
+                          : "—"}
+                      </span>
                       <span className="hidden text-muted-foreground sm:block">
                         {p.saiu_em ? hora(p.saiu_em) : "—"}
                       </span>
@@ -876,58 +1036,12 @@ function CentralEntregas() {
                 ))}
               </ul>
             ) : (
-              <div className="mt-2">
+              <div className="p-2">
                 <EmptyState titulo="Nenhuma entrega em rota" />
               </div>
             )}
-          </section>
-
-          <div className="space-y-4">
-            <section
-              className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-              aria-label="Motoboys"
-            >
-              <h2 className="text-sm font-bold">Motoboys</h2>
-              <ul className="mt-2 space-y-1 text-xs">
-                {(resumoCentral.motos ?? []).map((m: any) => (
-                  <li
-                    key={m.nome}
-                    className="flex items-center justify-between gap-2 rounded bg-muted px-2 py-1.5"
-                  >
-                    <span className="font-semibold">{m.nome}</span>
-                    <span className="text-muted-foreground">
-                      {m.entregas} entregas • {m.status}
-                    </span>
-                  </li>
-                ))}
-                {(resumoCentral.motos ?? []).length === 0 && (
-                  <li className="text-muted-foreground">Sem motoboys cadastrados.</li>
-                )}
-              </ul>
-            </section>
-
-            <section
-              className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-              aria-label="Resumo do dia"
-            >
-              <h2 className="text-sm font-bold">Resumo do Dia</h2>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li className="flex justify-between rounded bg-muted px-2 py-1.5">
-                  <span>Entregas realizadas</span>
-                  <b>{resumoCentral.entreguesHoje.length}</b>
-                </li>
-                <li className="flex justify-between rounded bg-muted px-2 py-1.5">
-                  <span>Em rota</span>
-                  <b>{resumoCentral.emRota.length}</b>
-                </li>
-                <li className="flex justify-between rounded bg-muted px-2 py-1.5">
-                  <span>Aguardando</span>
-                  <b>{resumoCentral.aguardando.length}</b>
-                </li>
-              </ul>
-            </section>
           </div>
-        </div>
+        </section>
 
         {/* ========== RESUMO OPERACIONAL (J3-E) ========== */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -1394,72 +1508,7 @@ function CentralEntregas() {
           )}
         </div>
 
-        {/* ========== MAPA ========== */}
-        <div className="mt-6">
-          <h2 id="secao-mapa" className="font-display text-lg">
-            Mapa de Entregas
-          </h2>
-          <p className="text-sm text-muted-foreground">Localização dos pedidos e motoboys</p>
-
-          {pedidosFiltrados?.length > 0 && (
-            <MapView
-              pontos={
-                pedidosFiltrados
-                  .map((p: any) => {
-                    if (p.destino_lat && p.destino_lng) {
-                      return {
-                        lat: p.destino_lat,
-                        lng: p.destino_lng,
-                        label: `Pedido ${p.numero}`,
-                        color: "primary",
-                      };
-                    }
-                    return null;
-                  })
-                  .filter(Boolean) as any
-              }
-            />
-          )}
-
-          {motoboys?.length > 0 && (
-            <MapView
-              pontos={
-                motoboys
-                  .map((m: any) => {
-                    // Encontra o pedido mais recente deste motoboy
-                    const ultimoPedido = (pedidos ?? [])
-                      .filter((p: any) => p.motoboy_id === m.user_id)
-                      .sort(
-                        (a: any, b: any) =>
-                          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-                      )[0];
-
-                    if (
-                      ultimoPedido &&
-                      ultimoPedido.motoboy_lat != null &&
-                      ultimoPedido.motoboy_lng != null
-                    ) {
-                      // Idade da localização em segundos (motoboy_atualizado_em; fallback created_at).
-                      // Regra técnica simples: >120s (~2 intervalos de 15s + margem) = desatualizada.
-                      // LOCALIZAÇÃO DESATUALIZADA ≠ ENTREGA ATRASADA (não registra atraso aqui).
-                      const ref = ultimoPedido.motoboy_atualizado_em ?? ultimoPedido.created_at;
-                      const msDiff = Math.abs(new Date().getTime() - new Date(ref).getTime());
-                      const idadeSegundos = Math.round(msDiff / 1000);
-                      const desatualizada = idadeSegundos > 120;
-                      return {
-                        lat: ultimoPedido.motoboy_lat,
-                        lng: ultimoPedido.motoboy_lng,
-                        label: `Motoboy ${m.nome}${desatualizada ? " ⚠ desatualizada" : ""}`,
-                        color: "success",
-                      };
-                    }
-                    return null;
-                  })
-                  .filter(Boolean) as any
-              }
-            />
-          )}
-        </div>
+        {/* ========== MAPA — movido para o topo (elemento dominante) ========== */}
 
         {/* ========== HISTÓRICO (J3-C) ========== */}
         <div className="mt-6 rounded-xl border border-border bg-card p-6">
