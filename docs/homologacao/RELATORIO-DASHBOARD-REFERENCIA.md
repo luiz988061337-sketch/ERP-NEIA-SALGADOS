@@ -108,7 +108,38 @@ Dados, regras de negócio, autenticação e consultas permaneceram **intactos** 
 
 ---
 
-## 8. Observações para a próxima etapa
+## 8. Decisões do proprietário aplicadas (2026-11-12)
+
+| Decisão | Aplicação |
+|---|---|
+| **1. Sidebar** — manter o menu existente, com aparência fiel à referência; sem duplicar menus | `src/components/admin/admin-shell.tsx` reescrito: largura compacta (14rem), fundo preto, moldura/bordas douradas, marca com coroa + "Néia Salgados / Painel de Gestão", **item ativo em pílula dourada** (gradiente, texto escuro), ícones dourados, grupos discretos, rodapé com usuário (avatar + ponto verde) + Atualizar/Sair. Nenhum item de menu duplicado ou removido; a **foto de salgados e a frase promocional seguem fora** |
+| **2. Quarta métrica** — manter "Clientes Ativos"; "Lucro Estimado" só com custo real e confiável | Mantido "Clientes Ativos" (dado real). Nenhum número de lucro foi inventado |
+| **3. Blocos extras** — busca e ações secundárias em seção recolhível abaixo do painel; alertas críticos visíveis | Busca global, Central de Operação, Ações Rápidas, Caixa, Impressão e atalhos por módulo foram movidos para `<details>` **"Operação em detalhes"** abaixo do painel. Alertas de severidade máxima (ex.: "Estoque baixo") continuam **sempre visíveis** em faixa própria fora do acordeão |
+
+### Bug crítico encontrado e corrigido nesta rodada
+
+`AdminShell` montava a sidebar e **descartava `{children}`** — a página `/admin` ficava **somente com o menu lateral**, sem topbar, sem abas e sem o Dashboard. Confirmado no site publicado (`erp-neia-salgados.vercel.app/admin` não continha "Vendas do Dia", "Painel de Gestão" nem "Ações Rápidas" no HTML). Isso explica por que Dashboard e Central de Entregas "não apareciam" nas capturas anteriores — não era falta de admin.
+
+Correção: o conteúdo passa a ser renderizado em `<SidebarInset>` ao lado da sidebar (`src/components/admin/admin-shell.tsx`).
+
+---
+
+## 9. Confirmação: a captura corresponde ao código publicado
+
+| Verificação | Resultado |
+|---|---|
+| SHA do deploy Vercel = SHA local | ✅ `7ff2da3a80e187556ed4bf86b26f329ad6b64c55` |
+| Deployment | `dpl_E2Ht9hKemtaBGJuTZPfQnuH4kfFG` — `target: preview`, `READY` |
+| URL | `https://erp-neia-salgados-hua76x1bx-luiz988061337-3147s-projects.vercel.app` |
+| HTML servido pelo Preview contém "Painel de Gestão", "Visão completa do seu negócio em tempo real", "Operação em detalhes", "Estoque baixo", "Clientes Ativos", "Ticket Médio", "Vendas do Dia", "Delivery/Balcão/Encomendas", `erp-admin`, `erp-btn-gold`, `line-clamp-2` | ✅ todos presentes |
+| Captura do **Preview hospedado** (SSR) | `docs/preview-captures/prints/preview-gestao-desktop.png` — sidebar, painel, métricas, 3 blocos, alerta crítico e acordeão idênticos à captura local |
+| Captura completa (com gráficos) | `docs/erp-dark/prints/gestao-DEPOIS.png` (render local do mesmo commit `7ff2da3`) |
+
+> Nota: no espelho SSR os dois gráficos (área e donut) ficam vazios porque o JavaScript não hidrata ali; no Preview real com o bundle servido eles desenham normalmente (confirmado na captura local e no `debug-chart.mjs`).
+
+---
+
+## 10. Observações para a próxima etapa
 
 1. A referência mostra uma **sidebar interna** do painel (Início/Vendas/Pedidos/…). No ERP real a navegação já é o **shell do admin** (sidebar global) — evita duplicar menus. Se quiser a sidebar interna dentro do painel, é só dizer.
 2. A 4ª métrica é **"Clientes Ativos"** (dado real). A referência usa "Lucro Estimado"; para calcular lucro real é preciso custo por produto/embalagem (hoje o painel não tem essa fonte) — posso incluir se houver dado de custo disponível.
