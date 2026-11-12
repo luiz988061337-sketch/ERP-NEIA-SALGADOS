@@ -375,9 +375,7 @@ export function DashboardAdmin({
           acoes={
             <label className="flex min-h-[40px] items-center gap-2 rounded-xl border border-[#D4A94A] bg-[#1A1712] px-3">
               <CalendarDays className="size-4 shrink-0 text-[#F2CE6B]" aria-hidden />
-              <span className="text-xs font-medium text-foreground">
-                {dataLonga(new Date())}
-              </span>
+              <span className="text-xs font-medium text-foreground">{dataLonga(new Date())}</span>
               <select
                 aria-label="Período do painel"
                 value={periodo}
@@ -437,42 +435,46 @@ export function DashboardAdmin({
               <div className="h-[236px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={porHora} margin={{ left: -12, right: 8, top: 10 }}>
-                  <defs>
-                    <linearGradient id="gradVendasHora" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#F2CE6B" stopOpacity={0.42} />
-                      <stop offset="100%" stopColor="#F2CE6B" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(201,162,75,.18)" />
-                  <XAxis
-                    dataKey="rotulo"
-                    tick={{ fontSize: 10, fill: "#A09A8E" }}
-                    axisLine={{ stroke: "rgba(201,162,75,.26)" }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(1)}k`}
-                    tick={{ fontSize: 10, fill: "#A09A8E" }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={54}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    labelStyle={{ color: "#A09A8E" }}
-                    formatter={(v: number) => [brl(v), "Vendas"]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="total"
-                    stroke="#F2CE6B"
-                    strokeWidth={2.5}
-                    fill="url(#gradVendasHora)"
-                    dot={{ r: 3, fill: "#F2CE6B", strokeWidth: 0 }}
-                    activeDot={{ r: 5, fill: "#F2CE6B", strokeWidth: 0 }}
-                    name="Vendas"
-                  />
-                </AreaChart>
+                    <defs>
+                      <linearGradient id="gradVendasHora" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#F2CE6B" stopOpacity={0.42} />
+                        <stop offset="100%" stopColor="#F2CE6B" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="rgba(201,162,75,.18)"
+                    />
+                    <XAxis
+                      dataKey="rotulo"
+                      tick={{ fontSize: 10, fill: "#A09A8E" }}
+                      axisLine={{ stroke: "rgba(201,162,75,.26)" }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(1)}k`}
+                      tick={{ fontSize: 10, fill: "#A09A8E" }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={54}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      labelStyle={{ color: "#A09A8E" }}
+                      formatter={(v: number) => [brl(v), "Vendas"]}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#F2CE6B"
+                      strokeWidth={2.5}
+                      fill="url(#gradVendasHora)"
+                      dot={{ r: 3, fill: "#F2CE6B", strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: "#F2CE6B", strokeWidth: 0 }}
+                      name="Vendas"
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </ChartCard>
@@ -639,10 +641,15 @@ export function DashboardAdmin({
                           <TriangleAlert className="size-3.5" aria-hidden />
                         </span>
                         <div className="min-w-0 flex-1 leading-tight">
-                          <p className="truncate text-xs font-semibold text-foreground">{a.titulo}</p>
+                          <p className="truncate text-xs font-semibold text-foreground">
+                            {a.titulo}
+                          </p>
                           <p className="truncate text-[11px] text-muted-foreground">{a.desc}</p>
                         </div>
-                        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                        <ChevronRight
+                          className="size-3.5 shrink-0 text-muted-foreground"
+                          aria-hidden
+                        />
                       </button>
                     </li>
                   ))}
@@ -720,135 +727,155 @@ export function DashboardAdmin({
                 }}
               />
 
+              <CentralOperacao
+                pedidos={lista}
+                produtos={produtos ?? []}
+                clientes={clientesStats ?? []}
+                periodo={periodo}
+                setPeriodo={setPeriodo}
+                setAba={setAba}
+                notLidas={notLidas}
+                marcarLida={marcarLida}
+              />
 
-        <CentralOperacao
-          pedidos={lista}
-          produtos={produtos ?? []}
-          clientes={clientesStats ?? []}
-          periodo={periodo}
-          setPeriodo={setPeriodo}
-          setAba={setAba}
-          notLidas={notLidas}
-          marcarLida={marcarLida}
-        />
+              {/* Acesso rápido por módulo */}
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <ModuloCard
+                  icone={Wallet}
+                  titulo="Financeiro"
+                  linha1="Movimentação do dia"
+                  valor={brl(fatDia)}
+                  onClick={() => setAba("financeiro")}
+                />
+                <ModuloCard
+                  icone={Wheat}
+                  titulo="Estoque"
+                  linha1="Itens em falta"
+                  valor={String(emFalta)}
+                  alerta={emFalta > 0}
+                  onClick={() => setAba("insumos")}
+                />
+                <ModuloCard
+                  icone={ChefHat}
+                  titulo="Produção"
+                  linha1="Em andamento"
+                  valor={`${porStatus.producao} pedidos`}
+                  onClick={() => navigate({ to: "/producao" })}
+                />
+                <ModuloCard
+                  icone={Truck}
+                  titulo="Entregas"
+                  linha1="Em rota"
+                  valor={`${porStatus.entrega} pedidos`}
+                  onClick={() => navigate({ to: "/central-entregas" })}
+                />
+              </div>
+            </div>
 
-        {/* Acesso rápido por módulo */}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <ModuloCard
-            icone={Wallet}
-            titulo="Financeiro"
-            linha1="Movimentação do dia"
-            valor={brl(fatDia)}
-            onClick={() => setAba("financeiro")}
-          />
-          <ModuloCard
-            icone={Wheat}
-            titulo="Estoque"
-            linha1="Itens em falta"
-            valor={String(emFalta)}
-            alerta={emFalta > 0}
-            onClick={() => setAba("insumos")}
-          />
-          <ModuloCard
-            icone={ChefHat}
-            titulo="Produção"
-            linha1="Em andamento"
-            valor={`${porStatus.producao} pedidos`}
-            onClick={() => navigate({ to: "/producao" })}
-          />
-          <ModuloCard
-            icone={Truck}
-            titulo="Entregas"
-            linha1="Em rota"
-            valor={`${porStatus.entrega} pedidos`}
-            onClick={() => navigate({ to: "/central-entregas" })}
-          />
-        </div>
-      </div>
+            {/* Coluna direita */}
+            <aside className="w-full shrink-0 space-y-4 xl:w-64">
+              <section
+                className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+                aria-label="Ações rápidas"
+              >
+                <h2 className="text-sm font-bold">Ações Rápidas</h2>
+                <div className="mt-2 space-y-1.5">
+                  <Acao
+                    icone={ShoppingCart}
+                    label="Novo Pedido"
+                    onClick={() => navigate({ to: "/pdv" })}
+                  />
+                  <Acao
+                    icone={Search}
+                    label="Consulta de Pedidos"
+                    onClick={() => setAba("pedidos")}
+                  />
+                  <Acao
+                    icone={Calculator}
+                    label="Calculadora"
+                    onClick={() => navigate({ to: "/calculadora" })}
+                  />
+                  <Acao icone={Heart} label="Favoritos" onClick={() => setAba("produtos")} />
+                  <Acao
+                    icone={Repeat2}
+                    label="Repetir Pedido"
+                    onClick={() => navigate({ to: "/pdv" })}
+                  />
+                </div>
+              </section>
 
-      {/* Coluna direita */}
-      <aside className="w-full shrink-0 space-y-4 xl:w-64">
-        <section
-          className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-          aria-label="Ações rápidas"
-        >
-          <h2 className="text-sm font-bold">Ações Rápidas</h2>
-          <div className="mt-2 space-y-1.5">
-            <Acao
-              icone={ShoppingCart}
-              label="Novo Pedido"
-              onClick={() => navigate({ to: "/pdv" })}
-            />
-            <Acao icone={Search} label="Consulta de Pedidos" onClick={() => setAba("pedidos")} />
-            <Acao
-              icone={Calculator}
-              label="Calculadora"
-              onClick={() => navigate({ to: "/calculadora" })}
-            />
-            <Acao icone={Heart} label="Favoritos" onClick={() => setAba("produtos")} />
-            <Acao icone={Repeat2} label="Repetir Pedido" onClick={() => navigate({ to: "/pdv" })} />
+              <section
+                className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+                aria-label="Caixa atual"
+              >
+                <h2 className="text-sm font-bold">Caixa Atual</h2>
+                <div className="mt-2 flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+                  <span className="text-sm font-semibold">Caixa</span>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                      caixa
+                        ? "bg-[rgba(33,131,93,.12)] text-[#21835D]"
+                        : "bg-[rgba(15,23,42,.06)] text-[#64748B]"
+                    }`}
+                  >
+                    {caixa ? "Aberto" : "Fechado"}
+                  </span>
+                </div>
+                {caixa ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Aberto às {hora(caixa.aberta_em)} •{" "}
+                    <button
+                      type="button"
+                      className="underline"
+                      onClick={() => setAba("financeiro")}
+                    >
+                      ver caixa
+                    </button>
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Nenhuma sessão aberta •{" "}
+                    <button
+                      type="button"
+                      className="underline"
+                      onClick={() => setAba("financeiro")}
+                    >
+                      abrir no financeiro
+                    </button>
+                  </p>
+                )}
+              </section>
+
+              <section
+                className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
+                aria-label="Impressão"
+              >
+                <div className="flex items-center gap-2">
+                  <Printer className="size-4 text-muted-foreground" aria-hidden />
+                  <h2 className="text-sm font-bold">Impressão</h2>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {filaCount === 0 ? "Fila zerada." : `${filaCount} trabalho(s) pendente(s).`}{" "}
+                  <button type="button" className="underline" onClick={() => setAba("impressao")}>
+                    ver fila
+                  </button>
+                </p>
+              </section>
+
+              <div className="relative overflow-hidden rounded-xl shadow-[var(--shadow-card)]">
+                <img
+                  src={hero}
+                  alt="Salgados Néia"
+                  className="h-44 w-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                <p className="absolute bottom-2 left-3 right-3 text-sm font-bold italic text-white">
+                  Mais que salgados, é tradição!
+                </p>
+              </div>
+            </aside>
           </div>
-        </section>
-
-        <section
-          className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-          aria-label="Caixa atual"
-        >
-          <h2 className="text-sm font-bold">Caixa Atual</h2>
-          <div className="mt-2 flex items-center justify-between rounded-lg bg-muted px-3 py-2">
-            <span className="text-sm font-semibold">Caixa</span>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                caixa
-                  ? "bg-[rgba(33,131,93,.12)] text-[#21835D]"
-                  : "bg-[rgba(15,23,42,.06)] text-[#64748B]"
-              }`}
-            >
-              {caixa ? "Aberto" : "Fechado"}
-            </span>
-          </div>
-          {caixa ? (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Aberto às {hora(caixa.aberta_em)} •{" "}
-              <button type="button" className="underline" onClick={() => setAba("financeiro")}>
-                ver caixa
-              </button>
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Nenhuma sessão aberta •{" "}
-              <button type="button" className="underline" onClick={() => setAba("financeiro")}>
-                abrir no financeiro
-              </button>
-            </p>
-          )}
-        </section>
-
-        <section
-          className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-          aria-label="Impressão"
-        >
-          <div className="flex items-center gap-2">
-            <Printer className="size-4 text-muted-foreground" aria-hidden />
-            <h2 className="text-sm font-bold">Impressão</h2>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {filaCount === 0 ? "Fila zerada." : `${filaCount} trabalho(s) pendente(s).`}{" "}
-            <button type="button" className="underline" onClick={() => setAba("impressao")}>
-              ver fila
-            </button>
-          </p>
-        </section>
-
-        <div className="relative overflow-hidden rounded-xl shadow-[var(--shadow-card)]">
-          <img src={hero} alt="Salgados Néia" className="h-44 w-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <p className="absolute bottom-2 left-3 right-3 text-sm font-bold italic text-white">
-            Mais que salgados, é tradição!
-          </p>
-        </div>
-      </aside>
-      </div>
         </div>
       </details>
     </div>
@@ -864,7 +891,11 @@ function Delta({ delta }: { delta: number | null }) {
       className="inline-flex items-center gap-0.5 text-xs font-semibold"
       style={{ color: up ? ERP_COLORS.green : ERP_COLORS.red }}
     >
-      {up ? <ArrowUpRight className="size-3" aria-hidden /> : <ArrowDownRight className="size-3" aria-hidden />}
+      {up ? (
+        <ArrowUpRight className="size-3" aria-hidden />
+      ) : (
+        <ArrowDownRight className="size-3" aria-hidden />
+      )}
       {Math.abs(delta).toFixed(0)}%
     </span>
   );
@@ -972,7 +1003,9 @@ function ModuloCard({
         {titulo}
       </span>
       <span className="mt-2 block text-xs text-muted-foreground">{linha1}</span>
-      <span className={`block font-display text-xl ${alerta ? "text-[#DC2626]" : ""}`}>{valor}</span>
+      <span className={`block font-display text-xl ${alerta ? "text-[#DC2626]" : ""}`}>
+        {valor}
+      </span>
     </button>
   );
 }

@@ -9,7 +9,6 @@ import {
   Droplet,
   Flame,
   LayoutGrid,
-  LogOut,
   Minus,
   Plus,
   QrCode,
@@ -30,6 +29,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
@@ -82,14 +83,32 @@ function agoraSP(): Date {
   return new Date();
 }
 
-function PDV() {
+/**
+ * Tela do PDV/Balcão.
+ *
+ * `preview` existe apenas para a conferência visual (rota /preview-l2-pdv):
+ * injeta catálogo fictício local e não exige sessão — nenhuma escrita no
+ * Supabase acontece nesse modo. Na rota real (/pdv) o comportamento é
+ * exatamente o de sempre (sessão, papéis, estoque, pedido e impressão).
+ */
+export function PDV({
+  preview = false,
+  produtosInjetados,
+  categoriasInjetadas,
+}: {
+  preview?: boolean;
+  produtosInjetados?: any[];
+  categoriasInjetadas?: any[];
+} = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
-  const permitido = roles?.includes("admin") || roles?.includes("atendente");
-  const { data: produtos } = useProdutos();
-  const { data: categorias } = useCategorias();
+  const permitido = preview ? true : roles?.includes("admin") || roles?.includes("atendente");
+  const { data: produtosHook } = useProdutos();
+  const { data: categoriasHook } = useCategorias();
+  const produtos = produtosInjetados ?? produtosHook;
+  const categorias = categoriasInjetadas ?? categoriasHook;
 
   const [cat, setCat] = useState<string>("todos");
   const [busca, setBusca] = useState("");
@@ -113,8 +132,9 @@ function PDV() {
   const chaveRef = useRef("");
 
   useEffect(() => {
+    if (preview) return;
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/pdv" }, replace: true });
-  }, [loading, user, navigate]);
+  }, [loading, user, navigate, preview]);
 
   useEffect(() => {
     const t = setInterval(() => setRelogio(agoraSP()), 10000);
@@ -150,7 +170,7 @@ function PDV() {
   const hojeISO = new Date().toISOString().slice(0, 10);
   const { data: vendasHoje } = useQuery({
     queryKey: ["pdv-vendas-hoje", hojeISO],
-    enabled: !!permitido && (painel === "vendas" || painel === "pedidos"),
+    enabled: (preview || !!permitido) && (painel === "vendas" || painel === "pedidos"),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedidos")
@@ -245,6 +265,10 @@ function PDV() {
   }
 
   async function finalizar() {
+    if (preview) {
+      toast.info("Prévia visual: finalização desativada (nenhum pedido é criado).");
+      return;
+    }
     if (itens.length === 0) {
       toast.error("Comanda vazia.");
       return;
@@ -343,76 +367,78 @@ function PDV() {
       // No BUILD DE CORTE o caminho legado NAO e compilado: o bloco e removido
       // do bundle (constant-folding de !BUILD_DE_CORTE). Nao ha fallback.
       if (!BUILD_DE_CORTE && !atomico) {
-      const res = await supabase
-        .from("pedidos")
-        .insert({
-          id: chaveRef.current,
-          user_id: user!.id,
-          cliente_nome: nomeCli.trim() || "Balcão",
-          telefone: telCli.trim(),
-          endereco: endCli.trim() || "Balcão",
-          bairro: "-",
-          cidade: "-",
-          tipo_entrega: "retirada",
-          forma_pagamento: forma,
-          pagamento_modalidade: "online",
-          pagamento_status: pagoNaHora ? "pago" : "pendente",
-          pagamento_em: pagoNaHora ? new Date().toISOString() : null,
-          subtotal,
-          taxa_entrega: 0,
-          desconto: calc.desconto,
-          total: calc.total,
-          agendado_para: agendadoISO,
-          observacoes: obsBits.join(" • "),
-        })
-        .select("id, numero")
-        .single();
-      if (res.error || !res.data) {
-        if ((res.error as any)?.code === "23505") {
-          // Reenvio: recupera o pedido da mesma chave em vez de duplicar.
-          const rec = await supabase
-            .from("pedidos")
-            .select("id, numero")
-            .eq("id", chaveRef.current)
-            .single();
-          if (!rec.error && rec.data) {
-            toast.success(`Venda #${(rec.data as any).numero} já estava registrada.`);
-            chaveRef.current = "";
-            return;
+        const res = await supabase
+          .from("pedidos")
+          .insert({
+            id: chaveRef.current,
+            user_id: user!.id,
+            cliente_nome: nomeCli.trim() || "Balcão",
+            telefone: telCli.trim(),
+            endereco: endCli.trim() || "Balcão",
+            bairro: "-",
+            cidade: "-",
+            tipo_entrega: "retirada",
+            forma_pagamento: forma,
+            pagamento_modalidade: "online",
+            pagamento_status: pagoNaHora ? "pago" : "pendente",
+            pagamento_em: pagoNaHora ? new Date().toISOString() : null,
+            subtotal,
+            taxa_entrega: 0,
+            desconto: calc.desconto,
+            total: calc.total,
+            agendado_para: agendadoISO,
+            observacoes: obsBits.join(" • "),
+          })
+          .select("id, numero")
+          .single();
+        if (res.error || !res.data) {
+          if ((res.error as any)?.code === "23505") {
+            // Reenvio: recupera o pedido da mesma chave em vez de duplicar.
+            const rec = await supabase
+              .from("pedidos")
+              .select("id, numero")
+              .eq("id", chaveRef.current)
+              .single();
+            if (!rec.error && rec.data) {
+              toast.success(`Venda #${(rec.data as any).numero} já estava registrada.`);
+              chaveRef.current = "";
+              return;
+            }
           }
+          throw res.error ?? new Error("insert falhou");
         }
-        throw res.error ?? new Error("insert falhou");
-      }
-      pedidoId = (res.data as any).id as string;
-      numero = (res.data as any).numero as number;
-      const { error: e2 } = await supabase.from("pedido_itens").insert(
-        itens.map((i) => ({
-          pedido_id: pedidoId,
-          produto_id: i.produto_id,
-          nome: i.nome,
-          preco_unitario: i.preco,
-          quantidade: i.quantidade,
-        })),
-      );
-      if (e2) {
-        // Compensação: desfaz o pedido vazio e mantém a comanda.
+        pedidoId = (res.data as any).id as string;
+        numero = (res.data as any).numero as number;
+        const { error: e2 } = await supabase.from("pedido_itens").insert(
+          itens.map((i) => ({
+            pedido_id: pedidoId,
+            produto_id: i.produto_id,
+            nome: i.nome,
+            preco_unitario: i.preco,
+            quantidade: i.quantidade,
+          })),
+        );
+        if (e2) {
+          // Compensação: desfaz o pedido vazio e mantém a comanda.
+          try {
+            await supabase.from("pedidos").delete().eq("id", pedidoId);
+          } catch {
+            /* best-effort */
+          }
+          throw new Error(
+            "Falha ao gravar itens — venda desfeita, comanda mantida. Tente de novo.",
+          );
+        }
         try {
-          await supabase.from("pedidos").delete().eq("id", pedidoId);
+          await supabase.from("pedido_status_historico").insert({
+            pedido_id: pedidoId,
+            de_status: null,
+            para_status: "recebido",
+            motivo: agendadoISO ? "pdv balcão agendado" : "pdv balcão",
+          });
         } catch {
-          /* best-effort */
+          /* sem migration — segue */
         }
-        throw new Error("Falha ao gravar itens — venda desfeita, comanda mantida. Tente de novo.");
-      }
-      try {
-        await supabase.from("pedido_status_historico").insert({
-          pedido_id: pedidoId,
-          de_status: null,
-          para_status: "recebido",
-          motivo: agendadoISO ? "pdv balcão agendado" : "pdv balcão",
-        });
-      } catch {
-        /* sem migration — segue */
-      }
       }
       void logAdmin(
         "pedido_pdv",
@@ -462,8 +488,7 @@ function PDV() {
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
   }
 
-  if (!loading && user && roles && !permitido) {
-    return (
+  if (!preview && !loading && user && roles && !permitido) {    return (
       <main className="mx-auto max-w-md p-10 text-center text-muted-foreground">
         PDV restrito a atendente/admin.
       </main>
@@ -471,122 +496,118 @@ function PDV() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#202B3A]">
-      {/* Topo */}
-      <header className="flex flex-wrap items-center gap-2 border-b border-[#E5E7EB] bg-white px-3 py-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="min-h-[44px] shrink-0 border-[#E5E7EB] bg-transparent text-[#202B3A] hover:bg-[#F1F5F9] hover:text-[#202B3A]"
-          onClick={() => navigate({ to: roles?.includes("admin") ? "/admin" : "/atendente" })}
-          aria-label="Voltar"
-        >
-          ← Voltar
-        </Button>
-        <div className="mr-2 leading-tight">
-          <p className="font-display text-2xl font-bold text-[#A9813A]">
-            Néia <span className="text-sm font-normal text-[#475569]">Salgados</span>
-          </p>
-          <p className="text-[11px] italic text-[#64748B]">O sabor que faz a diferença</p>
-        </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-lg border border-[#E5E7EB] px-3 py-1.5">
-            Operador(a)
-            <br />
-            <b>{user?.email?.split("@")[0] ?? "Caixa 01"}</b>
-          </span>
-          <span className="rounded-lg border border-[#E5E7EB] px-3 py-1.5">
-            <span className="mr-1 inline-block size-2 rounded-full bg-green-500" />
-            Online
-            <br />
-            <span className="text-[#64748B]">Sistema conectado</span>
-          </span>
-          <span className="rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-center">
-            <b>{relogio.toLocaleDateString("pt-BR")}</b>
-            <br />
-            {relogio.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-[#E5E7EB] bg-white text-[#202B3A]"
-            onClick={sair}
-          >
-            <LogOut className="mr-1 size-4" />
-            Sair
-          </Button>
-        </div>
-      </header>
+    <AdminShell
+      aba="pdv"
+      onAba={() => {}}
+      onRefresh={() => queryClient.invalidateQueries()}
+      usuario={user?.email ?? null}
+      onSair={sair}
+    >
+      {/* Topo do módulo (mesmo padrão dos demais módulos) */}
+      <AdminTopbar
+        usuario={user?.email ?? null}
+        onSair={sair}
+        onVoltar={() => navigate({ to: roles?.includes("admin") ? "/admin" : "/atendente" })}
+      />
 
-      <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[15%_minmax(0,1fr)_30%]">
-        {/* Lateral */}
-        <aside className="space-y-2">
-          <div className="space-y-1.5">
-            {CATEGORIAS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => {
-                  setCat(c.id);
-                  setPainel("venda");
-                }}
-                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold ${cat === c.id && painel === "venda" ? "bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]" : "bg-white text-[#475569] border border-[#E5E7EB]"}`}
-              >
-                <c.icon className="size-5" />
-                {c.label}
-              </button>
-            ))}
-          </div>
-          <div className="space-y-1.5 pt-2">
-            <div className="flex items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#64748B]">
-              <Search className="size-4" />
-              <input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar produto…"
-                className="w-full bg-transparent text-[#202B3A] outline-none placeholder:text-[#94A3B8]"
-              />
+      <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {/* Catálogo */}
+        <main className="min-w-0 space-y-3">
+          {/* Cabeçalho do módulo (como na referência) */}
+          <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D4A94A] bg-[#121110] px-4 py-3 shadow-card">
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#D4A94A] bg-[#1A1712]">
+                <ReceiptText className="size-4 text-[#F2CE6B]" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate font-display text-lg font-bold uppercase leading-tight tracking-wide text-foreground">
+                  PDV — Atendimento e Caixa
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Registro de pedidos, pagamentos e impressão de comandas
+                </p>
+              </div>
             </div>
-            {[
-              { id: "pedidos", label: "Pedidos", icon: ClipboardList },
-              { id: "desconto", label: "Desconto Autorizado", icon: TicketPercent },
-              { id: "vendas", label: "Vendas do Dia", icon: ChartColumn },
-              { id: "config", label: "Configurações", icon: Settings },
-            ].map((m: any) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => {
-                  if (m.id === "desconto") {
-                    setDescontoLib((v) => !v);
-                    setPainel("venda");
-                    if (!descontoLib) toast.success("Desconto autorizado liberado na comanda.");
-                    return;
-                  }
-                  setPainel(m.id);
-                }}
-                className="flex w-full items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 text-sm text-[#475569] hover:border-[rgba(196,154,67,.5)]"
-              >
-                <m.icon className="size-4" />
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </aside>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#35C97C]/55 bg-[#35C97C]/12 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#35C97C]">
+              <span className="size-1.5 rounded-full bg-[#35C97C]" aria-hidden />
+              PDV
+            </span>
+          </section>
+          {/* Busca + atalhos */}
+          <section className="rounded-2xl border border-[#D4A94A] bg-[#121110] p-3 shadow-card">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-h-[44px] min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-[#D4A94A]/50 bg-[#17150F] px-3">
+                <Search className="size-4 shrink-0 text-[#C9A24B]" aria-hidden />
+                <input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="Buscar produto por nome ou código…"
+                  aria-label="Buscar produto"
+                  className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-[#8A8278]"
+                />
+              </div>
+              {[
+                { id: "pedidos", label: "Pedidos", icon: ClipboardList },
+                { id: "desconto", label: "Desconto", icon: TicketPercent },
+                { id: "vendas", label: "Vendas", icon: ChartColumn },
+                { id: "config", label: "Config", icon: Settings },
+              ].map((m: any) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    if (m.id === "desconto") {
+                      setDescontoLib((v) => !v);
+                      setPainel("venda");
+                      if (!descontoLib) toast.success("Desconto autorizado liberado na comanda.");
+                      return;
+                    }
+                    setPainel(m.id);
+                  }}
+                  className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-[#2A2721] bg-[#17150F] px-3 text-xs font-medium text-[#C9C2B8] transition-colors hover:border-[#D4A94A]/60 hover:text-[#F2CE6B]"
+                >
+                  <m.icon className="size-4 text-[#C9A24B]" />
+                  {m.label}
+                </button>
+              ))}
+            </div>
 
-        {/* Centro */}
-        <main>
+            {/* Categorias (chips, como na referência) */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {CATEGORIAS.map((c) => {
+                const ativo = cat === c.id && painel === "venda";
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setCat(c.id);
+                      setPainel("venda");
+                    }}
+                    className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-colors ${
+                      ativo
+                        ? "erp-btn-gold border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-[#14120C]"
+                        : "border-[#2A2721] bg-[#17150F] text-[#C9C2B8] hover:border-[#D4A94A]/60 hover:text-[#F2CE6B]"
+                    }`}
+                  >
+                    <c.icon className={`size-4 ${ativo ? "text-[#14120C]" : "text-[#C9A24B]"}`} />
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
           {painel === "venda" && (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-[rgba(196,154,67,.35)] bg-[#F5EBD2] p-4 shadow-card">
-                  <p className="font-display text-lg font-bold leading-tight text-[#A9813A]">
+                <div className="rounded-2xl border border-[#D4A94A] bg-gradient-to-br from-[#241E12] to-[#141310] px-4 py-2.5 shadow-card">
+                  <p className="font-display text-base font-bold leading-tight text-[#F2CE6B]">
                     Salgados sempre fresquinhos e deliciosos!
                   </p>
                 </div>
-                <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-card">
-                  <p className="font-display text-lg font-bold text-[#A9813A]">COMBOS ESPECIAIS</p>
-                  <p className="text-xs text-[#64748B]">Mais sabor, mais economia!</p>
+                <div className="rounded-2xl border border-[#D4A94A] bg-[#121110] px-4 py-2.5 shadow-card">
+                  <p className="font-display text-base font-bold text-[#F2CE6B]">COMBOS ESPECIAIS</p>
+                  <p className="text-[11px] text-[#A09A8E]">Mais sabor, mais economia!</p>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
@@ -597,7 +618,7 @@ function PDV() {
                       key={p.id}
                       type="button"
                       onClick={() => adicionar(p)}
-                      className="group overflow-hidden rounded-xl border border-[#E5E7EB] bg-white text-left shadow-card transition-all hover:border-[rgba(196,154,67,.55)] hover:shadow-[0_0_18px_rgba(196,154,67,.25)]"
+                      className="group overflow-hidden rounded-2xl border border-[#D4A94A]/45 bg-[#121110] text-left shadow-card transition-all hover:border-[#F2CE6B] hover:shadow-[0_0_20px_rgba(212,169,74,.28)]"
                       aria-label={`Adicionar ${p.nome}`}
                     >
                       <img
@@ -606,12 +627,12 @@ function PDV() {
                         className="h-24 w-full object-cover"
                         loading="lazy"
                       />
-                      <div className="flex items-center justify-between gap-1 p-2">
+                      <div className="flex items-center justify-between gap-1 p-2.5">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-[#202B3A]">{p.nome}</p>
-                          <p className="text-xs font-bold text-[#A9813A]">{brl(precoFinal(p))}</p>
+                          <p className="truncate text-xs font-semibold text-foreground">{p.nome}</p>
+                          <p className="text-xs font-bold text-[#F2CE6B]">{brl(precoFinal(p))}</p>
                         </div>
-                        <span className="rounded-full bg-gradient-to-b from-[#D9B25E] to-[#C49A43] p-1.5 text-[#202B3A] transition-transform group-hover:scale-110">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-[#14120C] transition-transform group-hover:scale-105">
                           <Plus className="size-4" />
                         </span>
                       </div>
@@ -620,7 +641,7 @@ function PDV() {
                 })}
               </div>
               {grade.length === 0 && (
-                <p className="mt-6 text-center text-sm text-[#64748B]">
+                <p className="mt-6 rounded-2xl border border-[#D4A94A]/45 bg-[#121110] py-6 text-center text-sm text-[#A09A8E]">
                   Nenhum produto nesta categoria.
                 </p>
               )}
@@ -628,40 +649,42 @@ function PDV() {
           )}
 
           {painel === "pedidos" && (
-            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-card">
-              <h2 className="font-display text-xl text-[#A9813A]">Pedidos de hoje</h2>
+            <div className="rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 shadow-card">
+              <h2 className="font-display text-xl text-[#F2CE6B]">Pedidos de hoje</h2>
               <ul className="mt-2 space-y-1 text-sm">
                 {(vendasHoje ?? []).map((v: any) => (
                   <li
                     key={v.id}
-                    className="flex justify-between gap-2 rounded border border-[#E5E7EB] px-2 py-1.5"
+                    className="flex justify-between gap-2 rounded-xl border border-[#2A2721] bg-[#17150F] px-3 py-2"
                   >
-                    <span>
+                    <span className="text-[#C9C2B8]">
                       #{v.numero} • {v.cliente_nome} • {v.forma_pagamento} • {v.pagamento_status}
                     </span>
-                    <b>{brl(v.total)}</b>
+                    <b className="text-[#F2CE6B]">{brl(v.total)}</b>
                   </li>
                 ))}
                 {(vendasHoje ?? []).length === 0 && (
-                  <li className="text-[#64748B]">Sem vendas hoje.</li>
+                  <li className="text-[#A09A8E]">Sem vendas hoje.</li>
                 )}
               </ul>
             </div>
           )}
 
           {painel === "vendas" && (
-            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-card">
-              <h2 className="font-display text-xl text-[#A9813A]">Vendas do dia</h2>
-              <p className="mt-2 text-3xl font-bold">{brl(totaisVendas.total)}</p>
-              <p className="text-sm text-[#64748B]">{totaisVendas.qtd} venda(s)</p>
+            <div className="rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 shadow-card">
+              <h2 className="font-display text-xl text-[#F2CE6B]">Vendas do dia</h2>
+              <p className="mt-2 font-display text-3xl font-bold text-foreground">
+                {brl(totaisVendas.total)}
+              </p>
+              <p className="text-sm text-[#A09A8E]">{totaisVendas.qtd} venda(s)</p>
               <ul className="mt-2 space-y-1 text-sm">
                 {Object.entries(totaisVendas.porMeio).map(([m, v]) => (
                   <li
                     key={m}
-                    className="flex justify-between rounded border border-[#E5E7EB] px-2 py-1.5"
+                    className="flex justify-between rounded-xl border border-[#2A2721] bg-[#17150F] px-3 py-2"
                   >
-                    <span>{m}</span>
-                    <b>{brl(v)}</b>
+                    <span className="text-[#C9C2B8]">{m}</span>
+                    <b className="text-[#F2CE6B]">{brl(v)}</b>
                   </li>
                 ))}
               </ul>
@@ -669,15 +692,15 @@ function PDV() {
           )}
 
           {painel === "config" && (
-            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 text-sm shadow-card">
-              <h2 className="font-display text-xl text-[#A9813A]">Configurações</h2>
-              <ul className="mt-2 space-y-1 text-[#475569]">
+            <div className="rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 text-sm shadow-card">
+              <h2 className="font-display text-xl text-[#F2CE6B]">Configurações</h2>
+              <ul className="mt-2 space-y-1 text-[#C9C2B8]">
                 <li className="flex items-center gap-2">
-                  <Truck className="size-4" />
+                  <Truck className="size-4 text-[#C9A24B]" />
                   Impressora: Tanca TP-550 (fila automática)
                 </li>
                 <li className="flex items-center gap-2">
-                  <ReceiptText className="size-4" />
+                  <ReceiptText className="size-4 text-[#C9A24B]" />
                   Cupom impresso ao confirmar a venda paga
                 </li>
               </ul>
@@ -686,11 +709,11 @@ function PDV() {
         </main>
 
         {/* Comanda */}
-        <aside className="rounded-xl border border-[#E5E7EB] bg-white p-4 text-[#202B3A] shadow-card">
+        <aside className="rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 text-foreground shadow-card">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold">
-              Comanda Atual{" "}
-              <span className="ml-1 rounded px-2 py-0.5 text-sm" style={{ backgroundColor: "rgba(196,154,67,.18)", color: "#A9813A" }}>
+            <h2 className="font-display text-lg font-bold uppercase tracking-wide text-foreground">
+              Pedido{" "}
+              <span className="ml-1 rounded-full border border-[#D4A94A]/60 bg-[#F2CE6B]/15 px-2 py-0.5 text-xs font-bold text-[#F2CE6B]">
                 #{comandaN}
               </span>
             </h2>
@@ -701,52 +724,58 @@ function PDV() {
                 setDesconto(0);
               }}
               aria-label="Limpar comanda"
+              className="grid size-9 place-items-center rounded-xl border border-[#2A2721] bg-[#17150F] text-[#A09A8E] transition-colors hover:border-[#F16A6A]/60 hover:text-[#F16A6A]"
             >
-              <Trash2 className="size-5 text-[#64748B] hover:text-[#DC2626]" />
+              <Trash2 className="size-4" />
             </button>
           </div>
           <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto">
             {itens.map((i) => (
-              <li key={i.produto_id} className="flex items-center gap-2 rounded-lg bg-[#F8F9FA] p-2">
-                <img src={i.imagem} alt="" className="size-10 rounded object-cover" />
+              <li
+                key={i.produto_id}
+                className="flex items-center gap-2 rounded-xl border border-[#2A2721] bg-[#17150F] p-2"
+              >
+                <img src={i.imagem} alt="" className="size-10 rounded-lg object-cover" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-semibold">{i.nome}</p>
-                  <p className="text-xs text-[#64748B]">{brl(i.preco)}</p>
+                  <p className="truncate text-xs font-semibold text-foreground">{i.nome}</p>
+                  <p className="text-xs text-[#A09A8E]">{brl(i.preco)}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => mudarQtd(i.produto_id, -1)}
-                    className="rounded bg-[#E5E7EB] p-1 hover:bg-[#CBD5E1]"
+                    className="grid size-8 place-items-center rounded-lg border border-[#D4A94A]/45 bg-[#121110] text-[#F2CE6B] transition-colors hover:bg-[#F2CE6B] hover:text-[#14120C]"
                     aria-label="Diminuir"
                   >
-                    <Minus className="size-3" />
+                    <Minus className="size-3.5" />
                   </button>
-                  <span className="w-8 text-center text-xs font-bold">{i.quantidade}</span>
+                  <span className="w-8 text-center text-xs font-bold text-foreground">
+                    {i.quantidade}
+                  </span>
                   <button
                     type="button"
                     onClick={() => mudarQtd(i.produto_id, 1)}
-                    className="rounded bg-[#E5E7EB] p-1 hover:bg-[#CBD5E1]"
+                    className="grid size-8 place-items-center rounded-lg border border-[#D4A94A]/45 bg-[#121110] text-[#F2CE6B] transition-colors hover:bg-[#F2CE6B] hover:text-[#14120C]"
                     aria-label="Aumentar"
                   >
-                    <Plus className="size-3" />
+                    <Plus className="size-3.5" />
                   </button>
                 </div>
-                <b className="text-xs">{brl(i.preco * i.quantidade)}</b>
+                <b className="text-xs text-[#F2CE6B]">{brl(i.preco * i.quantidade)}</b>
               </li>
             ))}
             {itens.length === 0 && (
-              <li className="py-6 text-center text-sm text-[#64748B]">
-                Toque em + para montar a comanda.
+              <li className="rounded-xl border border-dashed border-[#D4A94A]/40 py-6 text-center text-sm text-[#A09A8E]">
+                Toque em + para montar o pedido.
               </li>
             )}
           </ul>
-          <div className="mt-3 space-y-1 border-t border-[#E5E7EB] pt-2 text-sm">
-            <p className="flex justify-between">
+          <div className="mt-3 space-y-1 border-t border-[#D4A94A]/35 pt-2 text-sm">
+            <p className="flex justify-between text-[#C9C2B8]">
               <span>Subtotal</span>
-              <b>{brl(subtotal)}</b>
+              <b className="text-foreground">{brl(subtotal)}</b>
             </p>
-            <p className="flex items-center justify-between">
+            <p className="flex items-center justify-between text-[#C9C2B8]">
               <span>Desconto{!descontoLib && " (bloqueado)"}</span>
               {descontoLib ? (
                 <Input
@@ -755,19 +784,20 @@ function PDV() {
                   step="any"
                   value={desconto || ""}
                   onChange={(e) => setDesconto(Math.max(0, Number(e.target.value) || 0))}
-                  className="h-7 w-24 text-right"
+                  className="h-8 w-24 bg-[#121110] text-right text-foreground"
+                  aria-label="Desconto"
                 />
               ) : (
-                <b>{brl(0)}</b>
+                <b className="text-foreground">{brl(0)}</b>
               )}
             </p>
           </div>
-          <div className="mt-2 flex items-center justify-between rounded-xl px-3 py-2.5 text-[#202B3A]" style={{ background: "linear-gradient(to bottom, #D9B25E, #C49A43)" }}>
-            <b>Total</b>
-            <b className="text-xl">{brl(calc.total)}</b>
+          <div className="erp-btn-gold mt-2 flex items-center justify-between rounded-xl px-4 py-3 text-[#14120C]">
+            <b className="uppercase tracking-wide">Total</b>
+            <b className="font-display text-xl">{brl(calc.total)}</b>
           </div>
-          <details className="mt-2 rounded-lg border border-[#E5E7EB] text-sm">
-            <summary className="cursor-pointer px-2 py-1.5 font-semibold">
+          <details className="mt-2 rounded-xl border border-[#2A2721] bg-[#17150F] text-sm">
+            <summary className="cursor-pointer px-3 py-2 font-semibold text-[#C9C2B8]">
               Cliente (opcional)
             </summary>
             <div className="grid gap-2 p-2">
@@ -775,32 +805,32 @@ function PDV() {
                 value={nomeCli}
                 onChange={(e) => setNomeCli(e.target.value)}
                 placeholder="Nome"
-                className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                className="rounded-md border border-[#D4A94A]/40 bg-[#121110] px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-[#8A8278]"
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
                   value={telCli}
                   onChange={(e) => setTelCli(e.target.value)}
                   placeholder="Telefone"
-                  className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                  className="rounded-md border border-[#D4A94A]/40 bg-[#121110] px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-[#8A8278]"
                 />
                 <input
                   value={tel2Cli}
                   onChange={(e) => setTel2Cli(e.target.value)}
                   placeholder="2º contato"
-                  className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                  className="rounded-md border border-[#D4A94A]/40 bg-[#121110] px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-[#8A8278]"
                 />
               </div>
               <input
                 value={endCli}
                 onChange={(e) => setEndCli(e.target.value)}
                 placeholder="Endereço"
-                className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                className="rounded-md border border-[#D4A94A]/40 bg-[#121110] px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-[#8A8278]"
               />
             </div>
           </details>
-          <details className="mt-2 rounded-lg border border-[#E5E7EB] text-sm">
-            <summary className="cursor-pointer px-2 py-1.5 font-semibold">
+          <details className="mt-2 rounded-xl border border-[#2A2721] bg-[#17150F] text-sm">
+            <summary className="cursor-pointer px-3 py-2 font-semibold text-[#C9C2B8]">
               Agendar (opcional)
             </summary>
             <div className="p-2">
@@ -808,7 +838,7 @@ function PDV() {
                 type="datetime-local"
                 value={agendadoPara}
                 onChange={(e) => setAgendadoPara(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                className="w-full rounded-md border border-[#D4A94A]/40 bg-[#121110] px-2 py-1.5 text-sm text-foreground outline-none"
                 aria-label="Data e hora do agendamento"
               />
               {agendadoPara ? (
@@ -836,18 +866,15 @@ function PDV() {
                   key={m.id}
                   type="button"
                   onClick={() => presetPagamento(m.id)}
-                  className={`flex min-h-[44px] flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-bold transition-colors ${
+                  className={`flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl border py-2.5 text-xs font-bold transition-colors ${
                     selecionado
-                      ? "text-[#202B3A]"
-                      : "border border-[#E5E7EB] bg-[#F1F5F9] text-[#202B3A] hover:border-[rgba(196,154,67,.5)]"
+                      ? "erp-btn-gold border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-[#14120C]"
+                      : "border-[#2A2721] bg-[#17150F] text-[#C9C2B8] hover:border-[#D4A94A]/60 hover:text-[#F2CE6B]"
                   }`}
-                  style={
-                    selecionado
-                      ? { background: "linear-gradient(to bottom, #D9B25E, #C49A43)" }
-                      : undefined
-                  }
                 >
-                  <m.icon className="size-5" />
+                  <m.icon
+                    className={`size-5 ${selecionado ? "text-[#14120C]" : "text-[#C9A24B]"}`}
+                  />
                   {m.label}
                 </button>
               );
@@ -923,13 +950,12 @@ function PDV() {
           <Button
             onClick={finalizar}
             disabled={enviando || itens.length === 0}
-            className="mt-2 w-full py-6 text-lg font-bold text-[#202B3A] hover:brightness-105"
-            style={{ background: "linear-gradient(to bottom, #D9B25E, #C49A43)" }}
+            className="erp-btn-gold mt-3 w-full min-h-[56px] rounded-xl border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-base font-bold uppercase tracking-wide text-[#14120C] hover:brightness-105"
           >
-            ✓ Finalizar Venda
+            ✓ Finalizar Pedido
           </Button>
           {pagtos.some((p) => p.meio === "pix" && (Number(p.valor) || 0) > 0) && (
-            <p className="mt-1 text-center text-[11px] text-[#64748B]">
+            <p className="mt-1 text-center text-[11px] text-[#A09A8E]">
               Pix imprime após confirmação do pagamento.
             </p>
           )}
@@ -937,50 +963,54 @@ function PDV() {
       </div>
 
       {/* Rodapé */}
-      <footer className="flex flex-wrap items-center gap-1 border-t border-[#E5E7EB] bg-white px-3 py-2 text-xs text-[#64748B]">
-        <span className="mr-2 italic text-[#A9813A]">O sabor que faz a diferença</span>
+      <footer className="flex flex-wrap items-center gap-1 border-t border-[#D4A94A]/35 bg-[#0F0E0C] px-3 py-2 text-xs text-[#A09A8E]">
+        <span className="mr-2 italic text-[#C9A24B]">O sabor que faz a diferença</span>
         <button
           type="button"
           onClick={() => setSoFavoritos((v) => !v)}
-          className={`flex items-center gap-1 rounded px-2 py-1 ${soFavoritos ? "bg-[#F5EBD2] text-[#A9813A]" : ""}`}
+          className={`flex min-h-[36px] items-center gap-1 rounded-lg border px-2.5 py-1 transition-colors ${
+            soFavoritos
+              ? "border-[#D4A94A] bg-[#F2CE6B]/15 text-[#F2CE6B]"
+              : "border-transparent hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
+          }`}
         >
-          <Star className="size-4" />
+          <Star className="size-4 text-[#C9A24B]" />
           Favoritos
         </button>
         <button
           type="button"
           onClick={repetir}
-          className="flex items-center gap-1 rounded px-2 py-1"
+          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
         >
-          <Repeat2 className="size-4" />
+          <Repeat2 className="size-4 text-[#C9A24B]" />
           Repetir Pedido
         </button>
         <button
           type="button"
           onClick={() => navigate({ to: "/calculadora" })}
-          className="flex items-center gap-1 rounded px-2 py-1"
+          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
         >
-          <Calculator className="size-4" />
+          <Calculator className="size-4 text-[#C9A24B]" />
           Calculadora
         </button>
         <button
           type="button"
           onClick={compartilharWhats}
-          className="flex items-center gap-1 rounded px-2 py-1"
+          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
         >
-          <MessageCircle className="size-4" />
+          <MessageCircle className="size-4 text-[#C9A24B]" />
           WhatsApp
         </button>
         <button
           type="button"
           onClick={() => navigate({ to: "/campanhas" })}
-          className="flex items-center gap-1 rounded px-2 py-1"
+          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
         >
-          <TicketPercent className="size-4" />
+          <TicketPercent className="size-4 text-[#C9A24B]" />
           Cupom/Indicação
         </button>
         <span className="ml-auto hidden sm:block">Néia Salgados — Qualidade em cada mordida!</span>
       </footer>
-    </div>
+    </AdminShell>
   );
 }

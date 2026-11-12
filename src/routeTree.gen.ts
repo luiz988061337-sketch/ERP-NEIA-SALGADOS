@@ -38,6 +38,7 @@ import { Route as ParceirosRouteImport } from './routes/parceiros'
 import { Route as PdvRouteImport } from './routes/pdv'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as PreviewL2GestaoRouteImport } from './routes/preview-l2-gestao'
+import { Route as PreviewL2PdvRouteImport } from './routes/preview-l2-pdv'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
@@ -219,6 +220,11 @@ const PreviewRoute = PreviewRouteImport.update({
 const PreviewL2GestaoRoute = PreviewL2GestaoRouteImport.update({
   id: '/preview-l2-gestao',
   path: '/preview-l2-gestao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewL2PdvRoute = PreviewL2PdvRouteImport.update({
+  id: '/preview-l2-pdv',
+  path: '/preview-l2-pdv',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProducaoRoute = ProducaoRouteImport.update({
@@ -443,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/pdv': typeof PdvRoute
   '/preview': typeof PreviewRouteWithChildren
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
+  '/preview-l2-pdv': typeof PreviewL2PdvRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -510,6 +517,7 @@ export interface FileRoutesByTo {
   '/parceiros': typeof ParceirosRoute
   '/pdv': typeof PdvRoute
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
+  '/preview-l2-pdv': typeof PreviewL2PdvRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -579,6 +587,7 @@ export interface FileRoutesById {
   '/pdv': typeof PdvRoute
   '/preview': typeof PreviewRouteWithChildren
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
+  '/preview-l2-pdv': typeof PreviewL2PdvRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -649,6 +658,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/preview'
     | '/preview-l2-gestao'
+    | '/preview-l2-pdv'
     | '/producao'
     | '/recorrentes'
     | '/redefinir-senha'
@@ -716,6 +726,7 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/pdv'
     | '/preview-l2-gestao'
+    | '/preview-l2-pdv'
     | '/producao'
     | '/recorrentes'
     | '/redefinir-senha'
@@ -784,6 +795,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/preview'
     | '/preview-l2-gestao'
+    | '/preview-l2-pdv'
     | '/producao'
     | '/recorrentes'
     | '/redefinir-senha'
@@ -853,6 +865,7 @@ export interface RootRouteChildren {
   PdvRoute: typeof PdvRoute
   PreviewRoute: typeof PreviewRouteWithChildren
   PreviewL2GestaoRoute: typeof PreviewL2GestaoRoute
+  PreviewL2PdvRoute: typeof PreviewL2PdvRoute
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
@@ -1066,6 +1079,13 @@ declare module '@tanstack/react-router' {
       path: '/preview-l2-gestao'
       fullPath: '/preview-l2-gestao'
       preLoaderRoute: typeof PreviewL2GestaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview-l2-pdv': {
+      id: '/preview-l2-pdv'
+      path: '/preview-l2-pdv'
+      fullPath: '/preview-l2-pdv'
+      preLoaderRoute: typeof PreviewL2PdvRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/producao': {
@@ -1427,6 +1447,7 @@ const rootRouteChildren: RootRouteChildren = {
   PdvRoute: PdvRoute,
   PreviewRoute: PreviewRouteWithChildren,
   PreviewL2GestaoRoute: PreviewL2GestaoRoute,
+  PreviewL2PdvRoute: PreviewL2PdvRoute,
   ProducaoRoute: ProducaoRoute,
   RecorrentesRoute: RecorrentesRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,

@@ -64,16 +64,14 @@ export function ModuleHeader({
 }
 
 /** Indicador de status ● texto, com cor. */
-export function StatusDot({
-  label,
-  cor = "#35C97C",
-}: {
-  label: string;
-  cor?: string;
-}) {
+export function StatusDot({ label, cor = "#35C97C" }: { label: string; cor?: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D4A94A] bg-[#1A1712] px-2.5 py-1 text-xs font-medium text-[#F4F1EA]">
-      <span className="inline-block size-2 rounded-full" style={{ backgroundColor: cor }} aria-hidden />
+      <span
+        className="inline-block size-2 rounded-full"
+        style={{ backgroundColor: cor }}
+        aria-hidden
+      />
       {label}
     </span>
   );
@@ -89,7 +87,10 @@ export function StatusBadge({
   children: ReactNode;
   className?: string;
 }) {
-  const BADGE_TOM_STYLE: Record<"ok" | "info" | "atencao" | "perigo" | "neutro" | "extra", { bg: string; texto: string }> = {
+  const BADGE_TOM_STYLE: Record<
+    "ok" | "info" | "atencao" | "perigo" | "neutro" | "extra",
+    { bg: string; texto: string }
+  > = {
     ok: { bg: "rgba(53,201,124,.18)", texto: "#35C97C" },
     info: { bg: "rgba(91,147,245,.16)", texto: "#5B93F5" },
     atencao: { bg: "rgba(245,166,35,.18)", texto: "#F5B301" },
@@ -121,7 +122,10 @@ export function StatusBadgeLarge({
   children: ReactNode;
   className?: string;
 }) {
-  const BADGE_TOM_STYLE: Record<"ok" | "info" | "atencao" | "perigo" | "neutro" | "extra", { bg: string; texto: string }> = {
+  const BADGE_TOM_STYLE: Record<
+    "ok" | "info" | "atencao" | "perigo" | "neutro" | "extra",
+    { bg: string; texto: string }
+  > = {
     ok: { bg: "rgba(53,201,124,.18)", texto: "#35C97C" },
     info: { bg: "rgba(91,147,245,.16)", texto: "#5B93F5" },
     atencao: { bg: "rgba(245,166,35,.18)", texto: "#F5B301" },
@@ -162,9 +166,7 @@ export function MetricCard({
 }) {
   const body = (
     <>
-      <span
-        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#D4A94A] bg-[#1A1712]"
-      >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#D4A94A] bg-[#1A1712]">
         <Icone className="size-4" style={{ color: cor }} aria-hidden />
       </span>
       <div className="min-w-0">
@@ -260,18 +262,14 @@ export function DarkTable({
         </thead>
         <tbody className="divide-y divide-[#2A2721]">{children}</tbody>
       </table>
-      {vazio && (
-        <p className="px-3 py-6 text-center text-xs text-muted-foreground">{vazio}</p>
-      )}
+      {vazio && <p className="px-3 py-6 text-center text-xs text-muted-foreground">{vazio}</p>}
     </div>
   );
 }
 
 /** Linha de tabela padrão. */
 export function DarkTableRow({ children }: { children: ReactNode }) {
-  return (
-    <tr className="transition-colors hover:bg-[#211F18]">{children}</tr>
-  );
+  return <tr className="transition-colors hover:bg-[#211F18]">{children}</tr>;
 }
 
 /** Coluna de kanban com header colorido (produção/atendimento).
@@ -337,8 +335,7 @@ export function ActionButton({
     gold: "erp-btn-gold min-h-[34px] border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-[#14120C] hover:brightness-105",
     ghost:
       "min-h-[34px] border border-[#2A2721] bg-[#1A1712] text-[#F4F1EA] hover:border-[#D4A94A] hover:bg-[#F2CE6B] hover:text-[#14120C]",
-    danger:
-      "min-h-[34px] border border-[#F16A6A] bg-[#140E0E] text-[#F16A6A] hover:bg-[#2A0E0E]",
+    danger: "min-h-[34px] border border-[#F16A6A] bg-[#140E0E] text-[#F16A6A] hover:bg-[#2A0E0E]",
   } as const;
   return (
     <button
@@ -460,9 +457,7 @@ export function PainelCabecalho({
           <h1 className="truncate font-display text-lg font-bold uppercase leading-tight tracking-wide text-foreground">
             {titulo}
           </h1>
-          {subtitulo ? (
-            <p className="truncate text-xs text-muted-foreground">{subtitulo}</p>
-          ) : null}
+          {subtitulo ? <p className="truncate text-xs text-muted-foreground">{subtitulo}</p> : null}
         </div>
       </div>
       {acoes ? <div className="flex shrink-0 items-center gap-2">{acoes}</div> : null}

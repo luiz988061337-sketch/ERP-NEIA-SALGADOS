@@ -20,7 +20,13 @@ export const Route = createFileRoute("/preview-l2-gestao")({
 
 function PreviewL2Gestao() {
   return (
-    <AdminShell aba="dashboard" onAba={() => {}} onRefresh={() => {}} usuario="neia@neiasalgados.com">
+    <AdminShell
+      aba="dashboard"
+      onAba={() => {}}
+      onRefresh={() => {}}
+      usuario="neia@neiasalgados.com"
+      modoPreview
+    >
       <div className="min-h-screen bg-background p-3 sm:p-4">
         <div className="mx-auto max-w-[1400px]">
           <p className="mb-3 rounded-lg border border-[#D4A94A] bg-[#17150F] px-3 py-2 text-xs text-[#F2CE6B]">
