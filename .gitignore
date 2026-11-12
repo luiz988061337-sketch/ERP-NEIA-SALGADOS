@@ -52,3 +52,7 @@ diag_preview.bat
 scripts-tests-summary.json
 
 .vercel
+
+# Espelhos/artefatos gerados pelas capturas de preview (nao versionar)
+docs/preview-captures/mirror/
+docs/preview-captures/tmp-proxy/
