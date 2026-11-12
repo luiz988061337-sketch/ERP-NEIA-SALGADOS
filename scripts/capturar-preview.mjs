@@ -175,13 +175,17 @@ const MIME = {
 };
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split("?")[0]);
-  // /mirror/assets/x -> ROOT/assets/x ; /assets/x -> ROOT/assets/x (chunks JS)
-  const relativo = url.startsWith("/mirror/") ? url.slice("/mirror".length) : url;
   const fallback = primeiroHtml ? join(ROOT, primeiroHtml) : join(ROOT, "__html___admin.html");
-  const path =
-    relativo.startsWith("/assets/") || relativo.startsWith("/neia-logo")
-      ? join(ROOT, relativo)
-      : fallback;
+  let path;
+  if (url.startsWith("/mirror/")) {
+    // Arquivos espelhados (HTML das rotas e assets baixados)
+    path = join(ROOT, url.slice("/mirror".length));
+  } else if (url.startsWith("/assets/") || url.startsWith("/neia-logo")) {
+    // Chunks JS/CSS referenciados pelo bundle
+    path = join(ROOT, url);
+  } else {
+    path = fallback;
+  }
   if (!existsSync(path)) {
     res.writeHead(404);
     res.end("not found");
@@ -232,13 +236,20 @@ async function capturar(nome, rota, largura, altura, mobile = false) {
   }
 }
 
-await capturar("preview-admin-desktop", "/admin", 1440, 900);
-await capturar("preview-pdv-desktop", "/pdv", 1440, 900);
-await capturar("preview-producao-desktop", "/producao", 1440, 900);
-await capturar("preview-entregas-desktop", "/central-entregas", 1440, 900);
-await capturar("preview-admin-celular", "/admin", 390, 844, true);
-await capturar("preview-gestao-desktop", "/preview-l2-gestao", 1440, 1000);
-await capturar("preview-gestao-celular", "/preview-l2-gestao", 390, 844, true);
+// Captura exatamente as rotas solicitadas (nomes derivados da rota).
+const NOME_ROTA = {
+  "/preview-l2-gestao": "preview-gestao",
+  "/preview-l2-pdv": "preview-pdv",
+  "/admin": "preview-admin",
+  "/pdv": "preview-pdv-real",
+  "/producao": "preview-producao",
+  "/central-entregas": "preview-entregas",
+};
+for (const rota of ROTAS) {
+  const base = NOME_ROTA[rota] ?? ("preview" + rota.replace(/\//g, "-"));
+  await capturar(`${base}-desktop`, rota, 1440, 1000);
+  await capturar(`${base}-celular`, rota, 390, 844, true);
+}
 
 await browser.close();
 server.close();

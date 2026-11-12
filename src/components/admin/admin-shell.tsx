@@ -77,12 +77,12 @@ export function AdminShell({
               <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
                 Painel de Gestão
               </p>
+              {modoPreview ? (
+                <span className="mt-1 inline-block rounded-full border border-[#F5B301]/60 bg-[#F5B301]/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#F5B301]">
+                  Prévia
+                </span>
+              ) : null}
             </div>
-            {modoPreview ? (
-              <span className="ml-auto shrink-0 rounded-full border border-[#F5B301]/60 bg-[#F5B301]/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#F5B301] group-data-[collapsible=icon]:hidden">
-                Prévia
-              </span>
-            ) : null}
           </div>
         </SidebarHeader>
 
