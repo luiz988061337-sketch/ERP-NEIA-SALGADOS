@@ -1,6 +1,6 @@
-# RELATÓRIO — Etapa Produção / Cozinha (réplica visual preto/dourado)
+# RELATÓRIO — Ajuste visual da Produção (referência aprovada)
 
-Data: 2026-11-12 · Branch: `homologacao-finalizacao` · SHA: `dd979a3`
+Data: 2026-11-12 · Branch: `homologacao-finalizacao` · SHA do código: `89e3004`
 
 ---
 
@@ -8,86 +8,100 @@ Data: 2026-11-12 · Branch: `homologacao-finalizacao` · SHA: `dd979a3`
 
 | Item | Valor |
 |---|---|
-| **URL** | `https://erp-neia-salgados-ml864136x-luiz988061337-3147s-projects.vercel.app` |
-| **ID do deploy** | `dpl_8QGjqk4nu35D9yHwSL2RjKkSsNpL` |
+| **URL** | `https://erp-neia-salgados-eexsxwf7v-luiz988061337-3147s-projects.vercel.app` |
+| **ID do deploy** | `dpl_6nUWUMg5btSie3vCWF1EEw4mHZWP` |
 | **Target** | `preview` — **NÃO é Production** |
-| **SHA do deploy = SHA local** | ✅ `dd979a3b78a8c3bf201cd296949377f1d9123618` |
-| Rota de conferência | `/preview-l2-producao` (Preview tem Vercel Authentication → entre na Vercel) |
+| **SHA do deploy = SHA local** | ✅ `89e30047f21220a75a603466364e24a9db6efb82` |
+| Rota de conferência | `/preview-l2-producao` (Preview com Vercel Authentication → entre na Vercel) |
 | **Production intacta** | ✅ `dpl_DK144zp5kG9FSsL4J5HdniQ34Ukk` · `main` @ `366074f` |
 
 ---
 
-## 2. Alterações visuais realizadas
+## 2. Ajustes visuais (conforme a referência aprovada)
 
-### Estrutura (referência "PRODUÇÃO – COZINHA")
+### Cabeçalhos das três colunas
 
-| Elemento | Antes | Agora |
+| Item | Antes | Agora |
 |---|---|---|
-| Menu lateral | tela solta, sem shell | **shell do Dashboard** (sidebar compacta, coroa, "Produção" em pílula dourada na rota `/producao`, usuário no rodapé) |
-| Cabeçalho do módulo | banner "Despache (Produção)" com foto | **"PRODUÇÃO — COZINHA"** + subtítulo "Pedidos organizados por status, com prioridades e tempo de preparo" + selo verde **COZINHA** + "Em operação" |
-| Hierarquia | Kanban no fim, depois de ~8 blocos | **Kanban é o conteúdo principal**, logo abaixo do cabeçalho; todo o resto foi para a seção recolhível **"Operação em detalhes"** (totais do dia, donut, consolidados, listas, filtros) |
-| Colunas | cabeçalho translúcido com borda inferior | **barra colorida sólida** com contador: **A FAZER (laranja)**, **EM PREPARO (azul)**, **PRONTO (verde)** |
-| Card do pedido | branco, bloco único, badge de status textual | card **escuro** com borda dourada e barra lateral por nível de prioridade; **nº do pedido**, badge de prioridade (Urgente/Atenção/Atraso/Risco), chip de modalidade (**Entrega**/**Retirada**), cliente, **produtos com quantidades**, **total de salgados**, **observações**, prazo do cliente, tempo técnico, alertas coloridos, ações e **tempo estimado no canto inferior direito** |
-| Ações | botões padrão | **Iniciar preparo** / **Marcar como pronto** / **Chamar motoboy** em dourado, **Imprimir** discreto |
+| Título | à esquerda, `text-xs` | **centralizado**, `font-display text-xl uppercase bold`, com sombra suave |
+| Ícone | ausente | **ícone à esquerda** (⏰ A Fazer / ⚒️ EM PREPARO / ✅ PRONTO) |
+| Contador | pílula pequena à direita | **badge destacado** (quadrado escuro, `font-display text-base`) à direita |
+| Fundo | cor sólida | cor sólida preservada: **laranja / azul / verde** |
+| Altura | 42px | 56px |
 
-### Correções de exibição (sem alterar regra de negócio)
+### Cards
 
-1. **Coluna "Pronto" sempre vazia** — "pronto" é filtrado da fila (`incluirProntos` desligado) e, como o toggle vivia dentro da seção recolhida, a coluna nunca mostrava nada. Agora a coluna lista os pedidos prontos do dia (`pedidosDoDia`); a fila de preparo e a consolidação continuam usando o mesmo filtro.
-2. **Pedido duplicado em "A Fazer"** — a lista de prioridade é subconjunto da fila e era concatenada antes dela. Agora a coluna usa a união sem repetição, mantendo a prioridade no topo.
+| Item | Agora |
+|---|---|
+| Topo | `#número` + badge de prioridade + **"🕐 até HH:MM"** (ou **"✅ Finalizado HH:MM"** na coluna Pronto, via `pronto_em`) |
+| Modalidade | chip **"🚚 Entrega"** / **"🏪 Retirada"** + cliente |
+| Produtos | emoji de processo + quantidade em destaque + nome |
+| Total | **"Total: N salgados"** (rótulo branco, número dourado) |
+| Observações | caixa "💬 Obs.: …" |
+| Avisos | faixa "⚠️ ATENÇÃO — faltam X min para o limite." / "Não reconhecido" |
+| Botões | **"▶ Iniciar preparo"** (dourado, largura total) · **"✓ Finalizar"** (azul, largura total) · **"🔔 Avisar caixa"** (dourado, entrega) · **"🏪 Liberar retirada"** (verde, retirada) · "Imprimir" (secundário, preservado) |
+| Borda do card | na cor da coluna (laranja / azul / verde) |
+| Tempos técnicos internos | **ocultos** (decisão do proprietário) |
 
-### Preservado integralmente
+### Menu lateral
 
-Agendamentos e prioridades, controle de combos/quantidades, confirmação de preparo, impressão de comandas (Tanca), integração com pedidos, integração com a Central de Entregas, regras de tempo técnico/fritadeiras/pastéis/assados, retirada física do freezer, cálculo de atraso, fila de impressão e toda a lógica de status.
+**Nenhum menu novo.** A Produção usa o mesmo `AdminShell` aprovado no Dashboard e no PDV — mesma largura, logotipo, ordem, ícones, cores, bordas, espaçamento, rodapé e navegação. Apenas **"Produção"** fica em pílula dourada quando a tela está aberta (por rota real `/producao`; na rota de conferência, pela aba informada).
 
-### Modo conferência (sem escrita)
+### Correção de exibição
 
-`/preview-l2-producao` renderiza o painel real com **pedidos fictícios locais**; `mudarStatus`, `imprimirDireto` e as reservas ficam bloqueados nesse modo (aviso no toast). Nenhum pedido é criado ou alterado no backend.
+Cada pedido passa a ficar em **uma única coluna** — "A Fazer" não repete pedidos que já estão em preparo (antes o mesmo pedido aparecia nas duas, com aviso de chave duplicada).
 
 ---
 
-## 3. Testes
+## 3. Regras de negócio preservadas
+
+Agendamentos e prioridades, controle de combos/quantidades, confirmação de preparo, impressão de comandas, integração com pedidos, integração com a Central de Entregas, retirada física do freezer, cálculo de atraso e todos os status.
+
+**"Avisar caixa" e "Liberar retirada" executam exatamente a mesma transição real já existente** (pedido pronto → `aguardando_motoboy`, com notificação push/WhatsApp, histórico de status e cupom) — só o rótulo e a cor mudam conforme a modalidade.
+
+---
+
+## 4. Testes
 
 | Teste | Resultado |
 |---|---|
 | `npm run typecheck` | ✅ sem erros |
-| `npm run build` | ✅ client 22,0s · ssr 18,3s · nitro 6,0s |
+| `npm run build` | ✅ client 25,4s · ssr 18,2s · nitro 6,1s |
 | `npm run teste:guard` | ✅ 41/41 |
 | `git diff --check` | ✅ sem erros de whitespace |
-| ESLint (`producao.tsx` + nova rota) | 58 problemas (todos `no-explicit-any` já existentes) — **antes eram 102** no mesmo arquivo |
+| ESLint | 59 problemas (56 `no-explicit-any` já existentes no arquivo) |
 | Visual desktop | ✅ `producao-PREVIEW-desktop.png` (do Preview hospedado) |
 | Visual mobile | ✅ `producao-PREVIEW-celular.png` (390×844) |
-| Operações com escrita | ✅ nenhuma — fixtures locais; sem status, impressão, reserva, pedido ou migração |
+| Operações com escrita | ✅ nenhuma — conferência usa fixtures locais; status, impressão e reservas bloqueados |
 
 ---
 
-## 4. Arquivos alterados
+## 5. Arquivos alterados
 
 | Arquivo | Alteração |
 |---|---|
-| `src/routes/producao.tsx` | Reforma visual (shell, cabeçalho, Kanban como conteúdo principal, card na anatomia da referência); correções de exibição (coluna Pronto e duplicidade); `Producao` exportado com props opcionais de conferência (`preview`, `pedidosInjetados`) e guardas de escrita |
-| `src/components/admin/erp-ui.tsx` | `KanbanColumn` com cabeçalho em barra colorida sólida + contador (usado só pela Produção) |
-| `src/routes/preview-l2-producao.tsx` | Rota de conferência com pedidos fictícios (novo) |
-| `scripts/captura-producao.mjs`, `reorganizar-producao.mjs` | Capturas e reestruturação (novos) |
-| `src/components/admin/dashboard-admin.tsx`, `erp-ui.tsx` (demais) | apenas reformatação do prettier |
+| `src/components/admin/erp-ui.tsx` | `KanbanColumn`: cabeçalho com ícone, título centralizado em fonte grande e contador em destaque (prop `icone`) |
+| `src/routes/producao.tsx` | Card no padrão da referência; tempos técnicos ocultos; botões por modalidade; colunas com ícone; uma coluna por pedido; `modoPreview` no shell |
+| `src/components/admin/admin-shell.tsx` | Destaque do item ativo também pela aba informada no modo conferência (sem alterar o menu) |
+| `src/routes/preview-l2-producao.tsx` | Fixtures com `pronto_em` para exibir "Finalizado HH:MM" |
+| `scripts/ajustar-card-producao.mjs`, `ajustar-fixtures-producao.mjs` | Scripts de ajuste (novos) |
 
 ---
 
-## 5. Preservação do Dashboard e do PDV
+## 6. Preservação do Dashboard e do PDV
 
-- **Dashboard** ✅ — layout aprovado intacto; captura do mesmo deploy em `docs/erp-dark/prints/gestao-PREVIEW-desktop.png`
-- **PDV** ✅ — layout aprovado intacto; captura do mesmo deploy em `docs/erp-dark/prints/pdv-PREVIEW-desktop.png`
-- **Production** ✅ — inalterada (`dpl_DK144zp5kG9FSsL4J5HdniQ34Ukk` / `main` @ `366074f`)
+- **Dashboard** ✅ intacto — `docs/erp-dark/prints/gestao-PREVIEW-desktop.png`
+- **PDV** ✅ intacto — `docs/erp-dark/prints/pdv-PREVIEW-desktop.png`
+- **Production** ✅ inalterada (`dpl_DK144zp5kG9FSsL4J5HdniQ34Ukk` / `main` @ `366074f`)
 
 ---
 
-## 6. Capturas
+## 7. Capturas
 
 | Arquivo | Conteúdo |
 |---|---|
 | `docs/erp-dark/prints/producao-PREVIEW-desktop.png` | Produção desktop **do Preview hospedado** |
 | `docs/erp-dark/prints/producao-PREVIEW-celular.png` | Produção mobile (390×844) |
-| `docs/erp-dark/prints/producao-DEPOIS.png` / `-celular.png` | Mesma tela com a comanda completa |
-| `docs/erp-dark/prints/gestao-PREVIEW-desktop.png` | Dashboard no mesmo deploy (aprovado, inalterado) |
-| `docs/erp-dark/prints/pdv-PREVIEW-desktop.png` | PDV no mesmo deploy (aprovado, inalterado) |
+| `docs/erp-dark/prints/producao-DEPOIS.png` / `-celular.png` | Mesma tela (render local do mesmo commit) |
 
 **Etapa encerrada. Aguardando aprovação visual da Produção antes de seguir para a Central de Entregas.**
