@@ -13,15 +13,32 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// Referência pública do projeto de produção (supabase/config.toml, docs e
-// migrations já citam este identificador; NÃO é segredo, é só um nome).
-const PROJETO_PRODUCAO = "iqirsunzgavsuhgyjjsi";
+// Referências públicas dos projetos de produção (supabase/config.toml, docs e
+// migrations já citam estes identificadores; NÃO é segredo, é só um nome).
+//
+// - PROJETO_PRODUCAO_ATUAL: backend REALMENTE em uso — é o mesmo projeto
+//   servido pela Production, pelo Preview da branch de homologação e pela
+//   vitrine pública (verificado no bundle publicado e na API do projeto).
+// - PROJETO_PRODUCAO_LEGADO: projeto Lovable antigo, fora de uso, mas que
+//   continua bloqueado por precaução (nenhuma escrita local pode apontar
+//   para ele).
+export const PROJETOS_PRODUCAO = ["ruioyioynwwwiqbjznoa", "iqirsunzgavsuhgyjjsi"];
 // Padrão de host do broker de produção (genérico, sem valor específico).
 const BROKER_PROD_PADRAO = "-prod.lovable.cloud";
 const MARCADORES_PERMITIDOS = ["local", "desenvolvimento", "staging", "homologacao", "teste"];
 
 const NOMES_URL = ["VITE_SUPABASE_URL", "SUPABASE_URL"];
 const NOMES_PROJETO = ["VITE_SUPABASE_PROJECT_ID", "SUPABASE_PROJECT_ID"];
+
+/**
+ * Verdadeiro quando o identificador (ou subdomínio do host) é um projeto de
+ * produção. Comparação em minúsculas: caixa alta não pode esconder produção.
+ */
+export function ehProjetoProducao(valor) {
+  const v = String(valor ?? "").trim().toLowerCase();
+  if (!v) return false;
+  return PROJETOS_PRODUCAO.includes(v);
+}
 
 /** Remove aspas externas literais e espaços (sem alterar o valor interno). */
 export function limparValor(v) {
@@ -97,7 +114,15 @@ export function avaliarAmbiente({ url, projectId, ambiente }) {
     }
   }
   // Comparação em minúsculas: caixa alta não pode esconder produção.
-  if (String(projectId).toLowerCase() === PROJETO_PRODUCAO || host.endsWith(BROKER_PROD_PADRAO)) {
+  // Bloqueia pelo PROJECT_ID e também pelo subdomínio do host (defesa em
+  // profundidade: um par url/projeto coerente com produção é barrado mesmo
+  // se o host vier de outro domínio verificável).
+  const subHost = host.endsWith(".supabase.co") ? host.split(".")[0] : "";
+  if (
+    ehProjetoProducao(projectId) ||
+    ehProjetoProducao(subHost) ||
+    host.endsWith(BROKER_PROD_PADRAO)
+  ) {
     return {
       ok: false,
       motivo:

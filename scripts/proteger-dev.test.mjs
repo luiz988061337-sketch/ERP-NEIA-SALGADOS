@@ -4,13 +4,17 @@
  *
  * Uso: node scripts/proteger-dev.test.mjs  (exit 0 = tudo passou)
  */
-import { avaliarAmbiente, limparValor } from "./proteger-dev.mjs";
+import { avaliarAmbiente, limparValor, ehProjetoProducao, PROJETOS_PRODUCAO } from "./proteger-dev.mjs";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PROD_REF = "iqirsunzgavsuhgyjjsi"; // ref pública (docs/config), só p/ teste negativo
+// Backend REALMENTE em uso (Production + Preview + vitrine pública).
+// Referência pública do projeto, não é segredo.
+const PROD_REF = "ruioyioynwwwiqbjznoa";
+// Projeto Lovable antigo: continua bloqueado por precaução.
+const PROD_REF_LEGADO = "iqirsunzgavsuhgyjjsi";
 const SEGREDO_FAKE = "sb_secret_ficticio_abc123";
 
 let pass = 0;
@@ -107,6 +111,55 @@ function bloqueia(env) {
   t("limpa aspas literais", limparValor('"https://x.supabase.co"') === "https://x.supabase.co");
 }
 
+// 11. Backend real (Production + Preview + vitrine) bloqueia operações locais.
+{
+  const r = avaliarAmbiente({
+    url: `https://${PROD_REF}.supabase.co`,
+    projectId: PROD_REF,
+    ambiente: "staging",
+  });
+  t("backend real bloqueia dev local", !r.ok);
+  t("motivo sem valores", !r.motivo.includes(PROD_REF) && !r.motivo.includes(SEGREDO_FAKE));
+  t("motivo cita produção", /PRODUÇÃO/.test(r.motivo));
+}
+
+// 12. Projeto legado continua bloqueado (proteção preservada).
+{
+  t(
+    "backend legado continua bloqueado",
+    bloqueia({
+      url: `https://${PROD_REF_LEGADO}.supabase.co`,
+      projectId: PROD_REF_LEGADO,
+      ambiente: "staging",
+    }),
+  );
+}
+
+// 13. Caixa alta/baixa não burla a proteção (ref e host).
+{
+  const maiuscula = PROD_REF.toUpperCase();
+  t("ref em caixa alta bloqueia", bloqueia({ url: `https://${maiuscula}.supabase.co`, projectId: maiuscula, ambiente: "staging" }));
+  t("ref maiúsculo com url minúscula bloqueia", bloqueia({ url: `https://${PROD_REF}.supabase.co`, projectId: maiuscula, ambiente: "staging" }));
+  t("url em caixa alta bloqueia", bloqueia({ url: `https://${maiuscula}.supabase.co`, projectId: PROD_REF, ambiente: "staging" }));
+  t("host de produção com projeto fictício bloqueia", bloqueia({ url: `https://${PROD_REF}.supabase.co`, projectId: "stg-ficticio-123", ambiente: "staging" }));
+}
+
+// 14. Identificação correta: o backend real é produção, o fictício não é.
+{
+  t("backend real é produção", ehProjetoProducao(PROD_REF));
+  t("backend legado é produção", ehProjetoProducao(PROD_REF_LEGADO));
+  t("backend real em caixa alta é produção", ehProjetoProducao(PROD_REF.toUpperCase()));
+  t("projeto fictício não é produção", !ehProjetoProducao("stg-ficticio-123"));
+  t("lista cobre real e legado", PROJETOS_PRODUCAO.includes(PROD_REF) && PROJETOS_PRODUCAO.includes(PROD_REF_LEGADO));
+}
+
+// 15. Prefixo/sufixo não engana (só o ref exato conta como produção).
+{
+  t("ref com prefixo não é produção", !ehProjetoProducao(`x-${PROD_REF}`));
+  t("ref com sufixo não é produção", !ehProjetoProducao(`${PROD_REF}-x`));
+  t("vazio não é produção", !ehProjetoProducao(""));
+}
+
 // 11. CLI real em processo Node separado (K6.7.2): env 100% fictício,
 // sem ler valores do .env real (todas as variáveis avaliadas são
 // sobrescritas), sem rede, sem Vite. Nenhum arquivo temporário.
@@ -146,6 +199,20 @@ function bloqueia(env) {
   const rProd = rodarCli({ VITE_SUPABASE_URL: PROD_URL, VITE_SUPABASE_PROJECT_ID: PROD_REF, NEIA_AMBIENTE: "staging" });
   t("CLI prod ficticia bloqueia (exit!=0)", rProd.exit !== 0);
   t("CLI prod menciona bloqueio sem valores", /bloqueado/.test(rProd.texto) && !rProd.texto.includes(CANARIO));
+
+  const rProdLegado = rodarCli({
+    VITE_SUPABASE_URL: `https://${PROD_REF_LEGADO}.supabase.co`,
+    VITE_SUPABASE_PROJECT_ID: PROD_REF_LEGADO,
+    NEIA_AMBIENTE: "staging",
+  });
+  t("CLI backend legado bloqueia (exit!=0)", rProdLegado.exit !== 0);
+
+  const rProdCaixa = rodarCli({
+    VITE_SUPABASE_URL: `https://${PROD_REF.toUpperCase()}.supabase.co`,
+    VITE_SUPABASE_PROJECT_ID: PROD_REF.toUpperCase(),
+    NEIA_AMBIENTE: "staging",
+  });
+  t("CLI prod em caixa alta bloqueia (exit!=0)", rProdCaixa.exit !== 0);
 
   const rStg = rodarCli({ VITE_SUPABASE_URL: STG_URL, VITE_SUPABASE_PROJECT_ID: STG_PROJ, NEIA_AMBIENTE: "staging" });
   t("CLI staging ficticio libera (exit 0)", rStg.exit === 0);

@@ -1,9 +1,21 @@
 # Ambientes e estado das migrations
 
-Data: 2026-10-14. Fonte: verificações via SQL Editor em cada banco.
+Data: 2026-11-12 (atualização do backend de referência). Fonte: verificações via
+SQL Editor em cada banco + verificação do bundle publicado (Production,
+Preview e vitrine pública) e da API do projeto.
 
-## Produção (Lovable) — `iqirsunzgavsuhgyjjsi`
-Banco oficial do app publicado. Cadeia aplicada (verificado por consulta):
+## Produção (backend em uso) — `ruioyioynwwwiqbjznoa`
+Banco **realmente** usado pelo app publicado. Confirmado por três caminhos
+independentes:
+- bundle servido em `erp-neia-salgados.vercel.app` (Production, `main` @ `366074f`);
+- bundle do Preview da branch de homologação (`homologacao-finalizacao`);
+- vitrine pública (cardápio) — mesma ref e mesmo par URL+chave.
+
+Dados observados por leitura via API pública: `loja_config` com a loja real
+("Néia Salgados" / Sorocaba), 92 produtos no catálogo (mistura catálogo real +
+itens de teste de homologação), `pedidos` e `motoboys` vazios.
+
+Cadeia aplicada (verificado por consulta):
 - Base `0000` → `0058` (objetos da 0058 depois substituídos pela 0077).
 - `0072` (financeiro base), `0075` (insumos), `0076` (precificação),
   `0077` (J.1 consolidada: impressão após pagamento + Pix + guard),
@@ -11,6 +23,16 @@ Banco oficial do app publicado. Cadeia aplicada (verificado por consulta):
   `0081` (índices; seeds DEMO opcionais).
 - **Nunca aplicou aqui:** `0059`, `0060`, `0061`, `0062`, `0063`
   (substituídas pela 0077), `0073`, `0074` (substituídas pela 0077).
+
+### Projeto legado — `iqirsunzgavsuhgyjjsi`
+Projeto Lovable antigo, **fora de uso** pelo app publicado (continua sendo o
+`project_id` de `supabase/config.toml` e o `issuer` do manifest MCP do
+Lovable). Mantido como bloqueio precautionary em `scripts/proteger-dev.mjs`
+(`PROJETOS_PRODUCAO`), junto com o backend atual.
+
+> Atenção: `supabase/config.toml` ainda aponta para o projeto legado. **Não
+> trocar por `ruioyioynwwwiqbjznoa`** enquanto não existir um projeto de
+> homologação — o CLI do Supabase (`db push`) passaria a mirar o backend real.
 
 ## Banco "A" (não identificado)
 Outro projeto/ Editor onde `0073` + `0074` foram aplicadas e o teste J.1
@@ -60,8 +82,17 @@ Como identificar: o ref aparece na URL do dashboard
    erro simulado nos itens; reenvio; dois Pix de mesmo valor.
 
 ## Regra
-- Produção (Lovable) é a única fonte oficial: rode aqui apenas as
-  migrations `0075`→`0081` (já aplicadas) e as próximas numeradas.
+- **Produção (backend em uso) = `ruioyioynwwwiqbjznoa`** — é a única fonte
+  oficial do app publicado (Production, Preview e vitrine pública). Rode aqui
+  apenas as migrations `0075`→`0081` (já aplicadas) e as próximas numeradas.
+- O projeto legado `iqirsunzgavsuhgyjjsi` está fora de uso, mas segue
+  bloqueado para desenvolvimento local (`scripts/proteger-dev.mjs`).
+- **`npm run dev` local exige um projeto de homologação**: o `.env` atual
+  aponta para o backend de produção e, com a barreira corrigida, o servidor
+  local **não sobe** contra ele (bloqueio proposital — fail-closed). Para
+  homologar localmente, crie um projeto de teste, aponte `VITE_SUPABASE_URL`,
+  `VITE_SUPABASE_PROJECT_ID` e `SUPABASE_*` para ele e defina
+  `NEIA_AMBIENTE=staging`.
 - Arquivos `0059`–`0063`, `0073`, `0074` ficam no repo como registro
   histórico; **não** rodar no Lovable (a 0077 já cobre o efeito deles).
 - Antes de rodar qualquer migration, conferir o ref do projeto no editor.
