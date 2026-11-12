@@ -6,38 +6,54 @@ import {
   ArrowUpRight,
   Banknote,
   Calculator,
-  CheckCircle2,
   ChefHat,
   ChevronRight,
-  Clock,
   Heart,
-  Minus,
   Printer,
   Repeat2,
   Search,
   ShoppingCart,
+  TriangleAlert,
   Truck,
   Users,
   Wallet,
   Wheat,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Input } from "@/components/ui/input";
 import { CentralOperacao } from "@/components/central-operacao";
 import { StatusBadge } from "@/components/status-steps";
-import { EmptyState, StatusCard } from "@/components/admin/ui-admin";
+import { EmptyState } from "@/components/admin/ui-admin";
+import {
+  ERP_COLORS,
+  MetricCard,
+  SectionCard,
+  ChartCard,
+} from "@/components/admin/erp-ui";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { imagemProduto } from "@/lib/catalog";
 import { brl, dataHora, hora } from "@/lib/format";
 import type { PeriodoKey } from "@/lib/operacao";
-import fritos from "@/assets/cat-fritos.jpg";
 import hero from "@/assets/hero.jpg";
 
 /**
- * Dashboard do Admin no visual do mockup (Projeto A1).
- * Layout igual à referência; todos os números vêm das consultas reais.
- * Sem deltas inventados: "vs. ontem" só aparece com base calculada;
- * sem base, mostra "—". Blocos funcionais (busca, operação) preservados.
+ * Dashboard do Admin — reforma estrutural.
+ * Linha 1: 4 métricas | Linha 2: 2 gráficos | Linha 3: 3 cards.
+ * Todos os números vêm das consultas reais. Sem deltas inventados:
+ * "vs. ontem" só aparece com base calculada; sem base, mostra "—".
+ * Blocos funcionais (busca, operação, aside) preservados.
  */
 export function DashboardAdmin({
   pedidos,
@@ -101,6 +117,7 @@ export function DashboardAdmin({
   };
   const dPedidos = delta(doDia.length, deOntem.length);
   const dFat = delta(fatDia, fatOntem);
+  const ticketMedio = doDia.length > 0 ? fatDia / doDia.length : 0;
 
   const ativos30 = useMemo(
     () =>
@@ -120,24 +137,44 @@ export function DashboardAdmin({
     };
   }, [lista]);
 
-  const ultimos7 = useMemo(() => {
-    const dias: { rotulo: string; total: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const ds = d.toDateString();
-      const total = lista
-        .filter(
-          (p: any) => new Date(p.created_at).toDateString() === ds && p.status !== "cancelado",
-        )
-        .reduce((a: number, p: any) => a + (Number(p.total) || 0), 0);
-      dias.push({
-        rotulo: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-        total,
-      });
+  /* Vendas por hora (somente hoje) */
+  const porHora = useMemo(() => {
+    const horas: { rotulo: string; total: number; pedidos: number }[] = [];
+    for (let h = 0; h < 24; h++)
+      horas.push({ rotulo: `${String(h).padStart(2, "0")}h`, total: 0, pedidos: 0 });
+    for (const p of doDia) {
+      const h = new Date(p.created_at).getHours();
+      const cel = horas[h];
+      if (!cel) continue;
+      cel.total += Number(p.total) || 0;
+      cel.pedidos += 1;
     }
-    return dias;
-  }, [lista]);
+    const first = horas.findIndex((h) => h.pedidos > 0);
+    if (first === -1) return horas.slice(9, 23);
+    let last = first;
+    horas.forEach((h, i) => {
+      if (h.pedidos > 0) last = i;
+    });
+    return horas.slice(Math.max(0, first - 1), Math.min(24, last + 2));
+  }, [doDia]);
+
+  /* Pedidos por modalidade (tipo_entrega real) */
+  const porModalidade = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of doDia) {
+      const key = String(p.tipo_entrega ?? "outros");
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    const cores: Record<string, string> = {
+      entrega: ERP_COLORS.blue,
+      retirada: ERP_COLORS.green,
+      balcao: ERP_COLORS.green,
+      delivery: ERP_COLORS.blue,
+    };
+    return [...map.entries()]
+      .map(([name, value]) => ({ name, value, cor: cores[name] ?? ERP_COLORS.gold }))
+      .sort((a, b) => b.value - a.value);
+  }, [doDia]);
 
   const recentes = useMemo(
     () =>
@@ -167,14 +204,15 @@ export function DashboardAdmin({
     return [...map.values()].sort((a, b) => b.qtd - a.qtd).slice(0, 5);
   }, [lista]);
 
-  const emFalta = useMemo(
+  const emFaltaProdutos = useMemo(
     () =>
       (produtos ?? []).filter(
         (p: any) =>
           Number(p.estoque_minimo ?? 0) > 0 && Number(p.estoque ?? 0) < Number(p.estoque_minimo),
-      ).length,
+      ),
     [produtos],
   );
+  const emFalta = emFaltaProdutos.length;
 
   const { data: caixa } = useQuery({
     queryKey: ["dash-caixa-atual"],
@@ -203,6 +241,65 @@ export function DashboardAdmin({
     },
   });
 
+  /* Alertas com base em dados reais */
+  const alertas = useMemo(
+    () => [
+      ...(emFalta > 0
+        ? [
+            {
+              id: "estoque",
+              titulo: "Estoque baixo",
+              desc: `${emFalta} produto(s) abaixo do mínimo`,
+              tom: "perigo" as const,
+              aba: "insumos",
+            },
+          ]
+        : []),
+      ...(!caixa
+        ? [
+            {
+              id: "caixa",
+              titulo: "Caixa fechado",
+              desc: "Nenhuma sessão de caixa aberta",
+              tom: "atencao" as const,
+              aba: "financeiro",
+            },
+          ]
+        : []),
+      ...(porStatus.novos > 0
+        ? [
+            {
+              id: "novos",
+              titulo: "Pedidos aguardando aceite",
+              desc: `${porStatus.novos} pedido(s) recebido(s)`,
+              tom: "info" as const,
+              aba: "pedidos",
+            },
+          ]
+        : []),
+      ...(filaCount > 0
+        ? [
+            {
+              id: "impressao",
+              titulo: "Fila de impressão",
+              desc: `${filaCount} trabalho(s) pendente(s)`,
+              tom: "neutro" as const,
+              aba: "impressao",
+            },
+          ]
+        : []),
+    ],
+    [emFalta, caixa, porStatus.novos, filaCount],
+  );
+
+  const tooltipStyle = {
+    background: "#1A1E20",
+    border: "1px solid rgba(255,255,255,.1)",
+    borderRadius: 8,
+    fontSize: 12,
+    color: "#F6F7F7",
+  } as const;
+
   return (
     <div className="flex flex-col gap-4 xl:flex-row">
       <div className="min-w-0 flex-1 space-y-4">
@@ -226,134 +323,175 @@ export function DashboardAdmin({
           }}
         />
 
-        {/* Linha 1: banner + KPIs */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="relative min-h-44 overflow-hidden rounded-xl shadow-[var(--shadow-card)]">
-            <img
-              src={fritos}
-              alt="Salgados Néia"
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-            <div className="relative p-5">
-              <p className="font-display text-3xl font-bold text-yellow-400">Néia Salgados</p>
-              <p className="mt-1 text-sm italic text-white">O sabor que faz a diferença</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <Kpi
-              icone={ShoppingCart}
-              rotulo="Pedidos Hoje"
-              valor={String(doDia.length)}
-              delta={dPedidos}
-              base="vs. ontem"
-              onClick={() => setAba("pedidos")}
-            />
-            <Kpi
-              icone={Banknote}
-              rotulo="Faturamento Hoje"
-              valor={brl(fatDia)}
-              delta={dFat}
-              base="vs. ontem"
-              onClick={() => setAba("financeiro")}
-            />
-            <Kpi
-              icone={Users}
-              rotulo="Clientes Ativos"
-              valor={String(ativos30.length)}
-              delta={null}
-              base="últimos 30 dias"
-              onClick={() => setAba("clientes")}
-            />
-          </div>
+        {/* Linha 1 — 4 métricas */}
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <MetricCard
+            icone={Banknote}
+            label="Vendas do Dia"
+            valor={brl(fatDia)}
+            detalhe={<Delta delta={dFat} />}
+            onClick={() => setAba("financeiro")}
+          />
+          <MetricCard
+            icone={ShoppingCart}
+            label="Pedidos do Dia"
+            valor={String(doDia.length)}
+            detalhe={<Delta delta={dPedidos} />}
+            cor={ERP_COLORS.blue}
+            onClick={() => setAba("pedidos")}
+          />
+          <MetricCard
+            icone={Calculator}
+            label="Ticket Médio"
+            valor={brl(ticketMedio)}
+            detalhe={doDia.length > 0 ? `${doDia.length} pedido(s)` : "—"}
+            cor={ERP_COLORS.green}
+            onClick={() => setAba("financeiro")}
+          />
+          <MetricCard
+            icone={Users}
+            label="Clientes Ativos"
+            valor={String(ativos30.length)}
+            detalhe="últimos 30 dias"
+            cor={ERP_COLORS.orange}
+            onClick={() => setAba("clientes")}
+          />
         </div>
 
-        {/* Linha 2: status + gráfico 7 dias */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:col-span-2 lg:grid-cols-4">
-            <StatusCard
-              className="bg-yellow-400 text-black"
-              icone={Clock}
-              titulo="Novos"
-              valor={porStatus.novos}
+        {/* Faixa de status operacionais (dados reais, navegação preservada) */}
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { label: "Novos", v: porStatus.novos, cor: ERP_COLORS.gold },
+              { label: "Em Produção", v: porStatus.producao, cor: ERP_COLORS.blue },
+              { label: "Prontos", v: porStatus.prontos, cor: ERP_COLORS.green },
+              { label: "Em Entrega", v: porStatus.entrega, cor: ERP_COLORS.orange },
+            ] as const
+          ).map((s) => (
+            <button
+              key={s.label}
+              type="button"
               onClick={() => setAba("pedidos")}
-            />
-            <StatusCard
-              className="bg-blue-600 text-white"
-              icone={ChefHat}
-              titulo="Em Produção"
-              valor={porStatus.producao}
-              onClick={() => setAba("pedidos")}
-            />
-            <StatusCard
-              className="bg-green-500 text-white"
-              icone={CheckCircle2}
-              titulo="Prontos"
-              valor={porStatus.prontos}
-              onClick={() => setAba("pedidos")}
-            />
-            <StatusCard
-              className="bg-purple-500 text-white"
-              icone={Truck}
-              titulo="Em Entrega"
-              valor={porStatus.entrega}
-              onClick={() => setAba("pedidos")}
-            />
-          </div>
-          <section
-            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-            aria-label="Vendas dos últimos 7 dias"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold">Vendas dos Últimos 7 Dias</h2>
-              <span className="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                7 dias
-              </span>
-            </div>
-            <div className="mt-2 h-44">
+              className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,.08)] bg-[#15191B] px-3 py-1.5 text-xs text-[#C7CCCE] transition-colors hover:border-[rgba(226,160,52,.55)]"
+            >
+              <span
+                className="inline-block size-2 rounded-full"
+                style={{ backgroundColor: s.cor }}
+                aria-hidden
+              />
+              {s.label}
+              <b className="font-display text-sm" style={{ color: s.cor }}>
+                {s.v}
+              </b>
+            </button>
+          ))}
+        </div>
+
+        {/* Linha 2 — 2 gráficos */}
+        <div className="grid gap-3 lg:grid-cols-2">
+          <ChartCard titulo="Vendas por Hora (hoje)" altura="h-60">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={porHora} margin={{ left: -12, right: 8, top: 8 }}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="rgba(255,255,255,.08)"
+                />
+                <XAxis
+                  dataKey="rotulo"
+                  tick={{ fontSize: 10, fill: "#90989C" }}
+                  axisLine={{ stroke: "rgba(255,255,255,.15)" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(1)}k`}
+                  tick={{ fontSize: 10, fill: "#90989C" }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={54}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  labelStyle={{ color: "#C7CCCE" }}
+                  formatter={(v: number) => [brl(v), "Vendas"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke={ERP_COLORS.gold}
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: ERP_COLORS.goldBright, strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: ERP_COLORS.goldBright, strokeWidth: 0 }}
+                  name="Vendas"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+          <ChartCard titulo="Pedidos por Modalidade (hoje)" altura="h-60">
+            {porModalidade.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ultimos7} margin={{ left: -8, right: 4, top: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="rotulo" tick={{ fontSize: 10 }} />
-                  <YAxis
-                    tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(0)}k`}
-                    tick={{ fontSize: 10 }}
+                <PieChart>
+                  <Pie
+                    data={porModalidade}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius="52%"
+                    outerRadius="82%"
+                    paddingAngle={3}
+                    stroke="none"
+                  >
+                    {porModalidade.map((m) => (
+                      <Cell key={m.name} fill={m.cor} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    labelStyle={{ color: "#C7CCCE" }}
+                    formatter={(v: number, name: string) => [`${v} pedido(s)`, name]}
                   />
-                  <Tooltip formatter={(v: number) => brl(v)} />
-                  <Bar dataKey="total" fill="#facc15" radius={[4, 4, 0, 0]} name="Vendas" />
-                </BarChart>
+                  <Legend
+                    verticalAlign="bottom"
+                    height={24}
+                    formatter={(value) => (
+                      <span
+                        style={{
+                          color: "#C7CCCE",
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {value}
+                      </span>
+                    )}
+                  />
+                </PieChart>
               </ResponsiveContainer>
-            </div>
-          </section>
+            ) : (
+              <div className="grid h-full place-items-center">
+                <EmptyState titulo="Sem pedidos hoje" />
+              </div>
+            )}
+          </ChartCard>
         </div>
 
-        {/* Linha 3: recentes + mais vendidos */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          <section
-            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] lg:col-span-2"
-            aria-label="Pedidos recentes"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold">Pedidos Recentes</h2>
+        {/* Linha 3 — 3 cards: últimos pedidos, mais vendidos, alertas */}
+        <div className="grid gap-3 lg:grid-cols-3">
+          <SectionCard
+            titulo="Últimos Pedidos"
+            acoes={
               <button
                 type="button"
                 onClick={() => setAba("pedidos")}
-                className="min-h-[44px] px-2 text-xs text-muted-foreground underline"
+                className="text-[11px] text-muted-foreground underline hover:text-foreground"
               >
                 Ver todos
               </button>
-            </div>
+            }
+            bodyClassName="p-0"
+          >
             {recentes.length > 0 ? (
-              <ul className="mt-1 divide-y divide-border">
-                <li className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_64px_88px_110px_56px_24px]">
-                  <span>Nº</span>
-                  <span>Cliente</span>
-                  <span className="hidden sm:block">Itens</span>
-                  <span>Total</span>
-                  <span className="hidden sm:block">Status</span>
-                  <span className="hidden sm:block">Horário</span>
-                  <span />
-                </li>
+              <ul className="divide-y divide-[rgba(255,255,255,.06)]">
                 {recentes.map((p: any) => (
                   <li key={p.id}>
                     <button
@@ -362,64 +500,54 @@ export function DashboardAdmin({
                         setPedidoFoco(String(p.numero));
                         setAba("pedidos");
                       }}
-                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto_auto] items-center gap-2 rounded px-1 py-1.5 text-left text-xs hover:bg-muted sm:grid-cols-[64px_1fr_64px_88px_110px_56px_24px] sm:text-[13px]"
+                      className="flex min-h-[46px] w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[rgba(255,255,255,.03)]"
                     >
-                      <span className="font-bold">#{p.numero}</span>
-                      <span className="truncate">{p.cliente_nome}</span>
-                      <span className="hidden text-muted-foreground sm:block">
-                        {(p.pedido_itens ?? []).reduce(
-                          (s: number, i: any) => s + (Number(i.quantidade) || 0),
-                          0,
-                        )}{" "}
-                        un.
-                      </span>
+                      <span className="font-display font-bold text-[#F4B942]">#{p.numero}</span>
+                      <span className="min-w-0 flex-1 truncate">{p.cliente_nome}</span>
                       <span className="font-semibold">{brl(p.total)}</span>
-                      <span className="hidden sm:block">
-                        <StatusBadge status={p.status} />
-                      </span>
-                      <span className="hidden text-muted-foreground sm:block">
-                        {hora(p.created_at)}
-                      </span>
-                      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                      <span className="text-muted-foreground">{hora(p.created_at)}</span>
+                      <StatusBadge status={p.status} />
+                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
                     </button>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="mt-2">
+              <div className="p-3">
                 <EmptyState titulo="Nenhum pedido hoje" />
               </div>
             )}
-          </section>
+          </SectionCard>
 
-          <section
-            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-            aria-label="Produtos mais vendidos"
-          >
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold">Produtos Mais Vendidos</h2>
+          <SectionCard
+            titulo="Mais Vendidos"
+            acoes={
               <button
                 type="button"
                 onClick={() => setAba("produtos")}
-                className="min-h-[44px] px-2 text-xs text-muted-foreground underline"
+                className="text-[11px] text-muted-foreground underline hover:text-foreground"
               >
                 Ver todos
               </button>
-            </div>
+            }
+          >
             {topProdutos.length > 0 ? (
-              <ol className="mt-1 space-y-1">
+              <ol className="space-y-1">
                 {topProdutos.map((t, i) => {
                   const prod = prodPorNome.get(t.nome) as any;
                   const img = prod ? imagemProduto(prod.imagem_url, prod.categorias?.slug) : hero;
                   return (
                     <li key={t.nome} className="flex items-center gap-2 rounded-lg px-1 py-1.5">
-                      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-yellow-400 text-[11px] font-bold text-black">
+                      <span
+                        className="grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-[#141414]"
+                        style={{ backgroundColor: ERP_COLORS.gold }}
+                      >
                         {i + 1}
                       </span>
                       <img
                         src={img}
                         alt=""
-                        className="size-9 shrink-0 rounded object-cover"
+                        className="size-9 shrink-0 rounded-md object-cover"
                         loading="lazy"
                       />
                       <div className="min-w-0 flex-1 leading-tight">
@@ -432,11 +560,40 @@ export function DashboardAdmin({
                 })}
               </ol>
             ) : (
-              <div className="mt-2">
-                <EmptyState titulo="Sem vendas ainda" />
-              </div>
+              <EmptyState titulo="Sem vendas ainda" />
             )}
-          </section>
+          </SectionCard>
+
+          <SectionCard titulo="Alertas">
+            {alertas.length > 0 ? (
+              <ul className="space-y-1.5">
+                {alertas.map((a) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => setAba(a.aba)}
+                      className="flex w-full items-center gap-2 rounded-lg border border-[rgba(255,255,255,.06)] bg-[#1A1E20] px-2.5 py-2 text-left hover:border-[rgba(226,160,52,.5)]"
+                    >
+                      <TriangleAlert
+                        className="size-4 shrink-0 text-[#F5A34A]"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <p className="truncate text-xs font-semibold">{a.titulo}</p>
+                        <p className="truncate text-[11px] text-muted-foreground">{a.desc}</p>
+                      </div>
+                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="flex items-center gap-2 px-1 py-3 text-xs text-[#2ED988]">
+                <span className="inline-block size-2 rounded-full bg-[#11B96A]" aria-hidden />
+                Tudo em ordem — nenhum alerta ativo.
+              </p>
+            )}
+          </SectionCard>
         </div>
 
         <CentralOperacao
@@ -450,8 +607,8 @@ export function DashboardAdmin({
           marcarLida={marcarLida}
         />
 
-        {/* Linha 4: cartões escuros por módulo */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Acesso rápido por módulo */}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <ModuloCard
             icone={Wallet}
             titulo="Financeiro"
@@ -516,7 +673,11 @@ export function DashboardAdmin({
           <div className="mt-2 flex items-center justify-between rounded-lg bg-muted px-3 py-2">
             <span className="text-sm font-semibold">Caixa</span>
             <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${caixa ? "bg-green-500 text-white" : "bg-neutral-300 text-neutral-700"}`}
+              className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                caixa
+                  ? "bg-[rgba(17,185,106,.18)] text-[#2ED988]"
+                  : "bg-[rgba(255,255,255,.08)] text-[#90989C]"
+              }`}
             >
               {caixa ? "Aberto" : "Fechado"}
             </span>
@@ -566,51 +727,18 @@ export function DashboardAdmin({
   );
 }
 
-function Kpi({
-  icone: Icone,
-  rotulo,
-  valor,
-  delta,
-  base,
-  onClick,
-}: {
-  icone: any;
-  rotulo: string;
-  valor: string;
-  delta: number | null;
-  base: string;
-  onClick?: () => void;
-}) {
+/** Delta real vs. ontem — sem dado base, mostra "—". */
+function Delta({ delta }: { delta: number | null }) {
+  if (delta == null) return <span>vs. ontem —</span>;
+  const up = delta >= 0;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="min-h-[44px] rounded-xl border border-border bg-card p-4 text-left shadow-[var(--shadow-card)] transition-colors hover:border-yellow-400"
+    <span
+      className="inline-flex items-center gap-0.5 font-semibold"
+      style={{ color: up ? ERP_COLORS.green : ERP_COLORS.red }}
     >
-      <span className="inline-grid place-items-center rounded-lg bg-yellow-100 p-2 text-yellow-800">
-        <Icone className="size-5" aria-hidden />
-      </span>
-      <span className="mt-2 block text-xs text-muted-foreground">{rotulo}</span>
-      <span className="block font-display text-2xl">{valor}</span>
-      <span className="mt-0.5 flex items-center gap-1 text-xs">
-        {delta == null ? (
-          <span className="flex items-center gap-0.5 text-muted-foreground">
-            <Minus className="size-3" aria-hidden />—
-          </span>
-        ) : delta >= 0 ? (
-          <span className="flex items-center gap-0.5 font-bold text-green-600">
-            <ArrowUpRight className="size-3" aria-hidden />
-            {Math.abs(delta).toFixed(0)}%
-          </span>
-        ) : (
-          <span className="flex items-center gap-0.5 font-bold text-red-600">
-            <ArrowDownRight className="size-3" aria-hidden />
-            {Math.abs(delta).toFixed(0)}%
-          </span>
-        )}
-        <span className="text-muted-foreground">{base}</span>
-      </span>
-    </button>
+      {up ? <ArrowUpRight className="size-3" aria-hidden /> : <ArrowDownRight className="size-3" aria-hidden />}
+      {Math.abs(delta).toFixed(0)}% vs. ontem
+    </span>
   );
 }
 
@@ -627,9 +755,12 @@ function Acao({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg bg-muted px-3 py-2 text-left text-sm font-semibold hover:bg-yellow-100"
+      className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg bg-muted px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-[rgba(244,185,66,.12)]"
     >
-      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-yellow-400 text-black">
+      <span
+        className="grid size-7 shrink-0 place-items-center rounded-md text-[#141414]"
+        style={{ backgroundColor: ERP_COLORS.gold }}
+      >
         <Icone className="size-4" aria-hidden />
       </span>
       {label}
@@ -656,14 +787,14 @@ function ModuloCard({
     <button
       type="button"
       onClick={onClick}
-      className="min-h-[44px] rounded-xl bg-neutral-950 p-4 text-left text-white shadow-[var(--shadow-card)] transition-opacity hover:opacity-90"
+      className="min-h-[44px] rounded-xl border border-[rgba(255,255,255,.08)] bg-[#15191B] p-4 text-left shadow-[0_6px_18px_rgba(0,0,0,.28)] transition-colors hover:border-[rgba(226,160,52,.55)]"
     >
-      <span className="flex items-center gap-2 text-sm font-bold text-yellow-400">
+      <span className="flex items-center gap-2 text-sm font-bold text-[#F4B942]">
         <Icone className="size-4" aria-hidden />
         {titulo}
       </span>
-      <span className="mt-2 block text-xs text-neutral-400">{linha1}</span>
-      <span className={`block font-display text-xl ${alerta ? "text-red-400" : ""}`}>{valor}</span>
+      <span className="mt-2 block text-xs text-muted-foreground">{linha1}</span>
+      <span className={`block font-display text-xl ${alerta ? "text-[#F08374]" : ""}`}>{valor}</span>
     </button>
   );
 }

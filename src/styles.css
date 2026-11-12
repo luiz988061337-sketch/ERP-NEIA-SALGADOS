@@ -269,13 +269,14 @@
   }
 }
 
-/* --- Tokens erp-dark (aplicados via classe .erp-dark no <html> ou <body>) ---
-     A loja pública (.light) nunca recebe essa classe, então as regras abaixo
-     ficam isoladas. Todos os valores seguem a especificação oficial (seção 4–6). */
+/* --- Tokens erp-dark (aplicados via classe .erp-dark no <html>) ---
+     A loja pública nunca recebe essa classe, então as regras abaixo
+     ficam isoladas. Paleta oficial: seção 4–6 da especificação. */
 
 html.erp-dark {
+  /* Paleta bruta da marca */
   --erp-bg: #0D0F10;
-  --erp-surface: #111416;
+  --erp-surface: #15191B;
   --erp-surface-2: #1A1E20;
   --erp-input: #202426;
   --erp-gold: #D29034;
@@ -287,79 +288,70 @@ html.erp-dark {
   --erp-red: #E34835;
   --erp-text: #F6F7F7;
   --erp-text-muted: #90989C;
-  --erp-border: rgba(226,160,52,.60);
-  --erp-border-soft: rgba(255,255,255,.08);
+
+  /* Override dos tokens semânticos usados por bg-card, border-border,
+     bg-muted, text-foreground etc. — todo o painel interno fica escuro. */
+  --background: #0D0F10;
+  --foreground: #F6F7F7;
+  --card: #15191B;
+  --card-foreground: #F6F7F7;
+  --popover: #1A1E20;
+  --popover-foreground: #F6F7F7;
+  --primary: #D29034;
+  --primary-foreground: #141414;
+  --secondary: #1A1E20;
+  --secondary-foreground: #C7CCCE;
+  --muted: #1A1E20;
+  --muted-foreground: #A8AFB2;
+  --accent: rgba(244, 185, 66, 0.12);
+  --accent-foreground: #F4B942;
+  --destructive: #E34835;
+  --destructive-foreground: #FFFFFF;
+  --success: #11B96A;
+  --success-foreground: #141414;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: #202426;
+  --ring: rgba(244, 185, 66, 0.5);
+  --chart-1: #F4B942;
+  --chart-2: #1687C8;
+  --chart-3: #11B96A;
+  --chart-4: #F28A1A;
+  --chart-5: #E34835;
+  --sidebar: #0B0D0E;
+  --sidebar-foreground: #C7CCCE;
+  --sidebar-primary: #D29034;
+  --sidebar-primary-foreground: #141414;
+  --sidebar-accent: rgba(244, 185, 66, 0.14);
+  --sidebar-accent-foreground: #F4B942;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: rgba(244, 185, 66, 0.4);
+  --radius: 0.75rem;
+  --shadow-card: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 
-/* Override dos tokens Tailwind sob .erp-dark */
 html.erp-dark body {
-  background-color: var(--erp-bg) !important;
-  color: var(--erp-text) !important;
+  background-color: #0D0F10;
+  color: #F6F7F7;
 }
 
-/* Cards e superfícies */
-html.erp-dark [data-card="main"] {
-  background-color: var(--erp-surface) !important;
-  border-color: var(--erp-border) !important;
+/* Scrollbar escura e fina */
+html.erp-dark * {
+  scrollbar-width: thin;
+  scrollbar-color: #3a3f42 transparent;
 }
-html.erp-dark [data-card="secondary"] {
-  background-color: var(--erp-surface-2) !important;
-  border-color: var(--erp-border-soft) !important;
+html.erp-dark *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-
-/* Inputs e campos */
-html.erp-dark input, html.erp-dark select, html.erp-dark textarea {
-  background-color: var(--erp-input) !important;
-  border-color: rgba(255,255,255,.10) !important;
-  color: var(--erp-text) !important;
+html.erp-dark *::-webkit-scrollbar-thumb {
+  background: #3a3f42;
+  border-radius: 999px;
 }
-html.erp-dark input:focus, html.erp-dark select:focus, html.erp-dark textarea:focus {
-  border-color: var(--erp-gold) !important;
-  box-shadow: 0 0 0 3px rgba(244,185,66,.15) !important;
+html.erp-dark *::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 185, 66, 0.5);
 }
 
-/* Tabelas */
-html.erp-dark table th {
-  background-color: #1A1E20 !important;
-  border-color: var(--erp-border-soft) !important;
-  color: var(--erp-text-muted) !important;
+/* Seleção de texto com tom dourado */
+html.erp-dark ::selection {
+  background: rgba(244, 185, 66, 0.3);
 }
-html-erp-dark table td {
-  border-color: var(--erp-border-soft) !important;
-  color: var(--erp-text-muted) !important;
-}
-html-erp-dark table tbody tr:hover {
-  background-color: rgba(255,255,255,.025) !important;
-}
-
-/* Badges */
-html-erp-dark .badge-status { border-radius: 999px !important; padding: 2px 8px !important; font-size: 10px !important; }
-
-/* Glow dourado em containers */
-html-erp-dark [data-gold-glow] {
-  box-shadow: 0 0 18px rgba(244,185,66,.12) !important;
-}
-html-erp-dark [data-gold-glow-strong] {
-  box-shadow: 0 0 24px rgba(244,185,66,.20) !important;
-}
-
-/* Sidebar escura */
-html-erp-dark [data-sidebar="sidebar"] {
-  background-color: #09090b !important;
-  color: #e4e4e7 !important;
-}
-
-/* Hover cards */
-html-erp-dark [data-card="main"]:hover {
-  border-color: var(--erp-gold-strong) !important;
-}
-
-/* Status colors */
-html-erp-dark .status-ok { color: var(--erp-green) !important; }
-html-erp-dark .status-blue { color: var(--erp-blue) !important; }
-html-erp-dark .status-orange { color: var(--erp-orange) !important; }
-html-erp-dark .status-red { color: var(--erp-red) !important; }
-
-/* --- Manter loja pública intacta --- */
-html.light,
-html:not(.erp-dark) { --erp-bg: initial !important; }
