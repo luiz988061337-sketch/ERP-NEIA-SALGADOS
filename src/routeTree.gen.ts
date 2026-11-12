@@ -39,6 +39,7 @@ import { Route as PdvRouteImport } from './routes/pdv'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as PreviewL2GestaoRouteImport } from './routes/preview-l2-gestao'
 import { Route as PreviewL2PdvRouteImport } from './routes/preview-l2-pdv'
+import { Route as PreviewL2ProducaoRouteImport } from './routes/preview-l2-producao'
 import { Route as ProducaoRouteImport } from './routes/producao'
 import { Route as RecorrentesRouteImport } from './routes/recorrentes'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
@@ -225,6 +226,11 @@ const PreviewL2GestaoRoute = PreviewL2GestaoRouteImport.update({
 const PreviewL2PdvRoute = PreviewL2PdvRouteImport.update({
   id: '/preview-l2-pdv',
   path: '/preview-l2-pdv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewL2ProducaoRoute = PreviewL2ProducaoRouteImport.update({
+  id: '/preview-l2-producao',
+  path: '/preview-l2-producao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProducaoRoute = ProducaoRouteImport.update({
@@ -450,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/preview': typeof PreviewRouteWithChildren
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
   '/preview-l2-pdv': typeof PreviewL2PdvRoute
+  '/preview-l2-producao': typeof PreviewL2ProducaoRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -518,6 +525,7 @@ export interface FileRoutesByTo {
   '/pdv': typeof PdvRoute
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
   '/preview-l2-pdv': typeof PreviewL2PdvRoute
+  '/preview-l2-producao': typeof PreviewL2ProducaoRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -588,6 +596,7 @@ export interface FileRoutesById {
   '/preview': typeof PreviewRouteWithChildren
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
   '/preview-l2-pdv': typeof PreviewL2PdvRoute
+  '/preview-l2-producao': typeof PreviewL2ProducaoRoute
   '/producao': typeof ProducaoRoute
   '/recorrentes': typeof RecorrentesRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -659,6 +668,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/preview-l2-gestao'
     | '/preview-l2-pdv'
+    | '/preview-l2-producao'
     | '/producao'
     | '/recorrentes'
     | '/redefinir-senha'
@@ -727,6 +737,7 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/preview-l2-gestao'
     | '/preview-l2-pdv'
+    | '/preview-l2-producao'
     | '/producao'
     | '/recorrentes'
     | '/redefinir-senha'
@@ -796,6 +807,7 @@ export interface FileRouteTypes {
     | '/preview'
     | '/preview-l2-gestao'
     | '/preview-l2-pdv'
+    | '/preview-l2-producao'
     | '/producao'
     | '/recorrentes'
     | '/redefinir-senha'
@@ -866,6 +878,7 @@ export interface RootRouteChildren {
   PreviewRoute: typeof PreviewRouteWithChildren
   PreviewL2GestaoRoute: typeof PreviewL2GestaoRoute
   PreviewL2PdvRoute: typeof PreviewL2PdvRoute
+  PreviewL2ProducaoRoute: typeof PreviewL2ProducaoRoute
   ProducaoRoute: typeof ProducaoRoute
   RecorrentesRoute: typeof RecorrentesRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
@@ -1086,6 +1099,13 @@ declare module '@tanstack/react-router' {
       path: '/preview-l2-pdv'
       fullPath: '/preview-l2-pdv'
       preLoaderRoute: typeof PreviewL2PdvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview-l2-producao': {
+      id: '/preview-l2-producao'
+      path: '/preview-l2-producao'
+      fullPath: '/preview-l2-producao'
+      preLoaderRoute: typeof PreviewL2ProducaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/producao': {
@@ -1448,6 +1468,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreviewRoute: PreviewRouteWithChildren,
   PreviewL2GestaoRoute: PreviewL2GestaoRoute,
   PreviewL2PdvRoute: PreviewL2PdvRoute,
+  PreviewL2ProducaoRoute: PreviewL2ProducaoRoute,
   ProducaoRoute: ProducaoRoute,
   RecorrentesRoute: RecorrentesRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,

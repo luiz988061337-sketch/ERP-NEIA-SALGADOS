@@ -290,21 +290,16 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col overflow-hidden rounded-xl border border-[#D4A94A] bg-[#1A1712]",
+        "flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#D4A94A] bg-[#121110] shadow-card",
         className,
       )}
     >
       <header
-        className="flex min-h-[40px] shrink-0 items-center justify-between gap-2 px-3 py-2"
-        style={{ backgroundColor: `${cor}14`, borderBottom: `2px solid ${cor}` }}
+        className="flex min-h-[42px] shrink-0 items-center justify-between gap-2 px-3 py-2"
+        style={{ backgroundColor: cor, color: "#14120C" }}
       >
-        <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: cor }}>
-          {titulo}
-        </h3>
-        <span
-          className="rounded-full px-2 py-0.5 text-[9px] font-bold"
-          style={{ backgroundColor: `${cor}26`, color: cor }}
-        >
+        <h3 className="text-xs font-bold uppercase tracking-wide">{titulo}</h3>
+        <span className="rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-bold">
           {contador}
         </span>
       </header>
