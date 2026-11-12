@@ -518,7 +518,7 @@ function PDV() {
         </div>
       </header>
 
-      <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[200px_1fr_340px]">
+      <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[15%_minmax(0,1fr)_30%]">
         {/* Lateral */}
         <aside className="space-y-2">
           <div className="space-y-1.5">
@@ -579,21 +579,27 @@ function PDV() {
           {painel === "venda" && (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 p-4 text-black">
-                  <p className="font-display text-lg font-bold leading-tight">
+                <div className="rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] p-4 shadow-[0_0_18px_rgba(244,185,66,.08)]">
+                  <p className="font-display text-lg font-bold leading-tight text-[#F4B942]">
                     Salgados sempre fresquinhos e deliciosos!
                   </p>
                 </div>
-                <div className="rounded-xl bg-neutral-900 p-4">
-                  <p className="font-display text-lg font-bold text-yellow-400">COMBOS ESPECIAIS</p>
-                  <p className="text-xs text-neutral-300">Mais sabor, mais economia!</p>
+                <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[#1A1E20] p-4">
+                  <p className="font-display text-lg font-bold text-[#F4B942]">COMBOS ESPECIAIS</p>
+                  <p className="text-xs text-[#A8AFB2]">Mais sabor, mais economia!</p>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                 {grade.map((p: any) => {
                   const slug = slugPorCategoria.get(p.categoria_id) ?? "";
                   return (
-                    <div key={p.id} className="overflow-hidden rounded-xl bg-white text-black">
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => adicionar(p)}
+                      className="group overflow-hidden rounded-xl border border-[rgba(255,255,255,.08)] bg-[#15191B] text-left shadow-[0_6px_18px_rgba(0,0,0,.28)] transition-all hover:border-[rgba(226,160,52,.55)] hover:shadow-[0_0_18px_rgba(244,185,66,.12)]"
+                      aria-label={`Adicionar ${p.nome}`}
+                    >
                       <img
                         src={imagemProduto(p.imagem_url, slug)}
                         alt={p.nome}
@@ -602,19 +608,14 @@ function PDV() {
                       />
                       <div className="flex items-center justify-between gap-1 p-2">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold">{p.nome}</p>
-                          <p className="text-xs font-bold">{brl(precoFinal(p))}</p>
+                          <p className="truncate text-xs font-semibold text-[#F6F7F7]">{p.nome}</p>
+                          <p className="text-xs font-bold text-[#F4B942]">{brl(precoFinal(p))}</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => adicionar(p)}
-                          className="rounded-full bg-yellow-400 p-1.5 text-black"
-                          aria-label={`Adicionar ${p.nome}`}
-                        >
+                        <span className="rounded-full bg-gradient-to-b from-[#F5BF4A] to-[#E19B28] p-1.5 text-[#141414] transition-transform group-hover:scale-110">
                           <Plus className="size-4" />
-                        </button>
+                        </span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -685,11 +686,11 @@ function PDV() {
         </main>
 
         {/* Comanda */}
-        <aside className="rounded-xl bg-white p-4 text-black">
+        <aside className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[#15191B] p-4 text-[#F6F7F7] shadow-[0_6px_18px_rgba(0,0,0,.28)]">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold">
               Comanda Atual{" "}
-              <span className="ml-1 rounded bg-yellow-100 px-2 py-0.5 text-sm text-yellow-800">
+              <span className="ml-1 rounded px-2 py-0.5 text-sm" style={{ backgroundColor: "rgba(244,185,66,.15)", color: "#F4B942" }}>
                 #{comandaN}
               </span>
             </h2>
@@ -701,22 +702,22 @@ function PDV() {
               }}
               aria-label="Limpar comanda"
             >
-              <Trash2 className="size-5 text-neutral-500" />
+              <Trash2 className="size-5 text-[#90989C] hover:text-[#F08374]" />
             </button>
           </div>
           <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto">
             {itens.map((i) => (
-              <li key={i.produto_id} className="flex items-center gap-2 rounded-lg bg-amber-50 p-2">
+              <li key={i.produto_id} className="flex items-center gap-2 rounded-lg bg-[#1A1E20] p-2">
                 <img src={i.imagem} alt="" className="size-10 rounded object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold">{i.nome}</p>
-                  <p className="text-xs">{brl(i.preco)}</p>
+                  <p className="text-xs text-[#A8AFB2]">{brl(i.preco)}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => mudarQtd(i.produto_id, -1)}
-                    className="rounded bg-neutral-200 p-1"
+                    className="rounded bg-[#202426] p-1 hover:bg-[#2a2f32]"
                     aria-label="Diminuir"
                   >
                     <Minus className="size-3" />
@@ -725,7 +726,7 @@ function PDV() {
                   <button
                     type="button"
                     onClick={() => mudarQtd(i.produto_id, 1)}
-                    className="rounded bg-neutral-200 p-1"
+                    className="rounded bg-[#202426] p-1 hover:bg-[#2a2f32]"
                     aria-label="Aumentar"
                   >
                     <Plus className="size-3" />
@@ -735,12 +736,12 @@ function PDV() {
               </li>
             ))}
             {itens.length === 0 && (
-              <li className="py-6 text-center text-sm text-neutral-500">
+              <li className="py-6 text-center text-sm text-[#90989C]">
                 Toque em + para montar a comanda.
               </li>
             )}
           </ul>
-          <div className="mt-3 space-y-1 border-t pt-2 text-sm">
+          <div className="mt-3 space-y-1 border-t border-[rgba(255,255,255,.1)] pt-2 text-sm">
             <p className="flex justify-between">
               <span>Subtotal</span>
               <b>{brl(subtotal)}</b>
@@ -754,18 +755,18 @@ function PDV() {
                   step="any"
                   value={desconto || ""}
                   onChange={(e) => setDesconto(Math.max(0, Number(e.target.value) || 0))}
-                  className="h-7 w-24 text-right text-black"
+                  className="h-7 w-24 text-right"
                 />
               ) : (
                 <b>{brl(0)}</b>
               )}
             </p>
           </div>
-          <div className="mt-2 flex items-center justify-between rounded-xl bg-yellow-400 px-3 py-2.5 text-black">
+          <div className="mt-2 flex items-center justify-between rounded-xl px-3 py-2.5 text-[#141414]" style={{ background: "linear-gradient(to bottom, #F5BF4A, #E19B28)" }}>
             <b>Total</b>
             <b className="text-xl">{brl(calc.total)}</b>
           </div>
-          <details className="mt-2 rounded-lg border border-neutral-200 text-sm">
+          <details className="mt-2 rounded-lg border border-[rgba(255,255,255,.1)] text-sm">
             <summary className="cursor-pointer px-2 py-1.5 font-semibold">
               Cliente (opcional)
             </summary>
@@ -798,7 +799,7 @@ function PDV() {
               />
             </div>
           </details>
-          <details className="mt-2 rounded-lg border border-neutral-200 text-sm">
+          <details className="mt-2 rounded-lg border border-[rgba(255,255,255,.1)] text-sm">
             <summary className="cursor-pointer px-2 py-1.5 font-semibold">
               Agendar (opcional)
             </summary>
@@ -824,21 +825,33 @@ function PDV() {
           <div className="mt-2 grid grid-cols-3 gap-2">
             {(
               [
-                { id: "pix", label: "PIX", icon: QrCode, cls: "bg-emerald-500" },
-                { id: "credito", label: "Cartão", icon: CreditCard, cls: "bg-blue-600" },
-                { id: "dinheiro", label: "Dinheiro", icon: Banknote, cls: "bg-purple-700" },
+                { id: "dinheiro", label: "Dinheiro", icon: Banknote },
+                { id: "pix", label: "PIX", icon: QrCode },
+                { id: "credito", label: "Cartão", icon: CreditCard },
               ] as const
-            ).map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => presetPagamento(m.id)}
-                className={`flex min-h-[44px] flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-bold text-white ${m.cls} ${pagtos.length === 1 && pagtos[0]?.meio === m.id ? "ring-2 ring-black ring-offset-2" : "opacity-80"}`}
-              >
-                <m.icon className="size-5" />
-                {m.label}
-              </button>
-            ))}
+            ).map((m) => {
+              const selecionado = pagtos.length === 1 && pagtos[0]?.meio === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => presetPagamento(m.id)}
+                  className={`flex min-h-[44px] flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-bold transition-colors ${
+                    selecionado
+                      ? "text-[#141414]"
+                      : "border border-[rgba(255,255,255,.1)] bg-[#202426] text-[#F6F7F7] hover:border-[rgba(226,160,52,.5)]"
+                  }`}
+                  style={
+                    selecionado
+                      ? { background: "linear-gradient(to bottom, #F5BF4A, #E19B28)" }
+                      : undefined
+                  }
+                >
+                  <m.icon className="size-5" />
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
           <div className="mt-2 space-y-1.5 text-sm">
             {pagtos.map((p) => (
@@ -892,12 +905,12 @@ function PDV() {
               <button
                 type="button"
                 onClick={dividirPagamento}
-                className="text-xs font-semibold text-blue-700 underline"
+                className="text-xs font-semibold text-[#4DA9E0] underline"
               >
                 + Dividir pagamento
               </button>
               <span
-                className={`text-xs font-bold ${Math.abs(faltaPagar) < 0.005 ? "text-green-700" : "text-red-600"}`}
+                className={`text-xs font-bold ${Math.abs(faltaPagar) < 0.005 ? "text-[#2ED988]" : "text-[#F08374]"}`}
               >
                 {Math.abs(faltaPagar) < 0.005
                   ? "Pagamento fechado"
@@ -910,12 +923,13 @@ function PDV() {
           <Button
             onClick={finalizar}
             disabled={enviando || itens.length === 0}
-            className="mt-2 w-full bg-yellow-400 py-6 text-lg font-bold text-black hover:bg-yellow-300"
+            className="mt-2 w-full py-6 text-lg font-bold text-[#141414] hover:brightness-110"
+            style={{ background: "linear-gradient(to bottom, #F5BF4A, #E19B28)" }}
           >
             ✓ Finalizar Venda
           </Button>
           {pagtos.some((p) => p.meio === "pix" && (Number(p.valor) || 0) > 0) && (
-            <p className="mt-1 text-center text-[11px] text-neutral-500">
+            <p className="mt-1 text-center text-[11px] text-[#90989C]">
               Pix imprime após confirmação do pagamento.
             </p>
           )}
