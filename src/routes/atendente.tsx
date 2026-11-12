@@ -5,11 +5,28 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ClipboardList } from "lucide-react";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { PageHeader } from "@/components/admin/ui-admin";
+import {
+  ERP_COLORS,
+  ModuleHeader,
+  KanbanColumn,
+  ActionButton,
+  StatusDot,
+  StatusBadge,
+} from "@/components/admin/erp-ui";
 import type { Database } from "@/integrations/supabase/types";
-import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA, mensagemStatus, whatsappLink } from "@/lib/format";
+import {
+  brl,
+  dataHora,
+  hora,
+  PAGAMENTO_LABEL,
+  TAXA_ENTREGA,
+  mensagemStatus,
+  whatsappLink,
+} from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 import { precoFinal, tipoVendaProduto, useCategorias, useProdutos } from "@/lib/catalog";
 import { MINIMO_COMBO, calcTotals } from "@/lib/totals";
@@ -80,6 +97,8 @@ function Atendente() {
   const [desconto, setDesconto] = useState(0);
   const [enviando, setEnviando] = useState(false);
   const [ultimo, setUltimo] = useState<number | null>(null);
+  // Reforma estrutural: kanban é a visão principal; o form fica atrás de toggle.
+  const [visao, setVisao] = useState<"kanban" | "novo">("kanban");
 
   // -----------------------------------------------------------------------
   // ENDEREÇO INTELIGENTE + TAXA POR KM (0103) — mesmo fluxo do checkout.
@@ -195,6 +214,62 @@ function Atendente() {
 
   const subtotal = linhas.reduce((a, l) => a + l.preco * l.quantidade, 0);
   // Taxa REAL do servidor quando o regime por km respondeu; padrão R$ 6 caso
+
+  /* --------------------------------------------------------------------
+     KANBAN DE ATENDIMENTO (reforma estrutural)
+     Colunas baseadas em dados reais:
+     - NOVOS: status recebido, sem aceite do atendente (aceito_em_atendente)
+     - ACEITOS: status recebido já aceito, aguardando produção
+     - EM PRODUÇÃO: status em_producao
+     - PRONTOS: status pronto
+     Leitura apenas — nenhuma transição de status é alterada aqui.
+  -------------------------------------------------------------------- */
+  const hojeISO = new Date().toISOString().slice(0, 10);
+  const { data: pedidosKanban } = useQuery({
+    queryKey: ["atendente-kanban", hojeISO],
+    enabled: !!permitido,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select(
+          "id, numero, cliente_nome, telefone, total, status, created_at, tipo_entrega, agendado_para, observacoes, aceito_em_atendente",
+        )
+        .or(`created_at.gte.${hojeISO}T00:00:00,agendado_para.gte.${hojeISO}T00:00:00`)
+        .in("status", ["recebido", "em_producao", "pronto"])
+        .order("created_at", { ascending: false })
+        .limit(120);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const colunasKanban = useMemo(() => {
+    const l = pedidosKanban ?? [];
+    return [
+      {
+        titulo: "Novos",
+        cor: ERP_COLORS.orange,
+        pedidos: l.filter((p) => p.status === "recebido" && !p.aceito_em_atendente),
+      },
+      {
+        titulo: "Aceitos",
+        cor: ERP_COLORS.blue,
+        pedidos: l.filter((p) => p.status === "recebido" && !!p.aceito_em_atendente),
+      },
+      {
+        titulo: "Em Produção",
+        cor: ERP_COLORS.gold,
+        pedidos: l.filter((p) => p.status === "em_producao"),
+      },
+      {
+        titulo: "Prontos",
+        cor: ERP_COLORS.green,
+        pedidos: l.filter((p) => p.status === "pronto"),
+      },
+    ];
+  }, [pedidosKanban]);
+
   // contrário (legado). Ajuste manual do atendente aparece no resumo.
   const taxaPrevValida =
     entrega === "entrega" &&
@@ -524,8 +599,45 @@ function Atendente() {
           navigate({ to: "/auth", replace: true });
         }}
       />
+      {visao === "kanban" ? (
+        <div className="mx-auto max-w-[1600px] px-4 py-6">
+          <ModuleHeader
+            icone={ClipboardList}
+            titulo="Atendimento"
+            subtitulo="Acompanhamento dos pedidos do dia em tempo real"
+            status={<StatusDot label="Atualiza a cada 30s" cor={ERP_COLORS.green} />}
+            acoes={
+              <ActionButton onClick={() => setVisao("novo")}>+ Novo Pedido</ActionButton>
+            }
+          />
+          <div className="grid gap-3 lg:grid-cols-4">
+            {colunasKanban.map((c) => (
+              <KanbanColumn
+                key={c.titulo}
+                titulo={c.titulo}
+                contador={c.pedidos.length}
+                cor={c.cor}
+                className="h-[calc(100vh-230px)] min-h-[420px]"
+              >
+                {c.pedidos.length === 0 ? (
+                  <p className="py-8 text-center text-xs text-muted-foreground">
+                    Nenhum pedido nesta coluna.
+                  </p>
+                ) : (
+                  c.pedidos.map((p) => <CardKanbanPedido key={p.id} p={p} />)
+                )}
+              </KanbanColumn>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-8">
-        <PageHeader titulo="Novo pedido" />
+        <div className="flex items-center justify-between gap-2">
+          <PageHeader titulo="Novo pedido" />
+          <ActionButton variant="ghost" onClick={() => setVisao("kanban")}>
+            ← Kanban
+          </ActionButton>
+        </div>
         {ultimo ? (
           <p className="rounded-xl border border-green-300 bg-green-50 p-3 text-sm">
             ✅ Último pedido registrado: <strong>#{ultimo}</strong>
@@ -839,6 +951,39 @@ function Atendente() {
           {enviando ? "Registrando…" : `Finalizar pedido • ${brl(calc.total)}`}
         </Button>
       </div>
+      )}
     </>
+  );
+}
+
+/** Card do kanban de atendimento — nº, cliente, modalidade, horário, total, obs. */
+function CardKanbanPedido({ p }: { p: any }) {
+  return (
+    <article
+      className="rounded-lg border border-[rgba(255,255,255,.08)] bg-[#15191B] p-2.5 text-xs shadow-[0_4px_12px_rgba(0,0,0,.25)] transition-colors hover:border-[rgba(226,160,52,.45)]"
+      aria-label={`Pedido ${p.numero}`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-display text-sm font-bold text-[#F4B942]">#{p.numero}</span>
+        <span className="text-[10px] text-muted-foreground">{hora(p.created_at)}</span>
+      </div>
+      <p className="mt-1 truncate font-semibold text-[#F6F7F7]">
+        {p.cliente_nome || "Sem nome"}
+      </p>
+      <div className="mt-1 flex flex-wrap items-center gap-1">
+        <StatusBadge tom={p.tipo_entrega === "entrega" ? "info" : "neutro"}>
+          {p.tipo_entrega === "entrega" ? "Entrega" : "Retirada"}
+        </StatusBadge>
+        {p.agendado_para ? (
+          <StatusBadge tom="atencao">Agend. {hora(p.agendado_para)}</StatusBadge>
+        ) : null}
+      </div>
+      {p.observacoes ? (
+        <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{p.observacoes}</p>
+      ) : null}
+      <p className="mt-1.5 border-t border-[rgba(255,255,255,.06)] pt-1.5 text-right text-sm font-bold text-[#2ED988]">
+        {brl(p.total)}
+      </p>
+    </article>
   );
 }

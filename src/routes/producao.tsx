@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-steps";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { DonutChart, EmptyState, PageHeader, StatusCard } from "@/components/admin/ui-admin";
+import { ERP_COLORS, KanbanColumn } from "@/components/admin/erp-ui";
 import { imagemProduto } from "@/lib/catalog";
 import fritos from "@/assets/cat-fritos.jpg";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
@@ -756,18 +757,6 @@ function Producao() {
     );
   }
 
-  function secao(titulo: string, lista: any[], id?: string) {
-    if (lista.length === 0) return null;
-    return (
-      <section className="mt-6" id={id}>
-        <h2 className="font-display text-xl">
-          {titulo} ({lista.length})
-        </h2>
-        <div className="mt-3 grid gap-4 md:grid-cols-2">{lista.map((p: any) => cardPedido(p))}</div>
-      </section>
-    );
-  }
-
   function recarregarReservas() {
     queryClient.invalidateQueries({ queryKey: ["producao-reservas"] });
     queryClient.invalidateQueries({ queryKey: ["producao-consumos"] });
@@ -1032,7 +1021,7 @@ function Producao() {
             icone={Clock}
             titulo="Aguardando"
             valor={aguardandoLista.length}
-            onClick={() => rolarPara("sec-aguardando")}
+            onClick={() => rolarPara("sec-fazer")}
           />
           <StatusCard
             className="bg-purple-500 text-white"
@@ -1304,16 +1293,60 @@ function Producao() {
           </div>
         ) : null}
 
-        {secao("🚨 Prioridade (risco/atraso)", prioridadeLista, "sec-prioridade")}
-        {secao("🆕 PRÓXIMOS PEDIDOS", aguardandoLista, "sec-aguardando")}
-        {secao("👨‍🍳 PREPARANDO", preparoLista, "sec-preparo")}
-        {secao("🚚 Prontos para entrega (aguardando motoboy)", prontosEntrega, "sec-prontos")}
-        {secao(
-          "🏪 Prontos para retirada (aguardando cliente)",
-          prontosRetirada,
-          "sec-prontos-retirada",
-        )}
-        {secao("📅 PRÓXIMOS AGENDADOS", proximosLista, "sec-agendados")}
+        {/* Kanban de produção — 3 colunas obrigatórias (especificação):
+              A FAZER (prioridade/aguardando/agendados) • EM PREPARO • PRONTO */}
+        <div className="mt-4 grid gap-3 lg:grid-cols-3" aria-label="Kanban de produção">
+          <div id="sec-fazer" className="min-w-0">
+          <KanbanColumn
+            titulo="A Fazer"
+            contador={prioridadeLista.length + aguardandoLista.length + proximosLista.length}
+            cor={ERP_COLORS.orange}
+            className="min-h-[480px]"
+          >
+            {[...prioridadeLista, ...aguardandoLista, ...proximosLista].length === 0 ? (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                Nenhum pedido na fila.
+              </p>
+            ) : (
+              [...prioridadeLista, ...aguardandoLista, ...proximosLista].map((p: any) =>
+                cardPedido(p),
+              )
+            )}
+          </KanbanColumn>
+          </div>
+          <div id="sec-preparo" className="min-w-0">
+          <KanbanColumn
+            titulo="Em Preparo"
+            contador={preparoLista.length}
+            cor={ERP_COLORS.blue}
+            className="min-h-[480px]"
+          >
+            {preparoLista.length === 0 ? (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                Nada em preparo agora.
+              </p>
+            ) : (
+              preparoLista.map((p: any) => cardPedido(p))
+            )}
+          </KanbanColumn>
+          </div>
+          <div id="sec-prontos" className="min-w-0">
+          <KanbanColumn
+            titulo="Pronto"
+            contador={prontosEntrega.length + prontosRetirada.length}
+            cor={ERP_COLORS.green}
+            className="min-h-[480px]"
+          >
+            {[...prontosEntrega, ...prontosRetirada].length === 0 ? (
+              <p className="py-8 text-center text-xs text-muted-foreground">
+                Nenhum pedido pronto.
+              </p>
+            ) : (
+              [...prontosEntrega, ...prontosRetirada].map((p: any) => cardPedido(p))
+            )}
+          </KanbanColumn>
+          </div>
+        </div>
 
         {pedidosValidos.length === 0 ? (
           <EmptyState titulo="Nenhum pedido na fila para este filtro" />
