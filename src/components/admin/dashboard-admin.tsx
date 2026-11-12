@@ -350,6 +350,12 @@ export function DashboardAdmin({
 
   const totalPedidos = doDia.length;
 
+  /* Alertas de severidade máxima — exibidos fora do acordeão, sempre visíveis. */
+  const alertasCriticos = useMemo(
+    () => (alertas ?? []).filter((a: any) => a.tom === "perigo"),
+    [alertas],
+  );
+
   return (
     <div className="flex flex-col gap-4">
       {/* ------------------------------------------------------------------
@@ -652,28 +658,67 @@ export function DashboardAdmin({
         </div>
       </section>
 
-      {/* Blocos funcionais preservados (busca, operação, atalhos, avisos) */}
-      <div className="flex flex-col gap-4 xl:flex-row">
-        <div className="min-w-0 flex-1 space-y-4">
-          <BuscaGlobal
-            termo={busca}
-            onTermo={setBusca}
-            pedidos={lista}
-            produtos={produtos ?? []}
-            profiles={profiles ?? []}
-            onIrPedido={(numero) => {
-              setPedidoFoco(String(numero));
-              setAba("pedidos");
-            }}
-            onIrProduto={(nome) => {
-              setProdutoFoco(nome);
-              setAba("produtos");
-            }}
-            onIrCliente={(nome) => {
-              setClienteFoco(nome);
-              setAba("clientes");
-            }}
-          />
+      {/* Alertas operacionais CRÍTICOS — sempre visíveis, fora do acordeão */}
+      {alertasCriticos.length > 0 ? (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {alertasCriticos.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => setAba(a.aba)}
+              className="flex items-center gap-2 rounded-xl border border-[#F16A6A]/55 bg-[#1A1110] px-3 py-2.5 text-left shadow-card transition-colors hover:border-[#F16A6A]"
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#F16A6A]/18 text-[#F16A6A]">
+                <TriangleAlert className="size-4" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 leading-tight">
+                <span className="block truncate text-xs font-semibold text-foreground">
+                  {a.titulo}
+                </span>
+                <span className="block truncate text-[11px] text-muted-foreground">{a.desc}</span>
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Detalhes da operação — seção recolhível abaixo do painel */}
+      <details className="group overflow-hidden rounded-2xl border border-[#D4A94A] bg-[#121110] shadow-card">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 hover:bg-[#17150F]">
+          <span className="flex items-center gap-2 font-display text-sm font-bold uppercase tracking-wide text-foreground">
+            <ChevronRight
+              className="size-4 text-[#F2CE6B] transition-transform group-open:rotate-90"
+              aria-hidden
+            />
+            Operação em detalhes
+          </span>
+          <span className="hidden text-[11px] text-muted-foreground sm:block">
+            busca, central de operação, atalhos e avisos
+          </span>
+        </summary>
+        <div className="border-t border-[#D4A94A]/35 p-3 sm:p-4">
+          <div className="flex flex-col gap-4 xl:flex-row">
+            <div className="min-w-0 flex-1 space-y-4">
+              <BuscaGlobal
+                termo={busca}
+                onTermo={setBusca}
+                pedidos={lista}
+                produtos={produtos ?? []}
+                profiles={profiles ?? []}
+                onIrPedido={(numero) => {
+                  setPedidoFoco(String(numero));
+                  setAba("pedidos");
+                }}
+                onIrProduto={(nome) => {
+                  setProdutoFoco(nome);
+                  setAba("produtos");
+                }}
+                onIrCliente={(nome) => {
+                  setClienteFoco(nome);
+                  setAba("clientes");
+                }}
+              />
 
 
         <CentralOperacao
@@ -804,6 +849,8 @@ export function DashboardAdmin({
         </div>
       </aside>
       </div>
+        </div>
+      </details>
     </div>
   );
 }
