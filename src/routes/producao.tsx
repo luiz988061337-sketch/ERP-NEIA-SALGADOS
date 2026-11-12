@@ -2,7 +2,17 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCircle2, ChefHat, ChevronRight, Clock, Printer, Truck } from "lucide-react";
+import {
+  AlarmClock,
+  CheckCircle2,
+  ChefHat,
+  ChevronRight,
+  CircleCheck,
+  Clock,
+  Printer,
+  Truck,
+  UtensilsCrossed,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -545,13 +555,14 @@ export function Producao({
       return n === "risco" || n === "atrasado";
     }),
   );
-  // "A Fazer": prioridade no topo SEM repetir o mesmo pedido (a lista de
-  // prioridade e um subconjunto da fila).
+  // "A Fazer": pedidos novos + agendados, SEM repetir os que ja estao em
+  // preparo (cada pedido fica em uma unica coluna, como na referencia).
+  // A prioridade (risco/atraso) ordena o topo da fila.
   const filaFazer = useMemo(() => {
     const mapa = new Map<string, any>();
-    for (const p of [...prioridadeLista, ...aguardandoLista, ...proximosLista]) mapa.set(p.id, p);
-    return [...mapa.values()];
-  }, [prioridadeLista, aguardandoLista, proximosLista]);
+    for (const p of [...aguardandoLista, ...proximosLista]) mapa.set(p.id, p);
+    return ordenarListaProducao([...mapa.values()]);
+  }, [aguardandoLista, proximosLista]);
   const atrasadosQtd = prioridadeLista.length;
   const fritEmUso = Math.min(
     MOTOR_PRODUCAO_CONFIG.maxFritadeiras,
@@ -624,24 +635,31 @@ export function Producao({
     return "";
   }
 
-  function cardPedido(p: any) {
+  function cardPedido(p: any, ctx: { cor: string; coluna: "fazer" | "preparo" | "pronto" }) {
     const calc = calcDe(p);
     const estado = estadoDe(p);
     const meta = NIVEL_META_PRODUCAO[estado.nivel];
-    const agendadoFuturo = Boolean(p.agendado_para) && !naJanela(p);
     const retirada = p.tipo_entrega === "retirada";
     const qtdTotal = (p.pedido_itens ?? []).reduce(
       (s: number, i: any) => s + (Number(i.quantidade) || 0),
       0,
     );
+    const pronto = p.status === "pronto";
+    // Canto superior direito: "até HH:MM" na fila, "Finalizado HH:MM" quando pronto.
+    const prazo = p.agendado_para
+      ? hora(p.agendado_para)
+      : p.created_at
+        ? hora(limiteImediatoProducao(p.created_at).toISOString())
+        : "--:--";
     return (
       <article
         key={p.id}
-        className={`rounded-xl border bg-[#17150F] p-3 shadow-card ${bordaPorNivel(estado.nivel, agendadoFuturo)}`}
+        className="rounded-xl border-2 bg-[#121110] p-3 shadow-card"
+        style={{ borderColor: `${ctx.cor}66` }}
       >
-        {/* Linha 1: número do pedido + badge de prioridade/urgência */}
+        {/* Linha 1: numero + badge de prioridade + prazo/finalizado */}
         <div className="flex items-center gap-2">
-          <h3 className="font-display text-base font-bold leading-none text-foreground">
+          <h3 className="font-display text-lg font-bold leading-none text-foreground">
             #{p.numero}
           </h3>
           {estado.nivel !== "normal" ? (
@@ -672,20 +690,27 @@ export function Producao({
                     : "Urgente"}
             </span>
           ) : null}
-          <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-            <span className="text-sm" title={meta.rotulo}>
-              {meta.cor}
-            </span>
-            {hora(p.created_at)}
+          <span className="ml-auto inline-flex items-center gap-1 whitespace-nowrap text-[11px] text-[#C9C2B8]">
+            {pronto ? (
+              <>
+                <CircleCheck className="size-4 text-[#35C97C]" aria-hidden />
+                Finalizado {p.pronto_em ? hora(p.pronto_em) : "--:--"}
+              </>
+            ) : (
+              <>
+                <Clock className="size-4 text-[#F2CE6B]" aria-hidden />
+                até {prazo}
+              </>
+            )}
           </span>
         </div>
 
         {/* Linha 2: modalidade (entrega/retirada) + cliente */}
-        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1 rounded-full border border-[#2A2721] bg-[#121110] px-2 py-0.5 font-semibold text-[#C9C2B8]">
+        <p className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="inline-flex items-center gap-1 rounded-full border border-[#2A2721] bg-[#17150F] px-2 py-0.5 font-bold text-[#F4F1EA]">
             {retirada ? "🏪 Retirada" : "🚚 Entrega"}
           </span>
-          <span className="truncate">{p.cliente_nome}</span>
+          <span className="text-muted-foreground">• {p.cliente_nome}</span>
         </p>
 
         {/* Produtos e quantidades */}
@@ -702,65 +727,32 @@ export function Producao({
             return (
               <li key={i.id} className="flex items-center gap-1.5">
                 <span className="text-[#F2CE6B]">{emoji}</span>
-                <span className="font-semibold text-[#C9C2B8]">{i.quantidade}x</span>
-                <span className="min-w-0 flex-1 truncate text-foreground">{i.nome}</span>
+                <span className="font-bold text-foreground">{i.quantidade}x</span>
+                <span className="min-w-0 flex-1 truncate text-[#F4F1EA]">{i.nome}</span>
               </li>
             );
           })}
         </ul>
         {qtdTotal > 0 ? (
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            <b className="text-[#F2CE6B]">{qtdTotal}</b> salgado(s) no pedido
+          <p className="mt-1.5 text-xs">
+            <b className="text-foreground">Total:</b>{" "}
+            <b className="text-[#F2CE6B]">
+              {qtdTotal} salgado{qtdTotal > 1 ? "s" : ""}
+            </b>
           </p>
         ) : null}
 
-        {/* Observações */}
+        {/* Observacoes */}
         {p.observacoes ? (
-          <p className="mt-2 rounded-lg border border-[#2A2721] bg-[#121110] px-2 py-1.5 text-[11px] text-[#C9C2B8]">
-            <b className="text-[#F2CE6B]">Obs.:</b> {p.observacoes}
+          <p className="mt-2 rounded-lg border border-[#2A2721] bg-[#17150F] px-2 py-1.5 text-[11px] text-[#C9C2B8]">
+            <b className="text-[#F2CE6B]">💬 Obs.:</b> {p.observacoes}
           </p>
         ) : null}
 
-        {/* Tempos: solicitado, previsto e restante */}
-        {calc?.tecnicoMin != null ? (
-          <div className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
-            <p>
-              👤 Prazo cliente:{" "}
-              {p.agendado_para ? (
-                <>solicitado {hora(p.agendado_para)}</>
-              ) : (
-                <>
-                  até{" "}
-                  {p.created_at
-                    ? hora(limiteImediatoProducao(p.created_at).toISOString())
-                    : "--:--"}{" "}
-                  (40–60 min)
-                </>
-              )}
-            </p>
-            <p>
-              🎯 Técnico interno: <strong className="text-foreground">{calc.tecnicoMin} min</strong>
-              {calc.qtdFritos > 0
-                ? ` (🔥 ${calc.minFritosEfetivo} · ${calc.fritadeiras}/3${calc.paralelismoEstimado ? " ⚠️est." : ""})`
-                : ""}
-              {calc.qtdPasteis > 0
-                ? ` (🥟 ${calc.minPasteis}${calc.pastelRefAValidar ? " ⚠️ref." : ""})`
-                : ""}
-              {calc.qtdAssados > 0 ? " (🥐 10 no MAX)" : ""}
-            </p>
-            <p>
-              {p.agendado_para ? (
-                <>
-                  ▶️ Início recomendado:{" "}
-                  {hora(inicioRecomendadoProducao(p.agendado_para, calc.tecnicoMin).toISOString())}
-                </>
-              ) : (
-                <>⏱️ Resta {formatarMinutosProducao(estado.restanteMin)}</>
-              )}
-              {p.tipo_entrega !== "retirada" && p.endereco ? ` • ${p.endereco}` : ""}
-            </p>
-          </div>
-        ) : (
+        {/* Tempos tecnicos internos ocultos (decisao do proprietario).
+            O prazo do cliente ja aparece no topo do card ("ate HH:MM") e a
+            urgencia fica na faixa de alerta. */}
+        {calc?.tecnicoMin == null ? (
           <p className="mt-1 text-[11px] font-semibold text-[#F5B301]">
             ⚠️ Sem tempo estimado (
             {calc?.motivoSemTempo === "vazio"
@@ -768,14 +760,14 @@ export function Producao({
               : "sem processo reconhecido — validar cadastro"}
             ).
           </p>
-        )}
+        ) : null}
         {(calc?.naoReconhecidos?.length ?? 0) > 0 ? (
-          <p className="mt-1 text-[11px] text-[#F5B301]">
+          <p className="mt-1.5 rounded-lg border border-[#F5B301]/35 bg-[#F5B301]/10 px-2 py-1.5 text-[11px] text-[#F5B301]">
             ⚠️ Não reconhecido:{" "}
             {(calc?.naoReconhecidos ?? []).map((n) => `${n.nome} (${n.quantidade})`).join(", ")}
           </p>
         ) : null}
-        {estado.nivel !== "normal" && p.status !== "pronto" ? (
+        {estado.nivel !== "normal" && !pronto ? (
           <p
             className="mt-2 rounded-lg px-2 py-1.5 text-[11px] font-bold"
             style={{
@@ -809,7 +801,7 @@ export function Producao({
         ) : null}
 
         {FLAGS_INTEGRACAO.consumo && (reservasPorPedido.get(String(p.id))?.length ?? 0) > 0 ? (
-          <details className="mt-2 rounded-lg border border-[#2A2721] bg-[#121110] p-2">
+          <details className="mt-2 rounded-lg border border-[#2A2721] bg-[#17150F] p-2">
             <summary className="cursor-pointer text-[11px] font-semibold text-[#C9C2B8]">
               Retirada fisica do freezer ({reservasPorPedido.get(String(p.id))!.length} produto(s))
             </summary>
@@ -828,48 +820,54 @@ export function Producao({
           </details>
         ) : null}
 
-        {/* Ações de preparo e finalização (inalteradas) */}
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {/* Acoes de preparo/finalizacao (destaque total, como na referencia) */}
+        <div className="mt-2.5 flex flex-col gap-1.5">
           {p.status === "recebido" ? (
             <Button
               size="sm"
               onClick={() => mudarStatus(p, "em_producao", "produzindo")}
-              className="erp-btn-gold h-8 border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 text-xs font-bold text-[#14120C] hover:brightness-105"
+              className="erp-btn-gold h-11 w-full border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-sm font-bold text-[#14120C] hover:brightness-105"
             >
-              Iniciar preparo
+              ▶ Iniciar preparo
             </Button>
           ) : null}
           {p.status === "em_producao" ? (
             <Button
               size="sm"
               onClick={() => mudarStatus(p, "pronto", "finalizado")}
-              className="erp-btn-gold h-8 border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 text-xs font-bold text-[#14120C] hover:brightness-105"
+              className="h-11 w-full border border-[#5B93F5] bg-gradient-to-b from-[#5B93F5] to-[#2F62C8] text-sm font-bold text-white hover:brightness-105"
             >
-              Marcar como pronto
+              ✓ Finalizar
             </Button>
           ) : null}
-          {p.status === "pronto" ? (
+          {pronto && !retirada ? (
             <Button
               size="sm"
               variant="outline"
               onClick={() => mudarStatus(p, "aguardando_motoboy", "finalizado")}
-              className="h-8 border-[#D4A94A]/60 bg-transparent px-3 text-xs font-bold text-[#F2CE6B] hover:bg-[#F2CE6B]/12 hover:text-[#F2CE6B]"
+              className="erp-btn-gold h-11 w-full border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-sm font-bold text-[#14120C] hover:brightness-105"
             >
-              Chamar motoboy
+              🔔 Avisar caixa
+            </Button>
+          ) : null}
+          {pronto && retirada ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => mudarStatus(p, "aguardando_motoboy", "finalizado")}
+              className="h-11 w-full border border-[#35C97C] bg-gradient-to-b from-[#35C97C] to-[#1E8F58] text-sm font-bold text-white hover:brightness-105"
+            >
+              🏪 Liberar retirada
             </Button>
           ) : null}
           <Button
             size="sm"
             variant="ghost"
             onClick={() => imprimirDireto(p)}
-            className="h-8 px-2 text-xs text-[#C9C2B8] hover:bg-[#F2CE6B]/12 hover:text-[#F2CE6B]"
+            className="h-8 w-full px-2 text-[11px] text-[#C9C2B8] hover:bg-[#F2CE6B]/12 hover:text-[#F2CE6B]"
           >
             <Printer className="mr-1 size-4" /> Imprimir
           </Button>
-          {/* Tempo estimado no canto inferior direito (como na referência) */}
-          <span className="ml-auto font-display text-xs font-bold text-[#F2CE6B]">
-            {calc?.tecnicoMin != null ? `${calc.tecnicoMin} min` : "--"}
-          </span>
         </div>
       </article>
     );
@@ -1099,6 +1097,7 @@ export function Producao({
       onAba={() => {}}
       onRefresh={() => queryClient.invalidateQueries({ queryKey: ["fila-producao"] })}
       usuario={user?.email ?? null}
+      modoPreview={preview}
       onSair={async () => {
         await supabase.auth.signOut();
         navigate({ to: "/auth", replace: true });
@@ -1146,6 +1145,7 @@ export function Producao({
               titulo="A Fazer"
               contador={filaFazer.length}
               cor={ERP_COLORS.orange}
+              icone={AlarmClock}
               className="min-h-[480px]"
             >
               {filaFazer.length === 0 ? (
@@ -1153,7 +1153,9 @@ export function Producao({
                   Nenhum pedido na fila.
                 </p>
               ) : (
-                filaFazer.map((p: any) => cardPedido(p))
+                filaFazer.map((p: any) =>
+                  cardPedido(p, { cor: ERP_COLORS.orange, coluna: "fazer" }),
+                )
               )}
             </KanbanColumn>
           </div>
@@ -1162,6 +1164,7 @@ export function Producao({
               titulo="Em Preparo"
               contador={preparoLista.length}
               cor={ERP_COLORS.blue}
+              icone={UtensilsCrossed}
               className="min-h-[480px]"
             >
               {preparoLista.length === 0 ? (
@@ -1169,7 +1172,9 @@ export function Producao({
                   Nada em preparo agora.
                 </p>
               ) : (
-                preparoLista.map((p: any) => cardPedido(p))
+                preparoLista.map((p: any) =>
+                  cardPedido(p, { cor: ERP_COLORS.blue, coluna: "preparo" }),
+                )
               )}
             </KanbanColumn>
           </div>
@@ -1178,6 +1183,7 @@ export function Producao({
               titulo="Pronto"
               contador={prontosEntrega.length + prontosRetirada.length}
               cor={ERP_COLORS.green}
+              icone={CircleCheck}
               className="min-h-[480px]"
             >
               {[...prontosEntrega, ...prontosRetirada].length === 0 ? (
@@ -1185,7 +1191,9 @@ export function Producao({
                   Nenhum pedido pronto.
                 </p>
               ) : (
-                [...prontosEntrega, ...prontosRetirada].map((p: any) => cardPedido(p))
+                [...prontosEntrega, ...prontosRetirada].map((p: any) =>
+                  cardPedido(p, { cor: ERP_COLORS.green, coluna: "pronto" }),
+                )
               )}
             </KanbanColumn>
           </div>

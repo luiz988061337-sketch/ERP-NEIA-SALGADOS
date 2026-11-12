@@ -171,8 +171,11 @@ function MenuLateral({
             <div role="tablist" aria-orientation="vertical" className="flex flex-col gap-1">
               {grupo.items.map((item) => {
                 // Ativo por aba interna OU pela rota real (ex.: /pdv, /producao).
+                // No modo conferencia (rotas /preview-l2-*) a aba informada marca o item.
                 const ativo = item.href
-                  ? pathname === item.href || pathname.startsWith(`${item.href}/`)
+                  ? pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`) ||
+                    (modoPreview && aba === item.value)
                   : aba === item.value;
                 return (
                   <SidebarMenuItem key={item.value}>

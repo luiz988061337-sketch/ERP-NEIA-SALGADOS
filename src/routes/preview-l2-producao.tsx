@@ -102,6 +102,7 @@ const PEDIDOS = [
   },
   {
     id: "pd6",
+    pronto_em: ha(12),
     numero: 4583,
     status: "pronto",
     producao_status: "finalizado",
@@ -115,6 +116,7 @@ const PEDIDOS = [
   },
   {
     id: "pd7",
+    pronto_em: ha(8),
     numero: 4584,
     status: "pronto",
     producao_status: "finalizado",
@@ -128,6 +130,7 @@ const PEDIDOS = [
   },
   {
     id: "pd8",
+    pronto_em: ha(4),
     numero: 4585,
     status: "pronto",
     producao_status: "finalizado",

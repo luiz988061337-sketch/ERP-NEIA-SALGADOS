@@ -280,12 +280,15 @@ export function KanbanColumn({
   cor,
   children,
   className,
+  icone: Icone,
 }: {
   titulo: string;
   contador: number;
   cor: string;
   children: ReactNode;
   className?: string;
+  /** Ícone do cabeçalho (à esquerda, como na referência). */
+  icone?: LucideIcon;
 }) {
   return (
     <div
@@ -295,15 +298,22 @@ export function KanbanColumn({
       )}
     >
       <header
-        className="flex min-h-[42px] shrink-0 items-center justify-between gap-2 px-3 py-2"
-        style={{ backgroundColor: cor, color: "#14120C" }}
+        className="grid min-h-[56px] shrink-0 grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-2.5"
+        style={{ backgroundColor: cor, color: "#fff" }}
       >
-        <h3 className="text-xs font-bold uppercase tracking-wide">{titulo}</h3>
-        <span className="rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-bold">
+        {Icone ? (
+          <Icone className="size-6 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,.35)]" aria-hidden />
+        ) : (
+          <span />
+        )}
+        <h3 className="text-center font-display text-xl font-bold uppercase leading-none tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,.35)]">
+          {titulo}
+        </h3>
+        <span className="grid min-w-8 place-items-center rounded-lg bg-black/25 px-2 py-1 font-display text-base font-bold leading-none text-white">
           {contador}
         </span>
       </header>
-      <div className="flex-1 space-y-2 overflow-y-auto p-2">{children}</div>
+      <div className="flex-1 space-y-2.5 overflow-y-auto p-2.5">{children}</div>
     </div>
   );
 }
