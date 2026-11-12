@@ -37,6 +37,7 @@ import { Route as OrcamentosRouteImport } from './routes/orcamentos'
 import { Route as ParceirosRouteImport } from './routes/parceiros'
 import { Route as PdvRouteImport } from './routes/pdv'
 import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as PreviewL2AtendenteRouteImport } from './routes/preview-l2-atendente'
 import { Route as PreviewL2GestaoRouteImport } from './routes/preview-l2-gestao'
 import { Route as PreviewL2PdvRouteImport } from './routes/preview-l2-pdv'
 import { Route as PreviewL2ProducaoRouteImport } from './routes/preview-l2-producao'
@@ -216,6 +217,11 @@ const PdvRoute = PdvRouteImport.update({
 const PreviewRoute = PreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewL2AtendenteRoute = PreviewL2AtendenteRouteImport.update({
+  id: '/preview-l2-atendente',
+  path: '/preview-l2-atendente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreviewL2GestaoRoute = PreviewL2GestaoRouteImport.update({
@@ -454,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/parceiros': typeof ParceirosRoute
   '/pdv': typeof PdvRoute
   '/preview': typeof PreviewRouteWithChildren
+  '/preview-l2-atendente': typeof PreviewL2AtendenteRoute
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
   '/preview-l2-pdv': typeof PreviewL2PdvRoute
   '/preview-l2-producao': typeof PreviewL2ProducaoRoute
@@ -523,6 +530,7 @@ export interface FileRoutesByTo {
   '/orcamentos': typeof OrcamentosRoute
   '/parceiros': typeof ParceirosRoute
   '/pdv': typeof PdvRoute
+  '/preview-l2-atendente': typeof PreviewL2AtendenteRoute
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
   '/preview-l2-pdv': typeof PreviewL2PdvRoute
   '/preview-l2-producao': typeof PreviewL2ProducaoRoute
@@ -594,6 +602,7 @@ export interface FileRoutesById {
   '/parceiros': typeof ParceirosRoute
   '/pdv': typeof PdvRoute
   '/preview': typeof PreviewRouteWithChildren
+  '/preview-l2-atendente': typeof PreviewL2AtendenteRoute
   '/preview-l2-gestao': typeof PreviewL2GestaoRoute
   '/preview-l2-pdv': typeof PreviewL2PdvRoute
   '/preview-l2-producao': typeof PreviewL2ProducaoRoute
@@ -666,6 +675,7 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/pdv'
     | '/preview'
+    | '/preview-l2-atendente'
     | '/preview-l2-gestao'
     | '/preview-l2-pdv'
     | '/preview-l2-producao'
@@ -735,6 +745,7 @@ export interface FileRouteTypes {
     | '/orcamentos'
     | '/parceiros'
     | '/pdv'
+    | '/preview-l2-atendente'
     | '/preview-l2-gestao'
     | '/preview-l2-pdv'
     | '/preview-l2-producao'
@@ -805,6 +816,7 @@ export interface FileRouteTypes {
     | '/parceiros'
     | '/pdv'
     | '/preview'
+    | '/preview-l2-atendente'
     | '/preview-l2-gestao'
     | '/preview-l2-pdv'
     | '/preview-l2-producao'
@@ -876,6 +888,7 @@ export interface RootRouteChildren {
   ParceirosRoute: typeof ParceirosRoute
   PdvRoute: typeof PdvRoute
   PreviewRoute: typeof PreviewRouteWithChildren
+  PreviewL2AtendenteRoute: typeof PreviewL2AtendenteRoute
   PreviewL2GestaoRoute: typeof PreviewL2GestaoRoute
   PreviewL2PdvRoute: typeof PreviewL2PdvRoute
   PreviewL2ProducaoRoute: typeof PreviewL2ProducaoRoute
@@ -1085,6 +1098,13 @@ declare module '@tanstack/react-router' {
       path: '/preview'
       fullPath: '/preview'
       preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview-l2-atendente': {
+      id: '/preview-l2-atendente'
+      path: '/preview-l2-atendente'
+      fullPath: '/preview-l2-atendente'
+      preLoaderRoute: typeof PreviewL2AtendenteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/preview-l2-gestao': {
@@ -1466,6 +1486,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParceirosRoute: ParceirosRoute,
   PdvRoute: PdvRoute,
   PreviewRoute: PreviewRouteWithChildren,
+  PreviewL2AtendenteRoute: PreviewL2AtendenteRoute,
   PreviewL2GestaoRoute: PreviewL2GestaoRoute,
   PreviewL2PdvRoute: PreviewL2PdvRoute,
   PreviewL2ProducaoRoute: PreviewL2ProducaoRoute,

@@ -140,9 +140,18 @@ export function AdminShell({
 }
 
 /**
+ * Rotas que executam um item de menu interno (aba do admin).
+ * A Central da Atendente (/atendente) é o item "Pedidos" — sem criar um
+ * segundo menu nem duplicar o módulo Atendimento.
+ */
+const ROTA_PARA_ABA: Record<string, string> = {
+  "/atendente": "pedidos",
+};
+
+/**
  * Navegação lateral (dentro do provider): no desktop fica sempre aberta
  * (sem recolher); no celular fecha o drawer ao escolher o destino.
- * Item ativo = pilula dourada (como na referência).
+ * Item ativo = pilula dourada (como na referencia).
  */
 function MenuLateral({
   aba,
@@ -172,11 +181,13 @@ function MenuLateral({
               {grupo.items.map((item) => {
                 // Ativo por aba interna OU pela rota real (ex.: /pdv, /producao).
                 // No modo conferencia (rotas /preview-l2-*) a aba informada marca o item.
+                // A Central da Atendente (/atendente) destaca "Pedidos".
+                const abaDaRota = ROTA_PARA_ABA[pathname];
                 const ativo = item.href
                   ? pathname === item.href ||
                     pathname.startsWith(`${item.href}/`) ||
                     (modoPreview && aba === item.value)
-                  : aba === item.value;
+                  : (abaDaRota ?? aba) === item.value;
                 return (
                   <SidebarMenuItem key={item.value}>
                     {item.href ? (

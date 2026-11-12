@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ClipboardList } from "lucide-react";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
+import { CentralPedidos } from "@/components/central-pedidos";
 import { PageHeader } from "@/components/admin/ui-admin";
 import {
   ERP_COLORS,
@@ -600,34 +601,12 @@ function Atendente() {
         }}
       />
       {visao === "kanban" ? (
-        <div className="mx-auto max-w-[1600px] px-4 py-6">
-          <ModuleHeader
-            icone={ClipboardList}
-            titulo="Atendimento"
-            subtitulo="Acompanhamento dos pedidos do dia em tempo real"
-            status={<StatusDot label="Atualiza a cada 30s" cor={ERP_COLORS.green} />}
-            acoes={
-              <ActionButton onClick={() => setVisao("novo")}>+ Novo Pedido</ActionButton>
-            }
-          />
-          <div className="grid gap-3 lg:grid-cols-4">
-            {colunasKanban.map((c) => (
-              <KanbanColumn
-                key={c.titulo}
-                titulo={c.titulo}
-                contador={c.pedidos.length}
-                cor={c.cor}
-                className="h-[calc(100vh-230px)] min-h-[420px]"
-              >
-                {c.pedidos.length === 0 ? (
-                  <p className="py-8 text-center text-xs text-muted-foreground">
-                    Nenhum pedido nesta coluna.
-                  </p>
-                ) : (
-                  c.pedidos.map((p) => <CardKanbanPedido key={p.id} p={p} />)
-                )}
-              </KanbanColumn>
-            ))}
+        <div className="mx-auto max-w-[1700px]">
+          <CentralPedidos />
+          <div className="flex justify-end px-3 pb-4">
+            <ActionButton variant="ghost" onClick={() => setVisao("novo")}>
+              + Novo Pedido
+            </ActionButton>
           </div>
         </div>
       ) : (
