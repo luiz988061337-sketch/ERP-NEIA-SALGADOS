@@ -240,6 +240,7 @@ async function capturar(nome, rota, largura, altura, mobile = false) {
 const NOME_ROTA = {
   "/preview-l2-gestao": "preview-gestao",
   "/preview-l2-pdv": "preview-pdv",
+  "/preview-l2-atendente": "preview-central-atendente",
   "/admin": "preview-admin",
   "/pdv": "preview-pdv-real",
   "/producao": "preview-producao",
