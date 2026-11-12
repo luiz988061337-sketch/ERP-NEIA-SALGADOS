@@ -1,0 +1,1 @@
+var e={version:1,asset_id:`0e8b479e-b2ef-43f5-9133-a921054bbc2e`,project_id:`88155c8b-fc89-48ab-8659-89d3afbebd5b`,url:`/neia-logo.png`,r2_key:`a/v1/88155c8b-fc89-48ab-8659-89d3afbebd5b/0e8b479e-b2ef-43f5-9133-a921054bbc2e/neia-logo.png`,original_filename:`neia-logo.png`,size:2415033,content_type:`image/png`,created_at:`2026-09-28T22:15:01Z`};export{e as t};

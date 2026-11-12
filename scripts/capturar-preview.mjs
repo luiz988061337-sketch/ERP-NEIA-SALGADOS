@@ -104,23 +104,53 @@ const todosAssets = new Set();
 
 // 1) HTML de cada rota
 const htmls = {};
+let primeiroHtml = "";
 for (const rota of ROTAS) {
   const file = join(ROOT, `__html__${rota.replace(/\//g, "_")}.html`);
   await vercelCurl(rota, file);
   const html = readFileSync(file, "utf8");
   htmls[rota] = html;
+  if (!primeiroHtml) primeiroHtml = `__html__${rota.replace(/\//g, "_")}.html`;
   extrairAssets(html).forEach((a) => todosAssets.add(a));
   console.log("html ok:", rota, html.length, "chars,", extrairAssets(html).length, "assets");
 }
 
-// 2) baixa assets
+// 2) baixa assets (e, transitivamente, os chunks dinamicos citados nos JS)
 const assets = [...todosAssets];
-console.log("total de assets únicos:", assets.length);
+console.log("total de assets unicos:", assets.length);
 await baixarEmParalelo(assets, async (a) => {
   const dest = join(ROOT, a);
   mkdirSync(dirname(dest), { recursive: true });
   await vercelCurl(a, dest).catch(() => {});
 });
+
+// 2.1 varredura: os JS citam outros chunks (/assets/...). Sem eles a
+// hidratacao falha e os graficos (client-side) nao aparecem.
+for (let rodada = 0; rodada < 3; rodada += 1) {
+  const novos = new Set();
+  for (const a of assets) {
+    const arq = join(ROOT, a);
+    if (!existsSync(arq)) continue;
+    let txt = "";
+    try {
+      txt = readFileSync(arq, "utf8");
+    } catch {
+      continue;
+    }
+    for (const m of txt.matchAll(/["'`](\/assets\/[A-Za-z0-9_.-]+\.(?:js|css|png|jpg|svg|webp))["'`]/g)) {
+      if (!todosAssets.has(m[1])) novos.add(m[1]);
+    }
+  }
+  if (novos.size === 0) break;
+  console.log("rodada", rodada + 1, "-> +", novos.size, "chunks dinamicos");
+  for (const a of novos) {
+    todosAssets.add(a);
+    assets.push(a);
+    const dest = join(ROOT, a);
+    mkdirSync(dirname(dest), { recursive: true });
+    await vercelCurl(a, dest).catch(() => {});
+  }
+}
 
 // 3) reescreve HTML para apontar para o espelho local
 for (const rota of ROTAS) {
@@ -145,7 +175,13 @@ const MIME = {
 };
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split("?")[0]);
-  const path = url.startsWith("/mirror/") ? join(ROOT, url.slice("/mirror".length)) : join(ROOT, "__html___admin.html");
+  // /mirror/assets/x -> ROOT/assets/x ; /assets/x -> ROOT/assets/x (chunks JS)
+  const relativo = url.startsWith("/mirror/") ? url.slice("/mirror".length) : url;
+  const fallback = primeiroHtml ? join(ROOT, primeiroHtml) : join(ROOT, "__html___admin.html");
+  const path =
+    relativo.startsWith("/assets/") || relativo.startsWith("/neia-logo")
+      ? join(ROOT, relativo)
+      : fallback;
   if (!existsSync(path)) {
     res.writeHead(404);
     res.end("not found");
@@ -186,7 +222,7 @@ async function capturar(nome, rota, largura, altura, mobile = false) {
       waitUntil: "networkidle0",
       timeout: 120000,
     });
-    await new Promise((r) => setTimeout(r, 4000));
+    await new Promise((r) => setTimeout(r, 6000));
     await page.screenshot({ path: join(OUT, `${nome}.png`) });
     console.log("ok", nome);
   } catch (e) {
@@ -201,6 +237,8 @@ await capturar("preview-pdv-desktop", "/pdv", 1440, 900);
 await capturar("preview-producao-desktop", "/producao", 1440, 900);
 await capturar("preview-entregas-desktop", "/central-entregas", 1440, 900);
 await capturar("preview-admin-celular", "/admin", 390, 844, true);
+await capturar("preview-gestao-desktop", "/preview-l2-gestao", 1440, 1000);
+await capturar("preview-gestao-celular", "/preview-l2-gestao", 390, 844, true);
 
 await browser.close();
 server.close();
