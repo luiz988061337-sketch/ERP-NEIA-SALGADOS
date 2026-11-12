@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/proteger-dev.mjs && node scripts/smoke.mjs",
     "teste:guard": "node scripts/proteger-dev.test.mjs",
+    "teste:producao": "node scripts/producao-liberacao.test.mjs",
     "teste:fases": "node scripts/fases.test.mjs",
     "teste:rls": "node scripts/auditoria-rls.mjs",
     "teste:pix": "node scripts/pix-reader.test.mjs",

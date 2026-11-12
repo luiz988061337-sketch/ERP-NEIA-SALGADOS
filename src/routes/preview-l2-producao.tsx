@@ -101,7 +101,7 @@ const PEDIDOS = [
     pedido_itens: [item("Coxinha de Frango", 15, CAT_F)],
   },
   {
-    id: "pd6",
+    id: "pd6", conferido_em: ha(14), conferido_por: null,
     pronto_em: ha(12),
     numero: 4583,
     status: "pronto",
@@ -115,7 +115,7 @@ const PEDIDOS = [
     pedido_itens: [item("Bolinha de Queijo", 10, CAT_A)],
   },
   {
-    id: "pd7",
+    id: "pd7", conferido_em: ha(10), conferido_por: null,
     pronto_em: ha(8),
     numero: 4584,
     status: "pronto",
@@ -129,7 +129,7 @@ const PEDIDOS = [
     pedido_itens: [item("Coxinha de Frango", 20, CAT_F)],
   },
   {
-    id: "pd8",
+    id: "pd8", conferido_em: ha(6), conferido_por: null,
     pronto_em: ha(4),
     numero: 4585,
     status: "pronto",
