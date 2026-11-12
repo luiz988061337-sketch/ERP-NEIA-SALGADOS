@@ -471,37 +471,37 @@ function PDV() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-neutral-950 text-neutral-100">
+    <div className="flex min-h-screen flex-col bg-[#F8F9FA] text-[#202B3A]">
       {/* Topo */}
-      <header className="flex flex-wrap items-center gap-2 border-b border-neutral-800 bg-neutral-950 px-3 py-2">
+      <header className="flex flex-wrap items-center gap-2 border-b border-[#E5E7EB] bg-white px-3 py-2">
         <Button
           variant="outline"
           size="sm"
-          className="min-h-[44px] shrink-0 border-neutral-700 bg-transparent text-neutral-100 hover:bg-neutral-800 hover:text-white"
+          className="min-h-[44px] shrink-0 border-[#E5E7EB] bg-transparent text-[#202B3A] hover:bg-[#F1F5F9] hover:text-[#202B3A]"
           onClick={() => navigate({ to: roles?.includes("admin") ? "/admin" : "/atendente" })}
           aria-label="Voltar"
         >
           ← Voltar
         </Button>
         <div className="mr-2 leading-tight">
-          <p className="font-display text-2xl font-bold text-yellow-400">
-            Néia <span className="text-sm font-normal text-neutral-300">Salgados</span>
+          <p className="font-display text-2xl font-bold text-[#A9813A]">
+            Néia <span className="text-sm font-normal text-[#475569]">Salgados</span>
           </p>
-          <p className="text-[11px] italic text-neutral-400">O sabor que faz a diferença</p>
+          <p className="text-[11px] italic text-[#64748B]">O sabor que faz a diferença</p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2 text-xs">
-          <span className="rounded-lg border border-neutral-700 px-3 py-1.5">
+          <span className="rounded-lg border border-[#E5E7EB] px-3 py-1.5">
             Operador(a)
             <br />
             <b>{user?.email?.split("@")[0] ?? "Caixa 01"}</b>
           </span>
-          <span className="rounded-lg border border-neutral-700 px-3 py-1.5">
+          <span className="rounded-lg border border-[#E5E7EB] px-3 py-1.5">
             <span className="mr-1 inline-block size-2 rounded-full bg-green-500" />
             Online
             <br />
-            <span className="text-neutral-400">Sistema conectado</span>
+            <span className="text-[#64748B]">Sistema conectado</span>
           </span>
-          <span className="rounded-lg border border-neutral-700 px-3 py-1.5 text-center">
+          <span className="rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-center">
             <b>{relogio.toLocaleDateString("pt-BR")}</b>
             <br />
             {relogio.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
@@ -509,7 +509,7 @@ function PDV() {
           <Button
             variant="outline"
             size="sm"
-            className="border-neutral-700 bg-neutral-900 text-neutral-100"
+            className="border-[#E5E7EB] bg-white text-[#202B3A]"
             onClick={sair}
           >
             <LogOut className="mr-1 size-4" />
@@ -530,7 +530,7 @@ function PDV() {
                   setCat(c.id);
                   setPainel("venda");
                 }}
-                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold ${cat === c.id && painel === "venda" ? "bg-yellow-400 text-black" : "bg-neutral-900 text-neutral-200"}`}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold ${cat === c.id && painel === "venda" ? "bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]" : "bg-white text-[#475569] border border-[#E5E7EB]"}`}
               >
                 <c.icon className="size-5" />
                 {c.label}
@@ -538,13 +538,13 @@ function PDV() {
             ))}
           </div>
           <div className="space-y-1.5 pt-2">
-            <div className="flex items-center gap-2 rounded-xl bg-neutral-900 px-3 py-2 text-sm text-neutral-400">
+            <div className="flex items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#64748B]">
               <Search className="size-4" />
               <input
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar produto…"
-                className="w-full bg-transparent text-neutral-100 outline-none placeholder:text-neutral-500"
+                className="w-full bg-transparent text-[#202B3A] outline-none placeholder:text-[#94A3B8]"
               />
             </div>
             {[
@@ -565,7 +565,7 @@ function PDV() {
                   }
                   setPainel(m.id);
                 }}
-                className="flex w-full items-center gap-2 rounded-xl bg-neutral-900 px-3 py-2.5 text-sm text-neutral-200"
+                className="flex w-full items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2.5 text-sm text-[#475569] hover:border-[rgba(196,154,67,.5)]"
               >
                 <m.icon className="size-4" />
                 {m.label}
@@ -579,14 +579,14 @@ function PDV() {
           {painel === "venda" && (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] p-4 shadow-[0_0_18px_rgba(244,185,66,.08)]">
-                  <p className="font-display text-lg font-bold leading-tight text-[#F4B942]">
+                <div className="rounded-xl border border-[rgba(196,154,67,.35)] bg-[#F5EBD2] p-4 shadow-card">
+                  <p className="font-display text-lg font-bold leading-tight text-[#A9813A]">
                     Salgados sempre fresquinhos e deliciosos!
                   </p>
                 </div>
-                <div className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[#1A1E20] p-4">
-                  <p className="font-display text-lg font-bold text-[#F4B942]">COMBOS ESPECIAIS</p>
-                  <p className="text-xs text-[#A8AFB2]">Mais sabor, mais economia!</p>
+                <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-card">
+                  <p className="font-display text-lg font-bold text-[#A9813A]">COMBOS ESPECIAIS</p>
+                  <p className="text-xs text-[#64748B]">Mais sabor, mais economia!</p>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
@@ -597,7 +597,7 @@ function PDV() {
                       key={p.id}
                       type="button"
                       onClick={() => adicionar(p)}
-                      className="group overflow-hidden rounded-xl border border-[rgba(255,255,255,.08)] bg-[#15191B] text-left shadow-[0_6px_18px_rgba(0,0,0,.28)] transition-all hover:border-[rgba(226,160,52,.55)] hover:shadow-[0_0_18px_rgba(244,185,66,.12)]"
+                      className="group overflow-hidden rounded-xl border border-[#E5E7EB] bg-white text-left shadow-card transition-all hover:border-[rgba(196,154,67,.55)] hover:shadow-[0_0_18px_rgba(196,154,67,.25)]"
                       aria-label={`Adicionar ${p.nome}`}
                     >
                       <img
@@ -608,10 +608,10 @@ function PDV() {
                       />
                       <div className="flex items-center justify-between gap-1 p-2">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-[#F6F7F7]">{p.nome}</p>
-                          <p className="text-xs font-bold text-[#F4B942]">{brl(precoFinal(p))}</p>
+                          <p className="truncate text-xs font-semibold text-[#202B3A]">{p.nome}</p>
+                          <p className="text-xs font-bold text-[#A9813A]">{brl(precoFinal(p))}</p>
                         </div>
-                        <span className="rounded-full bg-gradient-to-b from-[#F5BF4A] to-[#E19B28] p-1.5 text-[#141414] transition-transform group-hover:scale-110">
+                        <span className="rounded-full bg-gradient-to-b from-[#D9B25E] to-[#C49A43] p-1.5 text-[#202B3A] transition-transform group-hover:scale-110">
                           <Plus className="size-4" />
                         </span>
                       </div>
@@ -620,7 +620,7 @@ function PDV() {
                 })}
               </div>
               {grade.length === 0 && (
-                <p className="mt-6 text-center text-sm text-neutral-400">
+                <p className="mt-6 text-center text-sm text-[#64748B]">
                   Nenhum produto nesta categoria.
                 </p>
               )}
@@ -628,13 +628,13 @@ function PDV() {
           )}
 
           {painel === "pedidos" && (
-            <div className="rounded-xl bg-neutral-900 p-4">
-              <h2 className="font-display text-xl text-yellow-400">Pedidos de hoje</h2>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-card">
+              <h2 className="font-display text-xl text-[#A9813A]">Pedidos de hoje</h2>
               <ul className="mt-2 space-y-1 text-sm">
                 {(vendasHoje ?? []).map((v: any) => (
                   <li
                     key={v.id}
-                    className="flex justify-between gap-2 rounded border border-neutral-800 px-2 py-1.5"
+                    className="flex justify-between gap-2 rounded border border-[#E5E7EB] px-2 py-1.5"
                   >
                     <span>
                       #{v.numero} • {v.cliente_nome} • {v.forma_pagamento} • {v.pagamento_status}
@@ -643,22 +643,22 @@ function PDV() {
                   </li>
                 ))}
                 {(vendasHoje ?? []).length === 0 && (
-                  <li className="text-neutral-400">Sem vendas hoje.</li>
+                  <li className="text-[#64748B]">Sem vendas hoje.</li>
                 )}
               </ul>
             </div>
           )}
 
           {painel === "vendas" && (
-            <div className="rounded-xl bg-neutral-900 p-4">
-              <h2 className="font-display text-xl text-yellow-400">Vendas do dia</h2>
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-card">
+              <h2 className="font-display text-xl text-[#A9813A]">Vendas do dia</h2>
               <p className="mt-2 text-3xl font-bold">{brl(totaisVendas.total)}</p>
-              <p className="text-sm text-neutral-400">{totaisVendas.qtd} venda(s)</p>
+              <p className="text-sm text-[#64748B]">{totaisVendas.qtd} venda(s)</p>
               <ul className="mt-2 space-y-1 text-sm">
                 {Object.entries(totaisVendas.porMeio).map(([m, v]) => (
                   <li
                     key={m}
-                    className="flex justify-between rounded border border-neutral-800 px-2 py-1.5"
+                    className="flex justify-between rounded border border-[#E5E7EB] px-2 py-1.5"
                   >
                     <span>{m}</span>
                     <b>{brl(v)}</b>
@@ -669,9 +669,9 @@ function PDV() {
           )}
 
           {painel === "config" && (
-            <div className="rounded-xl bg-neutral-900 p-4 text-sm">
-              <h2 className="font-display text-xl text-yellow-400">Configurações</h2>
-              <ul className="mt-2 space-y-1 text-neutral-300">
+            <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 text-sm shadow-card">
+              <h2 className="font-display text-xl text-[#A9813A]">Configurações</h2>
+              <ul className="mt-2 space-y-1 text-[#475569]">
                 <li className="flex items-center gap-2">
                   <Truck className="size-4" />
                   Impressora: Tanca TP-550 (fila automática)
@@ -686,11 +686,11 @@ function PDV() {
         </main>
 
         {/* Comanda */}
-        <aside className="rounded-xl border border-[rgba(255,255,255,.08)] bg-[#15191B] p-4 text-[#F6F7F7] shadow-[0_6px_18px_rgba(0,0,0,.28)]">
+        <aside className="rounded-xl border border-[#E5E7EB] bg-white p-4 text-[#202B3A] shadow-card">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-bold">
               Comanda Atual{" "}
-              <span className="ml-1 rounded px-2 py-0.5 text-sm" style={{ backgroundColor: "rgba(244,185,66,.15)", color: "#F4B942" }}>
+              <span className="ml-1 rounded px-2 py-0.5 text-sm" style={{ backgroundColor: "rgba(196,154,67,.18)", color: "#A9813A" }}>
                 #{comandaN}
               </span>
             </h2>
@@ -702,22 +702,22 @@ function PDV() {
               }}
               aria-label="Limpar comanda"
             >
-              <Trash2 className="size-5 text-[#90989C] hover:text-[#F08374]" />
+              <Trash2 className="size-5 text-[#64748B] hover:text-[#DC2626]" />
             </button>
           </div>
           <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto">
             {itens.map((i) => (
-              <li key={i.produto_id} className="flex items-center gap-2 rounded-lg bg-[#1A1E20] p-2">
+              <li key={i.produto_id} className="flex items-center gap-2 rounded-lg bg-[#F8F9FA] p-2">
                 <img src={i.imagem} alt="" className="size-10 rounded object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold">{i.nome}</p>
-                  <p className="text-xs text-[#A8AFB2]">{brl(i.preco)}</p>
+                  <p className="text-xs text-[#64748B]">{brl(i.preco)}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => mudarQtd(i.produto_id, -1)}
-                    className="rounded bg-[#202426] p-1 hover:bg-[#2a2f32]"
+                    className="rounded bg-[#E5E7EB] p-1 hover:bg-[#CBD5E1]"
                     aria-label="Diminuir"
                   >
                     <Minus className="size-3" />
@@ -726,7 +726,7 @@ function PDV() {
                   <button
                     type="button"
                     onClick={() => mudarQtd(i.produto_id, 1)}
-                    className="rounded bg-[#202426] p-1 hover:bg-[#2a2f32]"
+                    className="rounded bg-[#E5E7EB] p-1 hover:bg-[#CBD5E1]"
                     aria-label="Aumentar"
                   >
                     <Plus className="size-3" />
@@ -736,12 +736,12 @@ function PDV() {
               </li>
             ))}
             {itens.length === 0 && (
-              <li className="py-6 text-center text-sm text-[#90989C]">
+              <li className="py-6 text-center text-sm text-[#64748B]">
                 Toque em + para montar a comanda.
               </li>
             )}
           </ul>
-          <div className="mt-3 space-y-1 border-t border-[rgba(255,255,255,.1)] pt-2 text-sm">
+          <div className="mt-3 space-y-1 border-t border-[#E5E7EB] pt-2 text-sm">
             <p className="flex justify-between">
               <span>Subtotal</span>
               <b>{brl(subtotal)}</b>
@@ -762,11 +762,11 @@ function PDV() {
               )}
             </p>
           </div>
-          <div className="mt-2 flex items-center justify-between rounded-xl px-3 py-2.5 text-[#141414]" style={{ background: "linear-gradient(to bottom, #F5BF4A, #E19B28)" }}>
+          <div className="mt-2 flex items-center justify-between rounded-xl px-3 py-2.5 text-[#202B3A]" style={{ background: "linear-gradient(to bottom, #D9B25E, #C49A43)" }}>
             <b>Total</b>
             <b className="text-xl">{brl(calc.total)}</b>
           </div>
-          <details className="mt-2 rounded-lg border border-[rgba(255,255,255,.1)] text-sm">
+          <details className="mt-2 rounded-lg border border-[#E5E7EB] text-sm">
             <summary className="cursor-pointer px-2 py-1.5 font-semibold">
               Cliente (opcional)
             </summary>
@@ -799,7 +799,7 @@ function PDV() {
               />
             </div>
           </details>
-          <details className="mt-2 rounded-lg border border-[rgba(255,255,255,.1)] text-sm">
+          <details className="mt-2 rounded-lg border border-[#E5E7EB] text-sm">
             <summary className="cursor-pointer px-2 py-1.5 font-semibold">
               Agendar (opcional)
             </summary>
@@ -838,12 +838,12 @@ function PDV() {
                   onClick={() => presetPagamento(m.id)}
                   className={`flex min-h-[44px] flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-bold transition-colors ${
                     selecionado
-                      ? "text-[#141414]"
-                      : "border border-[rgba(255,255,255,.1)] bg-[#202426] text-[#F6F7F7] hover:border-[rgba(226,160,52,.5)]"
+                      ? "text-[#202B3A]"
+                      : "border border-[#E5E7EB] bg-[#F1F5F9] text-[#202B3A] hover:border-[rgba(196,154,67,.5)]"
                   }`}
                   style={
                     selecionado
-                      ? { background: "linear-gradient(to bottom, #F5BF4A, #E19B28)" }
+                      ? { background: "linear-gradient(to bottom, #D9B25E, #C49A43)" }
                       : undefined
                   }
                 >
@@ -905,12 +905,12 @@ function PDV() {
               <button
                 type="button"
                 onClick={dividirPagamento}
-                className="text-xs font-semibold text-[#4DA9E0] underline"
+                className="text-xs font-semibold text-[#2563EB] underline"
               >
                 + Dividir pagamento
               </button>
               <span
-                className={`text-xs font-bold ${Math.abs(faltaPagar) < 0.005 ? "text-[#2ED988]" : "text-[#F08374]"}`}
+                className={`text-xs font-bold ${Math.abs(faltaPagar) < 0.005 ? "text-[#21835D]" : "text-[#DC2626]"}`}
               >
                 {Math.abs(faltaPagar) < 0.005
                   ? "Pagamento fechado"
@@ -923,13 +923,13 @@ function PDV() {
           <Button
             onClick={finalizar}
             disabled={enviando || itens.length === 0}
-            className="mt-2 w-full py-6 text-lg font-bold text-[#141414] hover:brightness-110"
-            style={{ background: "linear-gradient(to bottom, #F5BF4A, #E19B28)" }}
+            className="mt-2 w-full py-6 text-lg font-bold text-[#202B3A] hover:brightness-105"
+            style={{ background: "linear-gradient(to bottom, #D9B25E, #C49A43)" }}
           >
             ✓ Finalizar Venda
           </Button>
           {pagtos.some((p) => p.meio === "pix" && (Number(p.valor) || 0) > 0) && (
-            <p className="mt-1 text-center text-[11px] text-[#90989C]">
+            <p className="mt-1 text-center text-[11px] text-[#64748B]">
               Pix imprime após confirmação do pagamento.
             </p>
           )}
@@ -937,12 +937,12 @@ function PDV() {
       </div>
 
       {/* Rodapé */}
-      <footer className="flex flex-wrap items-center gap-1 border-t border-neutral-800 bg-neutral-950 px-3 py-2 text-xs text-neutral-300">
-        <span className="mr-2 italic text-yellow-400">O sabor que faz a diferença</span>
+      <footer className="flex flex-wrap items-center gap-1 border-t border-[#E5E7EB] bg-white px-3 py-2 text-xs text-[#64748B]">
+        <span className="mr-2 italic text-[#A9813A]">O sabor que faz a diferença</span>
         <button
           type="button"
           onClick={() => setSoFavoritos((v) => !v)}
-          className={`flex items-center gap-1 rounded px-2 py-1 ${soFavoritos ? "bg-yellow-400 text-black" : ""}`}
+          className={`flex items-center gap-1 rounded px-2 py-1 ${soFavoritos ? "bg-[#F5EBD2] text-[#A9813A]" : ""}`}
         >
           <Star className="size-4" />
           Favoritos

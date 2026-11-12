@@ -96,11 +96,11 @@ function RootShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/preview/l1");
 
   return (
-    <html lang="pt-BR" className={ehStaff ? "erp-dark" : ""}>
+    <html lang="pt-BR" className={ehStaff ? "erp-admin" : ""}>
       <head>
         <HeadContent />
       </head>
-      <body className={ehStaff ? "erp-dark" : ""}>
+      <body className={ehStaff ? "erp-admin" : ""}>
         {children}
         <Scripts />
       </body>

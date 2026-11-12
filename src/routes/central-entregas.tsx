@@ -826,14 +826,14 @@ function CentralEntregas() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
           <div className="relative flex items-center gap-3 p-5">
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-yellow-400 text-black">
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
               <Truck className="size-7" aria-hidden />
             </span>
             <div>
-              <h1 className="font-display text-2xl font-bold text-yellow-400">
+              <h1 className="font-display text-2xl font-bold text-white">
                 Central de Entregas
               </h1>
-              <p className="text-sm text-neutral-200">
+              <p className="text-sm text-white/80">
                 Acompanhe os motoboys e o status das entregas.
               </p>
             </div>
@@ -875,11 +875,11 @@ function CentralEntregas() {
         <div className="mb-4 grid gap-3 lg:grid-cols-[2fr_1fr]">
           <section
             id="secao-mapa"
-            className="overflow-hidden rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+            className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-card"
             aria-label="Mapa de entregas em tempo real"
           >
-            <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-[rgba(255,255,255,.08)] px-3 py-2">
-              <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+            <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
+              <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
                 Mapa de Entregas
               </h2>
               <span className="text-[10px] uppercase text-muted-foreground">
@@ -899,14 +899,14 @@ function CentralEntregas() {
 
           <div className="space-y-3">
             <section
-              className="rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+              className="rounded-xl border border-[#E5E7EB] bg-white shadow-card"
               aria-label="Motoboys"
             >
-              <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[rgba(255,255,255,.08)] px-3 py-2">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+              <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
                   Motoboys
                 </h2>
-                <span className="rounded-full bg-[rgba(255,255,255,.06)] px-2 py-0.5 text-[10px] font-bold text-[#90989C]">
+                <span className="rounded-full bg-[rgba(15,23,42,.06)] px-2 py-0.5 text-[10px] font-bold text-[#64748B]">
                   {(resumoCentral.motos ?? []).length}
                 </span>
               </header>
@@ -915,17 +915,17 @@ function CentralEntregas() {
                   const st = String(m.status ?? "").toLowerCase();
                   const corDot =
                     st.includes("rota") || st.includes("em rota")
-                      ? "#1687C8"
+                      ? "#2563EB"
                       : st.includes("dispon")
-                        ? "#11B96A"
-                        : "#7A8387";
+                        ? "#21835D"
+                        : "#64748B";
                   return (
                     <li
                       key={m.nome}
-                      className="flex items-center gap-2.5 rounded-lg bg-[#1A1E20] px-2.5 py-2"
+                      className="flex items-center gap-2.5 rounded-lg bg-[#F8F9FA] px-2.5 py-2"
                     >
                       <span
-                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-[#141414]"
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-[#202B3A]"
                         style={{ backgroundColor: corDot }}
                         aria-hidden
                       >
@@ -952,26 +952,26 @@ function CentralEntregas() {
             </section>
 
             <section
-              className="rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+              className="rounded-xl border border-[#E5E7EB] bg-white shadow-card"
               aria-label="Resumo do dia"
             >
-              <header className="flex min-h-[42px] items-center border-b border-[rgba(255,255,255,.08)] px-3 py-2">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+              <header className="flex min-h-[42px] items-center border-b border-[#E5E7EB] px-3 py-2">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
                   Resumo do Dia
                 </h2>
               </header>
               <ul className="space-y-1 p-3 text-xs">
-                <li className="flex justify-between rounded bg-[#1A1E20] px-2.5 py-1.5">
+                <li className="flex justify-between rounded bg-[#F8F9FA] px-2.5 py-1.5">
                   <span className="text-muted-foreground">Entregas realizadas</span>
-                  <b className="text-[#2ED988]">{resumoCentral.entreguesHoje.length}</b>
+                  <b className="text-[#21835D]">{resumoCentral.entreguesHoje.length}</b>
                 </li>
-                <li className="flex justify-between rounded bg-[#1A1E20] px-2.5 py-1.5">
+                <li className="flex justify-between rounded bg-[#F8F9FA] px-2.5 py-1.5">
                   <span className="text-muted-foreground">Em rota</span>
-                  <b className="text-[#4DA9E0]">{resumoCentral.emRota.length}</b>
+                  <b className="text-[#2563EB]">{resumoCentral.emRota.length}</b>
                 </li>
-                <li className="flex justify-between rounded bg-[#1A1E20] px-2.5 py-1.5">
+                <li className="flex justify-between rounded bg-[#F8F9FA] px-2.5 py-1.5">
                   <span className="text-muted-foreground">Aguardando</span>
-                  <b className="text-[#F5A34A]">{resumoCentral.aguardando.length}</b>
+                  <b className="text-[#B45309]">{resumoCentral.aguardando.length}</b>
                 </li>
               </ul>
             </section>
@@ -980,11 +980,11 @@ function CentralEntregas() {
 
         {/* ========== PEDIDOS EM ROTA ========== */}
         <section
-          className="mb-4 overflow-hidden rounded-xl border border-[rgba(226,160,52,.35)] bg-[#15191B] shadow-[0_0_18px_rgba(244,185,66,.08)]"
+          className="mb-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-card"
           aria-label="Pedidos em rota"
         >
-          <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[rgba(255,255,255,.08)] px-3 py-2">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-[#C7CCCE]">
+          <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
               Pedidos em Rota
             </h2>
             <span className="text-[10px] uppercase text-muted-foreground">
@@ -993,7 +993,7 @@ function CentralEntregas() {
           </header>
           <div className="p-2">
             {resumoCentral.emAndamento.length > 0 ? (
-              <ul className="divide-y divide-[rgba(255,255,255,.06)]">
+              <ul className="divide-y divide-[#EEF1F5]">
                 <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px]">
                   <span>Nº</span>
                   <span>Cliente</span>
@@ -1009,9 +1009,9 @@ function CentralEntregas() {
                     <button
                       type="button"
                       onClick={() => verHistoricoPedido(p.id)}
-                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-[rgba(255,255,255,.03)] sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px] sm:text-[13px]"
+                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-[#F8F9FA] sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px] sm:text-[13px]"
                     >
-                      <span className="font-bold text-[#F4B942]">#{p.numero}</span>
+                      <span className="font-bold text-[#A9813A]">#{p.numero}</span>
                       <span className="truncate">{p.cliente_nome}</span>
                       <span className="hidden truncate text-muted-foreground sm:block">
                         {p.endereco ?? "—"}

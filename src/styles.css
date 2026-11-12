@@ -269,89 +269,89 @@
   }
 }
 
-/* --- Tokens erp-dark (aplicados via classe .erp-dark no <html>) ---
-     A loja pública nunca recebe essa classe, então as regras abaixo
-     ficam isoladas. Paleta oficial: seção 4–6 da especificação. */
+/* --- Tokens do painel administrativo (aplicados via classe .erp-admin no <html>) ---
+     Identidade clara oficial: fundo #F8F9FA, superfícies brancas, dourado
+     #C49A43 como destaque (não como fundo geral). A loja pública nunca
+     recebe essa classe, então as regras abaixo ficam isoladas do site. */
 
-html.erp-dark {
+html.erp-admin {
   /* Paleta bruta da marca */
-  --erp-bg: #0D0F10;
-  --erp-surface: #15191B;
-  --erp-surface-2: #1A1E20;
-  --erp-input: #202426;
-  --erp-gold: #D29034;
-  --erp-gold-strong: #E5A63A;
-  --erp-gold-bright: #F4B942;
-  --erp-green: #11B96A;
-  --erp-blue: #1687C8;
-  --erp-orange: #F28A1A;
-  --erp-red: #E34835;
-  --erp-text: #F6F7F7;
-  --erp-text-muted: #90989C;
+  --erp-bg: #F8F9FA;
+  --erp-surface: #FFFFFF;
+  --erp-surface-2: #F1F5F9;
+  --erp-input: #FFFFFF;
+  --erp-gold: #C49A43;
+  --erp-gold-light: #F5EBD2;
+  --erp-green: #21835D;
+  --erp-blue: #2563EB;
+  --erp-orange: #F59E0B;
+  --erp-red: #DC2626;
+  --erp-text: #202B3A;
+  --erp-text-muted: #64748B;
 
   /* Override dos tokens semânticos usados por bg-card, border-border,
-     bg-muted, text-foreground etc. — todo o painel interno fica escuro. */
-  --background: #0D0F10;
-  --foreground: #F6F7F7;
-  --card: #15191B;
-  --card-foreground: #F6F7F7;
-  --popover: #1A1E20;
-  --popover-foreground: #F6F7F7;
-  --primary: #D29034;
-  --primary-foreground: #141414;
-  --secondary: #1A1E20;
-  --secondary-foreground: #C7CCCE;
-  --muted: #1A1E20;
-  --muted-foreground: #A8AFB2;
-  --accent: rgba(244, 185, 66, 0.12);
-  --accent-foreground: #F4B942;
-  --destructive: #E34835;
+     bg-muted, text-foreground etc. — todo o painel interno fica claro. */
+  --background: #F8F9FA;
+  --foreground: #202B3A;
+  --card: #FFFFFF;
+  --card-foreground: #202B3A;
+  --popover: #FFFFFF;
+  --popover-foreground: #202B3A;
+  --primary: #C49A43;
+  --primary-foreground: #202B3A;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #202B3A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #F5EBD2;
+  --accent-foreground: #202B3A;
+  --destructive: #DC2626;
   --destructive-foreground: #FFFFFF;
-  --success: #11B96A;
-  --success-foreground: #141414;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: #202426;
-  --ring: rgba(244, 185, 66, 0.5);
-  --chart-1: #F4B942;
-  --chart-2: #1687C8;
-  --chart-3: #11B96A;
-  --chart-4: #F28A1A;
-  --chart-5: #E34835;
-  --sidebar: #0B0D0E;
-  --sidebar-foreground: #C7CCCE;
-  --sidebar-primary: #D29034;
-  --sidebar-primary-foreground: #141414;
-  --sidebar-accent: rgba(244, 185, 66, 0.14);
-  --sidebar-accent-foreground: #F4B942;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: rgba(244, 185, 66, 0.4);
+  --success: #21835D;
+  --success-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #C49A43;
+  --chart-1: #C49A43;
+  --chart-2: #2563EB;
+  --chart-3: #21835D;
+  --chart-4: #F59E0B;
+  --chart-5: #DC2626;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #202B3A;
+  --sidebar-primary: #C49A43;
+  --sidebar-primary-foreground: #202B3A;
+  --sidebar-accent: #F5EBD2;
+  --sidebar-accent-foreground: #202B3A;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #C49A43;
   --radius: 0.75rem;
-  --shadow-card: 0 6px 18px rgba(0, 0, 0, 0.28);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 14px -6px rgba(15, 23, 42, 0.08);
 }
 
-html.erp-dark body {
-  background-color: #0D0F10;
-  color: #F6F7F7;
+html.erp-admin body {
+  background-color: #F8F9FA;
+  color: #202B3A;
 }
 
-/* Scrollbar escura e fina */
-html.erp-dark * {
+/* Scrollbar clara e fina */
+html.erp-admin * {
   scrollbar-width: thin;
-  scrollbar-color: #3a3f42 transparent;
+  scrollbar-color: #CBD5E1 transparent;
 }
-html.erp-dark *::-webkit-scrollbar {
+html.erp-admin *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-html.erp-dark *::-webkit-scrollbar-thumb {
-  background: #3a3f42;
+html.erp-admin *::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
   border-radius: 999px;
 }
-html.erp-dark *::-webkit-scrollbar-thumb:hover {
-  background: rgba(244, 185, 66, 0.5);
+html.erp-admin *::-webkit-scrollbar-thumb:hover {
+  background: rgba(196, 154, 67, 0.55);
 }
 
 /* Seleção de texto com tom dourado */
-html.erp-dark ::selection {
-  background: rgba(244, 185, 66, 0.3);
+html.erp-admin ::selection {
+  background: rgba(196, 154, 67, 0.25);
 }

@@ -293,11 +293,11 @@ export function DashboardAdmin({
   );
 
   const tooltipStyle = {
-    background: "#1A1E20",
-    border: "1px solid rgba(255,255,255,.1)",
+    background: "#FFFFFF",
+    border: "1px solid #E5E7EB",
     borderRadius: 8,
     fontSize: 12,
-    color: "#F6F7F7",
+    color: "#202B3A",
   } as const;
 
   return (
@@ -372,7 +372,7 @@ export function DashboardAdmin({
               key={s.label}
               type="button"
               onClick={() => setAba("pedidos")}
-              className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,.08)] bg-[#15191B] px-3 py-1.5 text-xs text-[#C7CCCE] transition-colors hover:border-[rgba(226,160,52,.55)]"
+              className="inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs text-[#64748B] transition-colors hover:border-[rgba(196,154,67,.55)]"
             >
               <span
                 className="inline-block size-2 rounded-full"
@@ -395,24 +395,24 @@ export function DashboardAdmin({
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
-                  stroke="rgba(255,255,255,.08)"
+                  stroke="#E5E7EB"
                 />
                 <XAxis
                   dataKey="rotulo"
-                  tick={{ fontSize: 10, fill: "#90989C" }}
-                  axisLine={{ stroke: "rgba(255,255,255,.15)" }}
+                  tick={{ fontSize: 10, fill: "#64748B" }}
+                  axisLine={{ stroke: "#E5E7EB" }}
                   tickLine={false}
                 />
                 <YAxis
                   tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(1)}k`}
-                  tick={{ fontSize: 10, fill: "#90989C" }}
+                  tick={{ fontSize: 10, fill: "#64748B" }}
                   axisLine={false}
                   tickLine={false}
                   width={54}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  labelStyle={{ color: "#C7CCCE" }}
+                  labelStyle={{ color: "#64748B" }}
                   formatter={(v: number) => [brl(v), "Vendas"]}
                 />
                 <Line
@@ -420,8 +420,8 @@ export function DashboardAdmin({
                   dataKey="total"
                   stroke={ERP_COLORS.gold}
                   strokeWidth={2.5}
-                  dot={{ r: 3, fill: ERP_COLORS.goldBright, strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: ERP_COLORS.goldBright, strokeWidth: 0 }}
+                  dot={{ r: 3, fill: ERP_COLORS.gold, strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: ERP_COLORS.gold, strokeWidth: 0 }}
                   name="Vendas"
                 />
               </LineChart>
@@ -446,7 +446,7 @@ export function DashboardAdmin({
                   </Pie>
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelStyle={{ color: "#C7CCCE" }}
+                    labelStyle={{ color: "#64748B" }}
                     formatter={(v: number, name: string) => [`${v} pedido(s)`, name]}
                   />
                   <Legend
@@ -455,7 +455,7 @@ export function DashboardAdmin({
                     formatter={(value) => (
                       <span
                         style={{
-                          color: "#C7CCCE",
+                          color: "#64748B",
                           fontSize: 11,
                           textTransform: "uppercase",
                           fontWeight: 600,
@@ -491,7 +491,7 @@ export function DashboardAdmin({
             bodyClassName="p-0"
           >
             {recentes.length > 0 ? (
-              <ul className="divide-y divide-[rgba(255,255,255,.06)]">
+              <ul className="divide-y divide-[#EEF1F5]">
                 {recentes.map((p: any) => (
                   <li key={p.id}>
                     <button
@@ -500,9 +500,9 @@ export function DashboardAdmin({
                         setPedidoFoco(String(p.numero));
                         setAba("pedidos");
                       }}
-                      className="flex min-h-[46px] w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[rgba(255,255,255,.03)]"
+                      className="flex min-h-[46px] w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[#F8F9FA]"
                     >
-                      <span className="font-display font-bold text-[#F4B942]">#{p.numero}</span>
+                      <span className="font-display font-bold text-[#A9813A]">#{p.numero}</span>
                       <span className="min-w-0 flex-1 truncate">{p.cliente_nome}</span>
                       <span className="font-semibold">{brl(p.total)}</span>
                       <span className="text-muted-foreground">{hora(p.created_at)}</span>
@@ -539,7 +539,7 @@ export function DashboardAdmin({
                   return (
                     <li key={t.nome} className="flex items-center gap-2 rounded-lg px-1 py-1.5">
                       <span
-                        className="grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-[#141414]"
+                        className="grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-[#202B3A]"
                         style={{ backgroundColor: ERP_COLORS.gold }}
                       >
                         {i + 1}
@@ -572,10 +572,10 @@ export function DashboardAdmin({
                     <button
                       type="button"
                       onClick={() => setAba(a.aba)}
-                      className="flex w-full items-center gap-2 rounded-lg border border-[rgba(255,255,255,.06)] bg-[#1A1E20] px-2.5 py-2 text-left hover:border-[rgba(226,160,52,.5)]"
+                      className="flex w-full items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#F8F9FA] px-2.5 py-2 text-left hover:border-[rgba(196,154,67,.5)]"
                     >
                       <TriangleAlert
-                        className="size-4 shrink-0 text-[#F5A34A]"
+                        className="size-4 shrink-0 text-[#B45309]"
                         aria-hidden
                       />
                       <div className="min-w-0 flex-1 leading-tight">
@@ -588,8 +588,8 @@ export function DashboardAdmin({
                 ))}
               </ul>
             ) : (
-              <p className="flex items-center gap-2 px-1 py-3 text-xs text-[#2ED988]">
-                <span className="inline-block size-2 rounded-full bg-[#11B96A]" aria-hidden />
+              <p className="flex items-center gap-2 px-1 py-3 text-xs text-[#21835D]">
+                <span className="inline-block size-2 rounded-full bg-[#21835D]" aria-hidden />
                 Tudo em ordem — nenhum alerta ativo.
               </p>
             )}
@@ -675,8 +675,8 @@ export function DashboardAdmin({
             <span
               className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                 caixa
-                  ? "bg-[rgba(17,185,106,.18)] text-[#2ED988]"
-                  : "bg-[rgba(255,255,255,.08)] text-[#90989C]"
+                  ? "bg-[rgba(33,131,93,.12)] text-[#21835D]"
+                  : "bg-[rgba(15,23,42,.06)] text-[#64748B]"
               }`}
             >
               {caixa ? "Aberto" : "Fechado"}
@@ -755,10 +755,10 @@ function Acao({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg bg-muted px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-[rgba(244,185,66,.12)]"
+      className="flex min-h-[44px] w-full items-center gap-2.5 rounded-lg bg-muted px-3 py-2 text-left text-sm font-semibold transition-colors hover:bg-[#F5EBD2]"
     >
       <span
-        className="grid size-7 shrink-0 place-items-center rounded-md text-[#141414]"
+        className="grid size-7 shrink-0 place-items-center rounded-md text-[#202B3A]"
         style={{ backgroundColor: ERP_COLORS.gold }}
       >
         <Icone className="size-4" aria-hidden />
@@ -787,14 +787,14 @@ function ModuloCard({
     <button
       type="button"
       onClick={onClick}
-      className="min-h-[44px] rounded-xl border border-[rgba(255,255,255,.08)] bg-[#15191B] p-4 text-left shadow-[0_6px_18px_rgba(0,0,0,.28)] transition-colors hover:border-[rgba(226,160,52,.55)]"
+      className="min-h-[44px] rounded-xl border border-[#E5E7EB] bg-white p-4 text-left shadow-card transition-colors hover:border-[rgba(196,154,67,.55)]"
     >
-      <span className="flex items-center gap-2 text-sm font-bold text-[#F4B942]">
+      <span className="flex items-center gap-2 text-sm font-bold text-[#A9813A]">
         <Icone className="size-4" aria-hidden />
         {titulo}
       </span>
       <span className="mt-2 block text-xs text-muted-foreground">{linha1}</span>
-      <span className={`block font-display text-xl ${alerta ? "text-[#F08374]" : ""}`}>{valor}</span>
+      <span className={`block font-display text-xl ${alerta ? "text-[#DC2626]" : ""}`}>{valor}</span>
     </button>
   );
 }

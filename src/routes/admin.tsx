@@ -1592,12 +1592,12 @@ function PedidosAdmin({
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
         <div className="relative flex items-center gap-3 p-5">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-yellow-400 text-black">
+          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
             <ClipboardList className="size-7" aria-hidden />
           </span>
           <div>
-            <h1 className="font-display text-2xl font-bold text-yellow-400">Pedidos</h1>
-            <p className="text-sm text-neutral-200">
+            <h1 className="font-display text-2xl font-bold text-white">Pedidos</h1>
+            <p className="text-sm text-white/80">
               Acompanhe o status de todos os pedidos da loja.
             </p>
           </div>
@@ -1606,28 +1606,28 @@ function PedidosAdmin({
 
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatusCard
-          className="bg-yellow-100 text-yellow-900"
+          className="bg-[#F5EBD2] text-[#A9813A]"
           icone={ClipboardList}
           titulo="Total hoje"
           valor={resumoPed.totalHojeFmt}
           detalhe={`${resumoPed.qtdHoje} pedido(s)`}
         />
         <StatusCard
-          className="bg-blue-600 text-white"
+          className="bg-[#2563EB] text-white"
           icone={ChefHat}
           titulo="Em Produção"
           valor={resumoPed.emProd}
           detalhe="hoje"
         />
         <StatusCard
-          className="bg-green-500 text-white"
+          className="bg-[#21835D] text-white"
           icone={CheckCircle2}
           titulo="Prontos"
           valor={resumoPed.prontos}
           detalhe="hoje"
         />
         <StatusCard
-          className="bg-purple-500 text-white"
+          className="bg-[#7C3AED] text-white"
           icone={Truck}
           titulo="Entregues"
           valor={resumoPed.entregues}
@@ -1768,40 +1768,40 @@ function PedidosAdmin({
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <a
           href="/pdv"
-          className="flex min-h-[56px] items-center gap-3 rounded-xl bg-neutral-950 p-4 text-white shadow-[var(--shadow-card)] hover:opacity-90"
+          className="flex min-h-[56px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 text-[#202B3A] shadow-card hover:border-[rgba(196,154,67,.55)]"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-yellow-400 font-bold text-black">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-b from-[#D9B25E] to-[#C49A43] font-bold text-[#202B3A]">
             +
           </span>
           <span>
             <span className="block text-sm font-bold">Novo Pedido</span>
-            <span className="block text-xs text-neutral-400">Registrar pedido manualmente</span>
+            <span className="block text-xs text-[#64748B]">Registrar pedido manualmente</span>
           </span>
         </a>
         <button
           type="button"
           onClick={verTodosPedidos}
-          className="flex min-h-[56px] items-center gap-3 rounded-xl bg-neutral-950 p-4 text-left text-white shadow-[var(--shadow-card)] hover:opacity-90"
+          className="flex min-h-[56px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 text-left text-[#202B3A] shadow-card hover:border-[rgba(196,154,67,.55)]"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-yellow-400 text-black">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
             <ClipboardList className="size-5" aria-hidden />
           </span>
           <span>
             <span className="block text-sm font-bold">Ver Todos os Pedidos</span>
-            <span className="block text-xs text-neutral-400">Limpa filtros e foco</span>
+            <span className="block text-xs text-[#64748B]">Limpa filtros e foco</span>
           </span>
         </button>
         <button
           type="button"
           onClick={exportarCSV}
-          className="flex min-h-[56px] items-center gap-3 rounded-xl bg-neutral-950 p-4 text-left text-white shadow-[var(--shadow-card)] hover:opacity-90"
+          className="flex min-h-[56px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 text-left text-[#202B3A] shadow-card hover:border-[rgba(196,154,67,.55)]"
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-yellow-400 text-black">
+          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
             <Download className="size-5" aria-hidden />
           </span>
           <span>
             <span className="block text-sm font-bold">Exportar CSV</span>
-            <span className="block text-xs text-neutral-400">Vendas e desempenho</span>
+            <span className="block text-xs text-[#64748B]">Vendas e desempenho</span>
           </span>
         </button>
       </div>

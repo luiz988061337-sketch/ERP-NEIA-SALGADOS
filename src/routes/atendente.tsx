@@ -960,14 +960,14 @@ function Atendente() {
 function CardKanbanPedido({ p }: { p: any }) {
   return (
     <article
-      className="rounded-lg border border-[rgba(255,255,255,.08)] bg-[#15191B] p-2.5 text-xs shadow-[0_4px_12px_rgba(0,0,0,.25)] transition-colors hover:border-[rgba(226,160,52,.45)]"
+      className="rounded-lg border border-[#E5E7EB] bg-white p-2.5 text-xs shadow-card transition-colors hover:border-[rgba(196,154,67,.45)]"
       aria-label={`Pedido ${p.numero}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="font-display text-sm font-bold text-[#F4B942]">#{p.numero}</span>
+        <span className="font-display text-sm font-bold text-[#A9813A]">#{p.numero}</span>
         <span className="text-[10px] text-muted-foreground">{hora(p.created_at)}</span>
       </div>
-      <p className="mt-1 truncate font-semibold text-[#F6F7F7]">
+      <p className="mt-1 truncate font-semibold text-[#202B3A]">
         {p.cliente_nome || "Sem nome"}
       </p>
       <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -981,7 +981,7 @@ function CardKanbanPedido({ p }: { p: any }) {
       {p.observacoes ? (
         <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{p.observacoes}</p>
       ) : null}
-      <p className="mt-1.5 border-t border-[rgba(255,255,255,.06)] pt-1.5 text-right text-sm font-bold text-[#2ED988]">
+      <p className="mt-1.5 border-t border-[#EEF1F5] pt-1.5 text-right text-sm font-bold text-[#21835D]">
         {brl(p.total)}
       </p>
     </article>

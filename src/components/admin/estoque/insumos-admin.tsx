@@ -235,7 +235,7 @@ export function InsumosAdmin() {
                 <td className="px-2.5 py-2">
                   <button
                     type="button"
-                    className="text-left font-semibold hover:text-[#F4B942]"
+                    className="text-left font-semibold hover:text-[#A9813A]"
                     onClick={() => setFoco(foco?.id === i.id ? null : i)}
                   >
                     {i.nome}

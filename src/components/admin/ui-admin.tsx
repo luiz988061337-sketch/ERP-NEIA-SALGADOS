@@ -76,7 +76,7 @@ export function StatCard({
       <button
         type="button"
         onClick={onClick}
-        className="min-h-[44px] rounded-xl border border-border bg-card p-4 text-left shadow-[var(--shadow-card)] transition-colors hover:border-yellow-400"
+        className="min-h-[44px] rounded-xl border border-border bg-card p-4 text-left shadow-[var(--shadow-card)] transition-colors hover:border-[rgba(196,154,67,.55)]"
       >
         {Corpo}
       </button>

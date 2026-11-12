@@ -457,14 +457,14 @@ function Equipe() {
                     </td>
                     <td className="px-2.5 py-2">
                       {f.user_id ? (
-                        <span className="text-[#2ED988]">vinculado</span>
+                        <span className="text-[#21835D]">vinculado</span>
                       ) : (
                         <span className="text-muted-foreground">sem login</span>
                       )}
                     </td>
                     <td className="px-2.5 py-2">
                       {f.ativo ? (
-                        <span className="rounded-full bg-[rgba(17,185,106,.12)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2ED988]">
+                        <span className="rounded-full bg-[rgba(33,131,93,.12)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#21835D]">
                           Ativo
                         </span>
                       ) : (

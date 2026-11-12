@@ -682,7 +682,7 @@ function Financeiro() {
             label="Saldo"
             valor={caixaAberto ? brl(esperado) : "—"}
             detalhe={caixaAberto ? "caixa aberto (esperado)" : "caixa fechado"}
-            cor={ERP_COLORS.goldBright}
+            cor={ERP_COLORS.gold}
           />
         </div>
 
@@ -690,34 +690,34 @@ function Financeiro() {
         <ChartCard titulo="Fluxo de Caixa (últimos 6 meses)" altura="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={fluxoMensal} margin={{ left: -8, right: 8, top: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,.08)" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis
                 dataKey="rotulo"
-                tick={{ fontSize: 11, fill: "#90989C" }}
-                axisLine={{ stroke: "rgba(255,255,255,.15)" }}
+                tick={{ fontSize: 11, fill: "#64748B" }}
+                axisLine={{ stroke: "#E5E7EB" }}
                 tickLine={false}
               />
               <YAxis
                 tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(0)}k`}
-                tick={{ fontSize: 10, fill: "#90989C" }}
+                tick={{ fontSize: 10, fill: "#64748B" }}
                 axisLine={false}
                 tickLine={false}
                 width={56}
               />
               <Tooltip
                 contentStyle={{
-                  background: "#1A1E20",
-                  border: "1px solid rgba(255,255,255,.1)",
+                  background: "#FFFFFF",
+                  border: "1px solid #E5E7EB",
                   borderRadius: 8,
                   fontSize: 12,
-                  color: "#F6F7F7",
+                  color: "#202B3A",
                 }}
-                labelStyle={{ color: "#C7CCCE" }}
+                labelStyle={{ color: "#64748B" }}
                 formatter={(v: number, name: string) => [brl(v), name]}
               />
               <Legend
                 formatter={(value) => (
-                  <span style={{ color: "#C7CCCE", fontSize: 11, textTransform: "uppercase" }}>
+                  <span style={{ color: "#64748B", fontSize: 11, textTransform: "uppercase" }}>
                     {value}
                   </span>
                 )}

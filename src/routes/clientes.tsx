@@ -353,7 +353,7 @@ function Clientes() {
                   <p className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
                     {SEGMENTO_LABEL[c.segmento]}
                     {c.tipo_cliente === "PJ" ? <span>• 🏢 Empresa</span> : null}
-                    {vip ? <span className="text-[#F4B942]">• ⭐ VIP</span> : null}
+                    {vip ? <span className="text-[#A9813A]">• ⭐ VIP</span> : null}
                     {freq && !vip ? <span>• 🔁 Frequente</span> : null}
                     {c.opt_out ? <span>• 📵 não enviar</span> : null}
                     {dRec != null ? (

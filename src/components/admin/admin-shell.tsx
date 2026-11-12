@@ -24,15 +24,14 @@ import {
 import { ADMIN_NAV } from "./admin-nav";
 import { AdminTopbar } from "./admin-topbar";
 import logo from "@/assets/neia-logo.png.asset.json";
-import fritos from "@/assets/cat-fritos.jpg";
 
 /**
- * Shell do Admin (visual Projeto A1): sidebar escura com pill dourada ativa
- * e topbar escura com conexão real, relógio, usuário e saída.
+ * Shell do Admin (identidade clara): sidebar branca com pill dourada ativa
+ * e topbar clara com conexão real, relógio, usuário e saída.
  * A aba ativa continua controlada pelo estado do React (sem URL).
  * Itens com `href` navegam para rotas staff (PDV, Produção, Central).
- * Todos os estilos agora usam os tokens .erp-dark (seção 64 do documento oficial).
- * A loja pública (.light) nunca recebe essa classe, então nada muda visualmente fora do admin.
+ * Todos os estilos usam os tokens .erp-admin (identidade clara oficial).
+ * A loja pública nunca recebe essa classe, então nada muda visualmente fora do admin.
  */
 export function AdminShell({
   aba,
@@ -71,17 +70,6 @@ export function AdminShell({
 
         <SidebarFooter>
           <SidebarSeparator className="bg-sidebar-border" />
-          <div className="overflow-hidden rounded-xl border border-sidebar-border group-data-[collapsible=icon]:hidden">
-            <img
-              src={fritos}
-              alt="Salgados Néia"
-              className="h-24 w-full object-cover"
-              loading="lazy"
-            />
-            <p className="bg-sidebar bg-sidebar-border px-3 py-2 text-xs italic text-sidebar-foreground/70">
-              Qualidade, sabor e confiança em cada pedido!
-            </p>
-          </div>
           <SidebarMenu>
             {usuario ? (
               <SidebarMenuItem>

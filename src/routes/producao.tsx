@@ -584,7 +584,7 @@ function Producao() {
   function bordaPorNivel(nivel: string, agendadoFuturo: boolean): string {
     if (nivel === "atrasado") return "border-l-4 border-l-red-500";
     if (nivel === "risco") return "border-l-4 border-l-orange-500";
-    if (nivel === "atencao") return "border-l-4 border-l-yellow-400";
+    if (nivel === "atencao") return "border-l-4 border-l-[#F59E0B]";
     if (agendadoFuturo) return "border-l-4 border-l-sky-500";
     return "";
   }
@@ -987,14 +987,14 @@ function Producao() {
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
           <div className="relative flex items-center gap-3 p-5">
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-yellow-400 text-black">
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
               <ChefHat className="size-7" aria-hidden />
             </span>
             <div>
-              <h1 className="font-display text-2xl font-bold text-yellow-400">
+              <h1 className="font-display text-2xl font-bold text-white">
                 Despache (Produção)
               </h1>
-              <p className="text-sm text-neutral-200">
+              <p className="text-sm text-white/80">
                 Acompanhe e organize a produção dos pedidos.
               </p>
             </div>
@@ -1003,28 +1003,28 @@ function Producao() {
 
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatusCard
-            className="bg-yellow-400 text-black"
+            className="bg-[#C49A43] text-[#202B3A]"
             icone={Clock}
             titulo="Em Produção"
             valor={preparoLista.length}
             onClick={() => rolarPara("sec-preparo")}
           />
           <StatusCard
-            className="bg-green-500 text-white"
+            className="bg-[#21835D] text-white"
             icone={CheckCircle2}
             titulo="Prontos p/ Despache"
             valor={prontosEntrega.length + prontosRetirada.length}
             onClick={() => rolarPara("sec-prontos")}
           />
           <StatusCard
-            className="bg-blue-600 text-white"
+            className="bg-[#2563EB] text-white"
             icone={Clock}
             titulo="Aguardando"
             valor={aguardandoLista.length}
             onClick={() => rolarPara("sec-fazer")}
           />
           <StatusCard
-            className="bg-purple-500 text-white"
+            className="bg-[#7C3AED] text-white"
             icone={Truck}
             titulo="Despachados hoje"
             valor={despachadosHoje.length}
@@ -1040,7 +1040,7 @@ function Producao() {
             <div className="mt-2 flex items-center gap-4">
               <DonutChart
                 pct={pctProntos}
-                cor="#16a34a"
+                cor="#21835D"
                 rotulo="Prontos"
                 sub={`${prontosCount} de ${totalDia} no fluxo`}
               />
@@ -1073,7 +1073,7 @@ function Producao() {
               <ol className="mt-2 space-y-1">
                 {topProduzidos.map((t, i) => (
                   <li key={t.nome} className="flex items-center gap-2 rounded-lg px-1 py-1">
-                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-yellow-400 text-[11px] font-bold text-black">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-[#C49A43] text-[11px] font-bold text-[#202B3A]">
                       {i + 1}
                     </span>
                     <img
