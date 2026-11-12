@@ -153,23 +153,18 @@ function RootComponent() {
             {ehStaff ? null : (
               <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
                 <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
-                  <p className="font-display text-base text-foreground">Néia Salgados — BUILD FIX 2026-11-11</p>
+                  <p className="font-display text-base text-foreground">Néia Salgados</p>
                   <p className="mt-1">Salgados fritos, assados, congelados e kits para festa.</p>
-                  <p className="mt-1 text-xs opacity-80">
-                    ERP BUILD FIX 2026-11-11
-                  </p>
                   <p className="mt-3 text-xs">
                     © {new Date().getFullYear()} Néia Salgados. Todos os direitos reservados.
                   </p>
                   <p className="mt-3">
-                    <a
-                      href="/auth"
-                      className="text-link underline cursor-pointer"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      to="/auth"
+                      className="rounded-md px-2 py-1 text-xs underline-offset-2 transition-colors hover:bg-muted hover:text-foreground"
                     >
-                      Área interna
-                    </a>
+                      Área Administrativa
+                    </Link>
                   </p>
                 </div>
               </footer>

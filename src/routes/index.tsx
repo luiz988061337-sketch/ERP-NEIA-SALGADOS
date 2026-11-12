@@ -381,17 +381,6 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
           <span className="rounded-full border border-border bg-card px-3 py-1.5">🧊 Congelados vendidos por unidade</span>
           <span className="rounded-full border border-border bg-card px-3 py-1.5">💳 PIX e pagamento na entrega</span>
         </section>
-
-        {/* Rodapé discreto da loja pública — sem menu interno do ERP. */}
-        <footer className="mb-6 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} Néia Salgados</span>
-          <Link
-            to="/auth"
-            className="rounded-md px-2 py-1 transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Área Administrativa
-          </Link>
-        </footer>
       </div>
 
       {totalItens > 0 ? (
