@@ -119,6 +119,8 @@ export function StatusCard({
   valor,
   detalhe,
   onClick,
+  corIcone,
+  corValor,
 }: {
   className?: string;
   icone: LucideIcon;
@@ -126,6 +128,10 @@ export function StatusCard({
   valor: React.ReactNode;
   detalhe?: React.ReactNode;
   onClick?: () => void;
+  /** Cor do ícone (padrão: herda a cor do texto). */
+  corIcone?: string;
+  /** Cor do valor (padrão: herda a cor do texto). */
+  corValor?: string;
 }) {
   return (
     <button
@@ -133,9 +139,11 @@ export function StatusCard({
       onClick={onClick}
       className={`min-h-[88px] rounded-xl p-4 text-left shadow-[var(--shadow-card)] transition-opacity hover:opacity-90 ${className ?? ""}`}
     >
-      <Icone className="size-6" aria-hidden />
+      <Icone className="size-6" style={corIcone ? { color: corIcone } : undefined} aria-hidden />
       <span className="mt-1 block text-sm font-semibold">{titulo}</span>
-      <span className="block font-display text-3xl">{valor}</span>
+      <span className="block font-display text-3xl" style={corValor ? { color: corValor } : undefined}>
+        {valor}
+      </span>
       {detalhe ? <span className="mt-0.5 block text-xs opacity-80">{detalhe}</span> : null}
     </button>
   );
@@ -144,8 +152,8 @@ export function StatusCard({
 /** Anel de progresso SVG puro (sem lib): pct 0-100, rótulo central. */
 export function DonutChart({
   pct,
-  cor = "#eab308",
-  trilho = "#e5e7eb",
+  cor = "#F2CE6B",
+  trilho = "rgba(255,255,255,.08)",
   tamanho = 120,
   grossura = 14,
   rotulo,

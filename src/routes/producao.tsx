@@ -1003,28 +1003,36 @@ function Producao() {
 
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatusCard
-            className="bg-[#C49A43] text-[#202B3A]"
+            className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+            corIcone="#F2CE6B"
+            corValor="#F2CE6B"
             icone={Clock}
             titulo="Em Produção"
             valor={preparoLista.length}
             onClick={() => rolarPara("sec-preparo")}
           />
           <StatusCard
-            className="bg-[#21835D] text-white"
+            className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+            corIcone="#35C97C"
+            corValor="#35C97C"
             icone={CheckCircle2}
             titulo="Prontos p/ Despache"
             valor={prontosEntrega.length + prontosRetirada.length}
             onClick={() => rolarPara("sec-prontos")}
           />
           <StatusCard
-            className="bg-[#2563EB] text-white"
+            className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+            corIcone="#5B93F5"
+            corValor="#5B93F5"
             icone={Clock}
             titulo="Aguardando"
             valor={aguardandoLista.length}
             onClick={() => rolarPara("sec-fazer")}
           />
           <StatusCard
-            className="bg-[#7C3AED] text-white"
+            className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+            corIcone="#A78BFA"
+            corValor="#A78BFA"
             icone={Truck}
             titulo="Despachados hoje"
             valor={despachadosHoje.length}
@@ -1040,7 +1048,7 @@ function Producao() {
             <div className="mt-2 flex items-center gap-4">
               <DonutChart
                 pct={pctProntos}
-                cor="#21835D"
+                cor="#35C97C"
                 rotulo="Prontos"
                 sub={`${prontosCount} de ${totalDia} no fluxo`}
               />

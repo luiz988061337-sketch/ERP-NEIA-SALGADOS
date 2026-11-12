@@ -1606,28 +1606,36 @@ function PedidosAdmin({
 
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatusCard
-          className="bg-[#F5EBD2] text-[#A9813A]"
+          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+          corIcone="#F2CE6B"
+          corValor="#F2CE6B"
           icone={ClipboardList}
           titulo="Total hoje"
           valor={resumoPed.totalHojeFmt}
           detalhe={`${resumoPed.qtdHoje} pedido(s)`}
         />
         <StatusCard
-          className="bg-[#2563EB] text-white"
+          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+          corIcone="#5B93F5"
+          corValor="#5B93F5"
           icone={ChefHat}
           titulo="Em Produção"
           valor={resumoPed.emProd}
           detalhe="hoje"
         />
         <StatusCard
-          className="bg-[#21835D] text-white"
+          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+          corIcone="#35C97C"
+          corValor="#35C97C"
           icone={CheckCircle2}
           titulo="Prontos"
           valor={resumoPed.prontos}
           detalhe="hoje"
         />
         <StatusCard
-          className="bg-[#7C3AED] text-white"
+          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
+          corIcone="#A78BFA"
+          corValor="#A78BFA"
           icone={Truck}
           titulo="Entregues"
           valor={resumoPed.entregues}
