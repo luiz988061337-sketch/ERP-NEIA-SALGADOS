@@ -94,7 +94,8 @@ function RootShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/preview/producao-painel") ||
     pathname.startsWith("/preview/central-entregas-v2") ||
     pathname.startsWith("/preview/pedidos-atendente-v2") ||
-    pathname.startsWith("/preview/l1");
+    pathname.startsWith("/preview/l1") ||
+    pathname.startsWith("/preview-l2");
 
   return (
     <html lang="pt-BR" className={ehStaff ? "erp-admin" : ""}>
@@ -140,7 +141,8 @@ function RootComponent() {
     pathname.startsWith("/preview/producao-painel") ||
     pathname.startsWith("/preview/central-entregas-v2") ||
     pathname.startsWith("/preview/pedidos-atendente-v2") ||
-    pathname.startsWith("/preview/l1");
+    pathname.startsWith("/preview/l1") ||
+    pathname.startsWith("/preview-l2");
 
   return (
     <QueryClientProvider client={queryClient}>

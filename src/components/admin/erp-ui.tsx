@@ -384,3 +384,88 @@ export function ChartCard({
 }
 
 export type BadgeTom = "ok" | "info" | "atencao" | "perigo" | "neutro" | "extra";
+
+/**
+ * Card de métrica do Painel de Gestão (referência oficial):
+ * ícone em QUADRADO colorido à esquerda, label cinza no topo, valor branco
+ * grande e delta colorido à direita.
+ */
+export function PainelMetrica({
+  icone: Icone,
+  label,
+  valor,
+  delta,
+  cor = ERP_COLORS.gold,
+  onClick,
+}: {
+  icone: LucideIcon;
+  label: string;
+  valor: ReactNode;
+  delta?: ReactNode;
+  cor?: string;
+  onClick?: () => void;
+}) {
+  const body = (
+    <>
+      <span
+        className="grid size-9 shrink-0 place-items-center rounded-xl"
+        style={{ backgroundColor: `${cor}26`, color: cor }}
+      >
+        <Icone className="size-[18px]" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="truncate font-display text-xl font-bold leading-tight text-foreground">
+          {valor}
+        </p>
+      </div>
+      {delta ? <div className="shrink-0 text-right">{delta}</div> : null}
+    </>
+  );
+  const cls =
+    "flex min-h-[64px] w-full items-center gap-3 rounded-xl border border-[#D4A94A] bg-[#17150F] p-3 text-left shadow-card transition-colors";
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cn(cls, "hover:border-[#F2CE6B]")}>
+        {body}
+      </button>
+    );
+  }
+  return <div className={cls}>{body}</div>;
+}
+
+/**
+ * Cabeçalho de painel (referência oficial): marca + título em caixa alta +
+ * subtítulo à esquerda, ações/seletor de data à direita. Fundo com fio
+ * dourado separando do corpo do painel.
+ */
+export function PainelCabecalho({
+  titulo,
+  subtitulo,
+  marca,
+  acoes,
+}: {
+  titulo: string;
+  subtitulo?: string;
+  marca?: ReactNode;
+  acoes?: ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#D4A94A] bg-[#17150F] px-4 py-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {marca ? <span className="shrink-0">{marca}</span> : null}
+        <div className="min-w-0">
+          <h1 className="truncate font-display text-lg font-bold uppercase leading-tight tracking-wide text-foreground">
+            {titulo}
+          </h1>
+          {subtitulo ? (
+            <p className="truncate text-xs text-muted-foreground">{subtitulo}</p>
+          ) : null}
+        </div>
+      </div>
+      {acoes ? <div className="flex shrink-0 items-center gap-2">{acoes}</div> : null}
+    </header>
+  );
+}

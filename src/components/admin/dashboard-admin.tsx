@@ -5,14 +5,19 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Banknote,
+  Bike,
   Calculator,
+  CalendarDays,
   ChefHat,
   ChevronRight,
+  Crown,
   Heart,
+  MessageCircle,
   Printer,
   Repeat2,
   Search,
   ShoppingCart,
+  Store,
   TriangleAlert,
   Truck,
   Users,
@@ -27,18 +32,22 @@ import {
   LineChart,
   Pie,
   PieChart,
+  Area,
+  AreaChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { Input } from "@/components/ui/input";
-import { CentralOperacao } from "@/components/central-operacao";
+import { CentralOperacao, PERIODO_LABEL } from "@/components/central-operacao";
 import { StatusBadge } from "@/components/status-steps";
 import { EmptyState } from "@/components/admin/ui-admin";
 import {
   ERP_COLORS,
   MetricCard,
+  PainelCabecalho,
+  PainelMetrica,
   SectionCard,
   ChartCard,
 } from "@/components/admin/erp-ui";
@@ -293,308 +302,379 @@ export function DashboardAdmin({
   );
 
   const tooltipStyle = {
-    background: "#FFFFFF",
-    border: "1px solid #E5E7EB",
-    borderRadius: 8,
+    background: "#17150F",
+    border: "1px solid #D4A94A",
+    borderRadius: 10,
     fontSize: 12,
-    color: "#202B3A",
+    color: "#F4F1EA",
+    boxShadow: "0 8px 24px -10px rgba(0,0,0,.7)",
   } as const;
 
+  /* Canais do donut — mesmos nomes da referência (pedido real por tipo). */
+  const canais = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of doDia) {
+      const key = String(p.tipo_entrega ?? "outros");
+      map.set(key, (map.get(key) ?? 0) + 1);
+    }
+    const ordem = ["entrega", "delivery", "retirada", "balcao", "outros", "encomenda"];
+    const rotulo = (k: string) =>
+      k === "entrega" || k === "delivery"
+        ? "Delivery"
+        : k === "retirada" || k === "balcao"
+          ? "Balcão"
+          : k === "encomenda"
+            ? "Encomendas"
+            : "Outros";
+    return [...map.entries()]
+      .map(([k, v]) => ({
+        key: k,
+        nome: rotulo(k),
+        valor: v,
+        pct: doDia.length > 0 ? Math.round((v / doDia.length) * 100) : 0,
+        cor:
+          k === "entrega" || k === "delivery"
+            ? ERP_COLORS.gold
+            : k === "retirada" || k === "balcao"
+              ? ERP_COLORS.orange
+              : ERP_COLORS.green,
+        icone:
+          k === "entrega" || k === "delivery"
+            ? Bike
+            : k === "retirada" || k === "balcao"
+              ? Store
+              : MessageCircle,
+      }))
+      .sort((a, b) => ordem.indexOf(a.key) - ordem.indexOf(b.key));
+  }, [doDia]);
+
+  const totalPedidos = doDia.length;
+
   return (
-    <div className="flex flex-col gap-4 xl:flex-row">
-      <div className="min-w-0 flex-1 space-y-4">
-        <BuscaGlobal
-          termo={busca}
-          onTermo={setBusca}
-          pedidos={lista}
-          produtos={produtos ?? []}
-          profiles={profiles ?? []}
-          onIrPedido={(numero) => {
-            setPedidoFoco(String(numero));
-            setAba("pedidos");
-          }}
-          onIrProduto={(nome) => {
-            setProdutoFoco(nome);
-            setAba("produtos");
-          }}
-          onIrCliente={(nome) => {
-            setClienteFoco(nome);
-            setAba("clientes");
-          }}
+    <div className="flex flex-col gap-4">
+      {/* ------------------------------------------------------------------
+          PAINEL DE GESTÃO — composição da referência oficial:
+          cabeçalho (marca + título + seletor de data) | 4 métricas |
+          2 gráficos | 3 blocos (mais vendidos, últimos pedidos, alertas)
+      ------------------------------------------------------------------ */}
+      <section className="overflow-hidden rounded-2xl border border-[#D4A94A] bg-[#121110] shadow-card">
+        <PainelCabecalho
+          titulo="Painel de Gestão"
+          subtitulo="Visão completa do seu negócio em tempo real"
+          marca={
+            <span className="grid size-10 place-items-center rounded-xl border border-[#D4A94A] bg-[#1A1712]">
+              <Crown className="size-5 text-[#F2CE6B]" aria-hidden />
+            </span>
+          }
+          acoes={
+            <label className="flex min-h-[40px] items-center gap-2 rounded-xl border border-[#D4A94A] bg-[#1A1712] px-3">
+              <CalendarDays className="size-4 shrink-0 text-[#F2CE6B]" aria-hidden />
+              <span className="text-xs font-medium text-foreground">
+                {dataLonga(new Date())}
+              </span>
+              <select
+                aria-label="Período do painel"
+                value={periodo}
+                onChange={(e) => setPeriodo(e.target.value as PeriodoKey)}
+                className="max-w-[9rem] cursor-pointer bg-transparent text-[11px] uppercase tracking-wide text-muted-foreground outline-none"
+              >
+                {(Object.keys(PERIODO_LABEL) as PeriodoKey[]).map((k) => (
+                  <option key={k} value={k} className="bg-[#17150F] text-foreground">
+                    {PERIODO_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
         />
 
-        {/* Linha 1 — 4 métricas */}
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricCard
-            icone={Banknote}
-            label="Vendas do Dia"
-            valor={brl(fatDia)}
-            detalhe={<Delta delta={dFat} />}
-            onClick={() => setAba("financeiro")}
-          />
-          <MetricCard
-            icone={ShoppingCart}
-            label="Pedidos do Dia"
-            valor={String(doDia.length)}
-            detalhe={<Delta delta={dPedidos} />}
-            cor={ERP_COLORS.blue}
-            onClick={() => setAba("pedidos")}
-          />
-          <MetricCard
-            icone={Calculator}
-            label="Ticket Médio"
-            valor={brl(ticketMedio)}
-            detalhe={doDia.length > 0 ? `${doDia.length} pedido(s)` : "—"}
-            cor={ERP_COLORS.green}
-            onClick={() => setAba("financeiro")}
-          />
-          <MetricCard
-            icone={Users}
-            label="Clientes Ativos"
-            valor={String(ativos30.length)}
-            detalhe="últimos 30 dias"
-            cor={ERP_COLORS.orange}
-            onClick={() => setAba("clientes")}
-          />
-        </div>
-
-        {/* Faixa de status operacionais (dados reais, navegação preservada) */}
-        <div className="flex flex-wrap gap-2">
-          {(
-            [
-              { label: "Novos", v: porStatus.novos, cor: ERP_COLORS.gold },
-              { label: "Em Produção", v: porStatus.producao, cor: ERP_COLORS.blue },
-              { label: "Prontos", v: porStatus.prontos, cor: ERP_COLORS.green },
-              { label: "Em Entrega", v: porStatus.entrega, cor: ERP_COLORS.orange },
-            ] as const
-          ).map((s) => (
-            <button
-              key={s.label}
-              type="button"
+        <div className="space-y-3 p-3 sm:p-4">
+          {/* Linha 1 — 4 métricas */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <PainelMetrica
+              icone={Banknote}
+              label="Vendas do Dia"
+              valor={brl(fatDia)}
+              delta={<Delta delta={dFat} />}
+              cor={ERP_COLORS.green}
+              onClick={() => setAba("financeiro")}
+            />
+            <PainelMetrica
+              icone={ShoppingCart}
+              label="Pedidos"
+              valor={String(totalPedidos)}
+              delta={<Delta delta={dPedidos} />}
+              cor={ERP_COLORS.blue}
               onClick={() => setAba("pedidos")}
-              className="inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-white px-3 py-1.5 text-xs text-[#64748B] transition-colors hover:border-[rgba(196,154,67,.55)]"
-            >
-              <span
-                className="inline-block size-2 rounded-full"
-                style={{ backgroundColor: s.cor }}
-                aria-hidden
-              />
-              {s.label}
-              <b className="font-display text-sm" style={{ color: s.cor }}>
-                {s.v}
-              </b>
-            </button>
-          ))}
-        </div>
+            />
+            <PainelMetrica
+              icone={Calculator}
+              label="Ticket Médio"
+              valor={brl(ticketMedio)}
+              delta={<Delta delta={dPedidos} />}
+              cor={ERP_COLORS.orange}
+              onClick={() => setAba("financeiro")}
+            />
+            <PainelMetrica
+              icone={Users}
+              label="Clientes Ativos"
+              valor={String(ativos30.length)}
+              delta={<Delta delta={dPedidos} />}
+              cor={ERP_COLORS.gold}
+              onClick={() => setAba("clientes")}
+            />
+          </div>
 
-        {/* Linha 2 — 2 gráficos */}
-        <div className="grid gap-3 lg:grid-cols-2">
-          <ChartCard titulo="Vendas por Hora (hoje)" altura="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={porHora} margin={{ left: -12, right: 8, top: 8 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#E5E7EB"
-                />
-                <XAxis
-                  dataKey="rotulo"
-                  tick={{ fontSize: 10, fill: "#64748B" }}
-                  axisLine={{ stroke: "#E5E7EB" }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(1)}k`}
-                  tick={{ fontSize: 10, fill: "#64748B" }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={54}
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  labelStyle={{ color: "#64748B" }}
-                  formatter={(v: number) => [brl(v), "Vendas"]}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="total"
-                  stroke={ERP_COLORS.gold}
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: ERP_COLORS.gold, strokeWidth: 0 }}
-                  activeDot={{ r: 5, fill: ERP_COLORS.gold, strokeWidth: 0 }}
-                  name="Vendas"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-          <ChartCard titulo="Pedidos por Modalidade (hoje)" altura="h-60">
-            {porModalidade.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={porModalidade}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius="52%"
-                    outerRadius="82%"
-                    paddingAngle={3}
-                    stroke="none"
-                  >
-                    {porModalidade.map((m) => (
-                      <Cell key={m.name} fill={m.cor} />
-                    ))}
-                  </Pie>
+          {/* Linha 2 — Vendas por hora + Pedidos por canal */}
+          <div className="grid gap-3 lg:grid-cols-[1.35fr_1fr]">
+            <ChartCard titulo="Vendas por Hora" altura="h-[260px]">
+              <div className="h-[236px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={porHora} margin={{ left: -12, right: 8, top: 10 }}>
+                  <defs>
+                    <linearGradient id="gradVendasHora" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#F2CE6B" stopOpacity={0.42} />
+                      <stop offset="100%" stopColor="#F2CE6B" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(201,162,75,.18)" />
+                  <XAxis
+                    dataKey="rotulo"
+                    tick={{ fontSize: 10, fill: "#A09A8E" }}
+                    axisLine={{ stroke: "rgba(201,162,75,.26)" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(1)}k`}
+                    tick={{ fontSize: 10, fill: "#A09A8E" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={54}
+                  />
                   <Tooltip
                     contentStyle={tooltipStyle}
-                    labelStyle={{ color: "#64748B" }}
-                    formatter={(v: number, name: string) => [`${v} pedido(s)`, name]}
+                    labelStyle={{ color: "#A09A8E" }}
+                    formatter={(v: number) => [brl(v), "Vendas"]}
                   />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={24}
-                    formatter={(value) => (
-                      <span
-                        style={{
-                          color: "#A09A8E",
-                          fontSize: 11,
-                          textTransform: "uppercase",
-                          fontWeight: 600,
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#F2CE6B"
+                    strokeWidth={2.5}
+                    fill="url(#gradVendasHora)"
+                    dot={{ r: 3, fill: "#F2CE6B", strokeWidth: 0 }}
+                    activeDot={{ r: 5, fill: "#F2CE6B", strokeWidth: 0 }}
+                    name="Vendas"
+                  />
+                </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartCard>
+
+            <ChartCard titulo="Pedidos por Canal" altura="h-[260px]">
+              <div className="flex h-[236px] items-center gap-3">
+                <div className="relative h-[210px] w-[48%] min-w-[150px] shrink-0">
+                  {canais.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={canais}
+                          dataKey="valor"
+                          nameKey="nome"
+                          innerRadius="58%"
+                          outerRadius="92%"
+                          paddingAngle={3}
+                          stroke="none"
+                        >
+                          {canais.map((c) => (
+                            <Cell key={c.key} fill={c.cor} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={tooltipStyle}
+                          labelStyle={{ color: "#A09A8E" }}
+                          formatter={(v: number, name: string) => [`${v} pedido(s)`, name]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : null}
+                  <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                    <div className="text-center">
+                      <p className="font-display text-2xl font-bold leading-none text-foreground">
+                        {totalPedidos}
+                      </p>
+                      <p className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        Pedidos
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <ul className="min-w-0 flex-1 space-y-2">
+                  {canais.length > 0 ? (
+                    canais.map((c) => {
+                      const Icone = c.icone;
+                      return (
+                        <li key={c.key} className="flex items-center gap-2">
+                          <span
+                            className="grid size-7 shrink-0 place-items-center rounded-lg"
+                            style={{ backgroundColor: `${c.cor}26`, color: c.cor }}
+                          >
+                            <Icone className="size-3.5" aria-hidden />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-xs text-foreground">
+                            {c.nome}
+                          </span>
+                          <span className="text-xs font-bold text-foreground">{c.pct}%</span>
+                        </li>
+                      );
+                    })
+                  ) : (
+                    <li className="text-xs text-muted-foreground">Sem pedidos no período.</li>
+                  )}
+                </ul>
+              </div>
+            </ChartCard>
+          </div>
+
+          {/* Linha 3 — mais vendidos, últimos pedidos, alertas */}
+          <div className="grid gap-3 lg:grid-cols-3">
+            <SectionCard titulo="Produtos Mais Vendidos">
+              {topProdutos.length > 0 ? (
+                <ol className="space-y-1">
+                  {topProdutos.map((t, i) => {
+                    const prod = prodPorNome.get(t.nome) as any;
+                    const img = prod ? imagemProduto(prod.imagem_url, prod.categorias?.slug) : hero;
+                    return (
+                      <li key={t.nome} className="flex items-center gap-2 rounded-lg px-1 py-1.5">
+                        <img
+                          src={img}
+                          alt=""
+                          className="size-8 shrink-0 rounded-lg object-cover"
+                          loading="lazy"
+                        />
+                        <div className="min-w-0 flex-1 leading-tight">
+                          <p className="truncate text-xs font-semibold text-foreground">{t.nome}</p>
+                          <p className="text-[11px] text-muted-foreground">{t.qtd} un</p>
+                        </div>
+                        <span className="text-xs font-bold text-[#F2CE6B]">{brl(t.total)}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <EmptyState titulo="Sem vendas ainda" />
+              )}
+            </SectionCard>
+
+            <SectionCard
+              titulo="Últimos Pedidos"
+              acoes={
+                <button
+                  type="button"
+                  onClick={() => setAba("pedidos")}
+                  className="text-[11px] text-muted-foreground underline hover:text-foreground"
+                >
+                  Ver todos
+                </button>
+              }
+              bodyClassName="p-0"
+            >
+              {recentes.length > 0 ? (
+                <ul className="divide-y divide-[#2A2721]">
+                  {recentes.map((p: any) => (
+                    <li key={p.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPedidoFoco(String(p.numero));
+                          setAba("pedidos");
                         }}
+                        className="flex min-h-[42px] w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[#1E1C16]"
                       >
-                        {value}
-                      </span>
-                    )}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="grid h-full place-items-center">
-                <EmptyState titulo="Sem pedidos hoje" />
-              </div>
-            )}
-          </ChartCard>
-        </div>
-
-        {/* Linha 3 — 3 cards: últimos pedidos, mais vendidos, alertas */}
-        <div className="grid gap-3 lg:grid-cols-3">
-          <SectionCard
-            titulo="Últimos Pedidos"
-            acoes={
-              <button
-                type="button"
-                onClick={() => setAba("pedidos")}
-                className="text-[11px] text-muted-foreground underline hover:text-foreground"
-              >
-                Ver todos
-              </button>
-            }
-            bodyClassName="p-0"
-          >
-            {recentes.length > 0 ? (
-              <ul className="divide-y divide-[#EEF1F5]">
-                {recentes.map((p: any) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPedidoFoco(String(p.numero));
-                        setAba("pedidos");
-                      }}
-                      className="flex min-h-[46px] w-full items-center gap-2 px-3 py-2 text-left text-xs hover:bg-[#F8F9FA]"
-                    >
-                      <span className="font-display font-bold text-[#A9813A]">#{p.numero}</span>
-                      <span className="min-w-0 flex-1 truncate">{p.cliente_nome}</span>
-                      <span className="font-semibold">{brl(p.total)}</span>
-                      <span className="text-muted-foreground">{hora(p.created_at)}</span>
-                      <StatusBadge status={p.status} />
-                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="p-3">
-                <EmptyState titulo="Nenhum pedido hoje" />
-              </div>
-            )}
-          </SectionCard>
-
-          <SectionCard
-            titulo="Mais Vendidos"
-            acoes={
-              <button
-                type="button"
-                onClick={() => setAba("produtos")}
-                className="text-[11px] text-muted-foreground underline hover:text-foreground"
-              >
-                Ver todos
-              </button>
-            }
-          >
-            {topProdutos.length > 0 ? (
-              <ol className="space-y-1">
-                {topProdutos.map((t, i) => {
-                  const prod = prodPorNome.get(t.nome) as any;
-                  const img = prod ? imagemProduto(prod.imagem_url, prod.categorias?.slug) : hero;
-                  return (
-                    <li key={t.nome} className="flex items-center gap-2 rounded-lg px-1 py-1.5">
-                      <span
-                        className="grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold text-[#202B3A]"
-                        style={{ backgroundColor: ERP_COLORS.gold }}
-                      >
-                        {i + 1}
-                      </span>
-                      <img
-                        src={img}
-                        alt=""
-                        className="size-9 shrink-0 rounded-md object-cover"
-                        loading="lazy"
-                      />
-                      <div className="min-w-0 flex-1 leading-tight">
-                        <p className="truncate text-xs font-semibold">{t.nome}</p>
-                        <p className="text-[11px] text-muted-foreground">{t.qtd} un.</p>
-                      </div>
-                      <span className="text-xs font-bold">{brl(t.total)}</span>
+                        <span
+                          className="inline-block size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: corStatus(p.status) }}
+                          aria-hidden
+                        />
+                        <span className="font-display font-bold text-foreground">#{p.numero}</span>
+                        <span className="text-muted-foreground">{hora(p.created_at)}</span>
+                        <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                          {rotuloCanal(p.tipo_entrega)}
+                        </span>
+                        <span className="font-semibold text-[#F2CE6B]">{brl(p.total)}</span>
+                      </button>
                     </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <EmptyState titulo="Sem vendas ainda" />
-            )}
-          </SectionCard>
+                  ))}
+                </ul>
+              ) : (
+                <div className="p-3">
+                  <EmptyState titulo="Nenhum pedido hoje" />
+                </div>
+              )}
+            </SectionCard>
 
-          <SectionCard titulo="Alertas">
-            {alertas.length > 0 ? (
-              <ul className="space-y-1.5">
-                {alertas.map((a) => (
-                  <li key={a.id}>
-                    <button
-                      type="button"
-                      onClick={() => setAba(a.aba)}
-                      className="flex w-full items-center gap-2 rounded-lg border border-[#E5E7EB] bg-[#F8F9FA] px-2.5 py-2 text-left hover:border-[rgba(196,154,67,.5)]"
-                    >
-                      <TriangleAlert
-                        className="size-4 shrink-0 text-[#B45309]"
-                        aria-hidden
-                      />
-                      <div className="min-w-0 flex-1 leading-tight">
-                        <p className="truncate text-xs font-semibold">{a.titulo}</p>
-                        <p className="truncate text-[11px] text-muted-foreground">{a.desc}</p>
-                      </div>
-                      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="flex items-center gap-2 px-1 py-3 text-xs text-[#21835D]">
-                <span className="inline-block size-2 rounded-full bg-[#21835D]" aria-hidden />
-                Tudo em ordem — nenhum alerta ativo.
-              </p>
-            )}
-          </SectionCard>
+            <SectionCard titulo="Alertas">
+              {alertas.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {alertas.map((a) => (
+                    <li key={a.id}>
+                      <button
+                        type="button"
+                        onClick={() => setAba(a.aba)}
+                        className="flex w-full items-center gap-2 rounded-lg border border-[#2A2721] bg-[#17150F] px-2.5 py-2 text-left hover:border-[#D4A94A]"
+                      >
+                        <span
+                          className="grid size-6 shrink-0 place-items-center rounded-md"
+                          style={{
+                            backgroundColor: `${corAlerta(a.tom)}26`,
+                            color: corAlerta(a.tom),
+                          }}
+                        >
+                          <TriangleAlert className="size-3.5" aria-hidden />
+                        </span>
+                        <div className="min-w-0 flex-1 leading-tight">
+                          <p className="truncate text-xs font-semibold text-foreground">{a.titulo}</p>
+                          <p className="truncate text-[11px] text-muted-foreground">{a.desc}</p>
+                        </div>
+                        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="flex items-center gap-2 px-1 py-3 text-xs text-[#35C97C]">
+                  <span className="inline-block size-2 rounded-full bg-[#35C97C]" aria-hidden />
+                  Tudo em ordem — nenhum alerta ativo.
+                </p>
+              )}
+            </SectionCard>
+          </div>
         </div>
+      </section>
+
+      {/* Blocos funcionais preservados (busca, operação, atalhos, avisos) */}
+      <div className="flex flex-col gap-4 xl:flex-row">
+        <div className="min-w-0 flex-1 space-y-4">
+          <BuscaGlobal
+            termo={busca}
+            onTermo={setBusca}
+            pedidos={lista}
+            produtos={produtos ?? []}
+            profiles={profiles ?? []}
+            onIrPedido={(numero) => {
+              setPedidoFoco(String(numero));
+              setAba("pedidos");
+            }}
+            onIrProduto={(nome) => {
+              setProdutoFoco(nome);
+              setAba("produtos");
+            }}
+            onIrCliente={(nome) => {
+              setClienteFoco(nome);
+              setAba("clientes");
+            }}
+          />
+
 
         <CentralOperacao
           pedidos={lista}
@@ -723,23 +803,74 @@ export function DashboardAdmin({
           </p>
         </div>
       </aside>
+      </div>
     </div>
   );
 }
 
 /** Delta real vs. ontem — sem dado base, mostra "—". */
 function Delta({ delta }: { delta: number | null }) {
-  if (delta == null) return <span>vs. ontem —</span>;
+  if (delta == null) return <span className="text-[10px] text-muted-foreground">vs. ontem —</span>;
   const up = delta >= 0;
   return (
     <span
-      className="inline-flex items-center gap-0.5 font-semibold"
+      className="inline-flex items-center gap-0.5 text-xs font-semibold"
       style={{ color: up ? ERP_COLORS.green : ERP_COLORS.red }}
     >
       {up ? <ArrowUpRight className="size-3" aria-hidden /> : <ArrowDownRight className="size-3" aria-hidden />}
-      {Math.abs(delta).toFixed(0)}% vs. ontem
+      {Math.abs(delta).toFixed(0)}%
     </span>
   );
+}
+
+/** Data por extenso em pt-BR (ex.: "Hoje, 23 de abril de 2026"). */
+function dataLonga(d: Date): string {
+  const hoje = new Date();
+  const mesmoDia = d.toDateString() === hoje.toDateString();
+  const texto = d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+  return mesmoDia ? `Hoje, ${texto}` : texto;
+}
+
+/** Cor do ponto de status do pedido (mesma usada nos badges do sistema). */
+function corStatus(status: string): string {
+  switch (status) {
+    case "pronto":
+      return ERP_COLORS.green;
+    case "em_producao":
+      return ERP_COLORS.blue;
+    case "aguardando_motoboy":
+    case "em_rota":
+      return ERP_COLORS.orange;
+    case "cancelado":
+      return ERP_COLORS.red;
+    default:
+      return ERP_COLORS.gold;
+  }
+}
+
+/** Canal do pedido no mesmo vocabulário da referência. */
+function rotuloCanal(tipo: string | null | undefined): string {
+  const t = String(tipo ?? "").toLowerCase();
+  if (t === "entrega" || t === "delivery") return "Delivery";
+  if (t === "retirada" || t === "balcao") return "Balcão";
+  if (t === "encomenda") return "Encomendas";
+  return "Outros";
+}
+
+/** Cor do ícone do alerta conforme a severidade. */
+function corAlerta(tom: string): string {
+  switch (tom) {
+    case "perigo":
+      return ERP_COLORS.red;
+    case "atencao":
+      return ERP_COLORS.orange;
+    case "info":
+      return ERP_COLORS.blue;
+    case "ok":
+      return ERP_COLORS.green;
+    default:
+      return ERP_COLORS.gold;
+  }
 }
 
 function Acao({

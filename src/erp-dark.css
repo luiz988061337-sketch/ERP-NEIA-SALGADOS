@@ -234,6 +234,33 @@ html.erp-admin ::placeholder {
 }
 
 /* ---------------------------------------------------------------------------
+   2.1 CHIPS DE STATUS DA PALETA TAILWIND (bg-*-100 / text-*-800)
+   Convertem os chips claros (usados em status, etiquetas e avisos) em
+   pastéis escuros com texto vivo — mesma leitura da referência.
+   ------------------------------------------------------------------------- */
+html.erp-admin .bg-yellow-100 { background-color: rgba(245, 166, 35, 0.16); }
+html.erp-admin .bg-green-100 { background-color: rgba(53, 201, 124, 0.16); }
+html.erp-admin .bg-blue-100 { background-color: rgba(91, 147, 245, 0.16); }
+html.erp-admin .bg-amber-100 { background-color: rgba(245, 166, 35, 0.16); }
+html.erp-admin .bg-orange-100 { background-color: rgba(245, 166, 35, 0.16); }
+html.erp-admin .bg-red-100 { background-color: rgba(241, 106, 106, 0.16); }
+html.erp-admin .bg-purple-100 { background-color: rgba(167, 139, 250, 0.16); }
+html.erp-admin .bg-gray-100 { background-color: rgba(255, 255, 255, 0.06); }
+html.erp-admin .bg-amber-50 { background-color: rgba(245, 166, 35, 0.08); }
+html.erp-admin .border-amber-300 { border-color: rgba(212, 169, 74, 0.45); }
+html.erp-admin .border-amber-200 { border-color: rgba(212, 169, 74, 0.35); }
+
+html.erp-admin .text-yellow-800,
+html.erp-admin .text-yellow-900,
+html.erp-admin .text-amber-800 { color: #f5b301; }
+html.erp-admin .text-green-800 { color: #35c97c; }
+html.erp-admin .text-blue-800 { color: #5b93f5; }
+html.erp-admin .text-orange-800 { color: #f5a623; }
+html.erp-admin .text-red-800 { color: #f16a6a; }
+html.erp-admin .text-purple-800 { color: #a78bfa; }
+html.erp-admin .text-gray-800 { color: #a09a8e; }
+
+/* ---------------------------------------------------------------------------
    3. DETALHES PREMIUM — molduras com brilho dourado, títulos e gradientes
    ------------------------------------------------------------------------- */
 

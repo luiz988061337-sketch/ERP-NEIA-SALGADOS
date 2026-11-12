@@ -144,7 +144,10 @@ export function CentralOperacao({ pedidos, produtos, clientes, periodo, setPerio
           <div className="mt-3 flex h-28 items-end gap-1.5" role="img" aria-label="Gráfico de vendas por dia">
             {porDia.map((d) => (
               <div key={d.label} className="flex flex-1 flex-col items-center gap-1" title={`${d.label}: ${brl(d.vendas)} (${d.qtd})`}>
-                <div className={cn("w-full rounded-t bg-primary/80")} style={{ height: `${Math.max(4, (d.vendas / maxV) * 100)}px` }} />
+                <div
+                  className="w-full max-w-[42px] rounded-t-md bg-gradient-to-t from-[#8A6A24] to-[#F2CE6B]"
+                  style={{ height: `${Math.max(4, (d.vendas / maxV) * 100)}px` }}
+                />
                 <span className="text-[10px] text-muted-foreground">{d.label}</span>
               </div>
             ))}
