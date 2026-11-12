@@ -9,6 +9,7 @@ import { useRoles, useSession } from "@/lib/session";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { PageHeader } from "@/components/admin/ui-admin";
+import { DarkTable, DarkTableRow, SectionCard } from "@/components/admin/erp-ui";
 import { brl, dataHora } from "@/lib/format";
 import {
   SEGMENTO_LABEL,
@@ -305,21 +306,31 @@ function Clientes() {
 
         <RankingClientes nomes={nomesMap} />
 
-        <ul className="mt-4 space-y-2">
+        <SectionCard
+          titulo="Lista de Clientes"
+          acoes={<span className="text-[10px] uppercase text-muted-foreground">{filtrados.length} registro(s)</span>}
+          className="mt-4"
+          bodyClassName="p-0"
+        >
+        <DarkTable
+          colunas={[
+            "",
+            "Cliente",
+            "WhatsApp",
+            "Pedidos",
+            "Total",
+            "Últ. pedido",
+            "Detalhes",
+          ]}
+        >
           {filtrados.map((c) => {
             const vip = settings ? isVipCfg(c.total_gasto, c.total_pedidos, settings) : false;
             const freq = settings ? isFrequenteCfg(c.total_pedidos, settings) : false;
             const dRec = settings?.recompra_ativa === false ? null : diasParaRecompra(c);
             const dAniv = diasParaAniversario(nascMap?.get(c.telefone_norm));
             return (
-              <li
-                key={c.telefone_norm}
-                className={cn(
-                  "rounded-xl border border-border bg-card p-3",
-                  c.opt_out && "opacity-70",
-                )}
-              >
-                <div className="flex items-center gap-3">
+              <DarkTableRow key={c.telefone_norm} >
+                <td className="px-2.5 py-2">
                   <input
                     type="checkbox"
                     checked={selecionados.has(c.telefone_norm)}
@@ -332,57 +343,52 @@ function Clientes() {
                       })
                     }
                     aria-label={`Selecionar ${c.nome}`}
-                    className="size-5"
+                    className="size-4"
                   />
-                  <div className="flex-1">
-                    <p className="font-semibold">
-                      {c.nome_fantasia || c.nome}{" "}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground">
-                        {SEGMENTO_LABEL[c.segmento]}
-                      </span>
-                      {c.tipo_cliente === "PJ" ? (
-                        <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs">
-                          🏢 Empresa
-                        </span>
-                      ) : null}
-                      {vip ? (
-                        <span className="ml-1 rounded bg-secondary px-1.5 py-0.5 text-xs">
-                          ⭐ VIP
-                        </span>
-                      ) : null}
-                      {freq && !vip ? (
-                        <span className="ml-1 rounded bg-muted px-1.5 py-0.5 text-xs">
-                          🔁 Frequente
-                        </span>
-                      ) : null}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.telefone_display} • {c.total_pedidos} pedidos • {brl(c.total_gasto)} •
-                      último há {c.dias_sem_comprar ?? "-"} dias (
-                      {c.ultimo_pedido ? dataHora(c.ultimo_pedido) : "-"})
-                      {c.opt_out ? " • 📵 não enviar" : ""}
-                      {dRec != null
-                        ? ` • 🟣 recompra est. ${dRec <= 0 ? "agora" : `em ${dRec}d`}`
-                        : ""}
-                      {dAniv != null && dAniv <= 30 ? ` • 🎂 em ${dAniv}d` : ""}
-                    </p>
-                  </div>
+                </td>
+                <td className={cn("px-2.5 py-2", c.opt_out && "opacity-70")}>
+                  <p className="font-semibold">
+                    {c.nome_fantasia || c.nome}
+                  </p>
+                  <p className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                    {SEGMENTO_LABEL[c.segmento]}
+                    {c.tipo_cliente === "PJ" ? <span>• 🏢 Empresa</span> : null}
+                    {vip ? <span className="text-[#F4B942]">• ⭐ VIP</span> : null}
+                    {freq && !vip ? <span>• 🔁 Frequente</span> : null}
+                    {c.opt_out ? <span>• 📵 não enviar</span> : null}
+                    {dRec != null ? (
+                      <span>• 🟣 recompra est. {dRec <= 0 ? "agora" : `em ${dRec}d`}</span>
+                    ) : null}
+                    {dAniv != null && dAniv <= 30 ? <span>• 🎂 em {dAniv}d</span> : null}
+                  </p>
+                </td>
+                <td className="px-2.5 py-2 whitespace-nowrap">{c.telefone_display}</td>
+                <td className="px-2.5 py-2">{c.total_pedidos}</td>
+                <td className="px-2.5 py-2 font-semibold">{brl(c.total_gasto)}</td>
+                <td className="px-2.5 py-2 text-[11px] text-muted-foreground">
+                  {c.ultimo_pedido ? dataHora(c.ultimo_pedido) : "-"}
+                  <span className="block">
+                    há {c.dias_sem_comprar ?? "-"} dias
+                  </span>
+                </td>
+                <td className="px-2.5 py-2">
                   <Button size="sm" variant="outline" onClick={() => setDetalhe(c)}>
                     Detalhes
                   </Button>
-                </div>
-                {detalhe?.telefone_norm === c.telefone_norm ? (
-                  <DetalheCliente
-                    c={c}
-                    settings={settings}
-                    onFechar={() => setDetalhe(null)}
-                    onOptOut={() => salvarOptOut(c, !c.opt_out)}
-                  />
-                ) : null}
-              </li>
+                </td>
+              </DarkTableRow>
             );
           })}
-        </ul>
+        </DarkTable>
+        </SectionCard>
+        {detalhe ? (
+          <DetalheCliente
+            c={detalhe}
+            settings={settings}
+            onFechar={() => setDetalhe(null)}
+            onOptOut={() => salvarOptOut(detalhe, !detalhe.opt_out)}
+          />
+        ) : null}
         {!isLoading && filtrados.length === 0 ? (
           <p className="p-8 text-center text-muted-foreground">Nenhum cliente neste filtro.</p>
         ) : null}

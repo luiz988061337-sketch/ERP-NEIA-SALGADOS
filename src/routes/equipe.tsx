@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { EmptyState, PageHeader } from "@/components/admin/ui-admin";
+import { DarkTable, DarkTableRow } from "@/components/admin/erp-ui";
 import { brl } from "@/lib/format";
 import { faixaCompetencia, hojeSP } from "@/lib/competencia";
 import { logAdmin } from "@/lib/operacao";
@@ -429,29 +430,60 @@ function Equipe() {
         {staff ? (
           <>
             <section className="rounded-xl border border-border bg-card p-4">
-              <h2 className="font-display text-xl">Funcionários</h2>
-              <ul className="mt-2 divide-y divide-border">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-display text-xl">Funcionários</h2>
+                <span className="ml-auto rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold">
+                  {(funcs ?? []).length} registro(s)
+                </span>
+              </div>
+              <DarkTable
+                className="mt-2"
+                colunas={[
+                  "Funcionário",
+                  "Função",
+                  "Remuneração",
+                  "Login",
+                  "Status",
+                  "Ações",
+                ]}
+                vazio={(funcs ?? []).length === 0 ? "Nenhum funcionário." : undefined}
+              >
                 {(funcs ?? []).map((f: any) => (
-                  <li key={f.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                    <div className="min-w-0 flex-1">
-                      <span className="block font-semibold">
-                        {f.nome} {f.ativo ? "" : "(inativo)"}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {f.funcao} • {f.tipo_remuneracao} {brl(f.valor)}{" "}
-                        {f.user_id ? "• login vinculado" : "• sem login"}
-                      </span>
-                    </div>
-                    {!f.user_id ? <VincularBox onOk={(email) => vincular(f.id, email)} /> : null}
-                    <Button size="sm" variant="outline" onClick={() => gerarFolha(f.id)}>
-                      Gerar folha {mes}
-                    </Button>
-                  </li>
+                  <DarkTableRow key={f.id}>
+                    <td className="px-2.5 py-2 font-semibold">{f.nome}</td>
+                    <td className="px-2.5 py-2">{f.funcao || "—"}</td>
+                    <td className="px-2.5 py-2 whitespace-nowrap">
+                      {f.tipo_remuneracao} {brl(f.valor)}
+                    </td>
+                    <td className="px-2.5 py-2">
+                      {f.user_id ? (
+                        <span className="text-[#2ED988]">vinculado</span>
+                      ) : (
+                        <span className="text-muted-foreground">sem login</span>
+                      )}
+                    </td>
+                    <td className="px-2.5 py-2">
+                      {f.ativo ? (
+                        <span className="rounded-full bg-[rgba(17,185,106,.12)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#2ED988]">
+                          Ativo
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-[rgba(255,255,255,.06)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#90989C]">
+                          Inativo
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-2.5 py-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {!f.user_id ? <VincularBox onOk={(email) => vincular(f.id, email)} /> : null}
+                        <Button size="sm" variant="outline" onClick={() => gerarFolha(f.id)}>
+                          Gerar folha {mes}
+                        </Button>
+                      </div>
+                    </td>
+                  </DarkTableRow>
                 ))}
-                {(funcs ?? []).length === 0 ? (
-                  <li className="py-2 text-sm text-muted-foreground">Nenhum funcionário.</li>
-                ) : null}
-              </ul>
+              </DarkTable>
               <form onSubmit={salvarFunc} className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
                 <div className="space-y-1">
                   <Label>Nome *</Label>

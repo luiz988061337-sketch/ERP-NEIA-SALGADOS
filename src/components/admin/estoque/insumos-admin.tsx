@@ -8,16 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
+import { DarkTable, DarkTableRow, SectionCard, StatusBadge, type BadgeTom } from "@/components/admin/erp-ui";
 import { alertaEstoque } from "@/lib/lotes";
 import { converterUnidade, sugestaoCompra } from "@/lib/insumos";
 
 const UNIDADES = ["g", "kg", "ml", "l", "un"] as const;
 
-const STATUS_COR: Record<string, string> = {
-  ok: "bg-green-100 text-green-800",
-  baixo: "bg-yellow-100 text-yellow-800",
-  critico: "bg-orange-100 text-orange-800",
-  zerado: "bg-red-100 text-red-800",
+const STATUS_TOM: Record<string, BadgeTom> = {
+  ok: "ok",
+  baixo: "atencao",
+  critico: "atencao",
+  zerado: "perigo",
 };
 
 /** Aba Insumos: cadastro, lotes FEFO, perda/ajuste, inventário, movimentações, sugestão de compra. */
@@ -206,31 +207,63 @@ export function InsumosAdmin() {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="font-display text-xl">Insumos</h2>
-        <p className="text-xs text-muted-foreground">Busca, unidade base, mínimo, custo médio e validade mais próxima.</p>
-        <div className="mt-3">
+      <SectionCard
+        titulo="Insumos"
+        acoes={<span className="text-[10px] uppercase text-muted-foreground">{lista.length} item(ns)</span>}
+        bodyClassName="p-0"
+      >
+        <div className="p-3 pb-0">
           <Input placeholder="Buscar insumo…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <ul className="mt-3 divide-y divide-border">
+        <DarkTable
+          className="mt-3"
+          colunas={[
+            "Produto",
+            "Categoria",
+            "Estoque",
+            "Mínimo",
+            "Custo médio",
+            "Status",
+            "Ações",
+          ]}
+          vazio={lista.length === 0 ? "Nenhum insumo. Cadastre abaixo." : undefined}
+        >
           {lista.map((i: any) => {
             const st = alertaEstoque(Number(i.estoque_atual ?? 0), Number(i.estoque_minimo ?? 0));
             return (
-              <li key={i.id} className="flex items-center gap-2 py-2">
-                <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setFoco(foco?.id === i.id ? null : i)}>
-                  <span className="block truncate text-sm font-semibold">{i.nome}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {i.estoque_atual} {i.unidade_base} • mín {i.estoque_minimo} • R$ {Number(i.custo_medio ?? 0).toFixed(4)}/{i.unidade_base}
-                  </span>
-                </button>
-                <Badge className={STATUS_COR[st]}>{st}</Badge>
-                <Button size="sm" variant="ghost" onClick={() => setEditando(i)}>Editar</Button>
-              </li>
+              <DarkTableRow key={i.id}>
+                <td className="px-2.5 py-2">
+                  <button
+                    type="button"
+                    className="text-left font-semibold hover:text-[#F4B942]"
+                    onClick={() => setFoco(foco?.id === i.id ? null : i)}
+                  >
+                    {i.nome}
+                  </button>
+                </td>
+                <td className="px-2.5 py-2 text-muted-foreground">{i.categoria || "—"}</td>
+                <td className="px-2.5 py-2 font-semibold whitespace-nowrap">
+                  {i.estoque_atual} {i.unidade_base}
+                </td>
+                <td className="px-2.5 py-2 whitespace-nowrap text-muted-foreground">
+                  {i.estoque_minimo} {i.unidade_base}
+                </td>
+                <td className="px-2.5 py-2 whitespace-nowrap text-muted-foreground">
+                  R$ {Number(i.custo_medio ?? 0).toFixed(4)}/{i.unidade_base}
+                </td>
+                <td className="px-2.5 py-2">
+                  <StatusBadge tom={STATUS_TOM[st] ?? "neutro"}>{st}</StatusBadge>
+                </td>
+                <td className="px-2.5 py-2">
+                  <Button size="sm" variant="ghost" onClick={() => setEditando(i)}>
+                    Editar
+                  </Button>
+                </td>
+              </DarkTableRow>
             );
           })}
-          {lista.length === 0 && <li className="py-4 text-sm text-muted-foreground">Nenhum insumo. Cadastre abaixo.</li>}
-        </ul>
-      </section>
+        </DarkTable>
+      </SectionCard>
 
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="font-display text-xl">{editando?.id ? "Editar insumo" : "Novo insumo"}</h2>

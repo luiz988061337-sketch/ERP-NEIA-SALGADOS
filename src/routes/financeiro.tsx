@@ -5,9 +5,21 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ArrowDownCircle, ArrowUpCircle, Wallet } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { PageHeader } from "@/components/admin/ui-admin";
+import { ERP_COLORS, MetricCard, ChartCard } from "@/components/admin/erp-ui";
 import { brl } from "@/lib/format";
 import { faixaCompetencia } from "@/lib/competencia";
 import { downloadCSV } from "@/lib/export";
@@ -395,6 +407,41 @@ function Financeiro() {
     return { rec, pag, saldo: rec - pag };
   }, [contas]);
 
+  /* Fluxo de caixa mensal (gráfico): entradas = pedidos pagos no mês (fin-pedidos);
+     saídas = contas a pagar quitadas no mês (pago_em real). Últimos 6 meses. */
+  const fluxoMensal = useMemo(() => {
+    const meses: { chave: string; rotulo: string; entradas: number; saidas: number }[] = [];
+    const base = new Date();
+    base.setDate(1);
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      meses.push({
+        chave: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+        rotulo: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        entradas: 0,
+        saidas: 0,
+      });
+    }
+    const idx = new Map(meses.map((m, i) => [m.chave, i]));
+    for (const p of pedidos ?? []) {
+      if (p.pagamento_status !== "pago" || p.status === "cancelado") continue;
+      const m = String(p.created_at ?? "").slice(0, 7);
+      const cell = idx.get(m) != null ? meses[idx.get(m) as number] : undefined;
+      if (cell) cell.entradas += Number(p.total ?? 0) || 0;
+    }
+    for (const c of contasComStatus) {
+      if (c.tipo !== "pagar" || !c.pago_em) continue;
+      const pago = Number(c.valor_pago ?? c.valor ?? 0) || 0;
+      if (pago <= 0) continue;
+      const cell = idx.get(String(c.pago_em).slice(0, 7)) != null
+        ? meses[idx.get(String(c.pago_em).slice(0, 7)) as number]
+        : undefined;
+      if (cell) cell.saidas += pago;
+    }
+    return meses;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidos, contas]);
+
   async function abrirCaixa(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -613,6 +660,78 @@ function Financeiro() {
             />
           }
         />
+
+        {/* Linha 1 — 3 métricas do caixa (dados reais da sessão aberta) */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MetricCard
+            icone={ArrowUpCircle}
+            label="Entradas"
+            valor={brl(entPedidos + entContas)}
+            detalhe="dinheiro recebido no período"
+            cor={ERP_COLORS.green}
+          />
+          <MetricCard
+            icone={ArrowDownCircle}
+            label="Saídas"
+            valor={brl(saiContas)}
+            detalhe="dinheiro pago no período"
+            cor={ERP_COLORS.red}
+          />
+          <MetricCard
+            icone={Wallet}
+            label="Saldo"
+            valor={caixaAberto ? brl(esperado) : "—"}
+            detalhe={caixaAberto ? "caixa aberto (esperado)" : "caixa fechado"}
+            cor={ERP_COLORS.goldBright}
+          />
+        </div>
+
+        {/* Linha 2 — gráfico de fluxo de caixa mensal */}
+        <ChartCard titulo="Fluxo de Caixa (últimos 6 meses)" altura="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={fluxoMensal} margin={{ left: -8, right: 8, top: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,.08)" />
+              <XAxis
+                dataKey="rotulo"
+                tick={{ fontSize: 11, fill: "#90989C" }}
+                axisLine={{ stroke: "rgba(255,255,255,.15)" }}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(0)}k`}
+                tick={{ fontSize: 10, fill: "#90989C" }}
+                axisLine={false}
+                tickLine={false}
+                width={56}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "#1A1E20",
+                  border: "1px solid rgba(255,255,255,.1)",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "#F6F7F7",
+                }}
+                labelStyle={{ color: "#C7CCCE" }}
+                formatter={(v: number, name: string) => [brl(v), name]}
+              />
+              <Legend
+                formatter={(value) => (
+                  <span style={{ color: "#C7CCCE", fontSize: 11, textTransform: "uppercase" }}>
+                    {value}
+                  </span>
+                )}
+              />
+              <Bar
+                dataKey="entradas"
+                name="Entradas"
+                fill={ERP_COLORS.green}
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar dataKey="saidas" name="Saídas" fill={ERP_COLORS.red} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
 
         <section className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-2">
