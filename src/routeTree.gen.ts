@@ -55,6 +55,7 @@ import { Route as PreviewCentralEntregasV2RouteImport } from './routes/preview/c
 import { Route as PreviewCheckoutRouteImport } from './routes/preview/checkout'
 import { Route as PreviewComboRouteImport } from './routes/preview/combo'
 import { Route as PreviewCozinhaInteligenteRouteImport } from './routes/preview/cozinha-inteligente'
+import { Route as PreviewFinanceiroPremiumRouteImport } from './routes/preview/financeiro-premium'
 import { Route as PreviewL1EntregasRouteImport } from './routes/preview/l1-entregas'
 import { Route as PreviewL1GestaoRouteImport } from './routes/preview/l1-gestao'
 import { Route as PreviewL1PdvRouteImport } from './routes/preview/l1-pdv'
@@ -312,6 +313,12 @@ const PreviewCozinhaInteligenteRoute =
     path: '/cozinha-inteligente',
     getParentRoute: () => PreviewRoute,
   } as any)
+const PreviewFinanceiroPremiumRoute =
+  PreviewFinanceiroPremiumRouteImport.update({
+    id: '/financeiro-premium',
+    path: '/financeiro-premium',
+    getParentRoute: () => PreviewRoute,
+  } as any)
 const PreviewL1EntregasRoute = PreviewL1EntregasRouteImport.update({
   id: '/l1-entregas',
   path: '/l1-entregas',
@@ -477,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/financeiro-premium': typeof PreviewFinanceiroPremiumRoute
   '/preview/l1-entregas': typeof PreviewL1EntregasRoute
   '/preview/l1-gestao': typeof PreviewL1GestaoRoute
   '/preview/l1-pdv': typeof PreviewL1PdvRoute
@@ -547,6 +555,7 @@ export interface FileRoutesByTo {
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/financeiro-premium': typeof PreviewFinanceiroPremiumRoute
   '/preview/l1-entregas': typeof PreviewL1EntregasRoute
   '/preview/l1-gestao': typeof PreviewL1GestaoRoute
   '/preview/l1-pdv': typeof PreviewL1PdvRoute
@@ -619,6 +628,7 @@ export interface FileRoutesById {
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
+  '/preview/financeiro-premium': typeof PreviewFinanceiroPremiumRoute
   '/preview/l1-entregas': typeof PreviewL1EntregasRoute
   '/preview/l1-gestao': typeof PreviewL1GestaoRoute
   '/preview/l1-pdv': typeof PreviewL1PdvRoute
@@ -692,6 +702,7 @@ export interface FileRouteTypes {
     | '/preview/checkout'
     | '/preview/combo'
     | '/preview/cozinha-inteligente'
+    | '/preview/financeiro-premium'
     | '/preview/l1-entregas'
     | '/preview/l1-gestao'
     | '/preview/l1-pdv'
@@ -762,6 +773,7 @@ export interface FileRouteTypes {
     | '/preview/checkout'
     | '/preview/combo'
     | '/preview/cozinha-inteligente'
+    | '/preview/financeiro-premium'
     | '/preview/l1-entregas'
     | '/preview/l1-gestao'
     | '/preview/l1-pdv'
@@ -833,6 +845,7 @@ export interface FileRouteTypes {
     | '/preview/checkout'
     | '/preview/combo'
     | '/preview/cozinha-inteligente'
+    | '/preview/financeiro-premium'
     | '/preview/l1-entregas'
     | '/preview/l1-gestao'
     | '/preview/l1-pdv'
@@ -1226,6 +1239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewCozinhaInteligenteRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/financeiro-premium': {
+      id: '/preview/financeiro-premium'
+      path: '/financeiro-premium'
+      fullPath: '/preview/financeiro-premium'
+      preLoaderRoute: typeof PreviewFinanceiroPremiumRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/l1-entregas': {
       id: '/preview/l1-entregas'
       path: '/l1-entregas'
@@ -1398,6 +1418,7 @@ interface PreviewRouteChildren {
   PreviewCheckoutRoute: typeof PreviewCheckoutRoute
   PreviewComboRoute: typeof PreviewComboRoute
   PreviewCozinhaInteligenteRoute: typeof PreviewCozinhaInteligenteRoute
+  PreviewFinanceiroPremiumRoute: typeof PreviewFinanceiroPremiumRoute
   PreviewL1EntregasRoute: typeof PreviewL1EntregasRoute
   PreviewL1GestaoRoute: typeof PreviewL1GestaoRoute
   PreviewL1PdvRoute: typeof PreviewL1PdvRoute
@@ -1430,6 +1451,7 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewCheckoutRoute: PreviewCheckoutRoute,
   PreviewComboRoute: PreviewComboRoute,
   PreviewCozinhaInteligenteRoute: PreviewCozinhaInteligenteRoute,
+  PreviewFinanceiroPremiumRoute: PreviewFinanceiroPremiumRoute,
   PreviewL1EntregasRoute: PreviewL1EntregasRoute,
   PreviewL1GestaoRoute: PreviewL1GestaoRoute,
   PreviewL1PdvRoute: PreviewL1PdvRoute,
