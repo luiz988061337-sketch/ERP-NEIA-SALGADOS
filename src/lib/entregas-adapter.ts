@@ -34,6 +34,14 @@ export type Indicador = {
 export const ENV = (import.meta as any).env || {};
 
 export const isDemo = ENV.VITE_DEMO_ENTREGAS === "on" || true; // default demo
+export const isStaging = ENV.VITE_ENTREGAS_MODE === "staging" && ENV.VITE_SUPABASE_PROJECT !== "ruioyioynwwwiqbjznoa";
+export const isOperational = ENV.VITE_ENTREGAS_MODE === "operational";
+
+export function assertSafeEnv() {
+  if (ENV.VITE_SUPABASE_PROJECT === "ruioyioynwwwiqbjznoa") {
+    throw new Error("Bloqueio de segurança: destino é produção");
+  }
+}
 
 export async function fetchIndicadores(): Promise<Indicador[]> {
   if (isDemo) {
@@ -44,9 +52,19 @@ export async function fetchIndicadores(): Promise<Indicador[]> {
       { label: "Saídas previstas hoje", value: "8", info: "A partir de 10:00" },
     ];
   }
-  // TODO: integrar leitura autorizada
+  if (isStaging) {
+    assertSafeEnv();
+    // TODO: leitura real via Supabase
+    return [];
+  }
   return [];
 }
+
+export async function fetchPedidosElegiveis() { if (isDemo) return []; if (isStaging){ assertSafeEnv(); return []; } return []; }
+export async function fetchPedidosProntos() { if (isDemo) return []; if (isStaging){ assertSafeEnv(); return []; } return []; }
+export async function fetchRotasEmAndamento() { if (isDemo) return []; if (isStaging){ assertSafeEnv(); return []; } return []; }
+export async function fetchMotoboysDisponiveis() { if (isDemo) return []; if (isStaging){ assertSafeEnv(); return []; } return []; }
+export async function fetchPendenciasConferencia() { if (isDemo) return []; if (isStaging){ assertSafeEnv(); return []; } return []; }
 
 export async function fetchRotaAtiva(): Promise<RotaResumo> {
   if (isDemo) {
@@ -63,6 +81,10 @@ export async function fetchRotaAtiva(): Promise<RotaResumo> {
         { id: "p3", numero: "#4603", cliente: "Luciana Melo", bairro: "Centro", status: "Pronto", pagamento: "Cartão", conferido: true, prazo: "13:15" },
       ],
     };
+  }
+  if (isStaging) {
+    assertSafeEnv();
+    throw new Error("Integração staging não configurada");
   }
   throw new Error("Integração ainda simulada");
 }
