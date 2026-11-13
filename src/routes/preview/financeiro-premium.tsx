@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { useMemo, useState } from "react";
-import { TrendingUp, TrendingDown, DollarSign, Target, Shield, Wallet, AlertTriangle, CheckCircle2, Plus, Search } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Target, Shield, Wallet, AlertTriangle, CheckCircle2, Plus, Search, ShoppingCart, FileText } from "lucide-react";
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 export const Route = createFileRoute("/preview/financeiro-premium")({
@@ -145,13 +145,17 @@ function FinanceiroPremium() {
     return list;
   }, [dadosBase.saldoCaixa, contasPagar, contasReceber, calc, caixaAberto, valorContado, saldoInicial, saldoCaixaCalc]);
 
+  const peValido = isFinite(calc.pe) && calc.pe > 0;
+  const abaixoDoPe = peValido && calc.receita < calc.pe;
+  const resultadoNegativo = calc.resultado < 0;
+
   const indicadores = [
-    { label: "Faturamento líquido", valor: brl(calc.receita), var: "+12,6%", up: true },
-    { label: "Custos e despesas", valor: brl(calc.variais + calc.fixos), var: "+8,9%", up: true },
-    { label: "Resultado estimado", valor: brl(calc.resultado), var: "+20,4%", up: true },
-    { label: "Saldo de caixa", valor: brl(dadosBase.saldoCaixa), sub: "Disponível" },
-    { label: "Ponto de equilíbrio", valor: isFinite(calc.pe) ? brl(calc.pe) : "—", sub: "mês" },
-    { label: "Margem de segurança", valor: `${(calc.margemSeg*100).toFixed(1)}%`, sub: calc.margemSeg>0.2?"Acima do ideal":"Atenção" },
+    { label: "Faturamento líquido", valor: brl(calc.receita), var: "+12,6%", up: true, icon: <TrendingUp className="size-5 text-[#F2CE6B]"/> },
+    { label: "Custos e despesas", valor: brl(calc.variais + calc.fixos), var: "+8,9%", up: false, icon: <FileText className="size-5 text-[#F2CE6B]"/> },
+    { label: "Resultado estimado", valor: brl(calc.resultado), var: resultadoNegativo ? "Prejuízo" : "Lucro", up: !resultadoNegativo, icon: <DollarSign className="size-5 text-[#F2CE6B]"/> },
+    { label: "Saldo de caixa", valor: brl(dadosBase.saldoCaixa), sub: "Disponível", icon: <Wallet className="size-5 text-[#F2CE6B]"/> },
+    { label: "Ponto de equilíbrio", valor: peValido ? brl(calc.pe) : "Não calculável", sub: peValido ? "mês" : "margem insuficiente", icon: <Target className="size-5 text-[#F2CE6B]"/> },
+    { label: "Margem de segurança", valor: `${(calc.margemSeg*100).toFixed(1)}%`, sub: !peValido ? "Não calculável" : (abaixoDoPe ? "Abaixo do ponto" : (calc.margemSeg>0.2?"Acima do ideal":"Atenção")), icon: <Shield className="size-5 text-[#F2CE6B]"/> },
   ];
 
   const filtrados = lancamentos.filter(l => l.descricao.toLowerCase().includes(filtro.toLowerCase()));
@@ -216,22 +220,28 @@ function FinanceiroPremium() {
 
   return (
     <AdminShell aba="financeiro" onAba={() => {}} onRefresh={() => {}} usuario="preview@neia.local" modoPreview>
-      <div className="min-h-screen bg-background p-3 sm:p-4">
+      <div className="min-h-screen p-3 sm:p-4">
         <div className="mx-auto max-w-[1600px]">
           <p className="mb-3 rounded-lg border border-[#D4A94A] bg-[#17150F] px-3 py-2 text-xs text-[#F2CE6B]">
             PRÉVIA — Financeiro Premium. Dados demonstrativos locais, sem gravação.
           </p>
           <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <h1 className="font-display text-2xl font-extrabold text-[#F2CE6B]">FINANCEIRO — VISÃO GERAL</h1>
-            <div className="text-xs border border-[#D4A94A]/40 rounded-full px-4 py-2 bg-[#141310]">Período: {periodo} • Dados demonstrativos</div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block px-2 py-0.5 rounded border border-[#D4A94A]/40 text-[10px] text-[#F2CE6B]/80">PRÉVIA</span>
+              <div className="text-xs border border-[#D4A94A]/40 rounded-full px-4 py-2 bg-[#141310]">Período: {periodo} • Dados demonstrativos</div>
+            </div>
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
             {indicadores.map((i, k) => (
               <div key={k} className="rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4">
-                <div className="text-xs uppercase tracking-wide text-[#F2CE6B]/70">{i.label}</div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="p-1.5 rounded bg-[#1A1712] border border-[#D4A94A]/30">{i.icon}</div>
+                  <div className="text-xs uppercase tracking-wide text-[#F2CE6B]/70">{i.label}</div>
+                </div>
                 <div className="text-xl font-extrabold mt-1">{i.valor}</div>
-                {i.var && <div className={`text-xs mt-1 ${i.up ? "text-green-400" : "text-red-400"}`}>{i.var} (mês anterior)</div>}
+                {i.var && <div className={`text-xs mt-1.5 ${i.up ? "text-green-400" : "text-red-400"}`}>{i.var}</div>}
                 {i.sub && <div className="text-[11px] text-muted-foreground mt-1">{i.sub}</div>}
               </div>
             ))}
@@ -258,10 +268,10 @@ function FinanceiroPremium() {
             <div className="rounded-2xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-4">
               <div className="font-bold mb-2">PONTO DE EQUILÍBRIO (RESUMO)</div>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span>Mensal:</span><b>R$ 18.500,00</b></div>
-                <div className="flex justify-between"><span>Diário (média):</span><b>R$ 620,00</b></div>
-                <div className="flex justify-between"><span>Faturamento no mês:</span><b>R$ 72.450,00</b></div>
-                <div className="flex justify-between"><span>Situação:</span><span className="text-green-400">Acima do ponto</span></div>
+                <div className="flex justify-between"><span>Mensal:</span><b>{peValido ? brl(calc.pe) : "Não calculável"}</b></div>
+                <div className="flex justify-between"><span>Diário (média):</span><b>{peValido ? brl(calc.pe/30) : "—"}</b></div>
+                <div className="flex justify-between"><span>Faturamento no mês:</span><b>{brl(calc.receita)}</b></div>
+                <div className="flex justify-between"><span>Situação:</span><span className={!peValido ? "text-muted-foreground" : (abaixoDoPe ? "text-red-400" : "text-green-400")}>{!peValido ? "Sem dados suficientes" : (abaixoDoPe ? "Abaixo do ponto" : "Acima do ponto")}</span></div>
               </div>
             </div>
           </div>
@@ -283,35 +293,113 @@ function FinanceiroPremium() {
               </div>
             </div>
             <div className="rounded-2xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-4">
-              <div className="font-bold mb-2">SAÚDE FINANCEIRA</div>
-              <div className="text-2xl font-extrabold text-green-400">Saudável</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-bold mb-2">SAÚDE FINANCEIRA</div>
+                <div className="text-[10px] uppercase tracking-wider text-[#F2CE6B]/60">Situação geral</div>
+              </div>
+              <div className={`text-2xl font-extrabold ${resultadoNegativo ? "text-red-400" : "text-green-400"}`}>
+                {resultadoNegativo ? "Prejuízo" : "Saudável"}
+              </div>
               <div className="mt-3 h-2 rounded bg-gradient-to-r from-red-800 via-yellow-800 to-green-800"></div>
+              <div className="text-[11px] text-muted-foreground mt-2">
+                {resultadoNegativo ? "Resultado contábil negativo. Verifique fluxo de caixa separadamente." : "Resultado dentro do esperado."}
+              </div>
             </div>
             <div className="rounded-2xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-4">
-              <div className="font-bold mb-2">PRÓXIMOS COMPROMISSOS</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-bold mb-2">PRÓXIMOS COMPROMISSOS</div>
+                <div className="text-[10px] uppercase tracking-wider text-[#F2CE6B]/60">Vencimentos</div>
+              </div>
               <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>25/04 — Verificar DAS / PGDAS-D</li>
-                <li>26/04 — Conferir NFC-e</li>
-                <li>30/04 — Acerto motoboys</li>
-                <li>05/05 — Pagamento aluguel</li>
+                <li className="flex justify-between"><span>25/04 — Verificar DAS / PGDAS-D</span><span className="text-xs px-2 py-0.5 rounded bg-yellow-900/40 text-yellow-300">Atenção</span></li>
+                <li className="flex justify-between"><span>26/04 — Conferir NFC-e</span><span className="text-xs px-2 py-0.5 rounded bg-yellow-900/40 text-yellow-300">Atenção</span></li>
+                <li className="flex justify-between"><span>30/04 — Acerto motoboys</span><span className="text-xs px-2 py-0.5 rounded bg-yellow-900/40 text-yellow-300">Pendente</span></li>
+                <li className="flex justify-between"><span>05/05 — Pagamento aluguel</span><span className="text-xs px-2 py-0.5 rounded bg-green-900/40 text-green-300">Programado</span></li>
               </ul>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-4">
+            <div className="font-bold mb-3">LANÇAMENTOS E CADASTROS — ADICIONAR INFORMAÇÕES</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-2 mb-4">
+              <button onClick={()=>setShowForm(true)} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <Plus className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Nova Receita</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Entrada</span>
+              </button>
+              <button onClick={()=>setShowForm(true)} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <DollarSign className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Nova Despesa</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Saída</span>
+              </button>
+              <button onClick={()=>setAba("custos")} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <TrendingDown className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Contas a Pagar</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Pendentes</span>
+              </button>
+              <button onClick={()=>setAba("caixa")} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <Wallet className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Contas a Receber</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Recebíveis</span>
+              </button>
+              <button onClick={()=>setAba("custos")} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <Target className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Cadastrar Custos</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Fixos e Variáveis</span>
+              </button>
+              <button onClick={()=>setAba("fiscal")} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <Shield className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Obrigações Fiscais</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Impostos e Taxas</span>
+              </button>
+              <button onClick={()=>setShowForm(true)} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <ShoppingCart className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Lançar Compra</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Insumos / Estoque</span>
+              </button>
+              <button onClick={abrirCaixa} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <CheckCircle2 className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Conferir Caixa</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Abertura / Fechamento</span>
+              </button>
+              <button onClick={()=>setAba("equilibrio")} className="rounded-xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-3 flex flex-col items-center gap-1.5 hover:bg-[#D4A94A]/10 transition">
+                <Target className="size-5 text-[#F2CE6B]"/>
+                <span className="text-xs font-semibold text-[#F2CE6B]">Simulador</span>
+                <span className="text-[10px] text-[#F2CE6B]/60">Preços e Cenários</span>
+              </button>
             </div>
           </div>
 
           <div className="mt-6 rounded-2xl border border-[#D4A94A]/50 bg-[#0F0E0C] p-4">
             <div className="font-bold mb-3">CENTRAL DE RISCOS E SEGURANÇA FINANCEIRA</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {riscos.map((r,i)=>(
-                <div key={i} className="rounded-xl border border-[#D4A94A]/30 p-3 bg-[#0b0a08]">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-sm">{r.nome}</div>
-                    <span className={`text-xs px-2 py-0.5 rounded ${r.gravidade==='vermelho'?'bg-red-900/40 text-red-300': r.gravidade==='âmbar'?'bg-yellow-900/40 text-yellow-300': r.gravidade==='verde'?'bg-green-900/40 text-green-300':'bg-gray-700 text-gray-300'}`}>{r.gravidade}</span>
+              {riscos
+                .slice()
+                .sort((a, b) => {
+                  const ordem = { vermelho: 0, âmbar: 1, verde: 2, cinza: 3 };
+                  return (ordem[a.gravidade] ?? 99) - (ordem[b.gravidade] ?? 99);
+                })
+                .map((r, i) => (
+                  <div key={i} className="rounded-xl border border-[#D4A94A]/30 p-3 bg-[#0b0a08]">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="font-semibold text-sm">{r.nome}</div>
+                      <span className={`text-xs px-2 py-0.5 rounded ${r.gravidade==='vermelho'?'bg-red-900/50 text-red-300 border border-red-500/30': r.gravidade==='âmbar'?'bg-yellow-900/50 text-yellow-300 border border-yellow-500/30': r.gravidade==='verde'?'bg-green-900/50 text-green-300 border border-green-500/30':'bg-gray-700 text-gray-300 border border-gray-600/30'}`}>{r.gravidade}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">{r.explicacao}</div>
+                    <div className="text-xs mt-1 flex items-center gap-1">
+                      <span className="text-[#F2CE6B]/60">Valor:</span>
+                      <b>{typeof r.valor==='number' && r.valor>1000 ? brl(r.valor) : r.valor}</b>
+                    </div>
+                    <div className="text-xs mt-1 flex items-center gap-1">
+                      <span className="text-[#F2CE6B]/60">Fonte:</span>
+                      <span>{r.fonte}</span>
+                    </div>
+                    <div className="text-xs mt-2 text-[#F2CE6B]/80 flex items-center gap-1">
+                      <span className="text-[#F2CE6B]/60">Ação:</span>
+                      <span>{r.acao}</span>
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">{r.explicacao}</div>
-                  <div className="text-xs mt-1">Valor: <b>{typeof r.valor==='number' && r.valor>1000? brl(r.valor) : r.valor}</b> • Fonte: {r.fonte}</div>
-                  <div className="text-xs mt-1 text-[#F2CE6B]/80">Ação: {r.acao}</div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
 
@@ -320,9 +408,10 @@ function FinanceiroPremium() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               {(() => {
                 const recs: string[] = [];
-                if (calc.margemSeg < 0.15) recs.push(`Faltam ${brl(Math.max(0, calc.pe - calc.receita))} para atingir ponto de equilíbrio. Considere campanhas de vendas.`);
+                if (!peValido) recs.push('Ponto de equilíbrio não calculável. Insira custos fixos e variáveis para habilitar a análise.');
+                else if (calc.margemSeg < 0.15) recs.push(`Faltam ${brl(Math.max(0, calc.pe - calc.receita))} para atingir ponto de equilíbrio. Considere campanhas de vendas.`);
                 if (contasPagar.filter(c=>c.situacao==='pendente' && new Date(c.vencimento).getTime() - Date.now() < 7*86400000).length) recs.push('Há contas a pagar vencendo em até 7 dias. Planeje liquidação.');
-                if (calc.perc < 0.25) recs.push('Margem de contribuição abaixo de 25%. Revise preços ou negocie insumos.');
+                if (calc.perc < 0.25) recs.push(`Margem de contribuição ${(calc.perc*100).toFixed(1)}% abaixo de 25%. Revise preços ou negocie insumos.`);
                 if (dadosBase.saldoCaixa < 10000) recs.push('Saldo de caixa reduzido. Priorize recebimentos e evite despesas discricionárias.');
                 if (!recs.length) recs.push('Indicadores estáveis. Continue monitoramento mensal.');
                 return recs.map((r,i)=> <div key={i} className="rounded-xl border border-[#D4A94A]/30 p-3 bg-[#0b0a08] text-xs text-muted-foreground">{r}</div>);
@@ -360,14 +449,35 @@ function FinanceiroPremium() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="text-left text-[#F2CE6B]/70">
-                      <tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th>Status</th><th></th></tr>
+                    <thead className="text-left text-[#F2CE6B]/70 bg-[#1A1712]">
+                      <tr className="border-b border-[#D4A94A]/20">
+                        <th className="px-2 py-2">Data</th>
+                        <th className="px-2 py-2">Descrição</th>
+                        <th className="px-2 py-2">Categoria</th>
+                        <th className="px-2 py-2">Tipo</th>
+                        <th className="px-2 py-2 text-right">Valor</th>
+                        <th className="px-2 py-2">Status</th>
+                        <th className="px-2 py-2 text-right">Ações</th>
+                      </tr>
                     </thead>
                     <tbody className="text-muted-foreground">
                       {filtrados.map(l=>(
-                        <tr key={l.id} className="border-t border-[#D4A94A]/20">
-                          <td>{l.data}</td><td>{l.descricao}</td><td>{l.categoria}</td><td>{l.tipo}</td><td>{brl(l.valor)}</td><td>{l.status}</td>
-                          <td><button onClick={()=>handleDelete(l.id)} className="text-xs text-red-400">Excluir</button></td>
+                        <tr key={l.id} className="border-t border-[#D4A94A]/20 hover:bg-[#1A1712]/30 transition">
+                          <td className="px-2 py-2 text-xs">{l.data}</td>
+                          <td className="px-2 py-2 text-xs">{l.descricao}</td>
+                          <td className="px-2 py-2 text-xs">{l.categoria}</td>
+                          <td className="px-2 py-2 text-xs">{l.tipo}</td>
+                          <td className="px-2 py-2 text-xs text-right font-mono">{brl(l.valor)}</td>
+                          <td className="px-2 py-2 text-xs">
+                            <span className={`px-1.5 py-0.5 rounded ${l.status==='Conciliado'||l.status==='pago'?'bg-green-900/30 text-green-300 border border-green-500/30': l.status==='Pendente'?'bg-yellow-900/30 text-yellow-300 border border-yellow-500/30':'bg-gray-700 text-gray-300 border border-gray-600/30'}`}>{l.status}</span>
+                          </td>
+                          <td className="px-2 py-2 text-right">
+                            {(l.status!=='Conciliado' && l.status!=='pago') ? (
+                              <button onClick={()=>handleDelete(l.id)} className="text-xs text-red-400 hover:text-red-300">Excluir</button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
