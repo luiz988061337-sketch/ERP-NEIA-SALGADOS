@@ -12,7 +12,7 @@ export function PreviewCentralEntregasV2() {
   const [liberado] = useState(false);
   const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
   return (
-    <AdminShell aba="entregas" onAba={() => {}} onRefresh={() => {}} usuario="preview@neia.local" modoPreview>
+    <AdminShell aba="central" onAba={() => {}} onRefresh={() => {}} usuario="preview@neia.local" modoPreview>
       <div className="min-h-screen bg-background p-3 sm:p-4">
         <div className="mx-auto max-w-[1400px]">
           <p className="mb-3 rounded-lg border border-[#D4A94A] bg-[#17150F] px-3 py-2 text-xs text-[#F2CE6B]">
@@ -61,11 +61,15 @@ export function PreviewCentralEntregasV2() {
                   </defs>
                   <rect width="600" height="340" fill="#0b0a08"/>
                   {Array.from({length:12}).map((_,i)=><line key={i} x1="0" y1={i*28} x2="600" y2={i*28} stroke="#1f1c15" strokeWidth="1"/>)}
-                  <polyline points="80,240 150,180 260,190 340,140 480,130" fill="none" stroke="url(#g)" strokeWidth="4" strokeLinecap="round"/>
-                  <circle cx="80" cy="240" r="10" fill="#fff"/><text x="80" y="245" textAnchor="middle" fill="#000" fontSize="10">Loja</text>
-                  <circle cx="150" cy="180" r="14" fill="#22c55e"/><text x="150" y="185" textAnchor="middle" fill="#fff">A</text>
-                  <circle cx="260" cy="190" r="14" fill="#eab308"/><text x="260" y="195" textAnchor="middle" fill="#000">B</text>
-                  <circle cx="480" cy="130" r="14" fill="#ef4444"/><text x="480" y="135" textAnchor="middle" fill="#fff">C</text>
+                  {Array.from({length:10}).map((_,i)=><line key={i} x1={i*60} y1="0" x2={i*60} y2="340" stroke="#1f1c15" strokeWidth="1"/>)}
+                  <polyline points="80,240 150,180 260,190 340,140 480,130" fill="none" stroke="url(#g)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" filter="url(#glow)"/>
+                  <defs>
+                    <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                  </defs>
+                  <circle cx="80" cy="240" r="12" fill="#1a1712" stroke="#D4A94A" strokeWidth="2"/><text x="80" y="245" textAnchor="middle" fill="#D4A94A" fontSize="10" fontWeight="bold">Loja</text>
+                  <circle cx="150" cy="180" r="16" fill="#22c55e" stroke="#fff" strokeWidth="2"/><text x="150" y="185" textAnchor="middle" fill="#fff" fontWeight="bold">A</text>
+                  <circle cx="260" cy="190" r="16" fill="#eab308" stroke="#000" strokeWidth="2"/><text x="260" y="195" textAnchor="middle" fill="#000" fontWeight="bold">B</text>
+                  <circle cx="480" cy="130" r="16" fill="#ef4444" stroke="#fff" strokeWidth="2"/><text x="480" y="135" textAnchor="middle" fill="#fff" fontWeight="bold">C</text>
                 </svg>
                 <div className="absolute top-2 left-2 text-[10px] bg-black/70 px-2 py-1 rounded border border-[#D4A94A]/40">MAPA DEMONSTRATIVO — SEM GPS REAL</div>
               </div>
@@ -90,19 +94,26 @@ export function PreviewCentralEntregasV2() {
                 <div className="text-xl font-bold">Rota 04 — Centro</div>
                 <div className="text-xs border border-[#D4A94A] rounded px-2">3 pedidos</div>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                <div>Motoboy: <b>Carlos</b></div>
-                <div>Status da rota: <span className="bg-[#D4A94A] text-black rounded px-2">Aguardando liberação</span></div>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="size-10 rounded-full bg-[#D4A94A]/20 border border-[#D4A94A]/50 grid place-items-center font-bold">C</div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Motoboy</div>
+                  <div className="font-bold">Carlos</div>
+                </div>
+                <div className="ml-auto text-sm">Status: <span className="bg-[#D4A94A] text-black rounded px-2">Aguardando liberação</span></div>
               </div>
               <div className="mt-3 space-y-2">
                 {[
-                  {ped:"#4598",cli:"Ana Costa",bairro:"Centro",status:"Em produção"},
-                  {ped:"#4601",cli:"Ricardo Souza",bairro:"Vila Marina",status:"Pronto"},
-                  {ped:"#4603",cli:"Luciana Melo",bairro:"Centro",status:"Pronto"},
+                  {ped:"#4598",cli:"Ana Costa",bairro:"Centro",status:"Em produção",pag:"Pix pago"},
+                  {ped:"#4601",cli:"Ricardo Souza",bairro:"Vila Marina",status:"Pronto",pag:"Pix pago"},
+                  {ped:"#4603",cli:"Luciana Melo",bairro:"Centro",status:"Pronto",pag:"Cartão"},
                 ].map((r,i)=>(
-                  <div key={i} className="border border-[#D4A94A]/30 rounded p-2 flex justify-between">
-                    <div>Pedido {r.ped}<br/><span className="text-xs text-muted-foreground">{r.cli} • {r.bairro}</span></div>
-                    <div className="text-xs">{r.status}</div>
+                  <div key={i} className="border border-[#D4A94A]/30 rounded p-2 flex justify-between items-center">
+                    <div>
+                      <div className="font-bold">Pedido {r.ped}</div>
+                      <div className="text-xs text-muted-foreground">{r.cli} • {r.bairro} • {r.pag}</div>
+                    </div>
+                    <div className={`text-xs px-2 py-1 rounded ${r.status==="Pronto" ? "bg-green-800/40 text-green-300" : "bg-amber-800/40 text-amber-300"}`}>{r.status}</div>
                   </div>
                 ))}
               </div>

@@ -61,7 +61,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { value: "insumos", label: "Estoque", icon: Wheat },
       { value: "financeiro", label: "Financeiro", icon: Wallet },
       { value: "loja", label: "Configurações", icon: Store },
-      { value: "entregas", label: "Entregas", icon: Truck },
     ],
   },
   {
@@ -126,7 +125,6 @@ export const ADMIN_ABA_TITULO: Record<string, string> = {
   hero: "Hero",
   calculadora: "Calculadora",
   loja: "Loja",
-  entregas: "Entregas",
   avaliacoes: "Avaliações",
 };
 
@@ -152,6 +150,5 @@ export const ADMIN_ABA_DESCRICAO: Record<string, string> = {
   hero: "Banner e destaques da vitrine.",
   calculadora: "Regras de porção, mínimo e personalize.",
   loja: "Endereço, contato e ponto no mapa da loja.",
-  entregas: "Taxa por km, origem da loja e regras de entrega.",
   avaliacoes: "Notas de produto, prazo e atendimento.",
 };
