@@ -116,21 +116,24 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
+  const financeiroDemonstrativo = pathname === "/preview/financeiro-premium";
 
   // Acesso direto do cliente: primeira visita cria sessão anônima nos
   // bastidores (sem tela de login). Sessões existentes são preservadas.
   useEffect(() => {
+    if (financeiroDemonstrativo) return;
     void garantirSessaoAnonima();
-  }, []);
+  }, [financeiroDemonstrativo]);
 
   useEffect(() => {
+    if (financeiroDemonstrativo) return;
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
     return () => sub.subscription.unsubscribe();
-  }, [router, queryClient]);
+  }, [router, queryClient, financeiroDemonstrativo]);
 
   // Rotas internas (staff): sem chrome da loja pública — cada uma tem layout próprio.
   // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.

@@ -1,0 +1,18 @@
+{
+  "etapa": "depois",
+  "largura": 1440,
+  "erros": [],
+  "bancoBloqueado": [],
+  "testes": [
+    "AdminShell real: 224px, perfil/menus padrão, Financeiro ativo e CSS local isolado; bordas de 1px sem halo; composição 6 indicadores/9 atalhos/3 painéis preservada",
+    "Receita adicionada; tabela e indicador atualizados",
+    "Despesa seleciona tipo correto; atualiza totais; filtro, exclusão confirmada e cancelar funcionais",
+    "Custos: cadastro e exclusão funcionais",
+    "Caixa: abertura, sangria, suprimento, pagar, receber e fechamento executados",
+    "Obrigações fiscais: cadastro e remoção executados",
+    "Simulador e restauração funcionais",
+    "Cenário sem margem: Prejuízo, PE não calculável e margem de segurança sem valor fictício",
+    "Sem NaN/Infinity, sem chrome público, sem requisições ao banco, sem erros JS",
+    "Drawer mobile real abriu e fechou ao tocar fora; sem overflow horizontal"
+  ]
+}

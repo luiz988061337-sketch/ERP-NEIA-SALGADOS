@@ -30,6 +30,14 @@ export const Route = createFileRoute("/preview")({
 });
 
 function PreviewLayout() {
+  const { pathname } = useLocation();
+  // Financeiro tem shell administrativo próprio. Não montar o chrome público
+  // nem seus hooks de sessão nesta demonstração sem banco.
+  if (pathname === "/preview/financeiro-premium") return <Outlet />;
+  return <PreviewPublicLayout />;
+}
+
+function PreviewPublicLayout() {
   const { totalItens } = useCart();
   const { user, loading } = useSession();
   const { staffOnly } = useStaffOnly();

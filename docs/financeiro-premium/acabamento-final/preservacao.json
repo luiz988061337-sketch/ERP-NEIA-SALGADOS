@@ -1,0 +1,50 @@
+[
+  {
+    "path": "src/routes/preview/financeiro-premium.tsx",
+    "unchanged": true
+  },
+  {
+    "path": "src/routes/__root.tsx",
+    "unchanged": true
+  },
+  {
+    "path": "src/routes/preview.tsx",
+    "unchanged": true
+  },
+  {
+    "path": "src/components/admin/admin-shell.tsx",
+    "unchanged": true
+  },
+  {
+    "path": "src/components/admin/admin-nav.ts",
+    "unchanged": true
+  },
+  {
+    "path": "src/components/ui/sidebar.tsx",
+    "unchanged": true
+  },
+  {
+    "path": "src/components/financeiro-premium/paineis.tsx",
+    "unchanged": true
+  },
+  {
+    "path": "src/components/financeiro-premium/dados.ts",
+    "unchanged": true
+  },
+  {
+    "path": "src/components/financeiro-premium/icones.ts",
+    "unchanged": true
+  },
+  {
+    "path": "src/erp-dark.css",
+    "unchanged": true
+  },
+  {
+    "path": "package.json",
+    "unchanged": true
+  },
+  {
+    "path": "package-lock.json",
+    "unchanged": true
+  }
+]
