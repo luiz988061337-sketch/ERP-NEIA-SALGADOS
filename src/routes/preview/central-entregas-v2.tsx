@@ -11,6 +11,17 @@ export const Route = createFileRoute("/preview/central-entregas-v2")({
 export function PreviewCentralEntregasV2() {
   const [liberado] = useState(false);
   const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const statusClasses = (status: string) => {
+    const s = status.toLowerCase();
+    if (s.includes("aguardando liberação")) return "bg-amber-900/40 text-amber-300 border border-amber-700/40";
+    if (s.includes("produção") || s.includes("em produção")) return "bg-orange-900/40 text-orange-300 border border-orange-700/40";
+    if (s.includes("pronto")) return "bg-green-900/40 text-green-300 border border-green-700/40";
+    if (s.includes("em rota") || s.includes("em entrega")) return "bg-blue-900/40 text-blue-300 border border-blue-700/40";
+    if (s.includes("entregue") || s.includes("finalizado")) return "bg-green-800/40 text-green-200 border border-green-600/40";
+    if (s.includes("atrasado") || s.includes("problema")) return "bg-red-900/40 text-red-300 border border-red-700/40";
+    if (s.includes("indisponível")) return "bg-neutral-700/40 text-neutral-300 border border-neutral-600/40";
+    return "bg-neutral-800/40 text-neutral-300 border border-neutral-700/40";
+  };
   return (
     <AdminShell aba="central" onAba={() => {}} onRefresh={() => {}} usuario="preview@neia.local" modoPreview>
       <div className="min-h-screen bg-background p-3 sm:p-4">
@@ -100,7 +111,7 @@ export function PreviewCentralEntregasV2() {
                   <div className="text-sm text-muted-foreground">Motoboy</div>
                   <div className="font-bold">Carlos</div>
                 </div>
-                <div className="ml-auto text-sm">Status: <span className="bg-[#D4A94A] text-black rounded px-2">Aguardando liberação</span></div>
+                <div className="ml-auto text-sm">Status: <span className={`rounded px-2 py-0.5 text-xs ${statusClasses("Aguardando liberação")}`}>Aguardando liberação</span></div>
               </div>
               <div className="mt-3 space-y-2">
                 {[
@@ -113,7 +124,7 @@ export function PreviewCentralEntregasV2() {
                       <div className="font-bold">Pedido {r.ped}</div>
                       <div className="text-xs text-muted-foreground">{r.cli} • {r.bairro} • {r.pag}</div>
                     </div>
-                    <div className={`text-xs px-2 py-1 rounded ${r.status==="Pronto" ? "bg-green-800/40 text-green-300" : "bg-amber-800/40 text-amber-300"}`}>{r.status}</div>
+                    <div className={`text-xs px-2 py-1 rounded ${statusClasses(r.status)}`}>{r.status}</div>
                   </div>
                 ))}
               </div>
@@ -141,7 +152,7 @@ export function PreviewCentralEntregasV2() {
                 </thead>
                 <tbody>
                   <tr className="border-t border-[#D4A94A]/20">
-                    <td>Rota 04</td><td>#4598, #4601, #4603</td><td>Ana Costa e outros</td><td>Centro / Vila Marina</td><td>Aguardando liberação</td><td>1 em produção</td><td>Ver rota</td>
+                    <td>Rota 04</td><td>#4598, #4601, #4603</td><td>Ana Costa e outros</td><td>Centro / Vila Marina</td><td><span className={`text-xs px-2 py-0.5 rounded ${statusClasses("Aguardando liberação")}`}>Aguardando liberação</span></td><td>1 em produção</td><td>Ver rota</td>
                   </tr>
                 </tbody>
               </table>
