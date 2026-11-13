@@ -19,10 +19,10 @@ Data: 2026-11-13 · Branch: `homologacao-finalizacao` · SHA do código: `0852b0
 
 | Item | Valor |
 |---|---|
-| **URL** | `https://erp-neia-salgados-oybpb91ri-luiz988061337-3147s-projects.vercel.app` |
-| **ID do deploy** | `dpl_7nKZM7QTauzRzhTyPncNm7H35YWE` |
+| **URL** | `https://erp-neia-salgados-43yampoku-luiz988061337-3147s-projects.vercel.app` |
+| **ID do deploy** | `dpl_BxwzRUyMeV7uNHseuy43PZK8wCqb` |
 | **Target** | `preview` — **NÃO é Production** |
-| **SHA do deploy = SHA local** | ✅ `26593455c662fdbe24fb15ed924ebb1b2e3834be` (árvore de entrega já commitada antes do relatório) |
+| **SHA do deploy = SHA local** | ✅ `d7ef990bf74979d1f6d6ac0b58a8041550d83f11` |
 | Rota de conferência | `/preview/central-entregas-v2` |
 | **Production intacta** | ✅ `dpl_DK144zp5kG9FSsL4J5HdniQ34Ukk` · `main` @ `366074f` |
 
@@ -96,7 +96,21 @@ Arquivos do módulo que já existiam (não alterados nesta etapa): `src/routes/c
 
 ---
 
-## 5. Testes
+## 5. Capturas
+
+Capturadas do **Preview hospedado** (deploy `dpl_BxwzRUyMeV7uNHseuy43PZK8wCqb`, rota
+`/preview/central-entregas-v2`) e do render local.
+
+| Arquivo | Conteúdo |
+|---|---|
+| `docs/preview-captures/prints/preview-preview-central-entregas-v2-desktop.png` | Central de Entregas/Rotas — desktop (Preview hospedado, deploy `dpl_BxwzRUyMeV7uNHseuy43PZK8wCqb`) |
+| `docs/preview-captures/prints/preview-preview-central-entregas-v2-celular.png` | Central de Entregas/Rotas — mobile (Preview hospedado) |
+| `docs/erp-dark/prints/central-entregas-DEPOIS.png` | Central de Entregas/Rotas — desktop (render local) |
+| `docs/erp-dark/prints/central-entregas-DEPOIS-celular.png` | Central de Entregas/Rotas — mobile (render local) |
+
+---
+
+## 6. Testes
 
 | Teste | Resultado |
 |---|---|
@@ -110,7 +124,7 @@ Arquivos do módulo que já existiam (não alterados nesta etapa): `src/routes/c
 
 ---
 
-## 6. Pendências de integração
+## 7. Pendências de integração
 
 1. **A imagem de referência:** não pôde ser visualizada por limitação técnica deste modelo —
    a aprovação final exige o pareamento manual com a imagem anexada.
