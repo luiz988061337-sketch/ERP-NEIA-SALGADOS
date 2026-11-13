@@ -161,11 +161,13 @@ function montarBase(base: number): { pedidos: PedidoCentral[]; motoboys: Motoboy
     { id: "p1247", numero: 1247, cliente: "Roberto Lima", endereco: "Rua da Paz, 100 - Jardim", distanciaKm: 2.8, prontoEm: base - 120 * MIN, prometidoEm: base - 60 * MIN, saidaPrevistaEm: base - 95 * MIN, saidaEm: base - 95 * MIN, chegadaPrevistaEm: base - 70 * MIN, entregueEm: base - 55 * MIN, deslocMin: 12, itens: [{ sabor: "Coxinha de Frango", qtd: 20 }], motoboyId: "m-carlos", coluna: "entregues" },
     { id: "p1246", numero: 1246, cliente: "Fernanda Alves", endereco: "Rua das Acácias, 456 - Centro", distanciaKm: 2.0, prontoEm: base - 130 * MIN, prometidoEm: base - 90 * MIN, saidaPrevistaEm: base - 110 * MIN, saidaEm: base - 110 * MIN, chegadaPrevistaEm: base - 95 * MIN, entregueEm: base - 90 * MIN, deslocMin: 10, itens: [{ sabor: "Risole de Presunto e Queijo", qtd: 30 }], motoboyId: "m-ana", coluna: "entregues" },
     { id: "p1244", numero: 1244, cliente: "Lucas Ferreira", endereco: "Rua Paraná, 654 - Centro", distanciaKm: 3.1, prontoEm: base - 150 * MIN, prometidoEm: base - 105 * MIN, saidaPrevistaEm: base - 130 * MIN, saidaEm: base - 130 * MIN, chegadaPrevistaEm: base - 110 * MIN, entregueEm: base - 105 * MIN, deslocMin: 15, itens: [{ sabor: "Coxinha de Frango", qtd: 50 }], motoboyId: "m-marcos", coluna: "entregues" },
+    // Terceiro parada da rota do Ana — agrupamento de 3 entregas para demonstração.
+    { id: "p1241", numero: 1241, cliente: "Clara Mendes", endereco: "Rua Barão de Itapema, 210 - Centro", distanciaKm: 2.6, prontoEm: base - 50 * MIN, prometidoEm: base + 30 * MIN, saidaPrevistaEm: base - 25 * MIN, saidaEm: base - 25 * MIN, chegadaPrevistaEm: base + 30 * MIN, entregueEm: null, deslocMin: 13, itens: [{ sabor: "Coxinha de Frango", qtd: 25 }, { sabor: "Kibe", qtd: 25 }], obs: "Portaria B.", motoboyId: "m-ana", coluna: "rota" },
   ];
   const pedidos: PedidoCentral[] = pedidosBase.map((p) => ({ ...p, prioridadeManual: false }));
   const rotas: RotaDia[] = [
     { id: "r-carlos", motoboyId: "m-carlos", paradas: ["p1249"], situacao: "planejada" },
-    { id: "r-ana", motoboyId: "m-ana", paradas: ["p1260", "p1248"], situacao: "em-andamento" },
+    { id: "r-ana", motoboyId: "m-ana", paradas: ["p1260", "p1248", "p1241"], situacao: "em-andamento" },
     { id: "r-marcos", motoboyId: "m-marcos", paradas: ["p1245", "p1243"], situacao: "em-andamento" },
     { id: "r-patricia", motoboyId: "m-patricia", paradas: ["p1242"], situacao: "em-andamento" },
   ];
