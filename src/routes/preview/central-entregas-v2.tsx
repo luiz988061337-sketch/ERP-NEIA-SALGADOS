@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Bike, MapPin, Package, CreditCard, ArrowRight, Route as RouteIcon, User, Clock, CheckCircle2, AlertTriangle, Edit } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchIndicadores, fetchRotaAtiva, fetchPedidosComRota, podeLiberarRota, type Indicador, type RotaResumo } from "@/lib/entregas-adapter";
 
 export const Route = createFileRoute("/preview/central-entregas-v2")({
   head: () => ({ meta: [{ title: "Prévia — Central de Entregas Rotas" }] }),
@@ -9,8 +10,16 @@ export const Route = createFileRoute("/preview/central-entregas-v2")({
 });
 
 export function PreviewCentralEntregasV2() {
-  const [liberado] = useState(false);
+  const [indicadores, setIndicadores] = useState<Indicador[]>([]);
+  const [rota, setRota] = useState<RotaResumo | null>(null);
+  const [pedidosTabela, setPedidosTabela] = useState<any[]>([]);
+  const [liberado, setLiberado] = useState(false);
   const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  useEffect(() => {
+    fetchIndicadores().then(setIndicadores);
+    fetchRotaAtiva().then(r => { setRota(r); setLiberado(podeLiberarRota(r).pode); });
+    fetchPedidosComRota().then(setPedidosTabela);
+  }, []);
   const statusClasses = (status: string) => {
     const s = status.toLowerCase();
     if (s.includes("aguardando liberação")) return "bg-amber-900/40 text-amber-300 border border-amber-700/40";
@@ -43,16 +52,13 @@ export function PreviewCentralEntregasV2() {
           </header>
 
           <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-            {[
-              {label:"Rotas em aberto",value:"6",info:"↓ -25%", icon:RouteIcon},
-              {label:"Pedidos aguardando rota",value:"12",info:"↑ +20%", icon:Package},
-              {label:"Motoboys disponíveis",value:"3",info:"Disponíveis", icon:Bike},
-              {label:"Saídas previstas hoje",value:"8",info:"A partir de 10:00", icon:Clock},
-            ].map((i,k)=>(
+            {indicadores.map((i,k)=> {
+              const Icon = [RouteIcon, Package, Bike, Clock][k] || RouteIcon;
+              return (
               <div key={k} className="rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)]">
                 <div className="flex items-center gap-3">
                   <div className="size-10 rounded-xl bg-[#D4A94A]/10 border border-[#D4A94A]/40 grid place-items-center text-[#F2CE6B]">
-                    <i.icon className="size-5" />
+                    <Icon className="size-5" />
                   </div>
                   <div className="text-xs uppercase tracking-wide text-[#F2CE6B]/80">{i.label}</div>
                 </div>
@@ -61,16 +67,16 @@ export function PreviewCentralEntregasV2() {
                   <div className="text-[11px] text-muted-foreground mb-1">{i.info}</div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
 
           <div className="mt-4 grid grid-cols-1 xl:grid-cols-5 gap-4">
             <div className="xl:col-span-3 rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)]">
               <div className="flex items-center justify-between mb-3">
-                <div className="border border-[#D4A94A] rounded-full px-4 py-1.5 text-sm font-extrabold tracking-wide">ROTA 04 — CENTRO</div>
+                <div className="border border-[#D4A94A] rounded-full px-4 py-1.5 text-sm font-extrabold tracking-wide">{rota?.codigo || "ROTA 04 — CENTRO"}</div>
                 <div className="flex items-center gap-3 text-xs">
-                  <span className="inline-flex items-center gap-1"><Clock className="size-3 text-[#F2CE6B]"/> ETA: 28 min</span>
-                  <span className="inline-flex items-center gap-1"><MapPin className="size-3 text-[#F2CE6B]"/> Total: 7,2 km</span>
+                  <span className="inline-flex items-center gap-1"><Clock className="size-3 text-[#F2CE6B]"/> ETA: {rota?.etaMin ?? 28} min</span>
+                  <span className="inline-flex items-center gap-1"><MapPin className="size-3 text-[#F2CE6B]"/> Total: {(rota?.distanciaKm ?? 7.2).toFixed(1)} km</span>
                 </div>
               </div>
               <div className="relative h-[360px] rounded-xl bg-[#0b0a08] border border-[#D4A94A]/20 overflow-hidden">
@@ -103,21 +109,17 @@ export function PreviewCentralEntregasV2() {
                 </svg>
                 <div className="absolute top-3 left-3 text-[10px] bg-black/75 px-2.5 py-1 rounded-md border border-[#D4A94A]/40 tracking-wide">MAPA DEMONSTRATIVO — SEM GPS REAL</div>
               </div>
-              <div className="mt-3 border border-[#D4A94A]/40 rounded-xl p-3 text-sm bg-[#141310]">3 pedidos agrupados • 1 ainda em produção</div>
+              <div className="mt-3 border border-[#D4A94A]/40 rounded-xl p-3 text-sm bg-[#141310]">{(rota?.pedidos.length ?? 3)} pedidos agrupados • {(rota?.pedidos ?? []).filter(p=>p.status!=="Pronto").length} ainda em produção</div>
               <div className="grid grid-cols-3 gap-3 mt-3">
-                {[
-                  {letra:"A",ped:"#4598",cli:"Ana Costa",km:"2,1 km",t:"8 min"},
-                  {letra:"B",ped:"#4601",cli:"Ricardo Souza",km:"2,7 km",t:"10 min"},
-                  {letra:"C",ped:"#4603",cli:"Luciana Melo",km:"2,4 km",t:"10 min"},
-                ].map((p,i)=>(
+                {(rota?.pedidos ?? []).map((p,i)=>(
                   <div key={i} className="border border-[#D4A94A]/30 rounded-xl p-3 bg-[#141310] shadow-[inset_0_1px_0_0_rgba(212,169,74,0.08)]">
                     <div className="flex items-center gap-2">
-                      <div className="size-7 rounded-full bg-[#D4A94A]/15 border border-[#D4A94A]/40 grid place-items-center text-[#F2CE6B] font-bold">{p.letra}</div>
-                      <div className="text-sm font-extrabold">{p.ped}</div>
+                      <div className="size-7 rounded-full bg-[#D4A94A]/15 border border-[#D4A94A]/40 grid place-items-center text-[#F2CE6B] font-bold">{String.fromCharCode(65+i)}</div>
+                      <div className="text-sm font-extrabold">{p.numero}</div>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">{p.cli}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{p.cliente}</div>
                     <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <MapPin className="size-3"/> {p.km} <ArrowRight className="size-3"/> {p.t}
+                      <MapPin className="size-3"/> 2,1 km <ArrowRight className="size-3"/> 8 min
                     </div>
                   </div>
                 ))}
@@ -126,8 +128,8 @@ export function PreviewCentralEntregasV2() {
 
             <div className="xl:col-span-2 rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 flex flex-col shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)]">
               <div className="flex items-center justify-between">
-                <div className="text-xl font-extrabold tracking-tight">Rota 04 — Centro</div>
-                <div className="text-[11px] border border-[#D4A94A] rounded-full px-3 py-1 font-bold">3 PEDIDOS</div>
+                <div className="text-xl font-extrabold tracking-tight">{rota?.codigo || "Rota 04 — Centro"}</div>
+                <div className="text-[11px] border border-[#D4A94A] rounded-full px-3 py-1 font-bold">{rota?.pedidos.length ?? 3} PEDIDOS</div>
               </div>
               <div className="mt-4 flex items-center gap-4">
                 <div className="size-14 rounded-2xl bg-[#D4A94A]/10 border border-[#D4A94A]/50 grid place-items-center text-[#F2CE6B]">
@@ -135,25 +137,21 @@ export function PreviewCentralEntregasV2() {
                 </div>
                 <div>
                   <div className="text-xs uppercase tracking-wide text-[#F2CE6B]/70">Motoboy</div>
-                  <div className="text-lg font-extrabold">Carlos</div>
+                  <div className="text-lg font-extrabold">{rota?.motoboy.nome || "Carlos"}</div>
                   <div className="text-xs text-muted-foreground">Disponível • Saída prevista 10:30</div>
                 </div>
                 <div className="ml-auto">
                   <div className="text-[11px] uppercase text-muted-foreground mb-1">Status da rota</div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClasses("Aguardando liberação")}`}>Aguardando liberação</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusClasses(rota?.statusRota || "Aguardando liberação")}`}>{rota?.statusRota || "Aguardando liberação"}</span>
                 </div>
               </div>
               <div className="mt-4 space-y-3">
-                {[
-                  {ped:"#4598",cli:"Ana Costa",bairro:"Centro",status:"Em produção",pag:"Pix pago"},
-                  {ped:"#4601",cli:"Ricardo Souza",bairro:"Vila Marina",status:"Pronto",pag:"Pix pago"},
-                  {ped:"#4603",cli:"Luciana Melo",bairro:"Centro",status:"Pronto",pag:"Cartão"},
-                ].map((r,i)=>(
+                {(rota?.pedidos ?? []).map((r,i)=>(
                   <div key={i} className="border border-[#D4A94A]/30 rounded-xl p-3 bg-[#141310] flex items-center gap-3">
                     <div className="size-10 rounded-lg bg-[#D4A94A]/10 border border-[#D4A94A]/40 grid place-items-center text-[#F2CE6B]"><Package className="size-5"/></div>
                     <div className="flex-1">
-                      <div className="font-bold">Pedido {r.ped}</div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-2"><User className="size-3"/> {r.cli} • {r.bairro} • <CreditCard className="size-3"/> {r.pag}</div>
+                      <div className="font-bold">Pedido {r.numero}</div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-2"><User className="size-3"/> {r.cliente} • {r.bairro} • <CreditCard className="size-3"/> {r.pagamento}</div>
                     </div>
                     <div className={`text-xs px-3 py-1 rounded-full font-bold ${statusClasses(r.status)}`}>{r.status}</div>
                   </div>
@@ -193,9 +191,11 @@ export function PreviewCentralEntregasV2() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-t border-[#D4A94A]/20">
-                    <td className="py-3 font-bold">Rota 04</td><td>#4598, #4601, #4603</td><td>Ana Costa e outros</td><td>Centro / Vila Marina</td><td><span className={`text-xs px-3 py-1 rounded-full font-bold ${statusClasses("Aguardando liberação")}`}>Aguardando liberação</span></td><td>1 em produção</td><td><button className="h-8 rounded-lg bg-[#D4A94A] text-black font-bold px-3 text-xs">Ver rota</button></td>
+                  {pedidosTabela.map((p,i)=>(
+                  <tr key={i} className="border-t border-[#D4A94A]/20">
+                    <td className="py-3 font-bold">Rota 04</td><td>{p.numero}</td><td>{p.cliente}</td><td>{p.bairro}</td><td><span className={`text-xs px-3 py-1 rounded-full font-bold ${statusClasses(p.status)}`}>{p.status}</span></td><td>1 em produção</td><td><button className="h-8 rounded-lg bg-[#D4A94A] text-black font-bold px-3 text-xs">Ver rota</button></td>
                   </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
