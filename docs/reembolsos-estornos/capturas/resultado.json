@@ -1,0 +1,12 @@
+{
+  "erros": [],
+  "bancoBloqueado": [],
+  "testes": [
+    "AdminShell real com item extra \"Reembolsos e Estornos\" após Financeiro; menu padrão intacto",
+    "Filtros de período, tipo, status, responsável, origem e busca presentes",
+    "Filtro por tipo aplicado na lista (somente estornos visíveis)",
+    "Fluxo executado na prévia: aprovar → enviar para pagamento → registrar devolução (estado local)",
+    "Mobile 390px sem overflow horizontal; drawer com item da prévia",
+    "Sem requisições ao banco e sem erros JS"
+  ]
+}

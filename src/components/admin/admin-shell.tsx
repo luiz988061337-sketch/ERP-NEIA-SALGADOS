@@ -18,7 +18,7 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ADMIN_NAV } from "./admin-nav";
+import { ADMIN_NAV, type AdminNavItem } from "./admin-nav";
 
 /**
  * Shell do Admin — aparência da referência preto/dourado:
@@ -38,6 +38,7 @@ export function AdminShell({
   onSair,
   children,
   modoPreview = false,
+  itemExtra,
 }: {
   aba: string;
   onAba: (v: string) => void;
@@ -51,6 +52,12 @@ export function AdminShell({
    * a administração real continua em /admin.
    */
   modoPreview?: boolean;
+  /**
+   * Item de menu extra APENAS para prévias (ex.: "Reembolsos e Estornos").
+   * Injetado logo após o item Financeiro no grupo Principal; quando ausente
+   * (todos os módulos aprovados) o menu permanece idêntico ao original.
+   */
+  itemExtra?: AdminNavItem | undefined;
 }) {
   return (
     <SidebarProvider
@@ -86,7 +93,7 @@ export function AdminShell({
           </div>
         </SidebarHeader>
 
-        <MenuLateral aba={aba} onAba={onAba} modoPreview={modoPreview} />
+        <MenuLateral aba={aba} onAba={onAba} modoPreview={modoPreview} itemExtra={itemExtra} />
 
         <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -157,10 +164,12 @@ function MenuLateral({
   aba,
   onAba,
   modoPreview = false,
+  itemExtra,
 }: {
   aba: string;
   onAba: (v: string) => void;
   modoPreview?: boolean;
+  itemExtra?: AdminNavItem | undefined;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const pathname = useLocation({ select: (s) => s.pathname });
@@ -169,6 +178,16 @@ function MenuLateral({
     onAba(v);
     if (isMobile) setOpenMobile(false);
   }
+
+  // Item extra de prévia: entra somente no grupo que contém "financeiro"
+  // (Principal), logo depois dele. Demais grupos ficam intactos.
+  function itensDoGrupo(items: AdminNavItem[]): AdminNavItem[] {
+    if (!itemExtra) return items;
+    const indice = items.findIndex((i) => i.value === "financeiro");
+    if (indice === -1) return items;
+    return [...items.slice(0, indice + 1), itemExtra, ...items.slice(indice + 1)];
+  }
+
   return (
     <SidebarContent className="no-scrollbar bg-[#0F0E0C]">
       {ADMIN_NAV.map((grupo) => (
@@ -178,7 +197,7 @@ function MenuLateral({
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <div role="tablist" aria-orientation="vertical" className="flex flex-col gap-1">
-              {grupo.items.map((item) => {
+              {itensDoGrupo(grupo.items).map((item) => {
                 // Ativo por aba interna OU pela rota real (ex.: /pdv, /producao).
                 // No modo conferencia (rotas /preview-l2-*) a aba informada marca o item.
                 // A Central da Atendente (/atendente) destaca "Pedidos".

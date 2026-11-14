@@ -31,9 +31,11 @@ export const Route = createFileRoute("/preview")({
 
 function PreviewLayout() {
   const { pathname } = useLocation();
-  // Financeiro tem shell administrativo próprio. Não montar o chrome público
-  // nem seus hooks de sessão nesta demonstração sem banco.
-  if (pathname === "/preview/financeiro-premium") return <Outlet />;
+  // Demonstração com shell administrativo próprio (Financeiro Premium e
+  // Reembolsos/Estornos R1). Não montar o chrome público nem seus hooks de
+  // sessão nessas demonstrações sem banco.
+  const ROTAS_SHELL_PROPRIO = ["/preview/financeiro-premium", "/preview/reembolsos-estornos"];
+  if (ROTAS_SHELL_PROPRIO.includes(pathname)) return <Outlet />;
   return <PreviewPublicLayout />;
 }
 

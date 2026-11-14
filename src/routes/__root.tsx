@@ -96,7 +96,8 @@ function RootShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/preview/pedidos-atendente-v2") ||
     pathname.startsWith("/preview/l1") ||
     pathname.startsWith("/preview-l2") ||
-    pathname.startsWith("/preview/financeiro-premium");
+    pathname.startsWith("/preview/financeiro-premium") ||
+    pathname.startsWith("/preview/reembolsos-estornos");
 
   return (
     <html lang="pt-BR" className={ehStaff ? "erp-admin" : ""}>
@@ -116,24 +117,27 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
-  const financeiroDemonstrativo = pathname === "/preview/financeiro-premium";
+  // Demonstração sem banco (Financeiro Premium, Reembolsos/Estornos R1):
+  // nenhuma sessão anônima é criada e o listener do Supabase não é montado.
+  const rotaDemonstrativaSemBanco =
+    pathname === "/preview/financeiro-premium" || pathname === "/preview/reembolsos-estornos";
 
   // Acesso direto do cliente: primeira visita cria sessão anônima nos
   // bastidores (sem tela de login). Sessões existentes são preservadas.
   useEffect(() => {
-    if (financeiroDemonstrativo) return;
+    if (rotaDemonstrativaSemBanco) return;
     void garantirSessaoAnonima();
-  }, [financeiroDemonstrativo]);
+  }, [rotaDemonstrativaSemBanco]);
 
   useEffect(() => {
-    if (financeiroDemonstrativo) return;
+    if (rotaDemonstrativaSemBanco) return;
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
     return () => sub.subscription.unsubscribe();
-  }, [router, queryClient, financeiroDemonstrativo]);
+  }, [router, queryClient, rotaDemonstrativaSemBanco]);
 
   // Rotas internas (staff): sem chrome da loja pública — cada uma tem layout próprio.
   // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.
@@ -147,7 +151,8 @@ function RootComponent() {
     pathname.startsWith("/preview/pedidos-atendente-v2") ||
     pathname.startsWith("/preview/l1") ||
     pathname.startsWith("/preview-l2") ||
-    pathname.startsWith("/preview/financeiro-premium");
+    pathname.startsWith("/preview/financeiro-premium") ||
+    pathname.startsWith("/preview/reembolsos-estornos");
 
   return (
     <QueryClientProvider client={queryClient}>
