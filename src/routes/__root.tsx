@@ -117,10 +117,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
-  // Demonstração sem banco (Financeiro Premium, Reembolsos/Estornos R1):
-  // nenhuma sessão anônima é criada e o listener do Supabase não é montado.
+  // Demonstração sem banco (Financeiro Premium, Reembolsos/Estornos R1 e
+  // Origens R2-A): nenhuma sessão anônima é criada e o listener do Supabase
+  // não é montado.
   const rotaDemonstrativaSemBanco =
-    pathname === "/preview/financeiro-premium" || pathname === "/preview/reembolsos-estornos";
+    pathname === "/preview/financeiro-premium" ||
+    pathname.startsWith("/preview/reembolsos-estornos");
 
   // Acesso direto do cliente: primeira visita cria sessão anônima nos
   // bastidores (sem tela de login). Sessões existentes são preservadas.

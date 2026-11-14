@@ -31,10 +31,14 @@ export const Route = createFileRoute("/preview")({
 
 function PreviewLayout() {
   const { pathname } = useLocation();
-  // Demonstração com shell administrativo próprio (Financeiro Premium e
-  // Reembolsos/Estornos R1). Não montar o chrome público nem seus hooks de
-  // sessão nessas demonstrações sem banco.
-  const ROTAS_SHELL_PROPRIO = ["/preview/financeiro-premium", "/preview/reembolsos-estornos"];
+  // Demonstração com shell administrativo próprio (Financeiro Premium,
+  // Reembolsos/Estornos R1 e Origens R2-A). Não montar o chrome público nem
+  // seus hooks de sessão nessas demonstrações sem banco.
+  const ROTAS_SHELL_PROPRIO = [
+    "/preview/financeiro-premium",
+    "/preview/reembolsos-estornos",
+    "/preview/reembolsos-estornos-origens",
+  ];
   if (ROTAS_SHELL_PROPRIO.includes(pathname)) return <Outlet />;
   return <PreviewPublicLayout />;
 }

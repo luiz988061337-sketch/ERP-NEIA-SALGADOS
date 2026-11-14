@@ -1,0 +1,19 @@
+{
+  "erros": [],
+  "bancoBloqueado": [],
+  "testes": [
+    "AdminShell real com item \"Reembolsos e Estornos\"; menu dos módulos aprovados intacto",
+    "Cinco origens presentes: Cliente, Atendente, Motoboy, Funcionários, Compras/Fornecedores",
+    "Cliente solicita em pedido autorizado (#4605) e a solicitação aparece na Central R1 na mesma sessão",
+    "Consulta do andamento do cliente mostra a solicitação e o status atual",
+    "Atendente registra motivo do cliente e encaminha ao responsável autorizado (status Aguardando aprovação)",
+    "Duplicidade bloqueada na interface: segundo estorno total do mesmo pedido (regra da R1)",
+    "Motoboy registra troco do turno (dinheiro próprio) e vê a solicitação na Central",
+    "Funcionário registra compra adiantada com justificativa e vê a solicitação na Central",
+    "Compras/Fornecedores registra devolução/crédito vinculado à compra e vê a solicitação na Central",
+    "Central R1 na mesma sessão lista as 15 solicitações (10 fixtures + 5 das origens)",
+    "Origens sem botão de aprovação — aprovação exclusiva do responsável autorizado na Central",
+    "Mobile 390px sem overflow horizontal; drawer com o item do módulo",
+    "Sem requisições ao banco e sem erros JS"
+  ]
+}

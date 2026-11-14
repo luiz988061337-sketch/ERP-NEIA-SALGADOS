@@ -4,7 +4,7 @@
 // visual aprovado. Estado 100% local, sem gravação no Supabase.
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import {
   BadgeDollarSign,
   Bike,
@@ -98,15 +98,30 @@ const COMPROVANTES_DEMO: { nome: string; tipo: Comprovante["tipo"] }[] = [
   { nome: "Foto da entrega (demonstrativo)", tipo: "foto" },
 ];
 
+/** Estado controlado da Central (usado pela prévia R2-A de origens — mesma sessão demonstrativa). */
+export type EstadoExternoReembolsos = {
+  ops: Operacao[];
+  setOps: Dispatch<SetStateAction<Operacao[]>>;
+  foco: string;
+  setFoco: Dispatch<SetStateAction<string>>;
+};
+
 export function ModuloReembolsos({
   opsIniciais = OPERACOES_INICIAIS,
+  estadoExterno,
 }: {
   opsIniciais?: Operacao[];
+  /** R2-A: quando informado, ops/foco vêm da página de origens; visual e ações ficam idênticos. */
+  estadoExterno?: EstadoExternoReembolsos | undefined;
 }) {
-  const [ops, setOps] = useState<Operacao[]>(() =>
+  const [opsInterno, setOpsInterno] = useState<Operacao[]>(() =>
     opsIniciais.map((o) => ({ ...o, comprovantes: [...o.comprovantes], historico: [...o.historico] })),
   );
-  const [foco, setFoco] = useState<string>("RE-0001");
+  const [focoInterno, setFocoInterno] = useState<string>("RE-0001");
+  const ops = estadoExterno ? estadoExterno.ops : opsInterno;
+  const setOps = estadoExterno ? estadoExterno.setOps : setOpsInterno;
+  const foco = estadoExterno ? estadoExterno.foco : focoInterno;
+  const setFoco = estadoExterno ? estadoExterno.setFoco : setFocoInterno;
   const [aviso, setAviso] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [filtros, setFiltros] = useState<Filtros>({
