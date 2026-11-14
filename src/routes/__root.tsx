@@ -21,6 +21,7 @@ import { SiteHeader } from "@/components/site-header";
 import { GuardaVersao } from "@/components/guarda-versao";
 import { supabase } from "@/integrations/supabase/client";
 import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
+import { ehPreviewEstoque } from "@/lib/preview-estoques";
 
 function NotFoundComponent() {
   return (
@@ -88,6 +89,7 @@ function RootShell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
 
   const ehStaff =
+    ehPreviewEstoque(pathname) ||
     /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp|equipe|contador|gestao)/.test(
       pathname,
     ) ||
@@ -122,6 +124,7 @@ function RootComponent() {
   // Origens R2-A): nenhuma sessão anônima é criada e o listener do Supabase
   // não é montado.
   const rotaDemonstrativaSemBanco =
+    ehPreviewEstoque(pathname) ||
     pathname === "/preview/financeiro-premium" ||
     pathname.startsWith("/preview/reembolsos-estornos");
 
@@ -146,6 +149,7 @@ function RootComponent() {
   // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.
   // Exceções pontuais: previews com layout próprio isolado (K7.2, K8.1, K9, L1).
   const ehStaff =
+    ehPreviewEstoque(pathname) ||
     /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp|equipe|contador|gestao)/.test(
       pathname,
     ) ||

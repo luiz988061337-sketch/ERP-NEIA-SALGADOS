@@ -18,7 +18,8 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ADMIN_NAV, type AdminNavItem } from "./admin-nav";
+import { ADMIN_NAV, type AdminNavItem, type AdminNavGroup } from "./admin-nav";
+import { ehPreviewEstoque } from "@/lib/preview-estoques";
 
 /**
  * Shell do Admin — aparência da referência preto/dourado:
@@ -39,6 +40,7 @@ export function AdminShell({
   children,
   modoPreview = false,
   itemExtra,
+  menuPreview,
 }: {
   aba: string;
   onAba: (v: string) => void;
@@ -58,6 +60,8 @@ export function AdminShell({
    * (todos os módulos aprovados) o menu permanece idêntico ao original.
    */
   itemExtra?: AdminNavItem | undefined;
+  /** Organização alternativa somente na demonstração de estoques; padrão intacto. */
+  menuPreview?: AdminNavGroup[];
 }) {
   return (
     <SidebarProvider
@@ -93,7 +97,7 @@ export function AdminShell({
           </div>
         </SidebarHeader>
 
-        <MenuLateral aba={aba} onAba={onAba} modoPreview={modoPreview} itemExtra={itemExtra} />
+        <MenuLateral aba={aba} onAba={onAba} modoPreview={modoPreview} itemExtra={itemExtra} menuPreview={modoPreview ? menuPreview : undefined} />
 
         <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -165,11 +169,13 @@ function MenuLateral({
   onAba,
   modoPreview = false,
   itemExtra,
+  menuPreview,
 }: {
   aba: string;
   onAba: (v: string) => void;
   modoPreview?: boolean;
   itemExtra?: AdminNavItem | undefined;
+  menuPreview?: AdminNavGroup[] | undefined;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const pathname = useLocation({ select: (s) => s.pathname });
@@ -190,7 +196,7 @@ function MenuLateral({
 
   return (
     <SidebarContent className="no-scrollbar bg-[#0F0E0C]">
-      {ADMIN_NAV.map((grupo) => (
+      {(modoPreview && menuPreview ? menuPreview : ADMIN_NAV).map((grupo) => (
         <SidebarGroup key={grupo.label} className="py-1">
           <SidebarGroupLabel className="px-3 font-display text-[9px] uppercase tracking-[0.14em] text-[#8A7A52] group-data-[collapsible=icon]:hidden">
             {grupo.label}
@@ -223,7 +229,12 @@ function MenuLateral({
                           to={item.href}
                           onClick={(e) => {
                             if (modoPreview) {
-                              e.preventDefault();
+                              if (!menuPreview || !ehPreviewEstoque(item.href ?? "")) {
+                                e.preventDefault();
+                                if (menuPreview) ir(item.value);
+                                return;
+                              }
+                              if (isMobile) setOpenMobile(false);
                               return;
                             }
                             if (isMobile) setOpenMobile(false);
@@ -236,7 +247,8 @@ function MenuLateral({
                     ) : (
                       <SidebarMenuButton
                         tooltip={item.label}
-                        onClick={() => (modoPreview ? undefined : ir(item.value))}
+                        data-value={menuPreview ? item.value : undefined}
+                        onClick={() => (modoPreview && !menuPreview ? undefined : ir(item.value))}
                         aria-current={aba === item.value ? "page" : undefined}
                         className={
                           ativo

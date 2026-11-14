@@ -48,6 +48,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as ApiVersaoRouteImport } from './routes/api/versao'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as PreviewIndexRouteImport } from './routes/preview/index'
+import { Route as PreviewEstoquesRouteImport } from './routes/preview/_estoques'
 import { Route as PreviewCalculadoraRouteImport } from './routes/preview/calculadora'
 import { Route as PreviewCardapioRouteImport } from './routes/preview/cardapio'
 import { Route as PreviewCarrinhoRouteImport } from './routes/preview/carrinho'
@@ -72,6 +73,11 @@ import { Route as PreviewReembolsosEstornosClienteRouteImport } from './routes/p
 import { Route as PreviewReembolsosEstornosOrigensRouteImport } from './routes/preview/reembolsos-estornos-origens'
 import { Route as PreviewSimuladorCardapioRouteImport } from './routes/preview/simulador-cardapio'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as PreviewEstoquesCadastroProdutosRouteImport } from './routes/preview/_estoques/cadastro-produtos'
+import { Route as PreviewEstoquesCombosRouteImport } from './routes/preview/_estoques/combos'
+import { Route as PreviewEstoquesEstoqueEmbalagensRouteImport } from './routes/preview/_estoques/estoque-embalagens'
+import { Route as PreviewEstoquesEstoqueInsumosRouteImport } from './routes/preview/_estoques/estoque-insumos'
+import { Route as PreviewEstoquesEstoqueSalgadosRouteImport } from './routes/preview/_estoques/estoque-salgados'
 import { Route as PreviewAdminIndexRouteImport } from './routes/preview/admin/index'
 import { Route as PreviewAdminEntregasRouteImport } from './routes/preview/admin/entregas'
 import { Route as PreviewAdminFiscalRouteImport } from './routes/preview/admin/fiscal'
@@ -282,6 +288,10 @@ const PreviewIndexRoute = PreviewIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewEstoquesRoute = PreviewEstoquesRouteImport.update({
+  id: '/_estoques',
+  getParentRoute: () => PreviewRoute,
+} as any)
 const PreviewCalculadoraRoute = PreviewCalculadoraRouteImport.update({
   id: '/calculadora',
   path: '/calculadora',
@@ -411,6 +421,35 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PreviewEstoquesCadastroProdutosRoute =
+  PreviewEstoquesCadastroProdutosRouteImport.update({
+    id: '/cadastro-produtos',
+    path: '/cadastro-produtos',
+    getParentRoute: () => PreviewEstoquesRoute,
+  } as any)
+const PreviewEstoquesCombosRoute = PreviewEstoquesCombosRouteImport.update({
+  id: '/combos',
+  path: '/combos',
+  getParentRoute: () => PreviewEstoquesRoute,
+} as any)
+const PreviewEstoquesEstoqueEmbalagensRoute =
+  PreviewEstoquesEstoqueEmbalagensRouteImport.update({
+    id: '/estoque-embalagens',
+    path: '/estoque-embalagens',
+    getParentRoute: () => PreviewEstoquesRoute,
+  } as any)
+const PreviewEstoquesEstoqueInsumosRoute =
+  PreviewEstoquesEstoqueInsumosRouteImport.update({
+    id: '/estoque-insumos',
+    path: '/estoque-insumos',
+    getParentRoute: () => PreviewEstoquesRoute,
+  } as any)
+const PreviewEstoquesEstoqueSalgadosRoute =
+  PreviewEstoquesEstoqueSalgadosRouteImport.update({
+    id: '/estoque-salgados',
+    path: '/estoque-salgados',
+    getParentRoute: () => PreviewEstoquesRoute,
+  } as any)
 const PreviewAdminIndexRoute = PreviewAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
@@ -544,6 +583,11 @@ export interface FileRoutesByFullPath {
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/preview/cadastro-produtos': typeof PreviewEstoquesCadastroProdutosRoute
+  '/preview/combos': typeof PreviewEstoquesCombosRoute
+  '/preview/estoque-embalagens': typeof PreviewEstoquesEstoqueEmbalagensRoute
+  '/preview/estoque-insumos': typeof PreviewEstoquesEstoqueInsumosRoute
+  '/preview/estoque-salgados': typeof PreviewEstoquesEstoqueSalgadosRoute
   '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
   '/preview/admin/fiscal': typeof PreviewAdminFiscalRoute
   '/preview/admin/impressao': typeof PreviewAdminImpressaoRoute
@@ -596,6 +640,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/preview': typeof PreviewIndexRoute
   '/preview/calculadora': typeof PreviewCalculadoraRoute
   '/preview/cardapio': typeof PreviewCardapioRoute
   '/preview/carrinho': typeof PreviewCarrinhoRoute
@@ -618,8 +663,12 @@ export interface FileRoutesByTo {
   '/preview/reembolsos-estornos': typeof PreviewReembolsosEstornosRoute
   '/preview/reembolsos-estornos-origens': typeof PreviewReembolsosEstornosOrigensRoute
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
-  '/preview': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/preview/cadastro-produtos': typeof PreviewEstoquesCadastroProdutosRoute
+  '/preview/combos': typeof PreviewEstoquesCombosRoute
+  '/preview/estoque-embalagens': typeof PreviewEstoquesEstoqueEmbalagensRoute
+  '/preview/estoque-insumos': typeof PreviewEstoquesEstoqueInsumosRoute
+  '/preview/estoque-salgados': typeof PreviewEstoquesEstoqueSalgadosRoute
   '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
   '/preview/admin/fiscal': typeof PreviewAdminFiscalRoute
   '/preview/admin/impressao': typeof PreviewAdminImpressaoRoute
@@ -674,6 +723,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/versao': typeof ApiVersaoRoute
   '/pedido/$id': typeof PedidoIdRoute
+  '/preview/_estoques': typeof PreviewEstoquesRouteWithChildren
   '/preview/calculadora': typeof PreviewCalculadoraRoute
   '/preview/cardapio': typeof PreviewCardapioRoute
   '/preview/carrinho': typeof PreviewCarrinhoRoute
@@ -699,6 +749,11 @@ export interface FileRoutesById {
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/preview/_estoques/cadastro-produtos': typeof PreviewEstoquesCadastroProdutosRoute
+  '/preview/_estoques/combos': typeof PreviewEstoquesCombosRoute
+  '/preview/_estoques/estoque-embalagens': typeof PreviewEstoquesEstoqueEmbalagensRoute
+  '/preview/_estoques/estoque-insumos': typeof PreviewEstoquesEstoqueInsumosRoute
+  '/preview/_estoques/estoque-salgados': typeof PreviewEstoquesEstoqueSalgadosRoute
   '/preview/admin/entregas': typeof PreviewAdminEntregasRoute
   '/preview/admin/fiscal': typeof PreviewAdminFiscalRoute
   '/preview/admin/impressao': typeof PreviewAdminImpressaoRoute
@@ -779,6 +834,11 @@ export interface FileRouteTypes {
     | '/preview/simulador-cardapio'
     | '/preview/'
     | '/.lovable/oauth/consent'
+    | '/preview/cadastro-produtos'
+    | '/preview/combos'
+    | '/preview/estoque-embalagens'
+    | '/preview/estoque-insumos'
+    | '/preview/estoque-salgados'
     | '/preview/admin/entregas'
     | '/preview/admin/fiscal'
     | '/preview/admin/impressao'
@@ -831,6 +891,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/api/versao'
     | '/pedido/$id'
+    | '/preview'
     | '/preview/calculadora'
     | '/preview/cardapio'
     | '/preview/carrinho'
@@ -853,8 +914,12 @@ export interface FileRouteTypes {
     | '/preview/reembolsos-estornos'
     | '/preview/reembolsos-estornos-origens'
     | '/preview/simulador-cardapio'
-    | '/preview'
     | '/.lovable/oauth/consent'
+    | '/preview/cadastro-produtos'
+    | '/preview/combos'
+    | '/preview/estoque-embalagens'
+    | '/preview/estoque-insumos'
+    | '/preview/estoque-salgados'
     | '/preview/admin/entregas'
     | '/preview/admin/fiscal'
     | '/preview/admin/impressao'
@@ -908,6 +973,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/api/versao'
     | '/pedido/$id'
+    | '/preview/_estoques'
     | '/preview/calculadora'
     | '/preview/cardapio'
     | '/preview/carrinho'
@@ -933,6 +999,11 @@ export interface FileRouteTypes {
     | '/preview/simulador-cardapio'
     | '/preview/'
     | '/.lovable/oauth/consent'
+    | '/preview/_estoques/cadastro-produtos'
+    | '/preview/_estoques/combos'
+    | '/preview/_estoques/estoque-embalagens'
+    | '/preview/_estoques/estoque-insumos'
+    | '/preview/_estoques/estoque-salgados'
     | '/preview/admin/entregas'
     | '/preview/admin/fiscal'
     | '/preview/admin/impressao'
@@ -1266,6 +1337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewIndexRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/_estoques': {
+      id: '/preview/_estoques'
+      path: ''
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewEstoquesRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/calculadora': {
       id: '/preview/calculadora'
       path: '/calculadora'
@@ -1434,6 +1512,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/preview/_estoques/cadastro-produtos': {
+      id: '/preview/_estoques/cadastro-produtos'
+      path: '/cadastro-produtos'
+      fullPath: '/preview/cadastro-produtos'
+      preLoaderRoute: typeof PreviewEstoquesCadastroProdutosRouteImport
+      parentRoute: typeof PreviewEstoquesRoute
+    }
+    '/preview/_estoques/combos': {
+      id: '/preview/_estoques/combos'
+      path: '/combos'
+      fullPath: '/preview/combos'
+      preLoaderRoute: typeof PreviewEstoquesCombosRouteImport
+      parentRoute: typeof PreviewEstoquesRoute
+    }
+    '/preview/_estoques/estoque-embalagens': {
+      id: '/preview/_estoques/estoque-embalagens'
+      path: '/estoque-embalagens'
+      fullPath: '/preview/estoque-embalagens'
+      preLoaderRoute: typeof PreviewEstoquesEstoqueEmbalagensRouteImport
+      parentRoute: typeof PreviewEstoquesRoute
+    }
+    '/preview/_estoques/estoque-insumos': {
+      id: '/preview/_estoques/estoque-insumos'
+      path: '/estoque-insumos'
+      fullPath: '/preview/estoque-insumos'
+      preLoaderRoute: typeof PreviewEstoquesEstoqueInsumosRouteImport
+      parentRoute: typeof PreviewEstoquesRoute
+    }
+    '/preview/_estoques/estoque-salgados': {
+      id: '/preview/_estoques/estoque-salgados'
+      path: '/estoque-salgados'
+      fullPath: '/preview/estoque-salgados'
+      preLoaderRoute: typeof PreviewEstoquesEstoqueSalgadosRouteImport
+      parentRoute: typeof PreviewEstoquesRoute
+    }
     '/preview/admin/': {
       id: '/preview/admin/'
       path: '/admin'
@@ -1528,6 +1641,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface PreviewEstoquesRouteChildren {
+  PreviewEstoquesCadastroProdutosRoute: typeof PreviewEstoquesCadastroProdutosRoute
+  PreviewEstoquesCombosRoute: typeof PreviewEstoquesCombosRoute
+  PreviewEstoquesEstoqueEmbalagensRoute: typeof PreviewEstoquesEstoqueEmbalagensRoute
+  PreviewEstoquesEstoqueInsumosRoute: typeof PreviewEstoquesEstoqueInsumosRoute
+  PreviewEstoquesEstoqueSalgadosRoute: typeof PreviewEstoquesEstoqueSalgadosRoute
+}
+
+const PreviewEstoquesRouteChildren: PreviewEstoquesRouteChildren = {
+  PreviewEstoquesCadastroProdutosRoute: PreviewEstoquesCadastroProdutosRoute,
+  PreviewEstoquesCombosRoute: PreviewEstoquesCombosRoute,
+  PreviewEstoquesEstoqueEmbalagensRoute: PreviewEstoquesEstoqueEmbalagensRoute,
+  PreviewEstoquesEstoqueInsumosRoute: PreviewEstoquesEstoqueInsumosRoute,
+  PreviewEstoquesEstoqueSalgadosRoute: PreviewEstoquesEstoqueSalgadosRoute,
+}
+
+const PreviewEstoquesRouteWithChildren = PreviewEstoquesRoute._addFileChildren(
+  PreviewEstoquesRouteChildren,
+)
+
 interface PreviewReembolsosEstornosClienteRouteChildren {
   PreviewReembolsosEstornosClienteIdRoute: typeof PreviewReembolsosEstornosClienteIdRoute
   PreviewReembolsosEstornosClienteNovoRoute: typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -1550,6 +1683,7 @@ const PreviewReembolsosEstornosClienteRouteWithChildren =
   )
 
 interface PreviewRouteChildren {
+  PreviewEstoquesRoute: typeof PreviewEstoquesRouteWithChildren
   PreviewCalculadoraRoute: typeof PreviewCalculadoraRoute
   PreviewCardapioRoute: typeof PreviewCardapioRoute
   PreviewCarrinhoRoute: typeof PreviewCarrinhoRoute
@@ -1586,6 +1720,7 @@ interface PreviewRouteChildren {
 }
 
 const PreviewRouteChildren: PreviewRouteChildren = {
+  PreviewEstoquesRoute: PreviewEstoquesRouteWithChildren,
   PreviewCalculadoraRoute: PreviewCalculadoraRoute,
   PreviewCardapioRoute: PreviewCardapioRoute,
   PreviewCarrinhoRoute: PreviewCarrinhoRoute,
