@@ -224,3 +224,31 @@
     to { opacity: 1; transform: translateY(0); }
   }
 }
+
+/* R2-B Cliente - escopo visual público claro */
+.r2b-public {
+  --background: #FAF9F6;
+  --foreground: #2D1B00;
+  --card: #FFFFFF;
+  --card-foreground: #2D1B00;
+  --popover: #FFFFFF;
+  --popover-foreground: #2D1B00;
+  --primary: #F57C00;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFF8E1;
+  --secondary-foreground: #2D1B00;
+  --muted: #FFF8E1;
+  --muted-foreground: #5D4037;
+  --accent: #F2CE6B;
+  --accent-foreground: #2D1B00;
+  --destructive: #ef4444;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(212,169,74,0.4);
+  --input: rgba(212,169,74,0.2);
+  --ring: #F57C00;
+  color-scheme: light;
+}
+.r2b-public {
+  background-color: #FAF9F6;
+  color: #2D1B00;
+}

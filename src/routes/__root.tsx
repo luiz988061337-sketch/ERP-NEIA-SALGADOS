@@ -97,7 +97,8 @@ function RootShell({ children }: { children: ReactNode }) {
     pathname.startsWith("/preview/l1") ||
     pathname.startsWith("/preview-l2") ||
     pathname.startsWith("/preview/financeiro-premium") ||
-    pathname.startsWith("/preview/reembolsos-estornos");
+    (pathname.startsWith("/preview/reembolsos-estornos") &&
+      !pathname.startsWith("/preview/reembolsos-estornos-cliente"));
 
   return (
     <html lang="pt-BR" className={ehStaff ? "erp-admin" : ""}>

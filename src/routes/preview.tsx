@@ -11,13 +11,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/neia-logo.png.asset.json";
 
 export const Route = createFileRoute("/preview")({
-  head: () => ({
+  head: ({ matches }) => ({
     meta: [
       { title: "Preview — Néia Salgados" },
       { name: "description", content: "Preview do novo layout Néia Salgados" },
     ],
     links: [
-      { rel: "stylesheet", href: "/src/styles-preview.css" },
+      // R2-B carrega seu CSS compilado no layout pai, nunca um caminho /src em produção.
+      ...(matches.some((m) => m.pathname.startsWith("/preview/reembolsos-estornos-cliente"))
+        ? [] : [{ rel: "stylesheet", href: "/src/styles-preview.css" }]),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -31,9 +33,11 @@ export const Route = createFileRoute("/preview")({
 
 function PreviewLayout() {
   const { pathname } = useLocation();
+  // R2-B público: sem hooks de sessão, consultas ou chrome administrativo.
+  if (pathname.startsWith("/preview/reembolsos-estornos-cliente")) return <R2BPublicLayout />;
   // Demonstração com shell administrativo próprio (Financeiro Premium,
-  // Reembolsos/Estornos R1 e Origens R2-A). Não montar o chrome público nem
-  // seus hooks de sessão nessas demonstrações sem banco.
+  // Reembolsos/Estornos R1, Origens R2-A e Cliente R2-B). Não montar o chrome
+  // público nem seus hooks de sessão nessas demonstrações sem banco.
   const ROTAS_SHELL_PROPRIO = [
     "/preview/financeiro-premium",
     "/preview/reembolsos-estornos",
@@ -41,6 +45,23 @@ function PreviewLayout() {
   ];
   if (ROTAS_SHELL_PROPRIO.includes(pathname)) return <Outlet />;
   return <PreviewPublicLayout />;
+}
+
+function R2BPublicLayout() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  return (
+    <div className="r2b-public flex min-h-screen flex-col">
+      <PreviewHeader
+        totalItens={0} user={{}} loading={false} staffOnly={false} demoPublic
+        mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
+        userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen}
+        isScrolled={false}
+      />
+      <main className="flex-1"><Outlet /></main>
+      <PreviewFooter />
+    </div>
+  );
 }
 
 function PreviewPublicLayout() {
@@ -121,6 +142,7 @@ function PreviewHeader({
   setUserMenuOpen,
   isScrolled,
   onSair,
+  demoPublic = false,
 }: any) {
   return (
     <header
@@ -143,14 +165,14 @@ function PreviewHeader({
         <nav className={cn("flex-1", "hidden md:flex items-center justify-center gap-1")}>
           {!staffOnly && (
             <>
-              <PreviewNavLink to="/preview" label="Início" icon={Home} />
+              <PreviewNavLink to="/preview" label="Início" icon={Home} exact={demoPublic} />
               <PreviewNavLink to="/preview/cardapio" label="Cardápio" icon={Package} />
               <PreviewNavLink to="/preview/combo" label="Montar Combo" icon={Package} />
               <PreviewNavLink to="/preview/calculadora" label="Orçamento" icon={Package} />
             </>
           )}
           {user && !staffOnly && (
-            <PreviewNavLink to="/preview/pedidos" label="Meus Pedidos" icon={Package} />
+            <PreviewNavLink to={demoPublic ? "/preview/reembolsos-estornos-cliente" : "/preview/pedidos"} label="Meus Pedidos" icon={Package} />
           )}
           {user && staffOnly && (
             <>
@@ -191,7 +213,7 @@ function PreviewHeader({
                       <p className="text-xs text-muted-foreground">Preview do novo layout</p>
                     </div>
                     {!staffOnly && (
-                      <Link to="/preview/pedidos" className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-lg">
+                      <Link to={demoPublic ? "/preview/reembolsos-estornos-cliente" : "/preview/pedidos"} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-lg">
                         <Package className="size-4" /> Meus pedidos
                       </Link>
                     )}
@@ -212,9 +234,9 @@ function PreviewHeader({
                       </>
                     )}
                     <hr className="my-2 border-border" />
-                    <button onClick={onSair} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-accent rounded-lg">
+                    {demoPublic ? <p className="px-3 py-2 text-xs text-muted-foreground">Conta demonstrativa — sem dados reais.</p> : <button onClick={onSair} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-accent rounded-lg">
                       <LogOut className="size-4" /> Sair
-                    </button>
+                    </button>}
                   </div>
                 )}
               </div>
@@ -250,7 +272,7 @@ function PreviewHeader({
               </>
             )}
             {user && !staffOnly && (
-              <PreviewMobileNavLink to="/preview/pedidos" label="Meus Pedidos" icon={Package} onClick={() => setMobileMenuOpen(false)} />
+              <PreviewMobileNavLink to={demoPublic ? "/preview/reembolsos-estornos-cliente" : "/preview/pedidos"} label="Meus Pedidos" icon={Package} onClick={() => setMobileMenuOpen(false)} />
             )}
             {user && staffOnly && (
               <>
@@ -260,7 +282,7 @@ function PreviewHeader({
                 <PreviewMobileNavLink to="/preview/admin/produtos" label="Produtos" icon={Package} onClick={() => setMobileMenuOpen(false)} />
               </>
             )}
-            {user && (
+            {user && !demoPublic && (
               <Button variant="outline" className="w-full justify-start" onClick={onSair}>
                 <LogOut className="mr-2 size-4" /> Sair
               </Button>
@@ -277,10 +299,11 @@ function PreviewHeader({
   );
 }
 
-function PreviewNavLink({ to, label, icon: Icon }: { to: string; label: string; icon: React.ComponentType<{ className?: string }> }) {
+function PreviewNavLink({ to, label, icon: Icon, exact = false }: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; exact?: boolean }) {
   return (
     <Link
       to={to}
+      activeOptions={{ exact }}
       className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-accent/50"
     >
       <Icon className="size-4" />

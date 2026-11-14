@@ -68,6 +68,7 @@ import { Route as PreviewPrioridadeManualRouteImport } from './routes/preview/pr
 import { Route as PreviewProducaoNovaRouteImport } from './routes/preview/producao-nova'
 import { Route as PreviewProducaoPainelRouteImport } from './routes/preview/producao-painel'
 import { Route as PreviewReembolsosEstornosRouteImport } from './routes/preview/reembolsos-estornos'
+import { Route as PreviewReembolsosEstornosClienteRouteImport } from './routes/preview/reembolsos-estornos-cliente'
 import { Route as PreviewReembolsosEstornosOrigensRouteImport } from './routes/preview/reembolsos-estornos-origens'
 import { Route as PreviewSimuladorCardapioRouteImport } from './routes/preview/simulador-cardapio'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -80,6 +81,9 @@ import { Route as PreviewAdminPedidosRouteImport } from './routes/preview/admin/
 import { Route as PreviewAdminProdutosRouteImport } from './routes/preview/admin/produtos'
 import { Route as PreviewAdminWhatsappRouteImport } from './routes/preview/admin/whatsapp'
 import { Route as PreviewPedidoIdRouteImport } from './routes/preview/pedido.$id'
+import { Route as PreviewReembolsosEstornosClienteIndexRouteImport } from './routes/preview/reembolsos-estornos-cliente/index'
+import { Route as PreviewReembolsosEstornosClienteIdRouteImport } from './routes/preview/reembolsos-estornos-cliente.$id'
+import { Route as PreviewReembolsosEstornosClienteNovoRouteImport } from './routes/preview/reembolsos-estornos-cliente/novo'
 import { Route as ApiPublicPixEventRouteImport } from './routes/api/public/pix/event'
 
 const IndexRoute = IndexRouteImport.update({
@@ -384,6 +388,12 @@ const PreviewReembolsosEstornosRoute =
     path: '/reembolsos-estornos',
     getParentRoute: () => PreviewRoute,
   } as any)
+const PreviewReembolsosEstornosClienteRoute =
+  PreviewReembolsosEstornosClienteRouteImport.update({
+    id: '/reembolsos-estornos-cliente',
+    path: '/reembolsos-estornos-cliente',
+    getParentRoute: () => PreviewRoute,
+  } as any)
 const PreviewReembolsosEstornosOrigensRoute =
   PreviewReembolsosEstornosOrigensRouteImport.update({
     id: '/reembolsos-estornos-origens',
@@ -446,6 +456,24 @@ const PreviewPedidoIdRoute = PreviewPedidoIdRouteImport.update({
   path: '/pedido/$id',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewReembolsosEstornosClienteIndexRoute =
+  PreviewReembolsosEstornosClienteIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => PreviewReembolsosEstornosClienteRoute,
+  } as any)
+const PreviewReembolsosEstornosClienteIdRoute =
+  PreviewReembolsosEstornosClienteIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => PreviewReembolsosEstornosClienteRoute,
+  } as any)
+const PreviewReembolsosEstornosClienteNovoRoute =
+  PreviewReembolsosEstornosClienteNovoRouteImport.update({
+    id: '/novo',
+    path: '/novo',
+    getParentRoute: () => PreviewReembolsosEstornosClienteRoute,
+  } as any)
 const ApiPublicPixEventRoute = ApiPublicPixEventRouteImport.update({
   id: '/api/public/pix/event',
   path: '/api/public/pix/event',
@@ -511,6 +539,7 @@ export interface FileRoutesByFullPath {
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
   '/preview/producao-painel': typeof PreviewProducaoPainelRoute
   '/preview/reembolsos-estornos': typeof PreviewReembolsosEstornosRoute
+  '/preview/reembolsos-estornos-cliente': typeof PreviewReembolsosEstornosClienteRouteWithChildren
   '/preview/reembolsos-estornos-origens': typeof PreviewReembolsosEstornosOrigensRoute
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
@@ -523,7 +552,10 @@ export interface FileRoutesByFullPath {
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
+  '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
+  '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
+  '/preview/reembolsos-estornos-cliente/': typeof PreviewReembolsosEstornosClienteIndexRoute
   '/api/public/pix/event': typeof ApiPublicPixEventRoute
 }
 export interface FileRoutesByTo {
@@ -596,7 +628,10 @@ export interface FileRoutesByTo {
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
+  '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
+  '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
   '/preview/admin': typeof PreviewAdminIndexRoute
+  '/preview/reembolsos-estornos-cliente': typeof PreviewReembolsosEstornosClienteIndexRoute
   '/api/public/pix/event': typeof ApiPublicPixEventRoute
 }
 export interface FileRoutesById {
@@ -659,6 +694,7 @@ export interface FileRoutesById {
   '/preview/producao-nova': typeof PreviewProducaoNovaRoute
   '/preview/producao-painel': typeof PreviewProducaoPainelRoute
   '/preview/reembolsos-estornos': typeof PreviewReembolsosEstornosRoute
+  '/preview/reembolsos-estornos-cliente': typeof PreviewReembolsosEstornosClienteRouteWithChildren
   '/preview/reembolsos-estornos-origens': typeof PreviewReembolsosEstornosOrigensRoute
   '/preview/simulador-cardapio': typeof PreviewSimuladorCardapioRoute
   '/preview/': typeof PreviewIndexRoute
@@ -671,7 +707,10 @@ export interface FileRoutesById {
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
+  '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
+  '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
   '/preview/admin/': typeof PreviewAdminIndexRoute
+  '/preview/reembolsos-estornos-cliente/': typeof PreviewReembolsosEstornosClienteIndexRoute
   '/api/public/pix/event': typeof ApiPublicPixEventRoute
 }
 export interface FileRouteTypes {
@@ -735,6 +774,7 @@ export interface FileRouteTypes {
     | '/preview/producao-nova'
     | '/preview/producao-painel'
     | '/preview/reembolsos-estornos'
+    | '/preview/reembolsos-estornos-cliente'
     | '/preview/reembolsos-estornos-origens'
     | '/preview/simulador-cardapio'
     | '/preview/'
@@ -747,7 +787,10 @@ export interface FileRouteTypes {
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
     | '/preview/pedido/$id'
+    | '/preview/reembolsos-estornos-cliente/$id'
+    | '/preview/reembolsos-estornos-cliente/novo'
     | '/preview/admin/'
+    | '/preview/reembolsos-estornos-cliente/'
     | '/api/public/pix/event'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -820,7 +863,10 @@ export interface FileRouteTypes {
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
     | '/preview/pedido/$id'
+    | '/preview/reembolsos-estornos-cliente/$id'
+    | '/preview/reembolsos-estornos-cliente/novo'
     | '/preview/admin'
+    | '/preview/reembolsos-estornos-cliente'
     | '/api/public/pix/event'
   id:
     | '__root__'
@@ -882,6 +928,7 @@ export interface FileRouteTypes {
     | '/preview/producao-nova'
     | '/preview/producao-painel'
     | '/preview/reembolsos-estornos'
+    | '/preview/reembolsos-estornos-cliente'
     | '/preview/reembolsos-estornos-origens'
     | '/preview/simulador-cardapio'
     | '/preview/'
@@ -894,7 +941,10 @@ export interface FileRouteTypes {
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
     | '/preview/pedido/$id'
+    | '/preview/reembolsos-estornos-cliente/$id'
+    | '/preview/reembolsos-estornos-cliente/novo'
     | '/preview/admin/'
+    | '/preview/reembolsos-estornos-cliente/'
     | '/api/public/pix/event'
   fileRoutesById: FileRoutesById
 }
@@ -1356,6 +1406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewReembolsosEstornosRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/reembolsos-estornos-cliente': {
+      id: '/preview/reembolsos-estornos-cliente'
+      path: '/reembolsos-estornos-cliente'
+      fullPath: '/preview/reembolsos-estornos-cliente'
+      preLoaderRoute: typeof PreviewReembolsosEstornosClienteRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/reembolsos-estornos-origens': {
       id: '/preview/reembolsos-estornos-origens'
       path: '/reembolsos-estornos-origens'
@@ -1440,6 +1497,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewPedidoIdRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/reembolsos-estornos-cliente/': {
+      id: '/preview/reembolsos-estornos-cliente/'
+      path: '/'
+      fullPath: '/preview/reembolsos-estornos-cliente/'
+      preLoaderRoute: typeof PreviewReembolsosEstornosClienteIndexRouteImport
+      parentRoute: typeof PreviewReembolsosEstornosClienteRoute
+    }
+    '/preview/reembolsos-estornos-cliente/$id': {
+      id: '/preview/reembolsos-estornos-cliente/$id'
+      path: '/$id'
+      fullPath: '/preview/reembolsos-estornos-cliente/$id'
+      preLoaderRoute: typeof PreviewReembolsosEstornosClienteIdRouteImport
+      parentRoute: typeof PreviewReembolsosEstornosClienteRoute
+    }
+    '/preview/reembolsos-estornos-cliente/novo': {
+      id: '/preview/reembolsos-estornos-cliente/novo'
+      path: '/novo'
+      fullPath: '/preview/reembolsos-estornos-cliente/novo'
+      preLoaderRoute: typeof PreviewReembolsosEstornosClienteNovoRouteImport
+      parentRoute: typeof PreviewReembolsosEstornosClienteRoute
+    }
     '/api/public/pix/event': {
       id: '/api/public/pix/event'
       path: '/api/public/pix/event'
@@ -1449,6 +1527,27 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface PreviewReembolsosEstornosClienteRouteChildren {
+  PreviewReembolsosEstornosClienteIdRoute: typeof PreviewReembolsosEstornosClienteIdRoute
+  PreviewReembolsosEstornosClienteNovoRoute: typeof PreviewReembolsosEstornosClienteNovoRoute
+  PreviewReembolsosEstornosClienteIndexRoute: typeof PreviewReembolsosEstornosClienteIndexRoute
+}
+
+const PreviewReembolsosEstornosClienteRouteChildren: PreviewReembolsosEstornosClienteRouteChildren =
+  {
+    PreviewReembolsosEstornosClienteIdRoute:
+      PreviewReembolsosEstornosClienteIdRoute,
+    PreviewReembolsosEstornosClienteNovoRoute:
+      PreviewReembolsosEstornosClienteNovoRoute,
+    PreviewReembolsosEstornosClienteIndexRoute:
+      PreviewReembolsosEstornosClienteIndexRoute,
+  }
+
+const PreviewReembolsosEstornosClienteRouteWithChildren =
+  PreviewReembolsosEstornosClienteRoute._addFileChildren(
+    PreviewReembolsosEstornosClienteRouteChildren,
+  )
 
 interface PreviewRouteChildren {
   PreviewCalculadoraRoute: typeof PreviewCalculadoraRoute
@@ -1471,6 +1570,7 @@ interface PreviewRouteChildren {
   PreviewProducaoNovaRoute: typeof PreviewProducaoNovaRoute
   PreviewProducaoPainelRoute: typeof PreviewProducaoPainelRoute
   PreviewReembolsosEstornosRoute: typeof PreviewReembolsosEstornosRoute
+  PreviewReembolsosEstornosClienteRoute: typeof PreviewReembolsosEstornosClienteRouteWithChildren
   PreviewReembolsosEstornosOrigensRoute: typeof PreviewReembolsosEstornosOrigensRoute
   PreviewSimuladorCardapioRoute: typeof PreviewSimuladorCardapioRoute
   PreviewIndexRoute: typeof PreviewIndexRoute
@@ -1506,6 +1606,8 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewProducaoNovaRoute: PreviewProducaoNovaRoute,
   PreviewProducaoPainelRoute: PreviewProducaoPainelRoute,
   PreviewReembolsosEstornosRoute: PreviewReembolsosEstornosRoute,
+  PreviewReembolsosEstornosClienteRoute:
+    PreviewReembolsosEstornosClienteRouteWithChildren,
   PreviewReembolsosEstornosOrigensRoute: PreviewReembolsosEstornosOrigensRoute,
   PreviewSimuladorCardapioRoute: PreviewSimuladorCardapioRoute,
   PreviewIndexRoute: PreviewIndexRoute,
