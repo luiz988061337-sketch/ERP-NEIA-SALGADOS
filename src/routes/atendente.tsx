@@ -47,6 +47,7 @@ import {
   useConfigEntrega,
   modoPorKm,
   calcularTaxaPreview,
+  previsaoTaxaUtilizavel,
   formatarKm,
   type PrevisaoTaxa,
 } from "@/lib/config-entrega";
@@ -105,7 +106,11 @@ function Atendente() {
   // ENDEREÇO INTELIGENTE + TAXA POR KM (0103) — mesmo fluxo do checkout.
   // O atendente pode ajustar a taxa manualmente (auditado no servidor).
   // -----------------------------------------------------------------------
-  const { data: cfgEntrega } = useConfigEntrega();
+  const {
+    data: cfgEntrega,
+    isError: erroConfigEntrega,
+    isLoading: carregandoConfigEntrega,
+  } = useConfigEntrega();
   const porKm = modoPorKm(cfgEntrega);
   const [selEnd, setSelEnd] = useState<EnderecoDetalhado | null>(null);
   const [pinFinal, setPinFinal] = useState<{ lat: number; lng: number } | null>(null);
@@ -272,13 +277,7 @@ function Atendente() {
   }, [pedidosKanban]);
 
   // contrário (legado). Ajuste manual do atendente aparece no resumo.
-  const taxaPrevValida =
-    entrega === "entrega" &&
-    porKm &&
-    taxaPrev != null &&
-    taxaPrev.modo === "config" &&
-    taxaPrev.aceitarEntregas &&
-    !taxaPrev.foraDaArea;
+  const taxaPrevValida = entrega === "entrega" && porKm && previsaoTaxaUtilizavel(taxaPrev);
   const taxaBase = taxaPrevValida ? (taxaPrev as PrevisaoTaxa).taxa : TAXA_ENTREGA;
   const taxaAjustadaNum = ajusteTaxa.trim() === "" ? null : Number(ajusteTaxa);
   const taxaEfetiva =
@@ -351,6 +350,10 @@ function Atendente() {
       toast.error("Informe a cidade.");
       return;
     }
+    if (entrega === "entrega" && (erroConfigEntrega || carregandoConfigEntrega)) {
+      toast.error("Não foi possível confirmar as regras de entrega. Atualize e tente novamente.");
+      return;
+    }
     if (entrega === "entrega" && cfgEntrega && !cfgEntrega.aceitar_entregas) {
       toast.error("A entrega está desativada nas configurações. Use retirada.");
       return;
@@ -359,8 +362,12 @@ function Atendente() {
       toast.error("Confirme o ponto no mapa: busque o endereço e ajuste o pin.");
       return;
     }
-    if (entrega === "entrega" && taxaPrev?.foraDaArea) {
-      toast.error("Este endereço está fora da área de entrega configurada.");
+    if (entrega === "entrega" && porKm && !taxaPrevValida) {
+      toast.error(
+        taxaPrev?.foraDaArea
+          ? "Este endereço está fora da área de entrega configurada."
+          : "Não foi possível confirmar a taxa e a área configuradas. Atualize o endereço antes de concluir.",
+      );
       return;
     }
     // Ajuste manual: valor zerado EXIGE motivo (auditoria server-side).
@@ -776,11 +783,11 @@ function Atendente() {
               {porKm && taxaPrevValida ? (
                 <p className="text-sm">
                   <span className="text-muted-foreground">Distância:</span>{" "}
-                  <strong>{formatarKm(taxaPrev.distanciaKm)}</strong>
+                  <strong>{formatarKm(taxaPrev!.distanciaKm)}</strong>
                   <span className="mx-2 text-muted-foreground">•</span>
                   <span className="text-muted-foreground">Taxa:</span>{" "}
-                  <strong>{brl(taxaPrev.taxa)}</strong>
-                  {taxaPrev.entregaGratis ? (
+                  <strong>{brl(taxaPrev!.taxa)}</strong>
+                  {taxaPrev!.entregaGratis ? (
                     <span className="ml-2 text-xs text-success">(grátis)</span>
                   ) : null}
                 </p>

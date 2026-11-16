@@ -1041,13 +1041,21 @@ export function Producao({
       campos["conferido_por"] = user?.id ?? null;
       if (status === "pronto") campos["pronto_em"] = new Date().toISOString();
     }
-    const { error } = await supabase
+    const { data: atualizado, error } = await supabase
       .from("pedidos")
       .update(campos)
-      .eq("id", pedido.id);
+      .eq("id", pedido.id)
+      .eq("status", pedido.status)
+      .select("id")
+      .maybeSingle();
     if (error) {
       console.error("Erro ao atualizar status do pedido:", error);
       toast.error(error.message || "Não foi possível atualizar o pedido.");
+      return;
+    }
+    if (!atualizado) {
+      toast.error("O pedido mudou em outro setor. Atualize a fila antes de tentar novamente.");
+      void queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
       return;
     }
     void notificarPedido({

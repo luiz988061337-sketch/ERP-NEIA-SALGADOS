@@ -37,6 +37,7 @@ import {
   modoPorKm,
   calcularTaxaPreview,
   formatarKm,
+  previsaoTaxaUtilizavel,
   type PrevisaoTaxa,
 } from "@/lib/config-entrega";
 import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
@@ -112,7 +113,11 @@ function Checkout() {
   // taxa por km. O cliente NUNCA define a taxa: o preview vem do SERVIDOR
   // (calcular_taxa_entrega) e a cobrança é recalculada de novo na criação.
   // -----------------------------------------------------------------------
-  const { data: cfgEntrega } = useConfigEntrega();
+  const {
+    data: cfgEntrega,
+    isError: erroConfigEntrega,
+    isLoading: carregandoConfigEntrega,
+  } = useConfigEntrega();
   const porKm = modoPorKm(cfgEntrega);
   const [selEnd, setSelEnd] = useState<EnderecoDetalhado | null>(null);
   const [semNumero, setSemNumero] = useState(false);
@@ -257,15 +262,7 @@ function Checkout() {
   // Taxa exibida: quando o regime por km está ativo e o servidor respondeu o
   // preview, mostra a taxa REAL (distância × valor por km). Antes do cliente
   // escolher o endereço (ou fora do regime), mantém o padrão atual (R$ 6).
-  const taxaPrevValida =
-    tipoEntrega === "entrega" &&
-    porKm &&
-    taxaPrev != null &&
-    taxaPrev.modo === "config" &&
-    taxaPrev.aceitarEntregas &&
-    !taxaPrev.foraDaArea &&
-    Number.isFinite(taxaPrev.taxa) &&
-    taxaPrev.taxa >= 0;
+  const taxaPrevValida = tipoEntrega === "entrega" && porKm && previsaoTaxaUtilizavel(taxaPrev);
   const taxaEntregaUI = taxaPrevValida ? (taxaPrev as PrevisaoTaxa).taxa : TAXA_ENTREGA;
   const taxaEntregaFinalUI = tipoEntrega === "retirada" ? 0 : taxaEntregaUI;
   const totalFinalUI = Math.max(0, subtotal - desconto) + taxaEntregaFinalUI;
@@ -523,6 +520,10 @@ function Checkout() {
       return;
     }
     if (tipoEntrega === "entrega") {
+      if (erroConfigEntrega || carregandoConfigEntrega) {
+        toast.error("Não foi possível confirmar as regras de entrega. Aguarde e tente novamente.");
+        return;
+      }
       if (cfgEntrega && !cfgEntrega.aceitar_entregas) {
         toast.error("A entrega está temporariamente desativada. Escolha retirada na loja.");
         return;
@@ -552,8 +553,12 @@ function Checkout() {
         );
         return;
       }
-      if (taxaPrevValida === false && taxaPrev?.foraDaArea) {
-        toast.error("Este endereço está fora da nossa área de entrega.");
+      if (porKm && !taxaPrevValida) {
+        toast.error(
+          taxaPrev?.foraDaArea
+            ? "Este endereço está fora da nossa área de entrega."
+            : "Não foi possível confirmar a taxa e a área de entrega. Tente novamente antes de finalizar.",
+        );
         return;
       }
     }
@@ -1254,14 +1259,14 @@ function Checkout() {
                 {porKm && taxaPrevValida ? (
                   <p className="text-sm">
                     <span className="text-muted-foreground">Distância:</span>{" "}
-                    <strong>{formatarKm(taxaPrev.distanciaKm)}</strong>
+                    <strong>{formatarKm(taxaPrev!.distanciaKm)}</strong>
                     <span className="mx-2 text-muted-foreground">•</span>
                     <span className="text-muted-foreground">Taxa de entrega:</span>{" "}
-                    <strong>{brl(taxaPrev.taxa)}</strong>
-                    {taxaPrev.entregaGratis ? (
+                    <strong>{brl(taxaPrev!.taxa)}</strong>
+                    {taxaPrev!.entregaGratis ? (
                       <span className="ml-2 text-xs text-success">(entrega grátis)</span>
                     ) : null}
-                    {taxaPrev.fonte === "linha_reta" ? (
+                    {taxaPrev!.fonte === "linha_reta" ? (
                       <span className="ml-2 text-xs text-muted-foreground">
                         (distância aproximada em linha reta)
                       </span>

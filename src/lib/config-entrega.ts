@@ -34,17 +34,13 @@ export function useConfigEntrega() {
   return useQuery({
     queryKey: ["config-entrega"],
     queryFn: async (): Promise<ConfigEntrega | null> => {
-      try {
-        const { data, error } = await supabase
-          .from("config_entrega")
-          .select("*")
-          .eq("id", true)
-          .maybeSingle();
-        if (error) return null;
-        return (data as unknown as ConfigEntrega) ?? null;
-      } catch {
-        return null;
-      }
+      const { data, error } = await supabase
+        .from("config_entrega")
+        .select("*")
+        .eq("id", true)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as ConfigEntrega) ?? null;
     },
     staleTime: 60_000,
   });
@@ -74,6 +70,67 @@ export type EntradaPrevisao = {
   subtotal?: number | null;
 };
 
+const PREVISAO_LEGADA: PrevisaoTaxa = {
+  modo: "legado",
+  taxa: -1,
+  distanciaKm: null,
+  valorPorKm: null,
+  fonte: null,
+  entregaGratis: false,
+  foraDaArea: false,
+  aceitarEntregas: true,
+};
+
+/** Normaliza somente uma resposta completa do cálculo; nunca converte taxa ausente em frete grátis. */
+export function normalizarResultadoTaxa(data: unknown): PrevisaoTaxa {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return PREVISAO_LEGADA;
+  const d = data as Record<string, unknown>;
+  if (d["modo"] !== "config") return PREVISAO_LEGADA;
+  const foraDaArea = d["fora_da_area"] === true;
+  const areaConfirmada = d["fora_da_area"] === false;
+  const aceitarEntregas = d["aceitar_entregas"] === true;
+  const base: PrevisaoTaxa = {
+    ...PREVISAO_LEGADA,
+    modo: "config",
+    foraDaArea,
+    aceitarEntregas: aceitarEntregas && areaConfirmada,
+  };
+  if (d["erro"]) return base;
+
+  const taxaRaw = d["taxa"];
+  const taxa =
+    typeof taxaRaw === "number" || (typeof taxaRaw === "string" && taxaRaw.trim() !== "")
+      ? Number(taxaRaw)
+      : Number.NaN;
+  if (!Number.isFinite(taxa) || taxa < 0) return base;
+
+  const distanciaRaw = d["distancia_km"];
+  const distancia = distanciaRaw == null ? null : Number(distanciaRaw);
+  const valorPorKmRaw = d["valor_por_km"];
+  const valorPorKm = valorPorKmRaw == null ? null : Number(valorPorKmRaw);
+  const fonte = d["fonte"] === "rota" || d["fonte"] === "linha_reta" ? d["fonte"] : null;
+  return {
+    ...base,
+    taxa,
+    distanciaKm: distancia != null && Number.isFinite(distancia) ? distancia : null,
+    valorPorKm: valorPorKm != null && Number.isFinite(valorPorKm) ? valorPorKm : null,
+    fonte,
+    entregaGratis: d["entrega_gratis"] === true,
+  };
+}
+
+/** Confirma que preço e área foram retornados para o regime configurado por km. */
+export function previsaoTaxaUtilizavel(previsao: PrevisaoTaxa | null | undefined): boolean {
+  return !!(
+    previsao &&
+    previsao.modo === "config" &&
+    previsao.aceitarEntregas === true &&
+    previsao.foraDaArea === false &&
+    Number.isFinite(previsao.taxa) &&
+    previsao.taxa >= 0
+  );
+}
+
 /**
  * Pré-cálculo da taxa NO SERVIDOR (a cobrança real é recalculada de novo na
  * criação do pedido). Falha da rota no cliente não desconta nada: o servidor
@@ -82,16 +139,6 @@ export type EntradaPrevisao = {
 export async function calcularTaxaPreview(
   entrada: EntradaPrevisao,
 ): Promise<PrevisaoTaxa> {
-  const fallback: PrevisaoTaxa = {
-    modo: "legado",
-    taxa: -1,
-    distanciaKm: null,
-    valorPorKm: null,
-    fonte: null,
-    entregaGratis: false,
-    foraDaArea: false,
-    aceitarEntregas: true,
-  };
   try {
     const { data, error } = await supabase.rpc("calcular_taxa_entrega", {
       p_destino_lat: entrada.lat,
@@ -99,22 +146,10 @@ export async function calcularTaxaPreview(
       p_distancia_km: entrada.distanciaKm ?? null,
       p_subtotal: entrada.subtotal ?? null,
     });
-    if (error || !data) return fallback;
-    const d = data as Record<string, any>;
-    if (d["modo"] === "legado") return { ...fallback, modo: "legado" };
-    if (d["modo"] === "config" && d["erro"]) return fallback;
-    return {
-      modo: "config",
-      taxa: Number(d["taxa"] ?? 0),
-      distanciaKm: d["distancia_km"] != null ? Number(d["distancia_km"]) : null,
-      valorPorKm: d["valor_por_km"] != null ? Number(d["valor_por_km"]) : null,
-      fonte: d["fonte"] ?? null,
-      entregaGratis: !!d["entrega_gratis"],
-      foraDaArea: !!d["fora_da_area"],
-      aceitarEntregas: d["aceitar_entregas"] !== false,
-    };
+    if (error || !data) return PREVISAO_LEGADA;
+    return normalizarResultadoTaxa(data);
   } catch {
-    return fallback;
+    return PREVISAO_LEGADA;
   }
 }
 

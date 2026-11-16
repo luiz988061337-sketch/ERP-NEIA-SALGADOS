@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -84,6 +84,8 @@ function CentralEntregas() {
   const [atribuindoSelecao, setAtribuindoSelecao] = useState(false);
   const [motoboyRota, setMotoboyRota] = useState("");
   const [pedidosRota, setPedidosRota] = useState<string[]>([]);
+  const [criandoRota, setCriandoRota] = useState(false);
+  const criandoRotaRef = useRef(false);
   // ---------- HISTÓRICO (J3-C): consulta sob demanda, sem subscription nova ----------
   const [histPedidoId, setHistPedidoId] = useState("");
   const [histMotoboyId, setHistMotoboyId] = useState("");
@@ -568,20 +570,22 @@ function CentralEntregas() {
 
   // Criar rota
   async function criarRota(pedidosSelecionados: string[], motoboyId: string | null) {
+    if (criandoRotaRef.current) return;
+    const pedidosUnicos = [...new Set(pedidosSelecionados.map((id) => id.trim()).filter(Boolean))];
     if (!motoboyId) {
       toast.error("Selecione um motoboy antes de criar a rota.");
       return;
     }
-    if (pedidosSelecionados.length === 0) {
+    if (pedidosUnicos.length === 0) {
       toast.error("Selecione pelo menos um pedido.");
       return;
     }
 
     // Validar que pedidos estão elegíveis (aguardando_motoboy ou sem status bloqueado)
-    const invalidos = pedidosSelecionados.filter((pid: string) => {
+    const invalidos = pedidosUnicos.filter((pid: string) => {
       const p = (pedidos ?? []).find((x: any) => x.id === pid);
       if (!p) return true;
-      if (p.status === "entregue" || p.status === "cancelado") return true;
+      if (!(["pronto", "aguardando_motoboy"] as string[]).includes(p.status)) return true;
       // Verificar se já tem rota
       if (p.rota_id) return true;
       return false;
@@ -594,11 +598,15 @@ function CentralEntregas() {
     // Regra operacional: 3 paradas por rota. A 4ª+ exigiria autorização
     // explícita auditável, que ainda NÃO existe no fluxo local. Bloqueia antes
     // de criar a rota (evita rota órfã por limite de negócio).
-    if (!cabeNaRota(pedidosSelecionados.length, false)) {
+    if (!cabeNaRota(pedidosUnicos.length, false)) {
       toast.error("Cada rota aceita no máximo 3 paradas. Divida em mais de uma rota.");
       return;
     }
 
+    criandoRotaRef.current = true;
+    setCriandoRota(true);
+    let rotaId: string | null = null;
+    let etapaFalhou = "criação do registro da rota";
     try {
       // 1. Criar rota_entrega
       const { data: rota, error: e1 } = await supabase
@@ -611,10 +619,11 @@ function CentralEntregas() {
         .select("id")
         .single();
       if (e1 || !rota) throw e1 ?? new Error("Erro ao criar rota");
-      const rotaId = rota.id;
+      rotaId = rota.id;
 
       // 2. Inserir rota_pedidos
-      const rotaPedidos = pedidosSelecionados.map((pid: string, index: number) => ({
+      etapaFalhou = "vínculo das paradas à rota";
+      const rotaPedidos = pedidosUnicos.map((pid: string, index: number) => ({
         rota_id: rotaId,
         pedido_id: pid,
         ordem: index + 1,
@@ -623,18 +632,41 @@ function CentralEntregas() {
       if (e2) throw e2;
 
       // 3. Atualizar pedidos com rota_id
-      const { error: e3 } = await supabase
+      etapaFalhou = "atualização dos pedidos";
+      const { data: pedidosAtualizados, error: e3 } = await supabase
         .from("pedidos")
         .update({ rota_id: rotaId })
-        .in("id", pedidosSelecionados);
+        .in("id", pedidosUnicos)
+        .in("status", ["pronto", "aguardando_motoboy"])
+        .is("rota_id", null)
+        .select("id");
       if (e3) throw e3;
+      if ((pedidosAtualizados ?? []).length !== pedidosUnicos.length) {
+        throw new Error(
+          `Somente ${(pedidosAtualizados ?? []).length} de ${pedidosUnicos.length} pedidos foram confirmados.`,
+        );
+      }
 
       toast.success(
-        `Rota criada com ${pedidosSelecionados.length} pedidos para motoboy ${motoboyId}`,
+        `Rota criada com ${pedidosUnicos.length} pedidos para motoboy ${motoboyId}`,
       );
       queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
+      queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
+      setMotoboyRota("");
+      setPedidosRota([]);
     } catch (e: any) {
-      toast.error(e instanceof Error ? e.message : "Erro ao criar rota");
+      if (rotaId) {
+        toast.error(
+          `Falha na etapa ${etapaFalhou} da rota ${rotaId.slice(0, 8)}. Parte pode ter sido gravada; atualize as listas e confira antes de tentar novamente. ${e instanceof Error ? e.message : ""}`,
+        );
+        queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
+        queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
+      } else {
+        toast.error(e instanceof Error ? e.message : "Erro ao criar rota");
+      }
+    } finally {
+      criandoRotaRef.current = false;
+      setCriandoRota(false);
     }
   }
 
@@ -1400,12 +1432,11 @@ function CentralEntregas() {
                 toast.error("Selecione motoboy e pelo menos um pedido.");
                 return;
               }
-              criarRota(pedidosIds, mbId);
-              setMotoboyRota("");
-              setPedidosRota([]);
+              void criarRota(pedidosIds, mbId);
             }}
+            disabled={criandoRota}
           >
-            Criar Rota
+            {criandoRota ? "Criando rota…" : "Criar Rota"}
           </Button>
         </div>
 

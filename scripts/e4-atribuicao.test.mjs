@@ -16,6 +16,12 @@ function ok(cond, nome, detalhe = "") {
 const SQL = "drizzle/migrations/0084_etapas_operacionais.sql";
 const sql = existsSync(SQL) ? readFileSync(SQL, "utf8") : "";
 const code = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+const rotaRoute = readFileSync("src/routes/central-entregas.tsx", "utf8");
+const iCriarRota = rotaRoute.indexOf("async function criarRota(");
+const iHandleFiltro = rotaRoute.indexOf("const handleFiltroChange", iCriarRota);
+const criarRota = iCriarRota >= 0 && iHandleFiltro > iCriarRota
+  ? rotaRoute.slice(iCriarRota, iHandleFiltro)
+  : "";
 const fn = (() => {
   const i = code.indexOf("FUNCTION public.atribuir_pedido_motoboy(");
   return i < 0 ? "" : code.slice(i, code.indexOf("$$;", i));
@@ -38,6 +44,9 @@ ok(/pedido em rota ativa/.test(fn), "E4.13 pedido em duas rotas bloqueado");
 ok(!/UPDATE public\.motoboys/.test(fn), "E4.14 status do motoboy preservado (triggers de saída)");
 ok(!/pagamento_status\s*=/.test(fn) && /promessa preservada/.test(code), "E4.15 pagamento/promessa intactos");
 ok(/GRANT EXECUTE ON FUNCTION public\.atribuir_pedido_motoboy/.test(code), "E4.16 grant mínimo");
+ok(/new Set\(pedidosSelecionados\.map/.test(criarRota), "E4.31 criação de rota deduplica seleções");
+ok(/\.in\("status", \["pronto", "aguardando_motoboy"\]\)\s*\.is\("rota_id", null\)\s*\.select\("id"\)/.test(criarRota), "E4.32 só vincula pedidos elegíveis ainda sem rota e confirma as linhas alteradas");
+ok(/Parte pode ter sido gravada/.test(criarRota) && /criandoRotaRef\.current/.test(criarRota), "E4.33 falhas parciais avisadas e duplo clique local bloqueado");
 
 // Unitários.
 ok(C.E4_ATRIBUICAO_ATIVA === false, "E4.17 flag desligada");

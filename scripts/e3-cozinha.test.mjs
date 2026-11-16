@@ -17,6 +17,12 @@ const AGORA = Date.now();
 const SQL = "drizzle/migrations/0084_etapas_operacionais.sql";
 const sql = existsSync(SQL) ? readFileSync(SQL, "utf8") : "";
 const code = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+const producao = readFileSync("src/routes/producao.tsx", "utf8");
+const iMudarStatus = producao.indexOf("async function mudarStatus(");
+const iImprimirDireto = producao.indexOf("async function imprimirDireto", iMudarStatus);
+const mudarStatus = iMudarStatus >= 0 && iImprimirDireto > iMudarStatus
+  ? producao.slice(iMudarStatus, iImprimirDireto)
+  : "";
 const blocos = (nome) => {
   const i = code.indexOf(`FUNCTION public.${nome}(`);
   if (i < 0) return "";
@@ -43,6 +49,13 @@ ok(/status <> 'em_producao'/.test(conf), "E3.13 só em preparo");
 ok(/SET conferido_em = now\(\), conferido_por = v_uid/.test(conf), "E3.14 grava só conferência");
 ok(!/entregue/.test(conf.replace(/COMMENT[\s\S]*$/, "")), "E3.15 nunca entrega");
 ok(/GRANT EXECUTE ON FUNCTION public\.(liberar_pedido_cozinha|conferir_pedido_cozinha)/.test(code), "E3.16 grants mínimos");
+
+// Runtime da Cozinha: transição condicional e confirmação antes dos efeitos laterais.
+ok(/\.eq\("id", pedido\.id\)\s*\.eq\("status", pedido\.status\)\s*\.select\("id"\)\s*\.maybeSingle\(\)/.test(mudarStatus), "E3.31 atualização compara o status atual e confirma a linha alterada");
+const iSemAtualizacao = mudarStatus.indexOf("if (!atualizado)");
+const iNotificar = mudarStatus.indexOf("void notificarPedido");
+const iHistorico = mudarStatus.indexOf("pedido_status_historico");
+ok(iSemAtualizacao >= 0 && iNotificar > iSemAtualizacao && iHistorico > iSemAtualizacao, "E3.32 conflito sem linha atualizada bloqueia notificação e histórico");
 
 // Unitários: flags off + pré-checks.
 ok(C.E3_LIBERACAO_ATIVA === false && C.E3_CONFERENCIA_ATIVA === false, "E3.17 flags desligadas");
