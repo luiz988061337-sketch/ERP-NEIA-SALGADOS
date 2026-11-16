@@ -102,7 +102,7 @@ function Gestao() {
       try {
         const { data, error } = await supabase
           .from("contas")
-          .select("tipo, categoria, valor, status, vencimento")
+          .select("tipo, categoria, valor, valor_pago, status, vencimento")
           .limit(2000);
         if (error) throw error;
         return (data ?? []) as any[];
@@ -241,7 +241,10 @@ function Gestao() {
     const pagos = a.filter((p: any) => p.pagamento_status === "pago");
     const d = montarDRE(
       atual.data ?? [],
-      (contas ?? []).filter((x: any) => x.tipo === "pagar" && x.status === "paga"),
+      (contas ?? []).filter((x: any) =>
+        x.tipo === "pagar" && x.status !== "cancelada" &&
+        (x.status === "paga" || Number(x.valor_pago ?? 0) > 0),
+      ),
     );
     const porBairro = new Map<string, number>();
     const porCanal = new Map<string, number>();

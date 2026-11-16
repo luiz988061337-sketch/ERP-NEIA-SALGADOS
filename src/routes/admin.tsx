@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -81,7 +81,7 @@ import { downloadCSV } from "@/lib/export";
 import { montarDRE } from "@/lib/financeiro";
 import { faixaCompetencia } from "@/lib/competencia";
 import { converterUnidade } from "@/lib/insumos";
-import { novoEstoque, type TipoMov } from "@/lib/estoque";
+import type { TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
@@ -1962,6 +1962,7 @@ function ProdutosAdmin({
   const [editando, setEditando] = useState<any | null>(null);
   const [novo, setNovo] = useState(false);
   const [movDe, setMovDe] = useState<string | null>(null);
+  const chavesAjusteEstoque = useRef(new Map<string, string>());
   const visiveis = foco
     ? produtos.filter((p: any) => (p.nome ?? "").toLowerCase().includes(foco.toLowerCase()))
     : produtos;
@@ -1995,8 +1996,10 @@ function ProdutosAdmin({
       origem_mercadoria: String(f.get("origem_mercadoria") ?? "") || null,
       gtin: String(f.get("gtin") ?? "").replace(/\D/g, "") || null,
     };
+    const payloadProduto = { ...fullPayload };
+    if (id) delete payloadProduto["estoque"];
     let { error } = id
-      ? await supabase.from("produtos").update(fullPayload).eq("id", id)
+      ? await supabase.from("produtos").update(payloadProduto).eq("id", id)
       : await supabase.from("produtos").insert(fullPayload);
     if (error && String(error.message ?? "").includes("column")) {
       // Banco ainda sem migrações 0001/0003/0004/0033 — salva campos legados
@@ -2019,6 +2022,7 @@ function ProdutosAdmin({
         gtin: _gt,
         ...legacy
       } = fullPayload;
+      if (id) delete legacy["estoque"];
       const retry = id
         ? await supabase.from("produtos").update(legacy).eq("id", id)
         : await supabase.from("produtos").insert(legacy);
@@ -2027,6 +2031,55 @@ function ProdutosAdmin({
     }
     if (error) toast.error("Erro ao salvar produto.");
     else {
+      if (id) {
+        const estoqueAnterior = Number(editando?.["estoque"]);
+        const estoqueDesejado = Number(fullPayload["estoque"]);
+        if (!Number.isSafeInteger(estoqueAnterior) || estoqueAnterior < 0 ||
+            !Number.isSafeInteger(estoqueDesejado) || estoqueDesejado < 0 || estoqueDesejado > 2147483647) {
+          toast.error("Produto salvo, mas o ajuste de estoque é inválido; revise o saldo pelo controle de movimentações.");
+          onChange();
+          return;
+        }
+        if (estoqueDesejado !== estoqueAnterior) {
+          const identidade = `cadastro:${id}:${estoqueAnterior}:${estoqueDesejado}`;
+          let chave = chavesAjusteEstoque.current.get(identidade);
+          if (!chave) {
+            chave = globalThis.crypto?.randomUUID?.();
+            if (!chave) {
+              toast.error("Produto salvo, mas este navegador não permite gerar uma chave segura para o ajuste de estoque.");
+              onChange();
+              return;
+            }
+            chavesAjusteEstoque.current.set(identidade, chave);
+          }
+          const delta = estoqueDesejado - estoqueAnterior;
+          const { data: movimento, error: erroEstoque } = await supabase.rpc("movimentar_estoque_manual_atomico", {
+            p_produto_id: id,
+            p_tipo: delta > 0 ? "entrada" : "saida",
+            p_quantidade: Math.abs(delta),
+            p_motivo: "Ajuste de saldo pelo cadastro de produto",
+            p_chave_idempotencia: chave,
+            p_estoque_esperado: estoqueAnterior,
+          });
+          if (erroEstoque) {
+            toast.error(erroEstoque.code === "PGRST202"
+              ? "Produto salvo; ajuste de estoque pausado porque a migration 0107 ainda não está instalada. O saldo não foi alterado."
+              : "Produto salvo, mas o estoque não foi confirmado. Atualize o saldo antes de repetir o ajuste.");
+            onChange();
+            return;
+          }
+          chavesAjusteEstoque.current.delete(identidade);
+          if (movimento?.status !== "registrado" && movimento?.status !== "ja_registrado") {
+            toast.error(movimento?.status === "conflito_saldo"
+              ? "Produto salvo, mas o saldo mudou em outra operação. Atualize o produto e refaça o ajuste."
+              : movimento?.status === "estoque_insuficiente"
+                ? "Produto salvo, mas não há saldo disponível para reduzir o estoque."
+                : "Produto salvo, mas o ajuste de estoque foi recusado.");
+            onChange();
+            return;
+          }
+        }
+      }
       toast.success("Produto salvo!");
       void logAdmin(id ? "produto_alterado" : "produto_criado", String(fullPayload["nome"]));
       setEditando(null);
@@ -2377,6 +2430,7 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
   const [qtd, setQtd] = useState(1);
   const [motivo, setMotivo] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const chavePendente = useRef<string | null>(null);
   const { data: movs } = useQuery({
     queryKey: ["estoque-mov", produto.id],
     queryFn: async () => {
@@ -2396,32 +2450,44 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
   });
 
   async function salvar() {
-    const r = novoEstoque(Number(produto.estoque ?? 0), tipo, qtd);
-    if (!r.ok) {
-      toast.error(r.motivo);
+    if (!Number.isSafeInteger(qtd) || qtd <= 0 || qtd > 2147483647) {
+      toast.error("Quantidade deve ser um número inteiro positivo.");
       return;
     }
     setEnviando(true);
     try {
-      const { data: u } = await supabase.auth.getUser();
-      const { error: e1 } = await supabase.from("estoque_mov").insert({
-        produto_id: produto.id,
-        tipo,
-        quantidade: Math.floor(Number(qtd)),
-        motivo: motivo.slice(0, 200),
-        created_by: u.user?.id ?? null,
+      if (!chavePendente.current) chavePendente.current = globalThis.crypto?.randomUUID?.() ?? null;
+      if (!chavePendente.current) throw new Error("chave_idempotencia_indisponivel");
+      const { data, error } = await supabase.rpc("movimentar_estoque_manual_atomico", {
+        p_produto_id: produto.id,
+        p_tipo: tipo,
+        p_quantidade: qtd,
+        p_motivo: motivo.slice(0, 200),
+        p_chave_idempotencia: chavePendente.current,
+        p_estoque_esperado: null,
       });
-      if (e1) throw e1;
-      const { error: e2 } = await supabase
-        .from("produtos")
-        .update({ estoque: r.valor })
-        .eq("id", produto.id);
-      if (e2) throw e2;
-      toast.success(`Estoque: ${produto.estoque} → ${r.valor}`);
-      void logAdmin("estoque_mov", `${produto.nome} ${tipo} ${qtd} → ${r.valor}`);
+      if (error) throw error;
+      if (data?.status !== "registrado" && data?.status !== "ja_registrado") {
+        chavePendente.current = null;
+        const mensagem = data?.status === "estoque_insuficiente"
+          ? `Estoque insuficiente (atual ${data.estoque_atual ?? "indisponível"}).`
+          : data?.status === "conflito_saldo"
+            ? "O saldo foi alterado por outra pessoa. Atualize a tela e tente novamente."
+            : "A movimentação foi recusada; confira os dados e o saldo.";
+        toast.error(mensagem);
+        onChange();
+        return;
+      }
+      chavePendente.current = null;
+      const saldo = Number(data.estoque_atual);
+      toast.success(Number.isSafeInteger(saldo) ? `Estoque atualizado: ${saldo}.` : "Movimentação registrada.");
+      void logAdmin("estoque_mov", `${produto.nome} ${tipo} ${qtd}`);
       onChange();
-    } catch {
-      toast.error("Não foi possível salvar. Rode a migração 0003 no Supabase.");
+    } catch (erro) {
+      const rpcAusente = typeof erro === "object" && erro !== null && "code" in erro && erro.code === "PGRST202";
+      toast.error(rpcAusente
+        ? "Movimentação pausada: a migration 0107 ainda não está instalada. Nenhuma baixa foi confirmada."
+        : "Não foi possível confirmar a movimentação. Atualize o saldo antes de repetir.");
     } finally {
       setEnviando(false);
     }
@@ -2948,7 +3014,7 @@ function DonoAdmin() {
       try {
         const { data, error } = await supabase
           .from("contas")
-          .select("tipo, categoria, valor, status, vencimento")
+          .select("tipo, categoria, valor, valor_pago, status, vencimento")
           .limit(2000);
         if (error) throw error;
         return (data ?? []) as any[];
@@ -3087,7 +3153,10 @@ function DonoAdmin() {
     const pagos = a.filter((p: any) => p.pagamento_status === "pago");
     const d = montarDRE(
       atual.data ?? [],
-      (contas ?? []).filter((x: any) => x.tipo === "pagar" && x.status === "paga"),
+      (contas ?? []).filter((x: any) =>
+        x.tipo === "pagar" && x.status !== "cancelada" &&
+        (x.status === "paga" || Number(x.valor_pago ?? 0) > 0),
+      ),
     );
     const porBairro = new Map<string, number>();
     const porCanal = new Map<string, number>();

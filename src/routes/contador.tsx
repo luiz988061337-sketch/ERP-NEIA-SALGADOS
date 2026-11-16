@@ -90,7 +90,7 @@ function Contador() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contas")
-        .select("id, tipo, descricao, categoria, valor, status, vencimento, pago_em, anexo_url")
+        .select("id, tipo, descricao, categoria, valor, valor_pago, status, vencimento, pago_em, anexo_url")
         .or(
           `and(pago_em.gte.${ini},pago_em.lt.${fim}),and(vencimento.gte.${ini},vencimento.lt.${fim},status.neq.paga,status.neq.cancelada)`,
         )
@@ -158,8 +158,11 @@ function Contador() {
   });
 
   const dre = useMemo(() => {
-    const pagas = (contas ?? []).filter((c: any) => c.tipo === "pagar" && c.status === "paga");
-    return montarDRE(pedidos ?? [], pagas);
+    const comPagamento = (contas ?? []).filter((c: any) =>
+      c.tipo === "pagar" && c.status !== "cancelada" &&
+      (c.status === "paga" || Number(c.valor_pago ?? 0) > 0),
+    );
+    return montarDRE(pedidos ?? [], comPagamento);
   }, [pedidos, contas]);
 
   const porDoc = useMemo(() => {

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,10 @@ import { brl } from "@/lib/format";
 import { faixaCompetencia } from "@/lib/competencia";
 import { downloadCSV } from "@/lib/export";
 import {
+  competenciaSaoPaulo,
   diferencaCaixa,
   dreMensal,
+  montarFluxoCaixaMensal,
   montarDRE,
   pontoEquilibrio,
   resumoConciliacao,
@@ -42,9 +44,9 @@ import {
   identificarArquivoExtrato,
   importarLancamentosExtrato,
   prefixoIdentidadeArquivoExtrato,
-  validarValorConta,
   type LinhaExtratoExistente,
 } from "@/lib/extratos-importacao";
+import { reaisParaCentavos } from "@/lib/financeiro-pagamentos";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/financeiro")({
@@ -59,8 +61,39 @@ export const Route = createFileRoute("/financeiro")({
 
 const MEIOS = ["dinheiro", "pix", "credito", "debito", "transferencia", "outro"] as const;
 
+function rpcAtomicaAusente(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "PGRST202";
+}
+
+const avisoRpcFinanceira = "Operação pausada: a migration financeira ainda não está instalada. Nenhuma alteração foi confirmada.";
+
 function hojeISO(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+function ultimasCompetencias(mes: string, quantidade = 6): string[] {
+  const [ano, numeroMes] = mes.split("-").map(Number);
+  return Array.from({ length: quantidade }, (_, indice) => {
+    const data = new Date(Date.UTC(ano || 2000, (numeroMes || 1) - quantidade + indice, 1));
+    return `${data.getUTCFullYear()}-${String(data.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
+async function lerPaginado<T>(buscar: (inicio: number, fim: number) => Promise<{
+  data: T[] | null;
+  error: { code?: string } | null;
+}>): Promise<{ rows: T[]; errorCode: string | null }> {
+  const rows: T[] = [];
+  const tamanhoPagina = 1000;
+  const limite = 50000;
+  for (let inicio = 0; inicio <= limite; inicio += tamanhoPagina) {
+    const { data, error } = await buscar(inicio, inicio + tamanhoPagina - 1);
+    if (error) return { rows: [], errorCode: error.code ?? "QUERY_ERROR" };
+    const pagina = data ?? [];
+    rows.push(...pagina);
+    if (pagina.length < tamanhoPagina) return { rows, errorCode: null };
+  }
+  return { rows: [], errorCode: "LIMITE_PAGINACAO" };
 }
 
 function Financeiro() {
@@ -68,12 +101,27 @@ function Financeiro() {
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
-  const [mes, setMes] = useState(() => new Date().toISOString().slice(0, 7));
+  const [mes, setMes] = useState(() => competenciaSaoPaulo(new Date().toISOString()) ?? new Date().toISOString().slice(0, 7));
+  const chavesOperacao = useRef(new Map<string, string>());
+
+  function chaveOperacao(identidade: string): string {
+    const existente = chavesOperacao.current.get(identidade);
+    if (existente) return existente;
+    const chave = globalThis.crypto?.randomUUID?.();
+    if (!chave) throw new Error("Este navegador não oferece uma chave segura para a operação.");
+    chavesOperacao.current.set(identidade, chave);
+    return chave;
+  }
 
   if (!loading && !user) {
     navigate({ to: "/auth", search: { redirect: "/financeiro" }, replace: true });
   }
   const autorizado = roles?.includes("admin") || roles?.includes("financeiro");
+  const competenciasFluxo = useMemo(() => ultimasCompetencias(mes), [mes]);
+  const faixaFluxo = useMemo(() => ({
+    ini: faixaCompetencia(competenciasFluxo[0] ?? mes).ini,
+    fim: faixaCompetencia(competenciasFluxo[competenciasFluxo.length - 1] ?? mes).fim,
+  }), [competenciasFluxo, mes]);
 
   const { data: pedidos } = useQuery({
     queryKey: ["fin-pedidos", mes],
@@ -99,21 +147,82 @@ function Financeiro() {
     },
   });
 
-  const { data: contas } = useQuery({
+  const { data: contas, isError: erroContas } = useQuery({
     queryKey: ["fin-contas"],
     enabled: !!autorizado,
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("contas")
-          .select("*")
-          .order("vencimento", { ascending: true, nullsFirst: false })
-          .limit(500);
-        if (error) throw error;
-        return (data ?? []) as any[];
-      } catch {
-        return [];
-      }
+      const resultado = await lerPaginado<any>((inicio, fim) => supabase
+        .from("contas")
+        .select("*")
+        .order("vencimento", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true })
+        .range(inicio, fim));
+      if (resultado.errorCode) throw new Error(`Leitura de contas incompleta: ${resultado.errorCode}`);
+      return resultado.rows;
+    },
+  });
+
+  const { data: eventosPagamentoCaixa } = useQuery({
+    queryKey: ["fin-eventos-pagamento-caixa", faixaFluxo.ini, faixaFluxo.fim],
+    enabled: !!autorizado,
+    queryFn: async () => {
+      const resultado = await lerPaginado<any>((inicio, fim) => supabase
+        .from("conta_pagamento_eventos")
+        .select("conta_id, tipo, valor_centavos, created_at")
+        .gte("created_at", faixaFluxo.ini)
+        .lt("created_at", faixaFluxo.fim)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(inicio, fim));
+      return { available: !resultado.errorCode, errorCode: resultado.errorCode, rows: resultado.rows };
+    },
+  });
+
+  const { data: eventosPedidoCaixa } = useQuery({
+    queryKey: ["fin-eventos-pedido-caixa", faixaFluxo.ini, faixaFluxo.fim],
+    enabled: !!autorizado,
+    queryFn: async () => {
+      const resultado = await lerPaginado<any>((inicio, fim) => supabase
+        .from("pedido_pagamento_eventos")
+        .select("pedido_id, tipo, valor_centavos, forma_pagamento, created_at")
+        .gte("created_at", faixaFluxo.ini)
+        .lt("created_at", faixaFluxo.fim)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(inicio, fim));
+      return { available: !resultado.errorCode, errorCode: resultado.errorCode, rows: resultado.rows };
+    },
+  });
+
+  const { data: pedidosRecebidosCaixa } = useQuery({
+    queryKey: ["fin-pedidos-recebidos-caixa", faixaFluxo.ini, faixaFluxo.fim],
+    enabled: !!autorizado,
+    queryFn: async () => {
+      const resultado = await lerPaginado<any>((inicio, fim) => supabase
+        .from("pedidos")
+        .select("id, total, forma_pagamento, pagamento_status, status, pagamento_em")
+        .eq("pagamento_status", "pago")
+        .neq("status", "cancelado")
+        .gte("pagamento_em", faixaFluxo.ini)
+        .lt("pagamento_em", faixaFluxo.fim)
+        .order("pagamento_em", { ascending: true })
+        .order("id", { ascending: true })
+        .range(inicio, fim));
+      return { available: !resultado.errorCode, errorCode: resultado.errorCode, rows: resultado.rows };
+    },
+  });
+
+  const { data: pedidosSemDataCaixa } = useQuery({
+    queryKey: ["fin-pedidos-pagos-sem-data", faixaFluxo.ini, faixaFluxo.fim],
+    enabled: !!autorizado,
+    queryFn: async () => {
+      const resultado = await lerPaginado<any>((inicio, fim) => supabase
+        .from("pedidos")
+        .select("id")
+        .eq("pagamento_status", "pago")
+        .is("pagamento_em", null)
+        .range(inicio, fim));
+      return { available: !resultado.errorCode, errorCode: resultado.errorCode, count: resultado.rows.length };
     },
   });
 
@@ -351,79 +460,36 @@ function Financeiro() {
   }
 
   async function conciliar(ex: any, cand: { tipo: string; id: string }) {
-    const agora = new Date().toISOString();
-    let valorConta: number | null = null;
-    if (cand.tipo === "conta") {
-      const leitura = await supabase.from("contas").select("valor").eq("id", cand.id).maybeSingle();
-      const validacao = validarValorConta(leitura);
-      if (!validacao.ok) {
-        const mensagem = validacao.motivo === "consulta_falhou"
-          ? "Não foi possível ler o valor da conta. O extrato continua pendente."
-          : validacao.motivo === "conta_ausente"
-            ? "A conta selecionada não existe. O extrato continua pendente."
-            : "O valor da conta está inválido. O extrato continua pendente.";
-        toast.error(mensagem);
-        return;
-      }
-      valorConta = validacao.valor;
-    }
-    // 1) Reserva o extrato (claim) apenas se ainda estiver pendente. Sem isso,
-    //    dois operadores conciliavam o mesmo lançamento duas vezes.
-    const { data: claim, error: eClaim } = await supabase
-      .from("extratos")
-      .update({ status: "conciliado", vinculo_tipo: cand.tipo, vinculo_id: cand.id })
-      .eq("id", ex.id)
-      .eq("status", "pendente")
-      .select("id");
-    if (eClaim) {
-      toast.error("Falha ao conciliar.");
+    const { data, error } = await supabase.rpc("conciliar_extrato_atomico", {
+      p_extrato_id: ex.id,
+      p_vinculo_tipo: cand.tipo,
+      p_vinculo_id: cand.id,
+    });
+    if (error) {
+      toast.error(rpcAtomicaAusente(error)
+        ? avisoRpcFinanceira
+        : "Não foi possível confirmar a conciliação. Atualize o extrato antes de repetir.");
       return;
     }
-    if (!claim || claim.length === 0) {
-      toast.error("Este lançamento já foi conciliado por outra pessoa.");
+    const resultado = data as { status?: string } | null;
+    if (resultado?.status !== "conciliado" && resultado?.status !== "repetido") {
+      const motivos: Record<string, string> = {
+        nao_autorizado: "Seu perfil não pode conciliar lançamentos.",
+        conta_inexistente: "A conta selecionada não existe.",
+        pedido_inexistente: "O pedido selecionado não existe.",
+        pedido_nao_conciliavel: "O valor do extrato não corresponde ao saldo integral do pedido.",
+        pedido_ja_pago: "O pedido já consta como pago.",
+        valor_superior_ao_saldo: "O extrato excede o saldo restante da conta.",
+        chave_idempotencia_conflitante: "Este extrato já foi aplicado em outra operação.",
+        extrato_indisponivel: "Este lançamento já foi conciliado ou ignorado.",
+        sinal_incompativel: "O sinal do extrato não corresponde a pagar/receber.",
+        revisao_necessaria: "A conta possui um saldo histórico inconsistente e precisa de revisão.",
+      };
+      toast.error(motivos[resultado?.status ?? ""] ?? "O lançamento não pôde ser conciliado.");
       queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
       return;
     }
-
-    // 2) Aplica o vínculo no destino e confirma que 0 linhas = conflito.
-    let alvoOk = false;
-    if (cand.tipo === "pedido") {
-      const { data, error } = await supabase
-        .from("pedidos")
-        .update({ pagamento_status: "pago", pagamento_em: agora })
-        .eq("id", cand.id)
-        .eq("pagamento_status", "pendente")
-        .select("id");
-      alvoOk = !error && !!data && data.length > 0;
-    } else {
-      const { data, error } = await supabase
-        .from("contas")
-        .update({
-          status: "paga",
-          valor_pago: valorConta,
-          pago_em: agora,
-          updated_at: agora,
-        })
-        .eq("id", cand.id)
-        .eq("valor", valorConta)
-        .neq("status", "paga")
-        .select("id");
-      alvoOk = !error && !!data && data.length > 0;
-    }
-
-    // 3) Destino já alterado/falhou: devolve o extrato para pendente (nada
-    //    conciliado). vinculo_tipo é NOT NULL DEFAULT '' — não usar null.
-    if (!alvoOk) {
-      await supabase
-        .from("extratos")
-        .update({ status: "pendente", vinculo_tipo: "", vinculo_id: null })
-        .eq("id", ex.id);
-      toast.error("Destino já alterado ou indisponível. Nada foi conciliado.");
-      queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
-      return;
-    }
-
-    toast.success("Conciliado.");
+    toast.success(resultado.status === "repetido" ? "Este lançamento já estava conciliado." : "Conciliado.");
     queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
     queryClient.invalidateQueries({ queryKey: ["fin-pedidos", mes] });
@@ -458,12 +524,32 @@ function Financeiro() {
     return <p className="p-10 text-center">Acesso do admin/financeiro.</p>;
   }
 
-  const conc = resumoConciliacao(pedidos ?? []);
   const hoje = hojeISO();
   const contasComStatus = (contas ?? []).map((c: any) => ({ ...c, efetivo: statusConta(c, hoje) }));
-  /** Valor considerado pago (baixa total ou parcial). */
-  const pagoValor = (c: any) =>
-    c.efetivo === "paga" ? Number(c.valor ?? 0) || 0 : Number(c.valor_pago ?? 0) || 0;
+  const argumentosFluxo = {
+    competencias: competenciasFluxo,
+    eventos: eventosPagamentoCaixa?.rows ?? [],
+    eventosPedidos: eventosPedidoCaixa?.rows ?? [],
+    contas: contas ?? [],
+    pedidosPagos: pedidosRecebidosCaixa?.rows ?? [],
+    pedidosPagosSemData: pedidosSemDataCaixa?.count ?? 0,
+  };
+  const fluxoCaixaCalculado = montarFluxoCaixaMensal(argumentosFluxo);
+  const fluxoMes = fluxoCaixaCalculado.find((item) => item.competencia === mes);
+  const ledgerDisponivel = eventosPagamentoCaixa?.available === true && eventosPedidoCaixa?.available === true;
+  const fallbackLegadoDisponivel = eventosPagamentoCaixa?.errorCode === "PGRST205" &&
+    eventosPedidoCaixa?.errorCode === "PGRST205";
+  const fluxoDisponivel = (ledgerDisponivel || fallbackLegadoDisponivel) &&
+    pedidosRecebidosCaixa?.available === true && pedidosSemDataCaixa?.available === true &&
+    !erroContas && contas !== undefined;
+  const concBase = resumoConciliacao(pedidos ?? []);
+  const conc = {
+    ...concBase,
+    recebido: (fluxoMes?.entradasOperacionaisCentavos ?? 0) / 100,
+    qtdRecebido: fluxoMes?.pagamentos ?? 0,
+    porMeio: Object.fromEntries(Object.entries(fluxoMes?.porMeioCentavos ?? {})
+      .map(([meio, centavos]) => [meio, centavos / 100])),
+  };
   const aPagar = totalContas(
     contasComStatus.filter((c: any) => c.tipo === "pagar" && c.efetivo !== "paga"),
     "pagar",
@@ -474,32 +560,34 @@ function Financeiro() {
   );
   const vencidas = contasComStatus.filter((c: any) => c.efetivo === "vencida");
 
-  // Caixa: entradas em dinheiro = pedidos pagos em dinheiro + contas receber pagas em dinheiro;
-  // saídas em dinheiro = contas pagar pagas em dinheiro (no período da sessão aberta).
-  const iniSessao = String(caixaAberto?.aberta_em ?? "").slice(0, 10) || "0000-00-00";
-  const entPedidos = (pedidos ?? [])
-    .filter(
-      (p: any) =>
-        p.pagamento_status === "pago" &&
-        p.status !== "cancelado" &&
-        p.forma_pagamento === "dinheiro" &&
-        String(p.created_at ?? "").slice(0, 10) >= iniSessao,
-    )
-    .reduce((s: number, p: any) => s + (Number(p.total ?? 0) || 0), 0);
-  const entContas = contasComStatus
-    .filter((c: any) => c.tipo === "receber" && c.meio === "dinheiro" && pagoValor(c) > 0)
-    .reduce((s: number, c: any) => s + pagoValor(c), 0);
-  const saiContas = contasComStatus
-    .filter((c: any) => c.tipo === "pagar" && c.meio === "dinheiro" && pagoValor(c) > 0)
-    .reduce((s: number, c: any) => s + pagoValor(c), 0);
+  // Caixa da sessão: usa pagamento_em e eventos do ledger após o instante de abertura.
+  const fluxoSessao = montarFluxoCaixaMensal({
+    ...argumentosFluxo,
+    aPartirDe: caixaAberto?.aberta_em ?? null,
+    meiosIncluidos: ["dinheiro"],
+  });
+  const sessaoDentroDaJanela = !caixaAberto ||
+    (Date.parse(String(caixaAberto.aberta_em ?? "")) >= Date.parse(faixaFluxo.ini));
+  const pagamentosSemDataConfiavel = fluxoSessao.reduce((soma, item) => soma + item.eventosSemData, 0);
+  const eventosContaSemMeioCaixa = fluxoSessao.reduce((soma, item) => soma + item.eventosContaMeioDesconhecido, 0);
+  const fechamentoDisponivel = fluxoDisponivel && sessaoDentroDaJanela &&
+    pagamentosSemDataConfiavel === 0 && eventosContaSemMeioCaixa === 0;
+  const entPedidos = fluxoSessao.reduce((soma, item) => soma + item.entradasPedidosCentavos, 0) / 100;
+  const entContas = fluxoSessao.reduce((soma, item) => soma + item.entradasContasCentavos, 0) / 100;
+  const saiContas = fluxoSessao.reduce((soma, item) => soma + item.saidasContasCentavos, 0) / 100;
   const esperado = caixaAberto
-    ? saldoCaixaEsperado(Number(caixaAberto.saldo_inicial ?? 0), entPedidos + entContas, saiContas)
+    ? fechamentoDisponivel
+      ? saldoCaixaEsperado(Number(caixaAberto.saldo_inicial ?? 0), entPedidos + entContas, saiContas)
+      : 0
     : 0;
 
   // DRE do mês centralizada (montarDRE: bruta recomposta, sem dedução dupla).
   const dre = useMemo(() => {
-    const pagas = contasComStatus.filter((c: any) => c.tipo === "pagar" && c.efetivo === "paga");
-    return montarDRE(pedidos ?? [], pagas);
+    const comPagamento = contasComStatus.filter((c: any) =>
+      c.tipo === "pagar" && c.efetivo !== "cancelada" &&
+      (c.efetivo === "paga" || Number(c.valor_pago ?? 0) > 0),
+    );
+    return montarDRE(pedidos ?? [], comPagamento);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidos, contas]);
   const mc = dre.liquida > 0 ? (dre.liquida - dre.cmv) / dre.liquida : 0;
@@ -522,40 +610,14 @@ function Financeiro() {
     return { rec, pag, saldo: rec - pag };
   }, [contas]);
 
-  /* Fluxo de caixa mensal (gráfico): entradas = pedidos pagos no mês (fin-pedidos);
-     saídas = contas a pagar quitadas no mês (pago_em real). Últimos 6 meses. */
-  const fluxoMensal = useMemo(() => {
-    const meses: { chave: string; rotulo: string; entradas: number; saidas: number }[] = [];
-    const base = new Date();
-    base.setDate(1);
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
-      meses.push({
-        chave: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-        rotulo: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
-        entradas: 0,
-        saidas: 0,
-      });
-    }
-    const idx = new Map(meses.map((m, i) => [m.chave, i]));
-    for (const p of pedidos ?? []) {
-      if (p.pagamento_status !== "pago" || p.status === "cancelado") continue;
-      const m = String(p.created_at ?? "").slice(0, 7);
-      const cell = idx.get(m) != null ? meses[idx.get(m) as number] : undefined;
-      if (cell) cell.entradas += Number(p.total ?? 0) || 0;
-    }
-    for (const c of contasComStatus) {
-      if (c.tipo !== "pagar" || !c.pago_em) continue;
-      const pago = Number(c.valor_pago ?? c.valor ?? 0) || 0;
-      if (pago <= 0) continue;
-      const cell = idx.get(String(c.pago_em).slice(0, 7)) != null
-        ? meses[idx.get(String(c.pago_em).slice(0, 7)) as number]
-        : undefined;
-      if (cell) cell.saidas += pago;
-    }
-    return meses;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedidos, contas]);
+  // DRE permanece pela data do pedido; caixa usa data dos eventos/pagamento efetivo.
+  const fluxoMensal = fluxoCaixaCalculado.map((periodo) => ({
+    chave: periodo.competencia,
+    rotulo: new Date(`${periodo.competencia}-01T12:00:00-03:00`)
+      .toLocaleDateString("pt-BR", { month: "short", timeZone: "America/Sao_Paulo" }).replace(".", ""),
+    entradas: periodo.entradasCentavos / 100,
+    saidas: periodo.saidasCentavos / 100,
+  }));
 
   async function abrirCaixa(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -576,6 +638,14 @@ function Financeiro() {
   async function fecharCaixa(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!caixaAberto) return;
+    if (!fechamentoDisponivel) {
+      toast.error(pagamentosSemDataConfiavel > 0
+        ? "Fechamento bloqueado: há pagamentos históricos sem data confiável. Revise os eventos e a sessão antes de fechar."
+        : eventosContaSemMeioCaixa > 0
+          ? "Fechamento bloqueado: o meio efetivo de uma ou mais baixas de contas não está registrado. Revise o caixa antes de fechar."
+          : "Fechamento bloqueado: recebimentos ou eventos financeiros não puderam ser lidos. Atualize os dados antes de fechar.");
+      return;
+    }
     const f = new FormData(e.currentTarget);
     const informado = Number(f.get("saldo_informado") ?? 0);
     const dif = diferencaCaixa(informado, esperado);
@@ -627,73 +697,119 @@ function Financeiro() {
   }
 
   async function mudarConta(c: any, status: string) {
-    const { error } = await supabase
-      .from("contas")
-      .update({
-        status,
-        pago_em: status === "paga" ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", c.id);
-    if (error) toast.error("Não foi possível atualizar.");
-    else {
-      toast.success(status === "paga" ? "Conta marcada como paga." : `Conta ${status}.`);
-      queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
+    const identidade = `estado:${c.id}:${status}`;
+    let error: unknown = null;
+    let resultado: any = null;
+    try {
+      if (status === "paga") {
+        const resposta = await supabase.rpc("registrar_pagamento_conta", {
+          p_conta_id: c.id,
+          p_valor_centavos: null,
+          p_chave_idempotencia: chaveOperacao(identidade),
+        });
+        error = resposta.error;
+        resultado = resposta.data;
+      } else if (status === "cancelada") {
+        const resposta = await supabase.rpc("cancelar_conta_financeira", { p_conta_id: c.id });
+        error = resposta.error;
+        resultado = resposta.data;
+      } else {
+        toast.error("Estado não suportado.");
+        return;
+      }
+    } catch (e) {
+      error = e;
     }
+    if (error) {
+      toast.error(rpcAtomicaAusente(error)
+        ? avisoRpcFinanceira
+        : "Não foi possível confirmar a atualização; consulte a conta antes de repetir.");
+      return;
+    }
+    chavesOperacao.current.delete(identidade);
+    if (resultado?.status !== "registrado" && resultado?.status !== "cancelada" && resultado?.status !== "repetido") {
+      toast.error("A conta não foi alterada. Confira o saldo e o histórico antes de tentar novamente.");
+      return;
+    }
+    toast.success(status === "paga" ? "Conta quitada." : `Conta ${status}.`);
+    queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
   }
 
   /** Baixa parcial: acumula valor_pago; quita ao atingir o valor. */
   async function darBaixa(e: React.FormEvent<HTMLFormElement>, c: any) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const v = Number(f.get("baixa") ?? 0) || 0;
-    if (v <= 0) {
+    const valorCentavos = reaisParaCentavos(String(f.get("baixa") ?? ""));
+    if (valorCentavos == null || valorCentavos <= 0) {
       toast.error("Informe um valor maior que zero.");
       return;
     }
-    const novoPago = (Number(c.valor_pago ?? 0) || 0) + v;
-    const quitada = novoPago >= (Number(c.valor ?? 0) || 0);
-    const { error } = await supabase
-      .from("contas")
-      .update({
-        valor_pago: novoPago,
-        status: quitada ? "paga" : c.status === "paga" ? "pendente" : c.status,
-        pago_em: quitada ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", c.id);
+    const identidade = `baixa:${c.id}:${valorCentavos}`;
+    let error: unknown = null;
+    let resultado: any = null;
+    try {
+      const resposta = await supabase.rpc("registrar_pagamento_conta", {
+        p_conta_id: c.id,
+        p_valor_centavos: valorCentavos,
+        p_chave_idempotencia: chaveOperacao(identidade),
+      });
+      error = resposta.error;
+      resultado = resposta.data;
+    } catch (e) {
+      error = e;
+    }
     if (error) {
-      toast.error("Falha na baixa.");
+      toast.error(rpcAtomicaAusente(error)
+        ? avisoRpcFinanceira
+        : "Falha ao confirmar a baixa; consulte a conta antes de repetir o valor.");
       return;
     }
-    toast.success(
-      quitada
-        ? "Conta quitada."
-        : `Baixa de ${brl(v)} registrada (falta ${brl((Number(c.valor ?? 0) || 0) - novoPago)}).`,
-    );
+    chavesOperacao.current.delete(identidade);
+    if (resultado?.status !== "registrado" && resultado?.status !== "repetido") {
+      const saldo = Number(resultado?.saldo_centavos);
+      toast.error(resultado?.status === "valor_superior_ao_saldo" && Number.isFinite(saldo)
+        ? `O pagamento excede o saldo restante de ${brl(saldo / 100)}.`
+        : "A baixa não foi registrada. Confira o saldo da conta.");
+      return;
+    }
+    const saldo = Number(resultado?.saldo_centavos);
+    toast.success(Number.isFinite(saldo) && saldo === 0
+      ? "Conta quitada."
+      : `Baixa de ${brl(valorCentavos / 100)} registrada (falta ${brl((Number.isFinite(saldo) ? saldo : 0) / 100)}).`);
     (e.target as HTMLFormElement).reset();
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
   }
 
   /** Sangria/suprimento: movimento de caixa via conta em dinheiro paga na hora. */
   async function movimentoCaixa(kind: "sangria" | "suprimento", valor: number) {
-    if (!(valor > 0)) {
+    const valorCentavos = reaisParaCentavos(valor);
+    if (valorCentavos == null || valorCentavos <= 0) {
       toast.error("Informe um valor maior que zero.");
       return;
     }
-    const { error } = await supabase.from("contas").insert({
-      tipo: kind === "sangria" ? "pagar" : "receber",
-      descricao: kind === "sangria" ? "Sangria de caixa" : "Suprimento de caixa",
-      categoria: kind,
-      valor,
-      valor_pago: valor,
-      meio: "dinheiro",
-      status: "paga",
-      pago_em: new Date().toISOString(),
-      created_by: user!.id,
-    });
+    const identidade = `movimento:${kind}:${valorCentavos}`;
+    let error: unknown = null;
+    let resultado: any = null;
+    try {
+      const resposta = await supabase.rpc("registrar_movimento_caixa", {
+        p_tipo: kind,
+        p_valor_centavos: valorCentavos,
+        p_chave_idempotencia: chaveOperacao(identidade),
+      });
+      error = resposta.error;
+      resultado = resposta.data;
+    } catch (e) {
+      error = e;
+    }
     if (error) {
-      toast.error("Falha ao registrar.");
+      toast.error(rpcAtomicaAusente(error)
+        ? avisoRpcFinanceira
+        : "Falha ao confirmar o movimento; consulte o caixa antes de repetir.");
+      return;
+    }
+    chavesOperacao.current.delete(identidade);
+    if (resultado?.status !== "registrado" && resultado?.status !== "repetido") {
+      toast.error("O movimento não foi registrado.");
       return;
     }
     toast.success(`${kind === "sangria" ? "Sangria" : "Suprimento"} de ${brl(valor)} registrado.`);
@@ -781,21 +897,21 @@ function Financeiro() {
           <MetricCard
             icone={ArrowUpCircle}
             label="Entradas"
-            valor={brl(entPedidos + entContas)}
+            valor={caixaAberto && fechamentoDisponivel ? brl(entPedidos + entContas) : "—"}
             detalhe="dinheiro recebido no período"
             cor={ERP_COLORS.green}
           />
           <MetricCard
             icone={ArrowDownCircle}
             label="Saídas"
-            valor={brl(saiContas)}
+            valor={caixaAberto && fechamentoDisponivel ? brl(saiContas) : "—"}
             detalhe="dinheiro pago no período"
             cor={ERP_COLORS.red}
           />
           <MetricCard
             icone={Wallet}
             label="Saldo"
-            valor={caixaAberto ? brl(esperado) : "—"}
+            valor={caixaAberto && fechamentoDisponivel ? brl(esperado) : "—"}
             detalhe={caixaAberto ? "caixa aberto (esperado)" : "caixa fechado"}
             cor={ERP_COLORS.gold}
           />
@@ -803,7 +919,7 @@ function Financeiro() {
 
         {/* Linha 2 — gráfico de fluxo de caixa mensal */}
         <ChartCard titulo="Fluxo de Caixa (últimos 6 meses)" altura="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+          {fluxoDisponivel ? <ResponsiveContainer width="100%" height="100%">
             <BarChart data={fluxoMensal} margin={{ left: -8, right: 8, top: 8 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
               <XAxis
@@ -845,8 +961,24 @@ function Financeiro() {
               />
               <Bar dataKey="saidas" name="Saídas" fill={ERP_COLORS.red} radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer> : <p className="p-6 text-sm text-muted-foreground">
+            {eventosPagamentoCaixa === undefined || eventosPedidoCaixa === undefined ||
+            pedidosRecebidosCaixa === undefined || pedidosSemDataCaixa === undefined || contas === undefined
+              ? "Carregando eventos financeiros…"
+              : "Fluxo não calculado: não foi possível ler os eventos de pagamento e as contas. Nenhum total estimado é exibido."}
+          </p>}
         </ChartCard>
+
+        {fluxoDisponivel && (fluxoMes?.eventosSemData ?? 0) > 0 && (
+          <p role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+            {fluxoMes?.eventosSemData} pagamento(s) ou saldo(s) histórico(s) não incluído(s) no fluxo por falta de eventos ou datas confiáveis.
+          </p>
+        )}
+        {fluxoDisponivel && (fluxoMes?.eventosContaMeioDesconhecido ?? 0) > 0 && (
+          <p role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+            {fluxoMes?.eventosContaMeioDesconhecido} baixa(s) de conta sem meio de pagamento registrado; o valor permanece no fluxo total, mas não é atribuído a dinheiro, PIX ou cartão.
+          </p>
+        )}
 
         <section className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -861,12 +993,12 @@ function Financeiro() {
             </Button>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Recebido = só pagamento confirmado. Pedido criado ou pendente não é receita.
+            Recebido usa a data efetiva dos eventos de caixa; pedidos a receber e cancelados permanecem agrupados pela competência de criação. A DRE segue a data do pedido.
           </p>
           <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>Recebido ({conc.qtdRecebido})</span>
-              <strong>{brl(conc.recebido)}</strong>
+              <strong>{fluxoDisponivel ? brl(conc.recebido) : "—"}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>A receber ({conc.qtdPendente})</span>
@@ -881,7 +1013,7 @@ function Financeiro() {
             {(["pix", "dinheiro", "credito", "debito"] as const).map((m) => (
               <p key={m} className="flex justify-between rounded-lg border border-border p-2.5">
                 <span>Recebido {m}</span>
-                <strong>{brl(conc.porMeio[m] ?? 0)}</strong>
+              <strong>{fluxoDisponivel ? brl(conc.porMeio[m] ?? 0) : "—"}</strong>
               </p>
             ))}
           </div>
@@ -1112,9 +1244,14 @@ function Financeiro() {
                 <strong>{brl(caixaAberto.saldo_inicial)}</strong>
               </p>
               <p>
-                Entradas (dinheiro) <strong>{brl(entPedidos + entContas)}</strong> • Saídas
-                (dinheiro) <strong>{brl(saiContas)}</strong> • Esperado{" "}
-                <strong>{brl(esperado)}</strong>
+                {fechamentoDisponivel ? <>
+                  Entradas (dinheiro) <strong>{brl(entPedidos + entContas)}</strong> • Saídas
+                  (dinheiro) <strong>{brl(saiContas)}</strong> • Esperado <strong>{brl(esperado)}</strong>
+                </> : pagamentosSemDataConfiavel > 0
+                  ? "Fechamento indisponível: existem pagamentos sem data confiável; revise o histórico antes de fechar."
+                  : eventosContaSemMeioCaixa > 0
+                    ? "Fechamento indisponível: o meio efetivo de baixas de contas não foi registrado."
+                    : "Valores do caixa indisponíveis até a leitura completa dos eventos da sessão."}
               </p>
               <div className="flex flex-wrap items-end gap-2">
                 <div className="space-y-1">
