@@ -87,6 +87,7 @@ import { Route as PreviewAdminMotoboysRouteImport } from './routes/preview/admin
 import { Route as PreviewAdminPedidosRouteImport } from './routes/preview/admin/pedidos'
 import { Route as PreviewAdminProdutosRouteImport } from './routes/preview/admin/produtos'
 import { Route as PreviewAdminWhatsappRouteImport } from './routes/preview/admin/whatsapp'
+import { Route as PreviewComercialCampanhasRouteImport } from './routes/preview/comercial/campanhas'
 import { Route as PreviewComercialClientesRouteImport } from './routes/preview/comercial/clientes'
 import { Route as PreviewComercialPainelRouteImport } from './routes/preview/comercial/painel'
 import { Route as PreviewPedidoIdRouteImport } from './routes/preview/pedido.$id'
@@ -498,6 +499,12 @@ const PreviewAdminWhatsappRoute = PreviewAdminWhatsappRouteImport.update({
   path: '/admin/whatsapp',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewComercialCampanhasRoute =
+  PreviewComercialCampanhasRouteImport.update({
+    id: '/campanhas',
+    path: '/campanhas',
+    getParentRoute: () => PreviewComercialRoute,
+  } as any)
 const PreviewComercialClientesRoute =
   PreviewComercialClientesRouteImport.update({
     id: '/clientes',
@@ -615,6 +622,7 @@ export interface FileRoutesByFullPath {
   '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/comercial/campanhas': typeof PreviewComercialCampanhasRoute
   '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
   '/preview/comercial/painel': typeof PreviewComercialPainelRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
@@ -699,6 +707,7 @@ export interface FileRoutesByTo {
   '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/comercial/campanhas': typeof PreviewComercialCampanhasRoute
   '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
   '/preview/comercial/painel': typeof PreviewComercialPainelRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
@@ -787,6 +796,7 @@ export interface FileRoutesById {
   '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/comercial/campanhas': typeof PreviewComercialCampanhasRoute
   '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
   '/preview/comercial/painel': typeof PreviewComercialPainelRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
@@ -875,6 +885,7 @@ export interface FileRouteTypes {
     | '/preview/admin/pedidos'
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
+    | '/preview/comercial/campanhas'
     | '/preview/comercial/clientes'
     | '/preview/comercial/painel'
     | '/preview/pedido/$id'
@@ -959,6 +970,7 @@ export interface FileRouteTypes {
     | '/preview/admin/pedidos'
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
+    | '/preview/comercial/campanhas'
     | '/preview/comercial/clientes'
     | '/preview/comercial/painel'
     | '/preview/pedido/$id'
@@ -1046,6 +1058,7 @@ export interface FileRouteTypes {
     | '/preview/admin/pedidos'
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
+    | '/preview/comercial/campanhas'
     | '/preview/comercial/clientes'
     | '/preview/comercial/painel'
     | '/preview/pedido/$id'
@@ -1647,6 +1660,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminWhatsappRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/comercial/campanhas': {
+      id: '/preview/comercial/campanhas'
+      path: '/campanhas'
+      fullPath: '/preview/comercial/campanhas'
+      preLoaderRoute: typeof PreviewComercialCampanhasRouteImport
+      parentRoute: typeof PreviewComercialRoute
+    }
     '/preview/comercial/clientes': {
       id: '/preview/comercial/clientes'
       path: '/clientes'
@@ -1720,11 +1740,13 @@ const PreviewEstoquesRouteWithChildren = PreviewEstoquesRoute._addFileChildren(
 )
 
 interface PreviewComercialRouteChildren {
+  PreviewComercialCampanhasRoute: typeof PreviewComercialCampanhasRoute
   PreviewComercialClientesRoute: typeof PreviewComercialClientesRoute
   PreviewComercialPainelRoute: typeof PreviewComercialPainelRoute
 }
 
 const PreviewComercialRouteChildren: PreviewComercialRouteChildren = {
+  PreviewComercialCampanhasRoute: PreviewComercialCampanhasRoute,
   PreviewComercialClientesRoute: PreviewComercialClientesRoute,
   PreviewComercialPainelRoute: PreviewComercialPainelRoute,
 }

@@ -58,6 +58,7 @@ const MENU: AdminNavGroup[] = [
         value: "campanhas",
         label: "Campanhas",
         icon: Megaphone,
+        href: "/preview/comercial/campanhas",
       },
       {
         value: "pesquisas-reclamacoes",
