@@ -27,7 +27,6 @@ import { ModalEstoque } from "@/components/estoque-preview/compartilhados";
 
 const ETAPAS_FUTURAS: Record<string, string> = {
   campanhas: "Campanhas (C2)",
-  "pesquisas-reclamacoes": "Pesquisas e Reclamações (C4)",
   resultados: "Resultados (C5)",
 };
 
@@ -63,6 +62,7 @@ const MENU: AdminNavGroup[] = [
         value: "pesquisas-reclamacoes",
         label: "Pesquisas e Reclamações",
         icon: MessageSquareWarning,
+        href: "/preview/comercial/pesquisas-reclamacoes",
       },
       {
         value: "sugestoes-promocao",

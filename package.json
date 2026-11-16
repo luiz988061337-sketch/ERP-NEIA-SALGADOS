@@ -14,6 +14,7 @@
     "teste:guard": "node scripts/proteger-dev.test.mjs",
     "teste:comercial-campanhas": "node scripts/comercial-campanhas.test.mjs",
     "teste:comercial-sugestoes": "node scripts/comercial-sugestoes.test.mjs",
+    "teste:comercial-pesquisas": "node scripts/comercial-pesquisas.test.mjs",
     "teste:producao": "node scripts/producao-liberacao.test.mjs",
     "teste:central": "node scripts/central-pedidos.test.mjs",
     "teste:fases": "node scripts/fases.test.mjs",
