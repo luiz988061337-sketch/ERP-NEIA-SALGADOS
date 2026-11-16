@@ -35,6 +35,16 @@ import {
   totalContas,
 } from "@/lib/financeiro";
 import { parseCSVExtrato, parseOFX, sugerirVinculo, type LancamentoExtrato } from "@/lib/ofx";
+import {
+  analisarColisoesFITID,
+  assinaturaArquivoExtrato,
+  correspondeArquivoLegado,
+  identificarArquivoExtrato,
+  importarLancamentosExtrato,
+  prefixoIdentidadeArquivoExtrato,
+  validarValorConta,
+  type LinhaExtratoExistente,
+} from "@/lib/extratos-importacao";
 import { useRoles, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/financeiro")({
@@ -166,6 +176,8 @@ function Financeiro() {
 
   const [previa, setPrevia] = useState<LancamentoExtrato[] | null>(null);
   const [nomeArq, setNomeArq] = useState("");
+  const [conteudoArq, setConteudoArq] = useState("");
+  const [gravandoExtrato, setGravandoExtrato] = useState(false);
 
   const { data: extratos } = useQuery({
     queryKey: ["fin-extratos"],
@@ -197,6 +209,7 @@ function Financeiro() {
     }
     setPrevia(parsed);
     setNomeArq(arq.name);
+    setConteudoArq(texto);
     e.target.value = "";
   }
 
@@ -212,46 +225,148 @@ function Financeiro() {
   }
 
   async function gravarExtrato() {
-    if (!previa?.length) return;
-    // Dedupe local: a UNIQUE (conta_bancaria_id, referencia) NÃO protege quando
-    // conta_bancaria_id é NULL (NULLs são distintos no Postgres) — e este insert
-    // não informa a conta. Usamos arquivo+linha como chave de idempotência para
-    // não duplicar ao reimportar o mesmo arquivo.
-    const { data: existentes } = await supabase
-      .from("extratos")
-      .select("linha")
-      .eq("arquivo", nomeArq);
-    const jaImportadas = new Set((existentes ?? []).map((r: any) => Number(r.linha)));
-    let novos = 0;
-    let ignorados = 0;
-    for (let i = 0; i < previa.length; i++) {
-      const l = previa[i];
-      if (!l) continue;
-      if (jaImportadas.has(i + 1)) {
-        ignorados += 1;
-        continue;
+    if (!previa?.length || gravandoExtrato) return;
+    setGravandoExtrato(true);
+    try {
+      // Arquivos antigos da F1-A guardam apenas hash dos lançamentos parseados.
+      // Ele serve para detectar legado ambíguo, nunca para descartar linhas.
+      const assinaturaLegada = await assinaturaArquivoExtrato(previa);
+      const assinatura = await assinaturaArquivoExtrato(previa, conteudoArq);
+      const arquivoId = identificarArquivoExtrato(nomeArq, assinatura);
+      const linhasDoArquivo: { linha: number }[] = [];
+      for (let inicio = 0; ; inicio += 500) {
+        const { data, error } = await supabase
+          .from("extratos")
+          .select("linha")
+          .like("arquivo", `${prefixoIdentidadeArquivoExtrato(assinatura)}%`)
+          .order("linha", { ascending: true })
+          .range(inicio, inicio + 499);
+        if (error) throw error;
+        const pagina = data ?? [];
+        linhasDoArquivo.push(...pagina);
+        if (pagina.length < 500) break;
       }
-      const { error } = await supabase.from("extratos").insert({
-        arquivo: nomeArq,
-        linha: i + 1,
-        data: l.data,
-        descricao: l.descricao,
-        valor: l.valor,
-        referencia: l.referencia,
-        created_by: user!.id,
+
+      const { data: linhasAssinaturaLegada, error: erroAssinaturaLegada } = await supabase
+        .from("extratos")
+        .select("arquivo")
+        .like("arquivo", `${prefixoIdentidadeArquivoExtrato(assinaturaLegada)}%`)
+        .limit(1);
+      if (erroAssinaturaLegada) throw erroAssinaturaLegada;
+
+      // Compatibilidade: registros sem hash bruto não provam identidade do
+      // arquivo; até uma coincidência completa exige revisão do operador.
+      const linhasLegadas: LinhaExtratoExistente[] = [];
+      for (let inicio = 0; ; inicio += 500) {
+        const { data, error } = await supabase
+          .from("extratos")
+          .select("linha,referencia,data,descricao,valor")
+          .eq("arquivo", nomeArq)
+          .order("linha", { ascending: true })
+          .range(inicio, inicio + 499);
+        if (error) throw error;
+        const pagina = (data ?? []) as LinhaExtratoExistente[];
+        linhasLegadas.push(...pagina);
+        if (pagina.length < 500) break;
+      }
+      const mesmoLegado = correspondeArquivoLegado(linhasLegadas, previa);
+      if (linhasLegadas.length > 0 || linhasAssinaturaLegada?.length) {
+        const continuar = window.confirm(
+          `Há lançamentos antigos que podem corresponder a este arquivo “${nomeArq}”, mas os registros históricos não guardam o conteúdo original nem uma identidade bancária validada. ${mesmoLegado ? "Os lançamentos parseados parecem iguais, mas podem vir de outra conta." : "Os lançamentos não permitem confirmar se é uma repetição."} Confirme para importar sem descartar linhas; cancele para revisar o arquivo manualmente.`,
+        );
+        if (!continuar) return;
+      }
+
+      const referenciasEstaveis = [...new Set(
+        previa.map((l) => l.idTransacao?.trim()).filter((id): id is string => !!id),
+      )];
+      let referenciasExistentes: { referencia: string; arquivo: string }[] = [];
+      for (let inicio = 0; inicio < referenciasEstaveis.length; inicio += 200) {
+        const loteReferencias = referenciasEstaveis.slice(inicio, inicio + 200);
+        const { data, error } = await supabase
+          .from("extratos")
+          .select("referencia,arquivo")
+          .in("referencia", loteReferencias);
+        if (error) throw error;
+        referenciasExistentes.push(...(data ?? []).map((r: any) => ({
+          referencia: String(r.referencia ?? ""),
+          arquivo: String(r.arquivo ?? ""),
+        })));
+      }
+
+      const linhasParaPular = (linhasDoArquivo ?? []).map((r: any) => Number(r.linha));
+      const colisoesFITID = analisarColisoesFITID(
+        previa,
+        referenciasExistentes,
+        prefixoIdentidadeArquivoExtrato(assinatura),
+      );
+      const linhasJaImportadas = new Set(linhasParaPular);
+      const arquivoJaImportado = previa.every((_, indice) => linhasJaImportadas.has(indice + 1));
+      if (!arquivoJaImportado && (colisoesFITID.duplicadosNoArquivo > 0 || colisoesFITID.encontradosEmOutrosArquivos > 0)) {
+        const continuar = window.confirm(
+          `Foram encontrados ${colisoesFITID.duplicadosNoArquivo} FITID(s) repetido(s) neste arquivo e ${colisoesFITID.encontradosEmOutrosArquivos} já presentes em outros arquivos. Como a conta bancária de origem não está comprovada, FITID igual pode representar transações distintas. Nenhum lançamento será descartado por esse motivo. Revise e confirme para importar.`,
+        );
+        if (!continuar) return;
+      }
+
+      const resultado = await importarLancamentosExtrato({
+        lancamentos: previa,
+        linhasExistentes: linhasParaPular,
+        inserir: async (l, linha) => {
+          const { error } = await supabase.from("extratos").insert({
+            arquivo: arquivoId,
+            linha,
+            data: l.data,
+            descricao: l.descricao,
+            valor: l.valor,
+            referencia: l.referencia,
+            created_by: user!.id,
+          });
+          if (error) throw error;
+        },
       });
-      if (!error) novos += 1;
+
+      queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
+      if (resultado.falhas > 0) {
+        toast.error(
+          `${resultado.importados} lançamento(s) importado(s), ${resultado.ignorados} ignorado(s) e ${resultado.falhas} com falha. A prévia foi mantida; repita para tentar somente os pendentes.`,
+        );
+        return;
+      }
+      if (resultado.importados === 0) {
+        toast.info(`${resultado.ignorados} lançamento(s) já constavam no sistema.`);
+      } else {
+        toast.success(
+          `${resultado.importados} lançamento(s) importado(s)${resultado.ignorados > 0 ? `, ${resultado.ignorados} duplicado(s) ignorado(s)` : ""}.`,
+        );
+      }
+      setPrevia(null);
+      setNomeArq("");
+      setConteudoArq("");
+    } catch (erro) {
+      toast.error(erro instanceof Error ? erro.message : "Não foi possível verificar o extrato.");
+    } finally {
+      setGravandoExtrato(false);
     }
-    toast.success(
-      `${novos} lançamento(s) importado(s)${ignorados > 0 ? `, ${ignorados} já existente(s) ignorado(s)` : ""}.`,
-    );
-    setPrevia(null);
-    setNomeArq("");
-    queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
   }
 
   async function conciliar(ex: any, cand: { tipo: string; id: string }) {
     const agora = new Date().toISOString();
+    let valorConta: number | null = null;
+    if (cand.tipo === "conta") {
+      const leitura = await supabase.from("contas").select("valor").eq("id", cand.id).maybeSingle();
+      const validacao = validarValorConta(leitura);
+      if (!validacao.ok) {
+        const mensagem = validacao.motivo === "consulta_falhou"
+          ? "Não foi possível ler o valor da conta. O extrato continua pendente."
+          : validacao.motivo === "conta_ausente"
+            ? "A conta selecionada não existe. O extrato continua pendente."
+            : "O valor da conta está inválido. O extrato continua pendente.";
+        toast.error(mensagem);
+        return;
+      }
+      valorConta = validacao.valor;
+    }
     // 1) Reserva o extrato (claim) apenas se ainda estiver pendente. Sem isso,
     //    dois operadores conciliavam o mesmo lançamento duas vezes.
     const { data: claim, error: eClaim } = await supabase
@@ -281,16 +396,16 @@ function Financeiro() {
         .select("id");
       alvoOk = !error && !!data && data.length > 0;
     } else {
-      const { data: c } = await supabase.from("contas").select("valor").eq("id", cand.id).single();
       const { data, error } = await supabase
         .from("contas")
         .update({
           status: "paga",
-          valor_pago: Number((c as any)?.valor ?? 0),
+          valor_pago: valorConta,
           pago_em: agora,
           updated_at: agora,
         })
         .eq("id", cand.id)
+        .eq("valor", valorConta)
         .neq("status", "paga")
         .select("id");
       alvoOk = !error && !!data && data.length > 0;
@@ -880,8 +995,8 @@ function Financeiro() {
                 ))}
               </ul>
               <div className="mt-2 flex gap-2">
-                <Button size="sm" onClick={gravarExtrato}>
-                  Gravar lançamentos
+                <Button size="sm" onClick={gravarExtrato} disabled={gravandoExtrato}>
+                  {gravandoExtrato ? "Gravando…" : "Gravar lançamentos"}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setPrevia(null)}>
                   Descartar

@@ -9,6 +9,8 @@ export type LancamentoExtrato = {
   data: string; // YYYY-MM-DD
   valor: number; // + entrada, − saída
   descricao: string;
+  /** FITID fornecido pelo banco; CSV e fallbacks OFX não têm ID estável. */
+  idTransacao?: string;
 };
 
 /** Extrai o conteúdo de uma tag SGML (até "<" ou fim de linha). */
@@ -34,12 +36,14 @@ export function parseOFX(texto: string): LancamentoExtrato[] {
     const data = dataOFX(tag(b, "DTPOSTED"));
     if (!Number.isFinite(valor) || valor === 0 || !data) continue;
     const memo = tag(b, "MEMO") || tag(b, "NAME") || "Lançamento";
-    const fitid = tag(b, "FITID") || `${data}|${valor}|${memo}`.slice(0, 120);
+    const fitidOriginal = tag(b, "FITID");
+    const fitid = fitidOriginal || `${data}|${valor}|${memo}`.slice(0, 120);
     out.push({
       referencia: fitid,
       data,
       valor: Math.round(valor * 100) / 100,
       descricao: memo.slice(0, 200),
+      ...(fitidOriginal ? { idTransacao: fitidOriginal } : {}),
     });
   }
   return out;
