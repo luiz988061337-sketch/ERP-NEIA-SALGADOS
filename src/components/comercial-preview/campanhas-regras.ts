@@ -5,7 +5,8 @@ export type SegmentoCampanha =
   | "inativos_90"
   | "vip"
   | "recorrentes"
-  | "reclamacoes";
+  | "reclamacoes"
+  | "recompra";
 
 export type PerfilDemo = "marketing" | "responsavel";
 export type StatusCampanha = "Rascunho" | "Aguardando aprovação" | "Aprovada" | "Rejeitada";
@@ -17,6 +18,7 @@ export type CandidatoCampanha = {
   vip: boolean;
   recorrente: boolean;
   reclamacao: boolean;
+  recompra?: boolean;
   optOut: boolean;
   diasDesdeContato: number | null;
 };
@@ -35,6 +37,8 @@ export function pertenceAoSegmento(c: CandidatoCampanha, segmento: SegmentoCampa
       return c.vip;
     case "recorrentes":
       return c.recorrente;
+    case "recompra":
+      return c.recompra === true;
     case "reclamacoes":
       return c.reclamacao;
     default:

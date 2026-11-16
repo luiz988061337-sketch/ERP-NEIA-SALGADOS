@@ -5,12 +5,14 @@ import {
   Users, X,
 } from "lucide-react";
 import { MetricCard, StatusBadge } from "@/components/admin/erp-ui";
-import { DEFAULT_CRM_SETTINGS, isFrequenteCfg, isVipCfg } from "@/lib/crm";
+import { DEFAULT_CRM_SETTINGS } from "@/lib/crm";
+import { candidatoCampanha } from "./candidatos-campanha";
+import { CHAVE_RASCUNHO_SUGESTAO, type RascunhoSugestao } from "./rascunho-sugestao";
 import { useComercial } from "./contexto";
 import { DATA_COMERCIAL, formatarData } from "./dados";
 import {
   calcularPublico, periodoCampanhaValido, podeDecidir, substituirCamposMensagem,
-  type CandidatoCampanha, type PerfilDemo, type SegmentoCampanha, type StatusCampanha,
+  type PerfilDemo, type SegmentoCampanha, type StatusCampanha,
 } from "./campanhas-regras";
 
 type HistoricoEvento = { data: string; tipo: string; perfil: string; nota?: string };
@@ -36,6 +38,7 @@ const SEGMENTOS: { valor: SegmentoCampanha; rotulo: string }[] = [
   { valor: "vip", rotulo: "Clientes VIP (regra CRM)" },
   { valor: "recorrentes", rotulo: "Clientes recorrentes (4+ pedidos)" },
   { valor: "reclamacoes", rotulo: "Histórico de reclamação (demo)" },
+  { valor: "recompra", rotulo: "Próximos da recompra (demo)" },
 ];
 const CUPONS = [
   { codigo: "", rotulo: "Sem cupom" },
@@ -108,25 +111,9 @@ function criarSementes(): CampanhaC2[] {
   ];
 }
 
-// Metadados de demonstração vinculados a IDs já existentes na C1; não criam outra base.
-const DATA_CONTATO_DEMO: Record<string, number> = {
-  "cli-demo-2": 3, "cli-demo-9": 5, "cli-demo-20": 2, "cli-demo-33": 6, "cli-demo-47": 4,
-};
-const OPT_OUT_DEMO = new Set(["cli-demo-1", "cli-demo-15", "cli-demo-32", "cli-demo-50"]);
-
 export function TelaCampanhas() {
   const { clientes } = useComercial();
-  const candidatos = useMemo<CandidatoCampanha[]>(
-    () => clientes.map((cliente) => ({
-      id: cliente.id, nome: cliente.nome, diasSemComprar: cliente.diasSemComprar,
-      vip: isVipCfg(cliente.totalGasto, cliente.totalPedidos, DEFAULT_CRM_SETTINGS),
-      recorrente: isFrequenteCfg(cliente.totalPedidos, DEFAULT_CRM_SETTINGS),
-      reclamacao: cliente.origem === "Reclamação",
-      optOut: OPT_OUT_DEMO.has(cliente.id),
-      diasDesdeContato: DATA_CONTATO_DEMO[cliente.id] ?? null,
-    })),
-    [clientes],
-  );
+  const candidatos = useMemo(() => clientes.map(candidatoCampanha), [clientes]);
   const [perfil, setPerfil] = useState<PerfilDemo>("marketing");
   const [campanhas, setCampanhas] = useState<CampanhaC2[]>(() => criarSementes());
   const [pronto, setPronto] = useState(false);
@@ -161,6 +148,25 @@ export function TelaCampanhas() {
       // Sem persistência do navegador, o estado permanece apenas em memória.
     }
   }, [campanhas, pronto]);
+
+  useEffect(() => {
+    try {
+      const salvo = window.sessionStorage.getItem(CHAVE_RASCUNHO_SUGESTAO);
+      if (!salvo) return;
+      window.sessionStorage.removeItem(CHAVE_RASCUNHO_SUGESTAO);
+      const rascunho = JSON.parse(salvo) as Partial<RascunhoSugestao> | null;
+      if (!rascunho || typeof rascunho.nome !== "string" ||
+        typeof rascunho.objetivo !== "string" || typeof rascunho.mensagem !== "string") return;
+      const segmento = SEGMENTOS.find((item) => item.valor === rascunho.segmento);
+      if (!segmento) return;
+      setForm({
+        ...PADRAO_FORM, nome: rascunho.nome, objetivo: rascunho.objetivo,
+        segmento: segmento.valor, mensagem: rascunho.mensagem,
+      });
+    } catch {
+      // O editor C2 permanece disponível se a transferência não puder ser lida.
+    }
+  }, []);
 
   const filtradas = useMemo(() => {
     const q = busca.trim().toLocaleLowerCase("pt-BR");

@@ -90,6 +90,7 @@ import { Route as PreviewAdminWhatsappRouteImport } from './routes/preview/admin
 import { Route as PreviewComercialCampanhasRouteImport } from './routes/preview/comercial/campanhas'
 import { Route as PreviewComercialClientesRouteImport } from './routes/preview/comercial/clientes'
 import { Route as PreviewComercialPainelRouteImport } from './routes/preview/comercial/painel'
+import { Route as PreviewComercialSugestoesRouteImport } from './routes/preview/comercial/sugestoes'
 import { Route as PreviewPedidoIdRouteImport } from './routes/preview/pedido.$id'
 import { Route as PreviewReembolsosEstornosClienteIndexRouteImport } from './routes/preview/reembolsos-estornos-cliente/index'
 import { Route as PreviewReembolsosEstornosClienteIdRouteImport } from './routes/preview/reembolsos-estornos-cliente.$id'
@@ -516,6 +517,12 @@ const PreviewComercialPainelRoute = PreviewComercialPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => PreviewComercialRoute,
 } as any)
+const PreviewComercialSugestoesRoute =
+  PreviewComercialSugestoesRouteImport.update({
+    id: '/sugestoes',
+    path: '/sugestoes',
+    getParentRoute: () => PreviewComercialRoute,
+  } as any)
 const PreviewPedidoIdRoute = PreviewPedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
@@ -625,6 +632,7 @@ export interface FileRoutesByFullPath {
   '/preview/comercial/campanhas': typeof PreviewComercialCampanhasRoute
   '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
   '/preview/comercial/painel': typeof PreviewComercialPainelRoute
+  '/preview/comercial/sugestoes': typeof PreviewComercialSugestoesRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
   '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -710,6 +718,7 @@ export interface FileRoutesByTo {
   '/preview/comercial/campanhas': typeof PreviewComercialCampanhasRoute
   '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
   '/preview/comercial/painel': typeof PreviewComercialPainelRoute
+  '/preview/comercial/sugestoes': typeof PreviewComercialSugestoesRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
   '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -799,6 +808,7 @@ export interface FileRoutesById {
   '/preview/comercial/campanhas': typeof PreviewComercialCampanhasRoute
   '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
   '/preview/comercial/painel': typeof PreviewComercialPainelRoute
+  '/preview/comercial/sugestoes': typeof PreviewComercialSugestoesRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
   '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -888,6 +898,7 @@ export interface FileRouteTypes {
     | '/preview/comercial/campanhas'
     | '/preview/comercial/clientes'
     | '/preview/comercial/painel'
+    | '/preview/comercial/sugestoes'
     | '/preview/pedido/$id'
     | '/preview/reembolsos-estornos-cliente/$id'
     | '/preview/reembolsos-estornos-cliente/novo'
@@ -973,6 +984,7 @@ export interface FileRouteTypes {
     | '/preview/comercial/campanhas'
     | '/preview/comercial/clientes'
     | '/preview/comercial/painel'
+    | '/preview/comercial/sugestoes'
     | '/preview/pedido/$id'
     | '/preview/reembolsos-estornos-cliente/$id'
     | '/preview/reembolsos-estornos-cliente/novo'
@@ -1061,6 +1073,7 @@ export interface FileRouteTypes {
     | '/preview/comercial/campanhas'
     | '/preview/comercial/clientes'
     | '/preview/comercial/painel'
+    | '/preview/comercial/sugestoes'
     | '/preview/pedido/$id'
     | '/preview/reembolsos-estornos-cliente/$id'
     | '/preview/reembolsos-estornos-cliente/novo'
@@ -1681,6 +1694,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewComercialPainelRouteImport
       parentRoute: typeof PreviewComercialRoute
     }
+    '/preview/comercial/sugestoes': {
+      id: '/preview/comercial/sugestoes'
+      path: '/sugestoes'
+      fullPath: '/preview/comercial/sugestoes'
+      preLoaderRoute: typeof PreviewComercialSugestoesRouteImport
+      parentRoute: typeof PreviewComercialRoute
+    }
     '/preview/pedido/$id': {
       id: '/preview/pedido/$id'
       path: '/pedido/$id'
@@ -1743,12 +1763,14 @@ interface PreviewComercialRouteChildren {
   PreviewComercialCampanhasRoute: typeof PreviewComercialCampanhasRoute
   PreviewComercialClientesRoute: typeof PreviewComercialClientesRoute
   PreviewComercialPainelRoute: typeof PreviewComercialPainelRoute
+  PreviewComercialSugestoesRoute: typeof PreviewComercialSugestoesRoute
 }
 
 const PreviewComercialRouteChildren: PreviewComercialRouteChildren = {
   PreviewComercialCampanhasRoute: PreviewComercialCampanhasRoute,
   PreviewComercialClientesRoute: PreviewComercialClientesRoute,
   PreviewComercialPainelRoute: PreviewComercialPainelRoute,
+  PreviewComercialSugestoesRoute: PreviewComercialSugestoesRoute,
 }
 
 const PreviewComercialRouteWithChildren =

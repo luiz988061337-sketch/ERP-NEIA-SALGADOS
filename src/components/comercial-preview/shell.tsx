@@ -28,7 +28,6 @@ import { ModalEstoque } from "@/components/estoque-preview/compartilhados";
 const ETAPAS_FUTURAS: Record<string, string> = {
   campanhas: "Campanhas (C2)",
   "pesquisas-reclamacoes": "Pesquisas e Reclamações (C4)",
-  "sugestoes-promocao": "Sugestões de Promoção (C3)",
   resultados: "Resultados (C5)",
 };
 
@@ -69,6 +68,7 @@ const MENU: AdminNavGroup[] = [
         value: "sugestoes-promocao",
         label: "Sugestões de Promoção",
         icon: Lightbulb,
+        href: "/preview/comercial/sugestoes",
       },
       {
         value: "resultados",
