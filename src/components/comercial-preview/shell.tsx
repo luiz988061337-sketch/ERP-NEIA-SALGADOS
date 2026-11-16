@@ -27,7 +27,6 @@ import { ModalEstoque } from "@/components/estoque-preview/compartilhados";
 
 const ETAPAS_FUTURAS: Record<string, string> = {
   campanhas: "Campanhas (C2)",
-  resultados: "Resultados (C5)",
 };
 
 const MENU: AdminNavGroup[] = [
@@ -74,6 +73,7 @@ const MENU: AdminNavGroup[] = [
         value: "resultados",
         label: "Resultados",
         icon: BarChart3,
+        href: "/preview/comercial/resultados",
       },
     ],
   },

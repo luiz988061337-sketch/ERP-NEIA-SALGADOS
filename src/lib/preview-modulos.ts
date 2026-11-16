@@ -7,6 +7,7 @@ export const ROTAS_PREVIEW_COMERCIAL = [
   "/preview/comercial/clientes",
   "/preview/comercial/campanhas",
   "/preview/comercial/pesquisas-reclamacoes",
+  "/preview/comercial/resultados",
   "/preview/comercial/sugestoes",
 ] as const;
 
