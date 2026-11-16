@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 import erpDarkCss from "../erp-dark.css?url";
+import l1LegibilidadeCss from "../l1-a-legibilidade.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
 import { CartDock } from "@/components/cart-dock";
@@ -120,11 +121,12 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
-  // Demonstração sem banco (Financeiro Premium, Reembolsos/Estornos R1 e
-  // Origens R2-A): nenhuma sessão anônima é criada e o listener do Supabase
-  // não é montado.
+  // Demonstração sem banco (Comercial, L2, Financeiro Premium,
+  // Reembolsos/Estornos R1 e Origens R2-A): nenhuma sessão anônima é criada
+  // e o listener do Supabase não é montado.
   const rotaDemonstrativaSemBanco =
     ehPreviewModulo(pathname) ||
+    pathname.startsWith("/preview-l2") ||
     pathname === "/preview/financeiro-premium" ||
     pathname.startsWith("/preview/reembolsos-estornos");
 
@@ -215,6 +217,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       // Tema escuro premium do ERP — só surte efeito em rotas staff (html.erp-admin)
       { rel: "stylesheet", href: erpDarkCss },
+      { rel: "stylesheet", href: l1LegibilidadeCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

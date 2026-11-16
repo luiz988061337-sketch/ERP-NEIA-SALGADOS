@@ -58,6 +58,7 @@ export function TelaSugestoes() {
     elegiveis: publico.elegiveis.length, quantidade: qtd, precoUnitario: item.preco,
     custoUnitario: item.custo, desconto: Math.round(cupom.desconto * 100),
   }) : null;
+  const margemAbaixoDoMinimo = simulacao?.margem != null && simulacao.margem < MARGEM_MINIMA;
 
   function atualizar(alterar: () => void) {
     alterar();
@@ -98,14 +99,8 @@ export function TelaSugestoes() {
         <div><p className="c2-eyebrow">COMERCIAL · C3 · SOMENTE DEMONSTRAÇÃO</p><h1>Sugestões de promoções e cupons</h1><p>Simule o público e o benefício antes de preparar um rascunho.</p></div>
       </div>
       <div className="c2-warning" role="note"><ShieldAlert size={17} /><span>Clientes, preços, custos e cupons são fictícios. Nenhum desconto é aplicado e nenhuma mensagem é enviada.</span></div>
-      <section className="c2-profile">
-        <div className="c2-profile-copy"><BadgeCheck size={17} /><span><b>Perfil demonstrativo</b><small>O responsável revisa a oferta. Marketing prepara o rascunho na C2.</small></span></div>
-        <select aria-label="Perfil demonstrativo" value={perfil} onChange={(e) => setPerfil(e.target.value as PerfilDemo)}>
-          <option value="marketing">Marina Lopes · Marketing</option><option value="responsavel">Carlos Mendes · Responsável</option>
-        </select>
-      </section>
       <section className="c2-list-card c3-card">
-        <div className="c2-list-heading"><div><h2>Simular sugestão</h2><p>Margem mínima de {MARGEM_MINIMA}% e conversão hipotética de {CONVERSAO_DEMO}% dos elegíveis, arredondada para baixo.</p></div></div>
+        <div className="c2-list-heading"><div><h2>Simular sugestão</h2><p>Configuração demonstrativa: margem mínima de {MARGEM_MINIMA}% e conversão hipotética de {CONVERSAO_DEMO}% dos elegíveis.</p></div></div>
         <div className="c3-form c2-form-fields">
           <label>Público<select value={segmento} onChange={(e) => atualizar(() => setSegmento(Number(e.target.value)))}>{SEGMENTOS.map((s, i) => <option key={s.valor} value={i}>{s.nome}</option>)}</select></label>
           <label>Benefício<select value={beneficio} onChange={(e) => atualizar(() => setBeneficio(Number(e.target.value)))}>{BENEFICIOS.map((b, i) => <option key={b.id} value={i}>{b.nome}</option>)}</select></label>
@@ -117,18 +112,48 @@ export function TelaSugestoes() {
       <section className="c2-kpis c3-kpis" aria-label="Resultados da simulação">
         <MetricCard icone={ClipboardList} label="Público elegível" valor={publico.elegiveis.length} detalhe={`${publico.excluidos.length} excluídos no segmento`} />
         <MetricCard icone={Ticket} label="Desconto por pedido" valor={simulacao ? reais(simulacao.desconto) : "—"} detalhe="benefício simulado" />
-        <MetricCard icone={ClipboardList} label="Receita líquida estimada" valor={simulacao ? reais(simulacao.receita) : "—"} detalhe={simulacao ? `${simulacao.pedidos} pedidos hipotéticos` : "simulação incompleta"} />
-        <MetricCard icone={Ticket} label="Custo da campanha" valor={simulacao ? reais(simulacao.custoCampanha) : "—"} detalhe="total estimado em descontos" />
-        <MetricCard icone={BadgeCheck} label="Margem estimada" valor={simulacao?.margem == null ? "Não calculada" : `${simulacao.margem.toFixed(1)}%`} detalhe="sobre a receita após desconto" />
+        <MetricCard icone={ClipboardList} label="Receita estimada após desconto" valor={simulacao ? reais(simulacao.receita) : "—"} detalhe={simulacao ? `${simulacao.pedidos} pedidos hipotéticos` : "simulação incompleta"} />
+        <MetricCard icone={Ticket} label="Custo estimado dos descontos" valor={simulacao ? reais(simulacao.custoCampanha) : "—"} detalhe="total hipotético de descontos" />
+      </section>
+      <section className={`c3-margin-panel ${margemAbaixoDoMinimo ? "c3-margin-blocked" : simulacao?.recomendada ? "c3-margin-ok" : "c3-margin-pending"}`} aria-labelledby="c3-margin-title" aria-live="polite">
+        <div className="c3-margin-summary">
+          <span className="c3-margin-icon" aria-hidden>{margemAbaixoDoMinimo ? <ShieldAlert size={24} /> : <BadgeCheck size={24} />}</span>
+          <div className="c3-margin-copy">
+            <p className="c3-margin-eyebrow">MARGEM MÍNIMA DEMONSTRATIVA · {MARGEM_MINIMA}%</p>
+            <h2 id="c3-margin-title">{margemAbaixoDoMinimo ? "PROMOÇÃO BLOQUEADA" : simulacao?.recomendada ? "MARGEM DENTRO DO LIMITE" : "REVISÃO DA OFERTA"}</h2>
+            <p>{margemAbaixoDoMinimo
+              ? `O desconto foi bloqueado porque a margem calculada de ${simulacao!.margem!.toFixed(1)}% está abaixo do mínimo demonstrativo de ${MARGEM_MINIMA}%. Reduza o benefício para continuar.`
+              : simulacao?.margem == null
+                ? motivo
+                : simulacao.recomendada
+                  ? "A margem atende ao limite demonstrativo. A revisão do responsável ainda é necessária para preparar o rascunho."
+                  : motivo}</p>
+          </div>
+          <div className="c3-margin-value">
+            <span>Margem calculada</span>
+            <strong>{simulacao?.margem == null ? "Não calculada" : `${simulacao.margem.toFixed(1)}%`}</strong>
+          </div>
+        </div>
+      </section>
+      <section className="c2-list-card c3-card c3-profile-card" aria-labelledby="c3-profile-title">
+        <div className="c2-list-heading"><div><h2 id="c3-profile-title">Perfil demonstrativo</h2><p>Carlos revisa a oferta; Marina prepara o rascunho na C2.</p></div></div>
+        <div className="c3-profile-review">
+          <label htmlFor="c3-profile-select">Atuar como</label>
+          <select id="c3-profile-select" aria-label="Perfil demonstrativo" value={perfil} onChange={(e) => setPerfil(e.target.value as PerfilDemo)}>
+            <option value="marketing">Marina Lopes · Marketing</option><option value="responsavel">Carlos Mendes · Responsável</option>
+          </select>
+          {perfil === "responsavel" ? <button className="c2-button c2-primary" type="button" disabled={!simulacao?.recomendada || revisada} onClick={() => setRevisada(true)}>{revisada ? "Revisão registrada" : "Registrar revisão"}</button> : <span className="c3-review-note">{revisada ? "Revisão demonstrativa registrada." : "Aguardando revisão do responsável."}</span>}
+        </div>
       </section>
       <section className="c2-list-card c3-card">
-        <div className="c2-list-heading"><div><h2>Exclusões e revisão</h2><p>Opt-out e intervalo mínimo de {DEFAULT_CRM_SETTINGS.intervalo_min_campanhas_dias} dias entre contatos.</p></div></div>
+        <div className="c2-list-heading"><div><h2>Exclusões e revisão</h2><p>Clientes excluídos por opt-out ou pelo intervalo mínimo de {DEFAULT_CRM_SETTINGS.intervalo_min_campanhas_dias} dias entre contatos.</p></div></div>
         {publico.excluidos.length ? <ul className="c3-excluidos">{publico.excluidos.map((c) => <li key={c.id}><b>{c.nome}</b> · {c.motivos.join(" ")}</li>)}</ul> : <p className="c3-caption">Nenhuma exclusão neste segmento.</p>}
-        <div className="c2-dialog-actions c3-actions">
+      </section>
+      <section className="c3-actions-panel" aria-labelledby="c3-actions-title">
+        <div><p className="c2-eyebrow">PRÓXIMA ETAPA</p><h2 id="c3-actions-title">Preparar rascunho demonstrativo</h2><p>Após a revisão, a sugestão abre como rascunho na C2. Nenhuma mensagem é enviada.</p></div>
+        <div className="c3-actions-row">
           <span role="status">{revisada ? "Oferta revisada pelo responsável. A campanha ainda precisa de aprovação na C2." : motivo}</span>
-          {perfil === "responsavel"
-            ? <button className="c2-button c2-primary" type="button" disabled={!simulacao?.recomendada || revisada} onClick={() => setRevisada(true)}>Registrar revisão</button>
-            : <button className="c2-button c2-primary" type="button" disabled={!simulacao?.recomendada || !revisada} onClick={() => void prepararRascunho()}>Abrir rascunho na C2</button>}
+          {perfil === "marketing" ? <button className="c2-button c2-primary" type="button" disabled={!simulacao?.recomendada || !revisada} onClick={() => void prepararRascunho()}>Abrir rascunho na C2</button> : <span className="c3-review-note">A preparação do rascunho cabe ao perfil Marketing.</span>}
         </div>
         {erro && <p className="c2-inline-error" role="alert">{erro}</p>}
       </section>

@@ -37,7 +37,7 @@ export const Route = createFileRoute("/preview-l2-pdv")({
 
 function PreviewL2Pdv() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="l1-pdv-preview min-h-screen bg-background">
       <div className="sticky top-0 z-40 border-b border-[#D4A94A]/45 bg-[#141310] px-4 py-2 text-xs text-[#F2CE6B]">
         PRÉVIA L2 — PDV/Balcão. Catálogo fictício local; nenhum pedido é criado, nenhum estoque é tocado.
       </div>

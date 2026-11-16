@@ -1255,6 +1255,7 @@ export function Producao({
         navigate({ to: "/auth", replace: true });
       }}
     >
+      <div className="admin-producao-l1 flex min-w-0 flex-1 flex-col">
       <AdminTopbar
         usuario={user?.email ?? null}
         acesso="Produção"
@@ -1702,6 +1703,7 @@ export function Producao({
             ) : null}
           </div>
         </details>
+      </div>
       </div>
     </AdminShell>
   );

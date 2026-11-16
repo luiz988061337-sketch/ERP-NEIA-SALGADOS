@@ -152,7 +152,7 @@ export const Route = createFileRoute("/preview-l2-producao")({
 
 function PreviewL2Producao() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="l1-producao-preview min-h-screen bg-background">
       <div className="sticky top-0 z-40 border-b border-[#D4A94A]/45 bg-[#141310] px-4 py-2 text-xs text-[#F2CE6B]">
         PRÉVIA L2 — Produção/Cozinha. Pedidos fictícios locais; nenhum status é alterado, nada é
         impresso.

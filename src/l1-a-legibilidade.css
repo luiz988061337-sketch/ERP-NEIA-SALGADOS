@@ -1,0 +1,124 @@
+/* L1-A typography adjustments, scoped to the approved modules and their previews. */
+
+/* Commercial C1 */
+html:has(.comercial-preview) .comercial-preview .com-ribbon { font-size: 13px; }
+html:has(.comercial-preview) .comercial-preview .com-ribbon span { font-size: 13px; }
+html:has(.comercial-preview) .comercial-preview .com-cabecalho h1 { font-size: 26px; }
+html:has(.comercial-preview) .comercial-preview .com-cabecalho p,
+html:has(.comercial-preview) .comercial-preview .com-subtitulo,
+html:has(.comercial-preview) .comercial-preview .com-muted,
+html:has(.comercial-preview) .comercial-preview .com-nota,
+html:has(.comercial-preview) .comercial-preview .com-paginacao,
+html:has(.comercial-preview) .comercial-preview .com-motivo { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .com-badge { font-size: 13px; }
+html:has(.comercial-preview) .comercial-preview .com-kpis > div > div > p:first-child,
+html:has(.comercial-preview) .comercial-preview .com-kpis > button > div > p:first-child { font-size: 13px; }
+html:has(.comercial-preview) .comercial-preview .com-kpis > div > div > p:last-child,
+html:has(.comercial-preview) .comercial-preview .com-kpis > button > div > p:last-child { font-size: 25px; line-height: 1.15; }
+html:has(.comercial-preview) .comercial-preview .com-tabela,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples,
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .com-tabela th,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples th { font-size: 12px; }
+html:has(.comercial-preview) .comercial-preview .com-tabela td,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples td { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .com-select,
+html:has(.comercial-preview) .comercial-preview .com-input { font-size: 15px; }
+
+/* Commercial C2/C3 */
+html:has(.comercial-preview) .comercial-preview .c2-heading h1 { font-size: 26px; }
+html:has(.comercial-preview) .comercial-preview .c2-heading p:not(.c2-eyebrow),
+html:has(.comercial-preview) .comercial-preview .c2-list-heading p,
+html:has(.comercial-preview) .comercial-preview .c2-detail-objective,
+html:has(.comercial-preview) .comercial-preview .c2-detail-message p { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .c2-eyebrow,
+html:has(.comercial-preview) .comercial-preview .c2-profile-copy b,
+html:has(.comercial-preview) .comercial-preview .c2-preview-title,
+html:has(.comercial-preview) .comercial-preview .c2-form-fields label,
+html:has(.comercial-preview) .comercial-preview .c2-reject-reason { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .c2-button { font-size: 14px; min-height: 40px; }
+html:has(.comercial-preview) .comercial-preview .c2-warning,
+html:has(.comercial-preview) .comercial-preview .c2-inline-error { font-size: 15px; }
+html:has(.comercial-preview) .comercial-preview .c2-filters input,
+html:has(.comercial-preview) .comercial-preview .c2-filters select,
+html:has(.comercial-preview) .comercial-preview .c2-form-fields input,
+html:has(.comercial-preview) .comercial-preview .c2-form-fields select,
+html:has(.comercial-preview) .comercial-preview .c2-form-fields textarea,
+html:has(.comercial-preview) .comercial-preview .c2-reject-reason textarea { font-size: 15px; min-height: 42px; }
+html:has(.comercial-preview) .comercial-preview .c2-table { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .c2-table th { font-size: 12px; }
+html:has(.comercial-preview) .comercial-preview .c2-table td b { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .c2-table td small,
+html:has(.comercial-preview) .comercial-preview .c2-footnote,
+html:has(.comercial-preview) .comercial-preview .c2-final-note,
+html:has(.comercial-preview) .comercial-preview .c2-form-fields small,
+html:has(.comercial-preview) .comercial-preview .c2-preview-card > small,
+html:has(.comercial-preview) .comercial-preview .c2-policy-note,
+html:has(.comercial-preview) .comercial-preview .c2-exclusion-list,
+html:has(.comercial-preview) .comercial-preview .c2-dialog-actions > span,
+html:has(.comercial-preview) .comercial-preview .c2-history li,
+html:has(.comercial-preview) .comercial-preview .c2-decision-campaign span { font-size: 13px; line-height: 1.45; }
+html:has(.comercial-preview) .comercial-preview .c2-message-preview,
+html:has(.comercial-preview) .comercial-preview .c2-detail-message,
+html:has(.comercial-preview) .comercial-preview .c2-detail-message p { font-size: 15px; }
+html:has(.comercial-preview) .comercial-preview .c2-audience-numbers span,
+html:has(.comercial-preview) .comercial-preview .c2-detail-stats span,
+html:has(.comercial-preview) .comercial-preview .c2-approval-summary span { font-size: 13px; }
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div > div > p:first-child { font-size: 13px; }
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div > div > p:last-child { font-size: 24px; }
+html:has(.comercial-preview) .comercial-preview .c3-caption,
+html:has(.comercial-preview) .comercial-preview .c3-excluidos { font-size: 14px; line-height: 1.5; }
+html:has(.comercial-preview) .comercial-preview .c3-excluidos { max-height: 220px; }
+html:has(.comercial-preview) .comercial-preview .c3-card .c2-list-heading h2 { font-size: 19px; }
+html:has(.comercial-preview) .comercial-preview .c3-form label { font-size: 14px; }
+html:has(.comercial-preview) .comercial-preview .c3-form input,
+html:has(.comercial-preview) .comercial-preview .c3-form select { min-height: 42px; font-size: 15px; }
+
+/* L2 previews for Dashboard, PDV and Production */
+.l1-dashboard-preview h1,.l1-pdv-preview h1,.l1-producao-preview h1 { font-size: 25px; }
+.l1-dashboard-preview h2,.l1-pdv-preview h2,.l1-producao-preview h2 { font-size: 19px; }
+.l1-dashboard-preview h3,.l1-producao-preview h3 { font-size: 17px; }
+.admin-dashboard-l1 h1,.admin-pdv-l1 h1,.admin-producao-l1 h1 { font-size: 25px; }
+.admin-dashboard-l1 h2,.admin-pdv-l1 h2,.admin-producao-l1 h2 { font-size: 19px; }
+.admin-dashboard-l1 h3,.admin-producao-l1 h3 { font-size: 17px; }
+.l1-dashboard-preview .text-xs,.l1-pdv-preview .text-xs,.l1-producao-preview .text-xs,
+.admin-dashboard-l1 .text-xs,.admin-pdv-l1 .text-xs,.admin-producao-l1 .text-xs,
+.l1-dashboard-preview [class~="text-[10px]"],.l1-pdv-preview [class~="text-[10px]"],.l1-producao-preview [class~="text-[10px]"],
+.admin-dashboard-l1 [class~="text-[10px]"],.admin-pdv-l1 [class~="text-[10px]"],.admin-producao-l1 [class~="text-[10px]"],
+.l1-dashboard-preview [class~="text-[11px]"],.l1-pdv-preview [class~="text-[11px]"],.l1-producao-preview [class~="text-[11px]"] { font-size: 14px; line-height: 1.45; }
+.admin-dashboard-l1 [class~="text-[11px]"],.admin-pdv-l1 [class~="text-[11px]"],.admin-producao-l1 [class~="text-[11px]"] { font-size: 14px; line-height: 1.45; }
+.l1-dashboard-preview .text-sm,.l1-pdv-preview .text-sm,.l1-producao-preview .text-sm { font-size: 15px; line-height: 1.5; }
+.admin-dashboard-l1 .text-sm,.admin-pdv-l1 .text-sm,.admin-producao-l1 .text-sm { font-size: 15px; line-height: 1.5; }
+.l1-dashboard-preview input,.l1-dashboard-preview select,.l1-pdv-preview input,.l1-pdv-preview select { font-size: 15px; }
+.admin-dashboard-l1 input,.admin-dashboard-l1 select,.admin-pdv-l1 input,.admin-pdv-l1 select { font-size: 15px; }
+.l1-pdv-preview button,.l1-producao-preview button { font-size: 14px; }
+.admin-pdv-l1 button,.admin-producao-l1 button { font-size: 14px; }
+.l1-dashboard-preview .text-2xl { font-size: 28px; }
+.admin-dashboard-l1 .text-2xl { font-size: 28px; }
+
+/* Enlarge sidebar only when one of the approved preview screens is mounted. */
+html:has(.comercial-preview) [data-sidebar="menu-button"],
+html:has(.l1-dashboard-preview) [data-sidebar="menu-button"],
+html:has(.l1-pdv-preview) [data-sidebar="menu-button"],
+html:has(.l1-producao-preview) [data-sidebar="menu-button"],
+html:has(.admin-dashboard-l1) [data-sidebar="menu-button"],
+html:has(.admin-pdv-l1) [data-sidebar="menu-button"],
+html:has(.admin-producao-l1) [data-sidebar="menu-button"] { font-size: 15px; }
+
+@media (max-width: 700px) {
+  html:has(.comercial-preview) .comercial-preview .com-cabecalho h1,
+  html:has(.comercial-preview) .comercial-preview .c2-heading h1 { font-size: 22px; }
+  html:has(.comercial-preview) .comercial-preview .com-ribbon span { font-size: 12px; }
+  html:has(.comercial-preview) .comercial-preview .c2-table { min-width: 900px; }
+  html:has(.comercial-preview) .comercial-preview .c2-dialog { padding: 14px; }
+  html:has(.comercial-preview) .comercial-preview .c3-caption,
+  html:has(.comercial-preview) .comercial-preview .c3-excluidos { font-size: 13px; }
+  .l1-dashboard-preview h1,.l1-pdv-preview h1,.l1-producao-preview h1 { font-size: 22px; }
+  .admin-dashboard-l1 h1,.admin-pdv-l1 h1,.admin-producao-l1 h1 { font-size: 22px; }
+  .l1-dashboard-preview .text-xs,.l1-pdv-preview .text-xs,.l1-producao-preview .text-xs,
+  .l1-dashboard-preview [class~="text-[10px]"],.l1-pdv-preview [class~="text-[10px]"],.l1-producao-preview [class~="text-[10px]"],
+  .l1-dashboard-preview [class~="text-[11px]"],.l1-pdv-preview [class~="text-[11px]"],.l1-producao-preview [class~="text-[11px]"] { font-size: 13px; }
+  .admin-dashboard-l1 .text-xs,.admin-pdv-l1 .text-xs,.admin-producao-l1 .text-xs,
+  .admin-dashboard-l1 [class~="text-[10px]"],.admin-pdv-l1 [class~="text-[10px]"],.admin-producao-l1 [class~="text-[10px]"],
+  .admin-dashboard-l1 [class~="text-[11px]"],.admin-pdv-l1 [class~="text-[11px]"],.admin-producao-l1 [class~="text-[11px]"] { font-size: 13px; }
+}

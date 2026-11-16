@@ -503,6 +503,7 @@ export function PDV({
       usuario={user?.email ?? null}
       onSair={sair}
     >
+      <div className="admin-pdv-l1 flex min-h-0 min-w-0 flex-1 flex-col">
       {/* Topo do módulo (mesmo padrão dos demais módulos) */}
       <AdminTopbar
         usuario={user?.email ?? null}
@@ -1011,6 +1012,7 @@ export function PDV({
         </button>
         <span className="ml-auto hidden sm:block">Néia Salgados — Qualidade em cada mordida!</span>
       </footer>
+      </div>
     </AdminShell>
   );
 }

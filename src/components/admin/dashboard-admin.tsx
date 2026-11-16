@@ -357,7 +357,7 @@ export function DashboardAdmin({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="admin-dashboard-l1 flex flex-col gap-4">
       {/* ------------------------------------------------------------------
           PAINEL DE GESTÃO — composição da referência oficial:
           cabeçalho (marca + título + seletor de data) | 4 métricas |
