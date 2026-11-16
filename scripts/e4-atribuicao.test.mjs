@@ -62,6 +62,26 @@ ok(C.E4_ATRIBUICAO_ATIVA === false, "E4.17 flag desligada");
   ok(C.cabeNaRota(0, false) && C.cabeNaRota(2, false), "E4.27 até 3 sem autorização");
   ok(!C.cabeNaRota(3, false) && C.cabeNaRota(3, true), "E4.28 quarto exige autorização");
 }
+{
+  const ordem = [];
+  const resultado = await C.atribuirPedidosEmLote(["p1", "p2", "p1", " "], async (id) => {
+    ordem.push(`inicio:${id}`);
+    await Promise.resolve();
+    ordem.push(`fim:${id}`);
+    return id === "p1";
+  });
+  ok(
+    resultado.solicitados === 2 &&
+      resultado.atribuidos.join(",") === "p1" &&
+      resultado.falhas.join(",") === "p2" &&
+      ordem.join(",") === "inicio:p1,fim:p1,inicio:p2,fim:p2",
+    "E4.29 lote sequencial, ids únicos e parcial reportado corretamente",
+  );
+  const falhaRede = await C.atribuirPedidosEmLote(["p3"], async () => {
+    throw new Error("offline");
+  });
+  ok(falhaRede.falhas.join(",") === "p3", "E4.30 falha de rede não vira sucesso do lote");
+}
 
 if (falhas > 0) {
   console.error(`E4: ${falhas} caso(s) falhando.`);

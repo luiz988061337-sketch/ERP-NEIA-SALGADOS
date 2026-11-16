@@ -62,6 +62,25 @@ export function cabeNaRota(paradas: number, autorizarExtra: boolean): boolean {
   return autorizarExtra;
 }
 
+/** Executa uma atribuição em lote em sequência e devolve resultados reais por pedido. */
+export async function atribuirPedidosEmLote(
+  pedidoIds: readonly string[],
+  atribuir: (pedidoId: string) => Promise<boolean>,
+): Promise<{ solicitados: number; atribuidos: string[]; falhas: string[] }> {
+  const unicos = [...new Set(pedidoIds.map((id) => id.trim()).filter(Boolean))];
+  const atribuidos: string[] = [];
+  const falhas: string[] = [];
+  for (const pedidoId of unicos) {
+    try {
+      if (await atribuir(pedidoId)) atribuidos.push(pedidoId);
+      else falhas.push(pedidoId);
+    } catch {
+      falhas.push(pedidoId);
+    }
+  }
+  return { solicitados: unicos.length, atribuidos, falhas };
+}
+
 type RpcClient = {
   rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
 };

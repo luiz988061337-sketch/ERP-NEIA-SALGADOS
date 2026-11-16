@@ -31,7 +31,12 @@ import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 import { MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL } from "@/lib/entrega";
-import { E4_ATRIBUICAO_ATIVA, atribuirPedidoMotoboy, cabeNaRota } from "@/lib/central-atribuicao";
+import {
+  E4_ATRIBUICAO_ATIVA,
+  atribuirPedidoMotoboy,
+  atribuirPedidosEmLote,
+  cabeNaRota,
+} from "@/lib/central-atribuicao";
 
 // E9.1: travas de clique repetido por pedido (fora do estado React para
 // cobrir cliques antes do re-render). Não muda comportamento com flag off.
@@ -76,6 +81,7 @@ function CentralEntregas() {
   const [aba, setAba] = useState("k");
   const [motoboySelecionado, setMotoboySelecionado] = useState("");
   const [pedidosSelecionados, setPedidosSelecionados] = useState<string[]>([]);
+  const [atribuindoSelecao, setAtribuindoSelecao] = useState(false);
   const [motoboyRota, setMotoboyRota] = useState("");
   const [pedidosRota, setPedidosRota] = useState<string[]>([]);
   // ---------- HISTÓRICO (J3-C): consulta sob demanda, sem subscription nova ----------
@@ -506,31 +512,27 @@ function CentralEntregas() {
 
   // ---------- FUNÇÕES ----------
   // Atribuir motoboy ao pedido
-  async function atribuirMotoboy(pedidoId: string, motoboyId: string) {
+  async function atribuirMotoboy(pedidoId: string, motoboyId: string): Promise<boolean> {
     // Validar se motoboy está elegível (status disponivel_base)
     const motoboy = motoboysElegiveis?.find((m: any) => m.id === motoboyId);
     if (!motoboy) {
-      toast.error("Motoboy não está disponível para atribuição. Verifique o status do motoboy.");
-      return;
+      return false;
     }
     // pedidos.motoboy_id referencia auth.users(id): gravar o user_id do
     // cadastro (0032), não o id da tabela motoboys. Sem vínculo, não atribuir.
     if (!motoboy.user_id) {
-      toast.error("Motoboy sem login vinculado. Peça para ele abrir o /motoboy primeiro.");
-      return;
+      return false;
     }
     // E9.1: bloqueio de clique repetido (0 rows = conflito, não silêncio).
-    if (atribuindoEmVoo.has(pedidoId)) return;
+    if (atribuindoEmVoo.has(pedidoId)) return false;
     atribuindoEmVoo.add(pedidoId);
     try {
       // E9.1: caminho transacional E4 atrás de flag; desligada = legado intacto.
       if (E4_ATRIBUICAO_ATIVA) {
         const r = await atribuirPedidoMotoboy(supabase as never, pedidoId, motoboyId);
         if (!r.ok) {
-          toast.error(`Atribuição recusada (${r.codigo}): ${r.detalhe}`);
-          return;
+          return false;
         }
-        toast.success(`Motoboy ${motoboy.nome} atribuído ao pedido #${pedidoId}`);
       } else {
         // Espelha o aceite do motoboy: só motoboy_id, aceito_em e status mudam,
         // apenas se ainda sem dono (0 linhas = outro atribuiu primeiro).
@@ -547,10 +549,8 @@ function CentralEntregas() {
           .select("id");
         if (error) throw error;
         if (!data || data.length === 0) {
-          toast.error("Outro responsável atribuiu este pedido primeiro (conflito).");
-          return;
+          return false;
         }
-        toast.success(`Motoboy ${motoboy.nome} atribuído ao pedido #${pedidoId}`);
       }
       queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
       // Forçar refetch para mover card entre colunas
@@ -558,8 +558,9 @@ function CentralEntregas() {
         () => queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] }),
         100,
       );
-    } catch (e: any) {
-      toast.error(e instanceof Error ? e.message : "Erro ao atribuir motoboy");
+      return true;
+    } catch {
+      return false;
     } finally {
       atribuindoEmVoo.delete(pedidoId);
     }
@@ -1313,22 +1314,36 @@ function CentralEntregas() {
             </div>
 
             <Button
-              onClick={() => {
+              disabled={atribuindoSelecao}
+              onClick={async () => {
                 const mbId = motoboySelecionado as string;
                 const pedidosIds = pedidosSelecionados as string[];
                 if (!mbId || !pedidosIds.length) {
                   toast.error("Selecione motoboy e pelo menos um pedido.");
                   return;
                 }
-                // Atribuir motoboy a todos os pedidos selecionados
-                pedidosIds.forEach((pid) => atribuirMotoboy(pid, mbId));
-                // Resetar seleções
-                setMotoboySelecionado("");
-                setPedidosSelecionados([]);
-                toast.success(`Motoboy ${mbId} atribuído a ${pedidosIds.length} pedido(s).`);
+                setAtribuindoSelecao(true);
+                try {
+                  const resultado = await atribuirPedidosEmLote(pedidosIds, (pid) =>
+                    atribuirMotoboy(pid, mbId),
+                  );
+                  setMotoboySelecionado(resultado.falhas.length > 0 ? mbId : "");
+                  setPedidosSelecionados(resultado.falhas);
+                  if (resultado.falhas.length > 0) {
+                    toast.warning(
+                      `${resultado.atribuidos.length} de ${resultado.solicitados} pedidos atribuídos. Revise os demais antes de tentar novamente.`,
+                    );
+                  } else {
+                    toast.success(
+                      `${resultado.atribuidos.length} pedido(s) atribuídos ao motoboy.`,
+                    );
+                  }
+                } finally {
+                  setAtribuindoSelecao(false);
+                }
               }}
             >
-              Confirmar Atribuição
+              {atribuindoSelecao ? "Atribuindo…" : "Confirmar Atribuição"}
             </Button>
           </div>
         )}
