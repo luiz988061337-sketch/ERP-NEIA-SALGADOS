@@ -29,7 +29,7 @@ function PageReembolsos() {
       modoPreview
       itemExtra={{ value: "reembolsos", label: "Reembolsos e Estornos", icon: Undo2 }}
     >
-      <div className="min-h-screen bg-background p-3 sm:p-4">
+      <div className="l1b-refunds min-h-screen bg-background p-3 sm:p-4">
         {/* Menu mobile (mesmo padrão do Financeiro Premium): gatilho do drawer. */}
         <div className="mb-3 flex items-center gap-2 sm:hidden">
           <SidebarTrigger aria-label="Abrir menu administrativo" />

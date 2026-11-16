@@ -122,3 +122,123 @@ html:has(.admin-producao-l1) [data-sidebar="menu-button"] { font-size: 15px; }
   .admin-dashboard-l1 [class~="text-[10px]"],.admin-pdv-l1 [class~="text-[10px]"],.admin-producao-l1 [class~="text-[10px]"],
   .admin-dashboard-l1 [class~="text-[11px]"],.admin-pdv-l1 [class~="text-[11px]"],.admin-producao-l1 [class~="text-[11px]"] { font-size: 13px; }
 }
+/* L1-B: ajustes limitados aos previews de Entregas, Estoque, Financeiro e Reembolsos. */
+.l1b-deliveries { min-width: 0; font-size: 15px; line-height: 1.45; }
+.l1b-deliveries :is(.text-xs, [class~="text-[10px]"], [class~="text-[11px]"]) { font-size: 15px !important; line-height: 1.4; }
+.l1b-deliveries .text-4xl { font-size: 30px; }
+.l1b-deliveries button { min-height: 44px; padding-inline: 10px; white-space: normal; }
+.l1b-deliveries .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.estoques-preview { font-size: 15px; line-height: 1.45; }
+.estoques-preview .est-preview-ribbon { font-size: 14px; }
+.estoques-preview .est-preview-ribbon small { font-size: 13px; }
+.estoques-preview section > header h3 { font-size: 18px; line-height: 1.3; }
+.estoques-preview .est-kpis > div p:first-child { font-size: 14px; line-height: 1.35; }
+.estoques-preview .est-kpis > div p:nth-child(2) { font-size: 24px; }
+.estoques-preview .est-kpis > div p:last-child,
+.estoques-preview .est-muted,
+.estoques-preview .est-buy-card small,
+.estoques-preview .est-table-hint { font-size: 14px; line-height: 1.45; }
+.estoques-preview .est-filters > label { font-size: 15px; }
+.estoques-preview .est-select,
+.estoques-preview .est-filters input,
+.estoques-preview .est-filters select,
+.estoques-preview table th,
+.est-dialog table th { font-size: 15px !important; }
+.estoques-preview table td,
+.est-dialog table td,
+.estoques-preview table td small,
+.est-dialog table td small { font-size: 14px !important; line-height: 1.45; }
+.estoques-preview .est-tabs button,
+.estoques-preview .est-active-tab,
+.estoques-preview .est-text-action { font-size: 14px; }
+.estoques-preview .est-table-panel { max-width: 100%; overflow-x: auto; }
+.estoques-preview .est-content :is(button, select, input:not([type="checkbox"], [type="radio"])) { min-height: 44px; font-size: 15px; }
+.estoques-preview .est-content .est-icon { min-height: 44px; min-width: 44px; }
+
+.fp-app { font-size: 15px; line-height: 1.4; }
+.fp-app .fp-kpi-label { font-size: 14px; white-space: normal; line-height: 1.35; }
+.fp-app .fp-kpi small,
+.fp-app .fp-preview-badge,
+.fp-app .fp-status { font-size: 13px; }
+.fp-app .fp-panel-heading h2,
+.fp-app .fp-chart-panel .fp-panel-heading h2 { font-size: 18px; line-height: 1.3; }
+.fp-app .fp-chart-key,
+.fp-app .fp-chart-note,
+.fp-app .fp-detail-list li,
+.fp-app .fp-detail-grid p,
+.fp-app .fp-detail-grid .fp-metric-list dt,
+.fp-app .fp-detail-grid .fp-metric-list dd,
+.fp-app .fp-bottom-grid p,
+.fp-app .fp-demo-note,
+.fp-app .fp-commitments li,
+.fp-app .fp-commitments small,
+.fp-app .fp-form-hint { font-size: 14px; line-height: 1.4; }
+.fp-app .fp-chart-key { flex-wrap: wrap !important; row-gap: 8px; font-size: 14px !important; }
+.fp-app .fp-chart-note,
+.fp-app .fp-kpi small,
+.fp-app .fp-demo-note,
+.fp-app .fp-commitments small { font-size: 14px !important; line-height: 1.4; white-space: normal; }
+.fp-app .fp-category-legend li { font-size: 14px !important; line-height: 1.35; grid-template-columns: 10px minmax(0,1fr) auto auto; }
+.fp-app .fp-category-legend li > span { overflow-wrap: anywhere; }
+.fp-app .fp-category-legend b { white-space: normal; overflow-wrap: anywhere; }
+.fp-app .fp-category-legend em { min-width: 42px; }
+.fp-app .fp-risk-copy strong { font-size: 15px !important; line-height: 1.35; }
+.fp-app .fp-risk-copy p { font-size: 14px !important; line-height: 1.45; }
+.fp-app .fp-commitments li { min-height: 42px; line-height: 1.4; font-size: 14px !important; }
+.fp-app .fp-commitments time { font-size: 14px !important; }
+.fp-app .fp-commitments li > span { min-width: 0; overflow-wrap: anywhere; }
+.fp-app .fp-commitments small { white-space: normal; }
+.fp-app .fp-action strong,
+.fp-app .fp-action span,
+.fp-app .fp-section-title p,
+.fp-app .fp-ledger-heading p,
+.fp-app .fp-filters input,
+.fp-app .fp-filters select { font-size: 15px; line-height: 1.4; }
+.fp-app .fp-button,
+.fp-app .fp-tabs button { min-height: 44px; font-size: 15px; white-space: normal; }
+.fp-app input:not([type="range"], [type="checkbox"], [type="radio"]),
+.fp-app select { min-height: 44px; font-size: 15px; }
+.fp-app .fp-table-scroll { max-width: 100%; overflow-x: auto; }
+.fp-app table { min-width: 640px; }
+.fp-app th,
+.fp-app td { font-size: 14px; line-height: 1.4; }
+
+.l1b-refunds { min-width: 0; font-size: 15px; line-height: 1.45; }
+.l1b-refunds :is([class~="text-[10px]"], [class~="text-[11px]"], .text-xs) { font-size: 14px !important; line-height: 1.4; }
+.l1b-refunds :is(button, select, textarea, input:not([type="checkbox"], [type="radio"])) { min-height: 44px; font-size: 15px; }
+.l1b-refunds .grid > div.flex > div.min-w-0 > p:first-child {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  font-size: 13px !important;
+  line-height: 1.3;
+}
+.l1b-refunds .grid > div.flex { align-items: flex-start; padding: 12px; }
+.l1b-refunds .grid > div.flex > div.min-w-0 > p:last-child {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  font-size: 13px !important;
+  line-height: 1.35;
+}
+.l1b-refunds button { white-space: normal; }
+.l1b-refunds > div { min-width: 0; }
+.l1b-refunds [class*="grid-cols-"] { min-width: 0; }
+
+@media (max-width: 767px) {
+  .l1b-deliveries .grid-cols-3 { grid-template-columns: minmax(0, 1fr); }
+  .l1b-deliveries button { min-height: 46px; }
+  .estoques-preview .est-preview-ribbon span { font-size: 13px; line-height: 1.35; }
+  .estoques-preview h1 { font-size: 24px; }
+  .estoques-preview h1 + p { font-size: 14px; line-height: 1.4; }
+  .estoques-preview .est-tabs button,
+  .estoques-preview .est-active-tab,
+  .estoques-preview .est-filter-actions > button { font-size: 14px; }
+  .fp-app .fp-kpi strong { font-size: 20px; }
+  .fp-app .fp-page-heading p { font-size: 15px; line-height: 1.4; }
+  .fp-app .fp-preview-badge { font-size: 13px; white-space: normal; }
+  .fp-app table { min-width: 640px; }
+}

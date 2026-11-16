@@ -33,7 +33,7 @@ export function PreviewCentralEntregasV2() {
   };
   return (
     <AdminShell aba="central" onAba={() => {}} onRefresh={() => {}} usuario="preview@neia.local" modoPreview>
-      <div className="min-h-screen bg-background p-3 sm:p-4">
+      <div className="l1b-deliveries min-h-screen bg-background p-3 sm:p-4">
         <div className="mx-auto max-w-[1400px]">
           <p className="mb-3 rounded-lg border border-[#D4A94A] bg-[#17150F] px-3 py-2 text-xs text-[#F2CE6B]">
             PRÉVIA — Central de Entregas Rotas. Dados demonstrativos locais, sem gravação.
