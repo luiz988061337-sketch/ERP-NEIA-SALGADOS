@@ -55,6 +55,7 @@ import { Route as PreviewCarrinhoRouteImport } from './routes/preview/carrinho'
 import { Route as PreviewCentralEntregasV2RouteImport } from './routes/preview/central-entregas-v2'
 import { Route as PreviewCheckoutRouteImport } from './routes/preview/checkout'
 import { Route as PreviewComboRouteImport } from './routes/preview/combo'
+import { Route as PreviewComercialRouteImport } from './routes/preview/comercial'
 import { Route as PreviewCozinhaInteligenteRouteImport } from './routes/preview/cozinha-inteligente'
 import { Route as PreviewFinanceiroPremiumRouteImport } from './routes/preview/financeiro-premium'
 import { Route as PreviewL1EntregasRouteImport } from './routes/preview/l1-entregas'
@@ -86,6 +87,8 @@ import { Route as PreviewAdminMotoboysRouteImport } from './routes/preview/admin
 import { Route as PreviewAdminPedidosRouteImport } from './routes/preview/admin/pedidos'
 import { Route as PreviewAdminProdutosRouteImport } from './routes/preview/admin/produtos'
 import { Route as PreviewAdminWhatsappRouteImport } from './routes/preview/admin/whatsapp'
+import { Route as PreviewComercialClientesRouteImport } from './routes/preview/comercial/clientes'
+import { Route as PreviewComercialPainelRouteImport } from './routes/preview/comercial/painel'
 import { Route as PreviewPedidoIdRouteImport } from './routes/preview/pedido.$id'
 import { Route as PreviewReembolsosEstornosClienteIndexRouteImport } from './routes/preview/reembolsos-estornos-cliente/index'
 import { Route as PreviewReembolsosEstornosClienteIdRouteImport } from './routes/preview/reembolsos-estornos-cliente.$id'
@@ -323,6 +326,11 @@ const PreviewComboRoute = PreviewComboRouteImport.update({
   path: '/combo',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewComercialRoute = PreviewComercialRouteImport.update({
+  id: '/comercial',
+  path: '/comercial',
+  getParentRoute: () => PreviewRoute,
+} as any)
 const PreviewCozinhaInteligenteRoute =
   PreviewCozinhaInteligenteRouteImport.update({
     id: '/cozinha-inteligente',
@@ -490,6 +498,17 @@ const PreviewAdminWhatsappRoute = PreviewAdminWhatsappRouteImport.update({
   path: '/admin/whatsapp',
   getParentRoute: () => PreviewRoute,
 } as any)
+const PreviewComercialClientesRoute =
+  PreviewComercialClientesRouteImport.update({
+    id: '/clientes',
+    path: '/clientes',
+    getParentRoute: () => PreviewComercialRoute,
+  } as any)
+const PreviewComercialPainelRoute = PreviewComercialPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => PreviewComercialRoute,
+} as any)
 const PreviewPedidoIdRoute = PreviewPedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
@@ -564,6 +583,7 @@ export interface FileRoutesByFullPath {
   '/preview/central-entregas-v2': typeof PreviewCentralEntregasV2Route
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
+  '/preview/comercial': typeof PreviewComercialRouteWithChildren
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
   '/preview/financeiro-premium': typeof PreviewFinanceiroPremiumRoute
   '/preview/l1-entregas': typeof PreviewL1EntregasRoute
@@ -595,6 +615,8 @@ export interface FileRoutesByFullPath {
   '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
+  '/preview/comercial/painel': typeof PreviewComercialPainelRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
   '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -647,6 +669,7 @@ export interface FileRoutesByTo {
   '/preview/central-entregas-v2': typeof PreviewCentralEntregasV2Route
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
+  '/preview/comercial': typeof PreviewComercialRouteWithChildren
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
   '/preview/financeiro-premium': typeof PreviewFinanceiroPremiumRoute
   '/preview/l1-entregas': typeof PreviewL1EntregasRoute
@@ -676,6 +699,8 @@ export interface FileRoutesByTo {
   '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
+  '/preview/comercial/painel': typeof PreviewComercialPainelRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
   '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -730,6 +755,7 @@ export interface FileRoutesById {
   '/preview/central-entregas-v2': typeof PreviewCentralEntregasV2Route
   '/preview/checkout': typeof PreviewCheckoutRoute
   '/preview/combo': typeof PreviewComboRoute
+  '/preview/comercial': typeof PreviewComercialRouteWithChildren
   '/preview/cozinha-inteligente': typeof PreviewCozinhaInteligenteRoute
   '/preview/financeiro-premium': typeof PreviewFinanceiroPremiumRoute
   '/preview/l1-entregas': typeof PreviewL1EntregasRoute
@@ -761,6 +787,8 @@ export interface FileRoutesById {
   '/preview/admin/pedidos': typeof PreviewAdminPedidosRoute
   '/preview/admin/produtos': typeof PreviewAdminProdutosRoute
   '/preview/admin/whatsapp': typeof PreviewAdminWhatsappRoute
+  '/preview/comercial/clientes': typeof PreviewComercialClientesRoute
+  '/preview/comercial/painel': typeof PreviewComercialPainelRoute
   '/preview/pedido/$id': typeof PreviewPedidoIdRoute
   '/preview/reembolsos-estornos-cliente/$id': typeof PreviewReembolsosEstornosClienteIdRoute
   '/preview/reembolsos-estornos-cliente/novo': typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -815,6 +843,7 @@ export interface FileRouteTypes {
     | '/preview/central-entregas-v2'
     | '/preview/checkout'
     | '/preview/combo'
+    | '/preview/comercial'
     | '/preview/cozinha-inteligente'
     | '/preview/financeiro-premium'
     | '/preview/l1-entregas'
@@ -846,6 +875,8 @@ export interface FileRouteTypes {
     | '/preview/admin/pedidos'
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
+    | '/preview/comercial/clientes'
+    | '/preview/comercial/painel'
     | '/preview/pedido/$id'
     | '/preview/reembolsos-estornos-cliente/$id'
     | '/preview/reembolsos-estornos-cliente/novo'
@@ -898,6 +929,7 @@ export interface FileRouteTypes {
     | '/preview/central-entregas-v2'
     | '/preview/checkout'
     | '/preview/combo'
+    | '/preview/comercial'
     | '/preview/cozinha-inteligente'
     | '/preview/financeiro-premium'
     | '/preview/l1-entregas'
@@ -927,6 +959,8 @@ export interface FileRouteTypes {
     | '/preview/admin/pedidos'
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
+    | '/preview/comercial/clientes'
+    | '/preview/comercial/painel'
     | '/preview/pedido/$id'
     | '/preview/reembolsos-estornos-cliente/$id'
     | '/preview/reembolsos-estornos-cliente/novo'
@@ -980,6 +1014,7 @@ export interface FileRouteTypes {
     | '/preview/central-entregas-v2'
     | '/preview/checkout'
     | '/preview/combo'
+    | '/preview/comercial'
     | '/preview/cozinha-inteligente'
     | '/preview/financeiro-premium'
     | '/preview/l1-entregas'
@@ -1011,6 +1046,8 @@ export interface FileRouteTypes {
     | '/preview/admin/pedidos'
     | '/preview/admin/produtos'
     | '/preview/admin/whatsapp'
+    | '/preview/comercial/clientes'
+    | '/preview/comercial/painel'
     | '/preview/pedido/$id'
     | '/preview/reembolsos-estornos-cliente/$id'
     | '/preview/reembolsos-estornos-cliente/novo'
@@ -1386,6 +1423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewComboRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/comercial': {
+      id: '/preview/comercial'
+      path: '/comercial'
+      fullPath: '/preview/comercial'
+      preLoaderRoute: typeof PreviewComercialRouteImport
+      parentRoute: typeof PreviewRoute
+    }
     '/preview/cozinha-inteligente': {
       id: '/preview/cozinha-inteligente'
       path: '/cozinha-inteligente'
@@ -1603,6 +1647,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewAdminWhatsappRouteImport
       parentRoute: typeof PreviewRoute
     }
+    '/preview/comercial/clientes': {
+      id: '/preview/comercial/clientes'
+      path: '/clientes'
+      fullPath: '/preview/comercial/clientes'
+      preLoaderRoute: typeof PreviewComercialClientesRouteImport
+      parentRoute: typeof PreviewComercialRoute
+    }
+    '/preview/comercial/painel': {
+      id: '/preview/comercial/painel'
+      path: '/painel'
+      fullPath: '/preview/comercial/painel'
+      preLoaderRoute: typeof PreviewComercialPainelRouteImport
+      parentRoute: typeof PreviewComercialRoute
+    }
     '/preview/pedido/$id': {
       id: '/preview/pedido/$id'
       path: '/pedido/$id'
@@ -1661,6 +1719,19 @@ const PreviewEstoquesRouteWithChildren = PreviewEstoquesRoute._addFileChildren(
   PreviewEstoquesRouteChildren,
 )
 
+interface PreviewComercialRouteChildren {
+  PreviewComercialClientesRoute: typeof PreviewComercialClientesRoute
+  PreviewComercialPainelRoute: typeof PreviewComercialPainelRoute
+}
+
+const PreviewComercialRouteChildren: PreviewComercialRouteChildren = {
+  PreviewComercialClientesRoute: PreviewComercialClientesRoute,
+  PreviewComercialPainelRoute: PreviewComercialPainelRoute,
+}
+
+const PreviewComercialRouteWithChildren =
+  PreviewComercialRoute._addFileChildren(PreviewComercialRouteChildren)
+
 interface PreviewReembolsosEstornosClienteRouteChildren {
   PreviewReembolsosEstornosClienteIdRoute: typeof PreviewReembolsosEstornosClienteIdRoute
   PreviewReembolsosEstornosClienteNovoRoute: typeof PreviewReembolsosEstornosClienteNovoRoute
@@ -1690,6 +1761,7 @@ interface PreviewRouteChildren {
   PreviewCentralEntregasV2Route: typeof PreviewCentralEntregasV2Route
   PreviewCheckoutRoute: typeof PreviewCheckoutRoute
   PreviewComboRoute: typeof PreviewComboRoute
+  PreviewComercialRoute: typeof PreviewComercialRouteWithChildren
   PreviewCozinhaInteligenteRoute: typeof PreviewCozinhaInteligenteRoute
   PreviewFinanceiroPremiumRoute: typeof PreviewFinanceiroPremiumRoute
   PreviewL1EntregasRoute: typeof PreviewL1EntregasRoute
@@ -1727,6 +1799,7 @@ const PreviewRouteChildren: PreviewRouteChildren = {
   PreviewCentralEntregasV2Route: PreviewCentralEntregasV2Route,
   PreviewCheckoutRoute: PreviewCheckoutRoute,
   PreviewComboRoute: PreviewComboRoute,
+  PreviewComercialRoute: PreviewComercialRouteWithChildren,
   PreviewCozinhaInteligenteRoute: PreviewCozinhaInteligenteRoute,
   PreviewFinanceiroPremiumRoute: PreviewFinanceiroPremiumRoute,
   PreviewL1EntregasRoute: PreviewL1EntregasRoute,

@@ -19,7 +19,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ADMIN_NAV, type AdminNavItem, type AdminNavGroup } from "./admin-nav";
-import { ehPreviewEstoque } from "@/lib/preview-estoques";
+import { ehPreviewModulo } from "@/lib/preview-modulos";
 
 /**
  * Shell do Admin — aparência da referência preto/dourado:
@@ -41,6 +41,7 @@ export function AdminShell({
   modoPreview = false,
   itemExtra,
   menuPreview,
+  menuPreviewDuasLinhas = false,
 }: {
   aba: string;
   onAba: (v: string) => void;
@@ -62,6 +63,11 @@ export function AdminShell({
   itemExtra?: AdminNavItem | undefined;
   /** Organização alternativa somente na demonstração de estoques; padrão intacto. */
   menuPreview?: AdminNavGroup[];
+  /**
+   * Permite quebra de linha nos rótulos do menu somente nesta prévia.
+   * O padrão falso preserva todos os demais módulos e a largura da sidebar.
+   */
+  menuPreviewDuasLinhas?: boolean;
 }) {
   return (
     <SidebarProvider
@@ -97,7 +103,14 @@ export function AdminShell({
           </div>
         </SidebarHeader>
 
-        <MenuLateral aba={aba} onAba={onAba} modoPreview={modoPreview} itemExtra={itemExtra} menuPreview={modoPreview ? menuPreview : undefined} />
+        <MenuLateral
+          aba={aba}
+          onAba={onAba}
+          modoPreview={modoPreview}
+          itemExtra={itemExtra}
+          menuPreview={modoPreview ? menuPreview : undefined}
+          duasLinhas={menuPreviewDuasLinhas}
+        />
 
         <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -170,12 +183,14 @@ function MenuLateral({
   modoPreview = false,
   itemExtra,
   menuPreview,
+  duasLinhas = false,
 }: {
   aba: string;
   onAba: (v: string) => void;
   modoPreview?: boolean;
   itemExtra?: AdminNavItem | undefined;
   menuPreview?: AdminNavGroup[] | undefined;
+  duasLinhas?: boolean;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const pathname = useLocation({ select: (s) => s.pathname });
@@ -193,6 +208,14 @@ function MenuLateral({
     if (indice === -1) return items;
     return [...items.slice(0, indice + 1), itemExtra, ...items.slice(indice + 1)];
   }
+
+  const alturaRotulo = duasLinhas ? "h-auto min-h-11 py-2" : "h-9 min-h-9";
+  const classeRotulo = duasLinhas
+    ? "min-w-0 flex-1 whitespace-normal leading-tight"
+    : "truncate";
+  const estiloRotulo = duasLinhas
+    ? ({ overflow: "visible", whiteSpace: "normal" } as const)
+    : undefined;
 
   return (
     <SidebarContent className="no-scrollbar bg-[#0F0E0C]">
@@ -219,17 +242,17 @@ function MenuLateral({
                       <SidebarMenuButton
                         asChild
                         tooltip={item.label}
-                        className={
+                        className={`${
                           ativo
-                            ? "erp-btn-gold h-9 min-h-9 rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
-                            : "h-9 min-h-9 rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
-                        }
+                            ? "erp-btn-gold rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
+                            : "rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
+                        } ${alturaRotulo}`}
                       >
                         <Link
                           to={item.href}
                           onClick={(e) => {
                             if (modoPreview) {
-                              if (!menuPreview || !ehPreviewEstoque(item.href ?? "")) {
+                              if (!menuPreview || !ehPreviewModulo(item.href ?? "")) {
                                 e.preventDefault();
                                 if (menuPreview) ir(item.value);
                                 return;
@@ -241,7 +264,9 @@ function MenuLateral({
                           }}
                         >
                           <item.icon className={ativo ? "text-[#14120C]" : "text-[#C9A24B]"} />
-                          <span className="truncate">{item.label}</span>
+                          <span className={classeRotulo} style={estiloRotulo}>
+                            {item.label}
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     ) : (
@@ -250,14 +275,16 @@ function MenuLateral({
                         data-value={menuPreview ? item.value : undefined}
                         onClick={() => (modoPreview && !menuPreview ? undefined : ir(item.value))}
                         aria-current={aba === item.value ? "page" : undefined}
-                        className={
+                        className={`${
                           ativo
-                            ? "erp-btn-gold h-9 min-h-9 rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
-                            : "h-9 min-h-9 rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
-                        }
+                            ? "erp-btn-gold rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
+                            : "rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
+                        } ${alturaRotulo}`}
                       >
                         <item.icon className={ativo ? "text-[#14120C]" : "text-[#C9A24B]"} />
-                        <span className="truncate">{item.label}</span>
+                        <span className={classeRotulo} style={estiloRotulo}>
+                          {item.label}
+                        </span>
                       </SidebarMenuButton>
                     )}
                   </SidebarMenuItem>

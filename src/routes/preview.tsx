@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/neia-logo.png.asset.json";
-import { ehPreviewEstoque } from "@/lib/preview-estoques";
+import { ehPreviewModulo } from "@/lib/preview-modulos";
 
 export const Route = createFileRoute("/preview")({
   head: ({ matches }) => ({
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/preview")({
     ],
     links: [
       // R2-B carrega seu CSS compilado no layout pai, nunca um caminho /src em produção.
-      ...(matches.some((m) => m.pathname.startsWith("/preview/reembolsos-estornos-cliente") || ehPreviewEstoque(m.pathname))
+      ...(matches.some((m) => m.pathname.startsWith("/preview/reembolsos-estornos-cliente") || ehPreviewModulo(m.pathname))
         ? [] : [{ rel: "stylesheet", href: "/src/styles-preview.css" }]),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/preview")({
 
 function PreviewLayout() {
   const { pathname } = useLocation();
-  if (ehPreviewEstoque(pathname)) return <Outlet />;
+  if (ehPreviewModulo(pathname)) return <Outlet />;
   // R2-B público: sem hooks de sessão, consultas ou chrome administrativo.
   if (pathname.startsWith("/preview/reembolsos-estornos-cliente")) return <R2BPublicLayout />;
   // Demonstração com shell administrativo próprio (Financeiro Premium,
