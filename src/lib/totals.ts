@@ -26,6 +26,26 @@ export function calcTotals(input: TotalsInput): Totals {
   return { subtotal, desconto, taxaEntrega, total };
 }
 
+/** Seleciona a taxa que deve ser congelada no pedido conforme a opção exibida no checkout. */
+export function taxaEntregaDoPedido(input: {
+  retirada: boolean;
+  previaKmValida: boolean;
+  taxaPrevista?: number | null | undefined;
+  fallback: number;
+}): number {
+  if (input.retirada) return 0;
+  const prevista = input.taxaPrevista;
+  if (
+    input.previaKmValida &&
+    typeof prevista === "number" &&
+    Number.isFinite(prevista) &&
+    prevista >= 0
+  ) {
+    return prevista;
+  }
+  return Math.max(0, num(input.fallback));
+}
+
 export const PASSO_COMBO = 50;
 export const MINIMO_COMBO = 50;
 

@@ -15,7 +15,7 @@ import { useCart, isComboItem } from "@/lib/cart";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
 import { brl, PAGAMENTO_LABEL, TAXA_ENTREGA } from "@/lib/format";
 import { notificarPush } from "@/lib/push";
-import { calcTotals, isMultiploCombo } from "@/lib/totals";
+import { calcTotals, isMultiploCombo, taxaEntregaDoPedido } from "@/lib/totals";
 import { validarCupom } from "@/lib/cupons";
 import { pontosGanhos as calcPontos } from "@/lib/fidelidade";
 import { useCrmSettings } from "@/lib/crm";
@@ -263,7 +263,9 @@ function Checkout() {
     taxaPrev != null &&
     taxaPrev.modo === "config" &&
     taxaPrev.aceitarEntregas &&
-    !taxaPrev.foraDaArea;
+    !taxaPrev.foraDaArea &&
+    Number.isFinite(taxaPrev.taxa) &&
+    taxaPrev.taxa >= 0;
   const taxaEntregaUI = taxaPrevValida ? (taxaPrev as PrevisaoTaxa).taxa : TAXA_ENTREGA;
   const taxaEntregaFinalUI = tipoEntrega === "retirada" ? 0 : taxaEntregaUI;
   const totalFinalUI = Math.max(0, subtotal - desconto) + taxaEntregaFinalUI;
@@ -699,9 +701,15 @@ function Checkout() {
         subtotalValidado += precoReal * i.quantidade;
         return { ...i, preco: precoReal };
       });
-      const calc = calcTotals({ subtotal: subtotalValidado, taxaEntrega: TAXA_ENTREGA, desconto });
       const isRetirada = tipoEntrega === "retirada";
-      const taxaEntregaFinal = isRetirada ? 0 : calc.taxaEntrega;
+      const taxaEntregaBase = taxaEntregaDoPedido({
+        retirada: isRetirada,
+        previaKmValida: taxaPrevValida,
+        taxaPrevista: taxaPrev?.taxa,
+        fallback: TAXA_ENTREGA,
+      });
+      const calc = calcTotals({ subtotal: subtotalValidado, taxaEntrega: taxaEntregaBase, desconto });
+      const taxaEntregaFinal = calc.taxaEntrega;
       const totalFinal = Math.max(0, subtotalValidado - calc.desconto) + taxaEntregaFinal;      const obsFinal =
         pagamento === "dinheiro" && parsed.data.troco
           ? `${parsed.data.observacoes} [Troco para ${parsed.data.troco}]`.trim()
