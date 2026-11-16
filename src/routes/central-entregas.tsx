@@ -581,13 +581,11 @@ function CentralEntregas() {
       return;
     }
 
-    // Validar que pedidos estão elegíveis (aguardando_motoboy ou sem status bloqueado)
+    // 0084 aceita somente pedidos Prontos ainda sem motoboy ou rota.
     const invalidos = pedidosUnicos.filter((pid: string) => {
       const p = (pedidos ?? []).find((x: any) => x.id === pid);
       if (!p) return true;
-      if (!(["pronto", "aguardando_motoboy"] as string[]).includes(p.status)) return true;
-      // Verificar se já tem rota
-      if (p.rota_id) return true;
+      if (p.status !== "pronto" || p.motoboy_id || p.rota_id) return true;
       return false;
     });
     if (invalidos.length > 0) {
@@ -605,65 +603,42 @@ function CentralEntregas() {
 
     criandoRotaRef.current = true;
     setCriandoRota(true);
-    let rotaId: string | null = null;
-    let etapaFalhou = "criação do registro da rota";
     try {
-      // 1. Criar rota_entrega
-      const { data: rota, error: e1 } = await supabase
-        .from("rotas_entrega")
-        .insert({
-          motoboy_id: motoboyId,
-          status: "em_rota",
-          saiu_em: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-      if (e1 || !rota) throw e1 ?? new Error("Erro ao criar rota");
-      rotaId = rota.id;
-
-      // 2. Inserir rota_pedidos
-      etapaFalhou = "vínculo das paradas à rota";
-      const rotaPedidos = pedidosUnicos.map((pid: string, index: number) => ({
-        rota_id: rotaId,
-        pedido_id: pid,
-        ordem: index + 1,
-      }));
-      const { error: e2 } = await supabase.from("rota_pedidos").insert(rotaPedidos);
-      if (e2) throw e2;
-
-      // 3. Atualizar pedidos com rota_id
-      etapaFalhou = "atualização dos pedidos";
-      const { data: pedidosAtualizados, error: e3 } = await supabase
-        .from("pedidos")
-        .update({ rota_id: rotaId })
-        .in("id", pedidosUnicos)
-        .in("status", ["pronto", "aguardando_motoboy"])
-        .is("rota_id", null)
-        .select("id");
-      if (e3) throw e3;
-      if ((pedidosAtualizados ?? []).length !== pedidosUnicos.length) {
-        throw new Error(
-          `Somente ${(pedidosAtualizados ?? []).length} de ${pedidosUnicos.length} pedidos foram confirmados.`,
-        );
+      const { data, error } = await supabase.rpc("criar_rota_entrega_atomica", {
+        p_pedido_ids: pedidosUnicos,
+        p_motoboy_id: motoboyId,
+        p_exigir_conferencia: false,
+      });
+      if (error) throw error;
+      const resultado = data as { status?: string; quantidade?: number; motivo?: string; detalhe?: string } | null;
+      if (resultado?.status !== "criada") {
+        const motivo = resultado?.motivo ?? resultado?.status;
+        const mensagens: Record<string, string> = {
+          permissao_negada: "Seu perfil não pode atribuir rotas.",
+          dados_invalidos: "Selecione até três pedidos válidos e um motoboy.",
+          pedido_duplicado: "A seleção contém pedidos duplicados.",
+          pedido_inexistente: "Um dos pedidos não existe mais.",
+          motoboy_inexistente: "O motoboy selecionado não está mais disponível.",
+          rota_preexistente: "Este motoboy já tem uma rota ativa. Revise ou conclua essa rota antes de criar outra.",
+          falha_atomica: `A rota não foi confirmada (${resultado?.detalhe ?? motivo ?? "conflito operacional"}). Nenhuma atribuição parcial foi mantida.`,
+        };
+        toast.error(mensagens[motivo ?? ""] ?? "A rota não pôde ser criada. Atualize os pedidos e confira os estados.");
+        queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
+        queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
+        return;
       }
-
-      toast.success(
-        `Rota criada com ${pedidosUnicos.length} pedidos para motoboy ${motoboyId}`,
-      );
+      toast.success(`Rota atribuída com ${resultado.quantidade ?? pedidosUnicos.length} pedido(s).`);
       queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
       queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
       setMotoboyRota("");
       setPedidosRota([]);
-    } catch (e: any) {
-      if (rotaId) {
-        toast.error(
-          `Falha na etapa ${etapaFalhou} da rota ${rotaId.slice(0, 8)}. Parte pode ter sido gravada; atualize as listas e confira antes de tentar novamente. ${e instanceof Error ? e.message : ""}`,
-        );
-        queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
-        queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
-      } else {
-        toast.error(e instanceof Error ? e.message : "Erro ao criar rota");
-      }
+    } catch (erro) {
+      const rpcAusente = typeof erro === "object" && erro !== null && "code" in erro && erro.code === "PGRST202";
+      toast.error(rpcAusente
+        ? "Atribuição pausada: a migration 0108 ainda não está instalada. Nenhuma rota foi confirmada."
+        : "Não foi possível confirmar a resposta. Atualize pedidos e rotas antes de repetir a ação.");
+      queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
+      queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
     } finally {
       criandoRotaRef.current = false;
       setCriandoRota(false);
