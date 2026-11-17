@@ -1,7 +1,8 @@
 param(
   [Parameter(Mandatory = $true)][string]$Scratch,
   [string]$PgBin = 'C:\Program Files\PostgreSQL\17\bin',
-  [ValidateRange(1024, 65535)][int]$Port = 55435
+  [ValidateRange(1024, 65535)][int]$Port = 55435,
+  [switch]$FixtureStaging
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,10 +25,10 @@ $pwfile = Join-Path $work 'init-password'
 [IO.File]::WriteAllText($pwfile, $env:PGPASSWORD)
 $server = $null
 
-function Run-Sql([string]$File, [bool]$Transactional = $true) {
+function Run-Sql([string]$File, [bool]$Transactional = $true, [string[]]$VariaveisPsql = @()) {
   $opts = @()
   if ($Transactional) { $opts += '--single-transaction' }
-  & $psql -X -w -h 127.0.0.1 -p $Port -U neia_homologador -d postgres -v ON_ERROR_STOP=1 @opts -f $File 2>&1 |
+  & $psql -X -w -h 127.0.0.1 -p $Port -U neia_homologador -d postgres -v ON_ERROR_STOP=1 @opts @VariaveisPsql -f $File 2>&1 |
     Out-File -LiteralPath $log -Append -Encoding UTF8
   if ($LASTEXITCODE -ne 0) {
     Get-Content -LiteralPath $log -Tail 18
@@ -62,6 +63,12 @@ try {
     if ($name -notmatch '^[0-9]{4}_[a-z0-9_]+\.sql$') { throw "Nome inválido no manifesto: $name" }
     Run-Sql (Join-Path $repo "drizzle\migrations\$name") ($name -notmatch '^(0003|0079)_')
   }
+  if ($FixtureStaging) {
+    Run-Sql (Join-Path $PSScriptRoot 'staging-usuarios-sinteticos.sql')
+    Run-Sql (Join-Path $PSScriptRoot '..\homologacao-staging-fixture.sql') $true @('-v', 'staging_ref=abcdefghijklmnopqrst')
+    Write-Host "Fixture de staging validada localmente. Evidências: $log"
+    return
+  }
   Run-Sql (Join-Path $PSScriptRoot 'regressoes.sql')
   Run-Sql (Join-Path $PSScriptRoot 'rotas-app.sql')
   Run-Sql (Join-Path $PSScriptRoot 'inicio-rota-integridade.sql')
@@ -71,6 +78,7 @@ try {
   Run-Sql (Join-Path $PSScriptRoot 'seguranca-financeira-motoboy.sql')
   Run-Sql (Join-Path $PSScriptRoot 'pagamento-turno.sql')
   Run-Sql (Join-Path $PSScriptRoot 'financeiro-motoboy-concorrencia.sql')
+  Run-Sql (Join-Path $PSScriptRoot 'motoboy-corte-gps.sql')
   Write-Host "PostgreSQL validado. Evidências locais: $log"
 } finally {
   if (Test-Path -LiteralPath $pwfile) { Remove-Item -LiteralPath $pwfile }

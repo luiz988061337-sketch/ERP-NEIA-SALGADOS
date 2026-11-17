@@ -114,3 +114,4 @@
 0119_conferencia_independente_motoboy.sql
 0120_pagamento_turno_motoboy_autorizado.sql
 0121_rotas_concluidas_para_acerto.sql
+0122_corte_motoboy_rpc_gps.sql

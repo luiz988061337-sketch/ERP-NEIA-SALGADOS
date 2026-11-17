@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { runtimePreviewIsolado } from "./lib/staging-runtime";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -79,6 +80,10 @@ function normalizarCacheDocumento(response: Response): Response {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const stagingUrl = import.meta.env.VITE_NEIA_PREVIEW_URL;
+      if (stagingUrl && !runtimePreviewIsolado(stagingUrl, import.meta.env.VITE_NEIA_PREVIEW_CHAVE, process.env)) {
+        return new Response("O Preview exige o destino de homologação configurado no build.", { status: 503 });
+      }
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalizado = await normalizeCatastrophicSsrResponse(response);
