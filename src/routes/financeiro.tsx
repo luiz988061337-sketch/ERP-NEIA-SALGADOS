@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
+import { AcertosMotoboyFinanceiro } from "@/components/admin/acertos-motoboy";
 import { PageHeader } from "@/components/admin/ui-admin";
 import { ERP_COLORS, MetricCard, ChartCard } from "@/components/admin/erp-ui";
 import { brl } from "@/lib/format";
@@ -891,6 +892,11 @@ function Financeiro() {
             />
           }
         />
+
+        {autorizado && user && (
+          <AcertosMotoboyFinanceiro usuario={user.id} admin={roles?.includes("admin") ?? false}
+            financeiro={roles?.includes("financeiro") ?? false} />
+        )}
 
         {/* Linha 1 — 3 métricas do caixa (dados reais da sessão aberta) */}
         <div className="grid gap-3 sm:grid-cols-3">
