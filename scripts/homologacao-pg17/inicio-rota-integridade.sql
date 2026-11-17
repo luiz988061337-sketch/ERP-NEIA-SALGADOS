@@ -31,6 +31,8 @@ BEGIN
       r := public.criar_rota_entrega_atomica(v_ids,v_driver);
       IF r->>'status' IS DISTINCT FROM 'criada' THEN RAISE EXCEPTION 'Fixture 0112 %: %',n,r; END IF;
       v_rota := (r->>'rota_id')::uuid;
+      r := public.liberar_rota_entrega(v_rota);
+      IF r->>'status' IS DISTINCT FROM 'ok' THEN RAISE EXCEPTION 'Fixture: liberação %',r; END IF;
     END IF;
     INSERT INTO teste_inicio.casos VALUES (n,v_user,v_driver,v_rota,v_ids);
   END LOOP;
@@ -165,8 +167,7 @@ DECLARE c teste_inicio.casos;
 BEGIN
   SELECT * INTO c FROM teste_inicio.casos WHERE n = 5;
   PERFORM set_config('request.jwt.claim.sub', c.usuario::text, true);
-  r := public.aceitar_rota(c.rota);
-  IF r->>'status' IS DISTINCT FROM 'ok' THEN RAISE EXCEPTION 'Aceite da Central: %',r; END IF;
+
   IF public.confirmar_retirada(c.pedidos[1])->>'status' IS DISTINCT FROM 'ok'
      OR public.confirmar_retirada(c.pedidos[2])->>'status' IS DISTINCT FROM 'ok' THEN
     RAISE EXCEPTION 'Não foi possível preparar as primeiras duas retiradas concorrentes';

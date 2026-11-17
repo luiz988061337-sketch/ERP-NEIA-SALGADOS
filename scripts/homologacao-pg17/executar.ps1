@@ -28,8 +28,16 @@ $server = $null
 function Run-Sql([string]$File, [bool]$Transactional = $true, [string[]]$VariaveisPsql = @()) {
   $opts = @()
   if ($Transactional) { $opts += '--single-transaction' }
-  & $psql -X -w -h 127.0.0.1 -p $Port -U neia_homologador -d postgres -v ON_ERROR_STOP=1 @opts @VariaveisPsql -f $File 2>&1 |
-    Out-File -LiteralPath $log -Append -Encoding UTF8
+  # psql emite WARNING via stderr; under Windows PowerShell 5.1 com EAP=Stop isso
+  # seria um erro terminante. Apenas o código de saída decide a falha.
+  $preferenciaAnterior = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & $psql -X -w -h 127.0.0.1 -p $Port -U neia_homologador -d postgres -v ON_ERROR_STOP=1 @opts @VariaveisPsql -f $File 2>&1 |
+      Out-File -LiteralPath $log -Append -Encoding UTF8
+  } finally {
+    $ErrorActionPreference = $preferenciaAnterior
+  }
   if ($LASTEXITCODE -ne 0) {
     Get-Content -LiteralPath $log -Tail 18
     throw "Falhou: $File"
@@ -78,6 +86,9 @@ try {
   Run-Sql (Join-Path $PSScriptRoot 'seguranca-financeira-motoboy.sql')
   Run-Sql (Join-Path $PSScriptRoot 'pagamento-turno.sql')
   Run-Sql (Join-Path $PSScriptRoot 'financeiro-motoboy-concorrencia.sql')
+  Run-Sql (Join-Path $PSScriptRoot 'liberacao-central.sql')
+  Run-Sql (Join-Path $PSScriptRoot 'liberacao-central-concorrencia.sql')
+  Run-Sql (Join-Path $PSScriptRoot 'fluxo-completo-rota.sql')
   Run-Sql (Join-Path $PSScriptRoot 'motoboy-corte-gps.sql')
   Write-Host "PostgreSQL validado. Evidências locais: $log"
 } finally {

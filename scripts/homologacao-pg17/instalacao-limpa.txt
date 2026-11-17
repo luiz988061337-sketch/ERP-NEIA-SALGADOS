@@ -115,3 +115,4 @@
 0120_pagamento_turno_motoboy_autorizado.sql
 0121_rotas_concluidas_para_acerto.sql
 0122_corte_motoboy_rpc_gps.sql
+0123_liberacao_rota_pela_central.sql

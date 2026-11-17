@@ -343,9 +343,9 @@ function CentralEntregas() {
     const { data, error } = await supabase
       .from("rotas_entrega")
       .select(
-        "id,motoboy_id,status,saiu_em,rota_pedidos(pedido_id,pedidos(id,numero,status,cliente_nome))",
+        `id,motoboy_id,status,saiu_em,${MOTOBOY_RPC_ATIVO ? "liberada_central_em,liberada_central_por," : ""}rota_pedidos(pedido_id,pedidos(id,numero,status,cliente_nome))`,
       )
-      .eq("status", "em_rota")
+      .in("status", MOTOBOY_RPC_ATIVO ? ["preparando", "em_rota"] : ["em_rota"])
       .order("saiu_em", { ascending: true });
     if (error) throw error;
     return data ?? [];
@@ -359,6 +359,19 @@ function CentralEntregas() {
     enabled: !!autorizado && !loading,
     queryFn: fetchRotasAtivas,
   });
+
+  const [rotaLiberando, setRotaLiberando] = useState<string | null>(null);
+  async function liberarRota(rotaId: string) {
+    if (rotaLiberando) return;
+    setRotaLiberando(rotaId);
+    try {
+      const {data,error} = await supabase.rpc("liberar_rota_entrega",{p_rota_id:rotaId});
+      if (error || data?.status !== "ok") throw new Error("Liberação não confirmada. Confira os pedidos e a instalação da RPC.");
+      toast.success("Saída liberada pela Central.");
+      void queryClient.invalidateQueries({queryKey:["central-j3h-rotas"]});
+    } catch (erro) { toast.error(erro instanceof Error ? erro.message : "Não foi possível liberar a rota."); }
+    finally { setRotaLiberando(null); }
+  }
 
   // Encerra rota somente se TODOS os vinculados estão entregue/cancelado.
   // Revalida com leitura fresca antes do UPDATE (não confia só no estado em tela).
@@ -1435,7 +1448,7 @@ function CentralEntregas() {
         <div className="mt-6">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 id="secao-rotas" className="font-display text-lg">
-              Rotas em andamento
+              {MOTOBOY_RPC_ATIVO ? "Rotas atribuídas e em andamento" : "Rotas em andamento"}
             </h2>
             <Button
               size="sm"
@@ -1446,8 +1459,8 @@ function CentralEntregas() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Somente rotas <code>em_rota</code>. Encerrar exige todos os pedidos entregues ou
-            cancelados.
+            {MOTOBOY_RPC_ATIVO ? "A Central libera a saída das rotas atribuídas. " : "Somente rotas em_rota. "}
+            Encerrar exige todos os pedidos entregues ou cancelados.
           </p>
           {rotasCarregando && !(rotasAtivas ?? []).length ? (
             <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -1469,7 +1482,7 @@ function CentralEntregas() {
                   (p: any) => p.status !== "entregue" && p.status !== "cancelado",
                 );
                 const concluidos = vinculados.length - pendentes.length;
-                const mb = (motoboys ?? []).find((x: any) => x.user_id === r.motoboy_id);
+                const mb = (motoboys ?? []).find((x: any) => x.id === r.motoboy_id);
                 const podeEncerrar = vinculados.length > 0 && pendentes.length === 0;
                 const confirmando = rotaConfirmId === r.id;
                 const processando = rotaEncerrandoId === r.id;
@@ -1491,6 +1504,12 @@ function CentralEntregas() {
                         </span>
                       )}
                     </p>
+                    {MOTOBOY_RPC_ATIVO && r.status === "preparando" && (
+                      <div className="mt-3"><p className="text-sm">{r.liberada_central_em ? `Liberação registrada às ${hora(r.liberada_central_em)}. O servidor revalida a composição antes da saída.` : "Atribuída pela Central. Confirme a liberação para permitir a saída após as retiradas."}</p>
+                        <Button size="sm" className="mt-2" disabled={rotaLiberando !== null}
+                          onClick={() => void liberarRota(r.id)}>Liberar saída</Button>
+                      </div>
+                    )}
                     {!confirmando ? (
                       <div className="mt-3">
                         <Button

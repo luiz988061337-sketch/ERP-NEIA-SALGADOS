@@ -14,6 +14,11 @@ UPDATE public.pedidos SET subtotal = 78.50, taxa_entrega = 7.85, total = 86.35,
   forma_pagamento = 'dinheiro', pagamento_status = 'pago', pagamento_em = now()
  WHERE id = '70000000-0000-0000-0000-000000000001';
 
+DO $$ DECLARE r jsonb; BEGIN
+ r:=public.liberar_rota_entrega((SELECT id FROM public.rotas_entrega WHERE motoboy_id='60000000-0000-0000-0000-000000000001' AND status='preparando' LIMIT 1));
+ IF r->>'status' IS DISTINCT FROM 'ok' THEN RAISE EXCEPTION 'Liberação fixture turno: %',r; END IF;
+END $$;
+
 -- Setup: motoboy 0003 (cadastro ...0001) com acerto aprovado hoje.
 SET LOCAL request.jwt.claim.sub = '10000000-0000-0000-0000-000000000003';
 DO $$

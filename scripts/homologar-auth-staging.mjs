@@ -113,6 +113,9 @@ export async function homologar(config, refAutorizada, { cliente = createClient,
   verificar((await rpc(a,"iniciar_rota",{p_rota_id:f.rotaA})).status === "bloqueado",
     "Rota iniciou sem retirada.");
   verificar((await rpc(a,"confirmar_retirada",{p_pedido_id:f.pedidoA})).status === "ok", "Retirada válida falhou.");
+  verificar((await rpc(a,"liberar_rota_entrega",{p_rota_id:f.rotaA})).status === "negado", "Motoboy liberou a própria rota.");
+  verificar((await rpc(a,"iniciar_rota",{p_rota_id:f.rotaA})).motivo === "liberacao_da_central_obrigatoria", "Saída sem liberação.");
+  verificar((await rpc(producao,"liberar_rota_entrega",{p_rota_id:f.rotaA})).status === "ok", "Central não liberou a rota.");
   const inicios = await Promise.all([rpc(a,"iniciar_rota",{p_rota_id:f.rotaA}),rpc(a,"iniciar_rota",{p_rota_id:f.rotaA})]);
   verificar(inicios.map((r) => r.motivo).sort().join() === "rota_iniciada,rota_ja_iniciada",
     "Concorrência no início da rota retornou estado inesperado.");

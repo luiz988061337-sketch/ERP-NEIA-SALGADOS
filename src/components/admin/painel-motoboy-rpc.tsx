@@ -14,7 +14,9 @@ import { ColetaLocalizacaoRota } from "@/components/admin/coleta-localizacao-rot
 const contrato = z.array(z.object({
   id: z.guid(),
   status: z.enum(["preparando","em_rota","concluida"]),
+  liberada_central_em: z.string().nullable().optional(),
   pedidos: z.array(z.object({
+    retirada_em: z.string().nullable().optional(),
     id: z.guid(), numero: z.number(), status: z.string(), cliente_nome: z.string(),
     endereco: z.string(), bairro: z.string(), complemento: z.string(),
   })),
@@ -80,7 +82,8 @@ export function PainelMotoboyRpc() {
         <section key={rota.id} className="space-y-3 rounded-xl border border-border bg-card p-4">
           <h2 className="font-display text-lg">{rota.status === "concluida" ? "Rota concluída" : rota.status === "em_rota" ? "Em rota" : "Preparando saída"}</h2>
           {rota.status === "preparando" && (
-            <Button disabled={ocupado} onClick={() => void operar("iniciar_rota",{p_rota_id:rota.id},"Rota iniciada.")}>Iniciar rota</Button>
+            <><p>{rota.liberada_central_em ? "Saída liberada pela Central." : "Aguardando liberação da Central."}</p>
+            <Button disabled={ocupado || !rota.liberada_central_em || rota.pedidos.length === 0 || rota.pedidos.some((p) => !p.retirada_em)} onClick={() => void operar("iniciar_rota",{p_rota_id:rota.id},"Rota iniciada.")}>Iniciar rota</Button></>
           )}
           {rota.pedidos.map((p) => (
             <article key={p.id} className="space-y-2 rounded-lg border p-3">
@@ -112,7 +115,7 @@ export function PainelMotoboyRpc() {
             </article>
           ))}
           {rota.status === "em_rota" && rota.pedidos.some((p) => p.status === "em_rota") && (
-            <ColetaLocalizacaoRota rota={rota.id} registrar={async (amostra) => {
+            <ColetaLocalizacaoRota key={`${user?.id}:${rota.id}`} rota={rota.id} registrar={async (amostra) => {
               const {data,error} = await supabase.rpc("registrar_localizacao_rota",amostra);
               return !error && ["registrado","ignorado"].includes(data?.status);
             }} />
