@@ -17,6 +17,9 @@
  * Ver `src/lib/corte.ts` e `src/lib/versao-app.ts`.
  */
 interface ImportMetaEnv {
+  readonly VITE_NEIA_MOTOBOY_RPC?: string;
+  readonly VITE_NEIA_PREVIEW_URL?: string;
+  readonly VITE_NEIA_PREVIEW_CHAVE?: string;
   // --- Flags de integração (compile-time) -------------------------------
   readonly VITE_FF_CRIACAO_ATOMICA?: string;
   readonly VITE_FF_RESERVA_ATOMICA?: string;

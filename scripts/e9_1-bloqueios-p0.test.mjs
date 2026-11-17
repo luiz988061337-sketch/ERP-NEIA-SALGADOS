@@ -32,10 +32,11 @@ const R = (p) => readFileSync(p, "utf8");
 // P0-2: duas rotas — trigger + saneamento.
 ok(/impedir_parada_duplicada/.test(code) && /já está em rota ativa/.test(code), "E9.1.6 trigger anti-duplicata");
 ok(/pedidos em >1 rota ativa/.test(sql) && /motoboys com >1 rota preparando/.test(sql), "E9.1.7 saneamento documentado");
-// P0-3: retirada — função + legado documentado.
+// P0-3: retirada física e liberação da produção permanecem etapas explícitas.
 {
   const pr = R("src/routes/producao.tsx");
-  ok(/Chamar motoboy/.test(pr), "E9.1.8 risco residual documentado (legado chama motoboy p/ retirada até ativação)");
+  ok(/pronto && !retirada/.test(pr) && /pronto && retirada/.test(pr) && /Liberar retirada/.test(pr),
+    "E9.1.8 produção distingue liberação de entrega e retirada");
   // "Iniciar preparo" (mudarStatus) NÃO pode consumir reserva. A retirada
   // física é uma ação explícita separada, que pode reutilizar a 0091.
   const inicio = pr.indexOf("async function mudarStatus");

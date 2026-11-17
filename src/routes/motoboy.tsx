@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { PageHeader } from "@/components/admin/ui-admin";
+import { PainelMotoboyRpc } from "@/components/admin/painel-motoboy-rpc";
 import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
 import { cabeNaRota } from "@/lib/central-atribuicao";
 import { notificarPedido } from "@/lib/notificacoes";
@@ -26,8 +27,12 @@ export const Route = createFileRoute("/motoboy")({
       { name: "description", content: "Aceite, inicie e finalize entregas e acompanhe seus ganhos." },
     ],
   }),
-  component: Motoboy,
+  component: PainelMotoboy,
 });
+
+function PainelMotoboy() {
+  return import.meta.env.VITE_NEIA_MOTOBOY_RPC === "1" ? <PainelMotoboyRpc /> : <Motoboy />;
+}
 
 function inicioSemana(d: Date) {
   const c = new Date(d);

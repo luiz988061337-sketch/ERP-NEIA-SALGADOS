@@ -13,6 +13,7 @@ import { decidirCancelamentoAtomico, type RpcClient } from "@/lib/reserva-integr
 import { BUILD_DE_CORTE } from "@/lib/corte";
 import { enderecoLoja, DEFAULT_LOJA_CONFIG, lojaTemEndereco, pontoDaLoja, useLojaConfig } from "@/lib/loja";
 import { useSession } from "@/lib/session";
+import { comLocalizacaoSegura, lerLocalizacaoEntrega, MOTOBOY_RPC_ATIVO } from "@/lib/localizacao-entrega";
 import { ativarPush, estadoPush } from "@/lib/push";
 
 export const Route = createFileRoute("/pedido/$id")({
@@ -117,16 +118,22 @@ function ConviteGoogle({ status, loja, numero }: { status: string; loja: any; nu
 
 function Acompanhar() {
   const { id } = Route.useParams();
+  const { user } = useSession();
   const queryClient = useQueryClient();
   const [cancelando, setCancelando] = useState(false);
 
   const { data: pedido, isLoading } = useQuery({
-    queryKey: ["pedido", id],
+    queryKey: ["pedido", id, MOTOBOY_RPC_ATIVO ? user?.id ?? null : null],
     // Fallback por polling caso o Realtime esteja bloqueado por RLS/rede
     refetchInterval: 15000,
     queryFn: async () => {
       const { data, error } = await supabase.from("pedidos").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
+      if (MOTOBOY_RPC_ATIVO && data) {
+        const gps = user?.id && data.user_id === user.id && data.status === "em_rota"
+          ? await lerLocalizacaoEntrega(id) : null;
+        return comLocalizacaoSegura(data, gps);
+      }
       return data;
     },
   });

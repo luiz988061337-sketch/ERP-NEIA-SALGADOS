@@ -28,6 +28,7 @@ import fritos from "@/assets/cat-fritos.jpg";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
+import { comLocalizacaoSegura, lerLocalizacoesEntrega, MOTOBOY_RPC_ATIVO } from "@/lib/localizacao-entrega";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
 import { MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL } from "@/lib/entrega";
@@ -113,6 +114,7 @@ function CentralEntregas() {
   const { data: pedidos } = useQuery({
     queryKey: ["central-j2-pedidos", filtro],
     enabled: !!autorizado && !loading,
+    refetchInterval: MOTOBOY_RPC_ATIVO ? 15000 : false,
     queryFn: async () => {
       // Retirada nunca entra na central de entregas — exceto no filtro
       // próprio "retirada" (prontos aguardando o cliente buscar).
@@ -147,6 +149,13 @@ function CentralEntregas() {
       }
       const { data, error } = await query;
       if (error) throw error;
+      if (MOTOBOY_RPC_ATIVO) {
+        const ids = (data ?? []).filter((p: any) => p.status === "em_rota").map((p: any) => p.id);
+        const lotes: string[][] = [];
+        for (let inicio = 0; inicio < ids.length; inicio += 50) lotes.push(ids.slice(inicio, inicio + 50));
+        const posicoes = new Map((await Promise.all(lotes.map(lerLocalizacoesEntrega))).flatMap((lote) => [...lote]));
+        return (data ?? []).map((p: any) => comLocalizacaoSegura(p, posicoes.get(p.id) ?? null));
+      }
       return data ?? [];
     },
   });
@@ -371,11 +380,18 @@ function CentralEntregas() {
       if (pendentes.length > 0) {
         throw new Error(`Ainda existem ${pendentes.length} pedido(s) pendentes nesta rota.`);
       }
-      const { error } = await supabase
-        .from("rotas_entrega")
-        .update({ status: "concluida", chegou_em: new Date().toISOString() })
-        .eq("id", rotaId);
-      if (error) throw error;
+      if (MOTOBOY_RPC_ATIVO) {
+        const {data,error} = await supabase.rpc("encerrar_rota_pela_central", {p_rota:rotaId});
+        if (error || !["ok","repetido"].includes(data?.status)) {
+          throw new Error("O servidor não confirmou o encerramento. Confira os pedidos e tente novamente.");
+        }
+      } else {
+        const { error } = await supabase
+          .from("rotas_entrega")
+          .update({ status: "concluida", chegou_em: new Date().toISOString() })
+          .eq("id", rotaId);
+        if (error) throw error;
+      }
       toast.success("Rota encerrada.");
       setRotaConfirmId(null);
       queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
