@@ -65,8 +65,12 @@ BEGIN
   IF r->>'status' IS DISTINCT FROM 'negado' THEN RAISE EXCEPTION 'Escrita de GPS em rota alheia: %',r; END IF;
   r := public.registrar_localizacao_rota(rota,-23,-46,20,clock_timestamp() - interval '2 minutes');
   IF r->>'status' IS DISTINCT FROM 'dados_invalidos' THEN RAISE EXCEPTION 'Aceitou posição antiga: %',r; END IF;
+  r := public.registrar_localizacao_rota(rota,-23,-46,20,clock_timestamp() + interval '1 minute');
+  IF r->>'status' IS DISTINCT FROM 'dados_invalidos' THEN RAISE EXCEPTION 'Aceitou posição futura: %',r; END IF;
   r := public.registrar_localizacao_rota(rota,91,-46,20,clock_timestamp());
   IF r->>'status' IS DISTINCT FROM 'dados_invalidos' THEN RAISE EXCEPTION 'Aceitou latitude inválida: %',r; END IF;
+  r := public.registrar_localizacao_rota(rota,-23,-46,1500,clock_timestamp());
+  IF r->>'status' IS DISTINCT FROM 'dados_invalidos' THEN RAISE EXCEPTION 'Aceitou precisão acima de 1000 m: %',r; END IF;
   r := public.registrar_localizacao_rota(rota,-23,-46,20,clock_timestamp());
   IF r->>'status' IS DISTINCT FROM 'registrado' THEN RAISE EXCEPTION 'GPS válido falhou: %',r; END IF;
   r := public.registrar_localizacao_rota(rota,-24,-47,20,clock_timestamp());
@@ -84,12 +88,35 @@ BEGIN
   IF (SELECT count(*) FROM public.consultar_localizacoes_entregas(ARRAY[pedido,pedido,gen_random_uuid()])) <> 1 THEN
     RAISE EXCEPTION 'Consulta em lote retornou registros duplicados/sem autorização';
   END IF;
-  PERFORM set_config('request.jwt.claim.sub',current_setting('teste.gps.usuario'),true);
-  IF public.confirmar_entrega(pedido)->>'status' IS DISTINCT FROM 'ok' THEN
-    RAISE EXCEPTION 'RPC legítima de entrega foi bloqueada pelo corte';
-  END IF;
+END $$;
+RESET ROLE;
+-- Expiração da leitura: amostra com mais de 90 s não é mais devolvida à Central.
+UPDATE neia_operacao.localizacao_rota
+   SET capturado_em = now() - interval '5 minutes'
+ WHERE rota_id = current_setting('teste.gps.rota')::uuid;
+SET LOCAL ROLE authenticated;
+DO $$
+BEGIN
   PERFORM set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
-  IF public.consultar_localizacao_entrega(pedido) IS NOT NULL THEN RAISE EXCEPTION 'GPS continuou público após entrega'; END IF;
+  IF public.consultar_localizacao_entrega(current_setting('teste.gps.pedido')::uuid) IS NOT NULL THEN
+    RAISE EXCEPTION 'Amostra expirada (mais de 90 s) ainda é devolvida à Central';
+  END IF;
+  PERFORM set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+  IF public.consultar_localizacao_entrega(current_setting('teste.gps.pedido')::uuid) IS NOT NULL THEN
+    RAISE EXCEPTION 'Central leu posição expirada';
+  END IF;
+  RAISE NOTICE 'Expiração da leitura de GPS verificada para cliente e Central';
+END $$;
+RESET ROLE;
+UPDATE neia_operacao.localizacao_rota SET capturado_em=clock_timestamp() WHERE rota_id=current_setting('teste.gps.rota')::uuid;
+SET LOCAL ROLE authenticated;
+DO $$ DECLARE pedido uuid:=current_setting('teste.gps.pedido')::uuid; BEGIN
+ PERFORM set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+ IF public.consultar_localizacao_entrega(pedido) IS NULL THEN RAISE EXCEPTION 'Central não viu GPS recente'; END IF;
+ PERFORM set_config('request.jwt.claim.sub',current_setting('teste.gps.usuario'),true);
+ IF public.confirmar_entrega(pedido)->>'status' IS DISTINCT FROM 'ok' THEN RAISE EXCEPTION 'Entrega falhou'; END IF;
+ PERFORM set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+ IF public.consultar_localizacao_entrega(pedido) IS NOT NULL THEN RAISE EXCEPTION 'GPS visível após entrega'; END IF;
 END $$;
 RESET ROLE;
 SET LOCAL ROLE authenticated;

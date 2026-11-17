@@ -15,7 +15,9 @@ test("o modo de corte elimina a interface legada por seleção de componente", (
 test("GPS de primeiro plano exige consentimento e interrompe coleta ao desmontar", () => {
   const origem = readFileSync(new URL("../src/components/admin/coleta-localizacao-rota.tsx",import.meta.url),"utf8");
   assert.match(origem,/if \(!compartilhar\) return/);
-  assert.match(origem,/document.visibilityState !== "visible"/);
-  assert.match(origem,/navigator.geolocation.clearWatch\(id\)/);
+  assert.match(origem,/document.visibilityState === "visible"/);
+  assert.match(origem,/return \(\) => monitor.parar\(\)/);
+  const monitor = readFileSync(new URL("../src/components/admin/monitor-localizacao-rota.ts",import.meta.url),"utf8");
+  assert.match(monitor,/geolocalizacao.clearWatch/);
   assert.doesNotMatch(origem,/localStorage|sessionStorage|service_role/);
 });
