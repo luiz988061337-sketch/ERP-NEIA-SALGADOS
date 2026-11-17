@@ -103,7 +103,7 @@ GRANT ALL ON public.pedido_pagamento_eventos TO service_role;
 
 INSERT INTO public.pedido_pagamento_eventos
   (pedido_id, tipo, valor_centavos, forma_pagamento, chave_idempotencia, created_at)
-SELECT id, 'pagamento', round(total * 100)::bigint, COALESCE(forma_pagamento, 'outro'),
+SELECT id, 'pagamento', round(total * 100)::bigint, COALESCE(forma_pagamento::text, 'outro'),
   'pedido:legacy:' || id::text, pagamento_em
 FROM public.pedidos
 WHERE pagamento_status = 'pago' AND pagamento_em IS NOT NULL AND total > 0
@@ -160,7 +160,7 @@ BEGIN
   END IF;
   INSERT INTO public.pedido_pagamento_eventos
     (pedido_id, tipo, valor_centavos, forma_pagamento, chave_idempotencia, actor)
-  VALUES (p_pedido_id, 'pagamento', v_valor, COALESCE(v_pedido.forma_pagamento, 'outro'),
+  VALUES (p_pedido_id, 'pagamento', v_valor, COALESCE(v_pedido.forma_pagamento::text, 'outro'),
     p_chave_idempotencia, auth.uid()) RETURNING * INTO v_evento;
   v_pago := v_pago + v_valor;
   v_saldo := v_total - v_pago;
@@ -193,7 +193,7 @@ BEGIN
   IF v_saldo > 0 THEN
     INSERT INTO public.pedido_pagamento_eventos
       (pedido_id, tipo, valor_centavos, forma_pagamento, chave_idempotencia, actor, created_at)
-    VALUES (NEW.id, 'pagamento', v_saldo, COALESCE(NEW.forma_pagamento, 'outro'),
+    VALUES (NEW.id, 'pagamento', v_saldo, COALESCE(NEW.forma_pagamento::text, 'outro'),
       'pedido:confirmacao:' || NEW.id::text, auth.uid(), COALESCE(NEW.pagamento_em, now()))
     ON CONFLICT (chave_idempotencia) DO NOTHING;
   END IF;
@@ -267,8 +267,16 @@ GRANT EXECUTE ON FUNCTION public.registrar_pagamento_pedido(uuid, bigint, text) 
 -- definem esta marca transacional apenas enquanto atualizam ledger + conta.
 CREATE OR REPLACE FUNCTION public.proteger_baixa_direta_conta()
 RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+DECLARE
+  v_rpc_owner name;
 BEGIN
-  IF current_setting('app.financeiro_atomic_write', true) IS DISTINCT FROM 'on' THEN
+  SELECT r.rolname INTO v_rpc_owner
+    FROM pg_proc f JOIN pg_roles r ON r.oid = f.proowner
+   WHERE f.oid = 'public.registrar_pagamento_conta(uuid,bigint,text)'::regprocedure;
+  -- A GUC é transacional, mas pode ser definida pelo próprio chamador. Só a
+  -- aceitamos enquanto executa sob o mesmo owner da RPC financeira confiável.
+  IF current_setting('app.financeiro_atomic_write', true) IS DISTINCT FROM 'on'
+     OR v_rpc_owner IS NULL OR current_user IS DISTINCT FROM v_rpc_owner THEN
     IF TG_OP = 'INSERT' THEN
       IF COALESCE(NEW.valor_pago, 0) <> 0 OR COALESCE(NEW.pagamento_abertura_centavos, 0) <> 0
          OR NEW.status = 'paga' OR NEW.pago_em IS NOT NULL THEN
