@@ -94,7 +94,8 @@ BEGIN
   -- O helper existente trava produtos, atualiza o saldo e escreve o ledger 0042.
   -- As três gravações abaixo participam da mesma transação do RPC.
   PERFORM public.registrar_mov_estoque(
-    p_produto_id, v_tipo_ledger, v_delta, NULL, NULL, 'manual', auth.uid(), v_motivo
+    p_produto_id, v_tipo_ledger, v_delta, NULL::uuid, NULL::uuid,
+    'manual'::text, auth.uid(), v_motivo, true
   );
   INSERT INTO public.estoque_mov (produto_id, tipo, quantidade, motivo, created_by)
   VALUES (p_produto_id, p_tipo, p_quantidade, v_motivo, auth.uid())
