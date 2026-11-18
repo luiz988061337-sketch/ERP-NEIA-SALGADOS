@@ -1,0 +1,13 @@
+{
+  "schema": "neia-lote06-local-1",
+  "remoteAuthorized": false,
+  "driver05": "7b3517de84ff9daf9185d85b790a4b3895e52df74934c0f9f2b1e5a9b6242a42",
+  "files": {
+    "scripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/06-autorizacao-rpcs.sql": "a0967be651d5a839952cd17d09a787822673a320e90f8df895dc5d0a34263e92",
+    "scripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/06-autorizacao-rpcs.test.sql": "abe7e4974e8acdae4f52cb62e1f79fb83c9bb69017282f9839fca65942cfb09a",
+    "scripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/executar-lote06.ps1": "7e0a5cf7dea0fb6339964cc7e73411a748b7d73285894f92e35eb3d134b28e29",
+    "scripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/lote06.test.mjs": "35c47eed45394c0ebe62e9e55bebf84ab37a9917c5d13448d7e366efa2151e2c",
+    "scripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/P1-PARCEIROS-PLANO-REVISADO.md": "a37afbe251da8b8ca5ae42386e4734aa07e820ca3cc4a90578c8e250157c3f91",
+    "scripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/README.md": "d38e7b576584fc80e2a5c96ae8f1fff7150df56cb30ed59331d8583eafb89f74"
+  }
+}
