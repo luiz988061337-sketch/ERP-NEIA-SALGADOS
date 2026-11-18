@@ -5,9 +5,14 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { register } from "node:module";
 import { homologar, papeis, validarConfiguracao } from "./homologar-auth-staging.mjs";
-import { destinoPreview } from "../vite.staging.config.ts";
-import { runtimePreviewIsolado } from "../src/lib/staging-runtime.ts";
+
+// Mesmo carregador usado pelos demais testes: resolve imports sem extensão
+// (vite.staging.config.ts importa "./vite.config") e o alias "@/".
+register(pathToFileURL(resolve("scripts/alias-loader.mjs")).href);
+const { destinoPreview } = await import("../vite.staging.config.ts");
+const { runtimePreviewIsolado } = await import("../src/lib/staging-runtime.ts");
 
 const ref = "abcdefghijklmnopqrst";
 const url = `https://${ref}.supabase.co`;

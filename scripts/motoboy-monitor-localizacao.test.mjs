@@ -2,7 +2,7 @@
 // Usa ambiente injetável: sem navegador, sem rede, sem banco.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { iniciarMonitorLocalizacao } from "../src/components/admin/monitor-localizacao-rota";
+import { iniciarMonitorLocalizacao } from "../src/components/admin/monitor-localizacao-rota.ts";
 
 const MSG = {
   indisponivel: "Localização indisponível neste dispositivo.",
