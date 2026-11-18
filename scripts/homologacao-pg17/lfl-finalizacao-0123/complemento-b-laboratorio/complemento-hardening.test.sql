@@ -77,7 +77,9 @@ BEGIN
     RAISE EXCEPTION 'T3: idempotencia duplicada aceita';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
-  -- rotas: uma preparando por motoboy
+  -- rotas: uma preparando por motoboy (a FK exige o motoboy; todas as colunas
+  -- obrigatorias de public.motoboys tem default, entao so o id e' suficiente)
+  INSERT INTO public.motoboys (id) VALUES ('a5000000-0000-4000-8000-000000000001');
   INSERT INTO public.rotas_entrega (id, motoboy_id, status)
   VALUES ('a4000000-0000-4000-8000-000000000001','a5000000-0000-4000-8000-000000000001','preparando') ON CONFLICT DO NOTHING;
   BEGIN
@@ -90,6 +92,7 @@ BEGIN
   DELETE FROM public.caixa_sessoes WHERE id::text LIKE 'a2000000-%';
   DELETE FROM public.notificacoes_log WHERE id::text LIKE 'a3000000-%';
   DELETE FROM public.rotas_entrega WHERE id::text LIKE 'a4000000-%';
+  DELETE FROM public.motoboys WHERE id = 'a5000000-0000-4000-8000-000000000001';
   SELECT true INTO v_ok;
 END $$;
 
