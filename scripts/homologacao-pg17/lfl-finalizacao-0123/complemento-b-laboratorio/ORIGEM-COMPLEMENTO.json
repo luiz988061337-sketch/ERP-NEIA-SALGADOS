@@ -1,6 +1,6 @@
 ﻿{
     "schema":  "neia-complemento-proveniencia-1",
-    "finalidade":  "Proveniencia do complemento 04 (hardening) e do driver que o reproduz em laboratorio isolado.",
+    "finalidade":  "Proveniencia do complemento 04 (hardening), do lote 05 (correcoes da B0, itens 1 a 6), dos testes U1-U9, da auditoria A1-A4 e da matriz de permissoes, e do driver que os reproduz em laboratorio isolado.",
     "autoridade":  "ORIGEM.json continua sendo o manifesto do lote aprovado; este arquivo apenas adiciona o complemento e registra as dependencias lidas por ele.",
     "observacao":  "Qualquer alteracao em um destes arquivos invalida a execucao do driver, que aborta no preflight. Nao contem dados privados, senhas ou tokens.",
     "driver":  "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/executar-complemento.ps1",
@@ -14,7 +14,7 @@
                         "requer":  "PostgreSQL 17 e PowerShell 7"
                     },
     "arquivos":  {
-                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/executar-complemento.ps1":  "3741ea3b27bca36648e266b6cefd15b2df897029602f58352dcff4af6f2680a4",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/executar-complemento.ps1":  "7b3517de84ff9daf9185d85b790a4b3895e52df74934c0f9f2b1e5a9b6242a42",
                      "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/04-complemento-hardening.sql":  "7c54b9a3a1beffa58f3ed07a0f79dae94172dd33dad339168ce26650f64109fa",
                      "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/complemento-hardening.test.sql":  "b7eb381b3d413370ef277e6ce1739f09d93eeeaf8434524779ae5ea52e8a43f8",
                      "scripts/homologacao-pg17/lfl-finalizacao-0123/ORIGEM.json":  "124500b4d3d5705edf93b9992e9cea2e53d4159bdce45233ab084fbed237f16e",
@@ -45,6 +45,10 @@
                      "drizzle/migrations/0120_pagamento_turno_motoboy_autorizado.sql":  "cdc4ee4c7612c9ebe9809dcb68aac42349c1defd840be2a4be39c3d86da7e990",
                      "drizzle/migrations/0121_rotas_concluidas_para_acerto.sql":  "b1439733e37363c247b4ef0d3eb55c7acea31c7b379cdc7678f5af65a053c23d",
                      "drizzle/migrations/0122_corte_motoboy_rpc_gps.sql":  "320c2d4b4c136a0a8fc550db655e3bb4c5c28fc495776e81b0898e8ebf6aeacd",
-                     "drizzle/migrations/0123_liberacao_rota_pela_central.sql":  "9ffe5cd660d18d27e2a8d4bd87daaa9af3099cd0228b1dc2e22839a4f4f8b38e"
+                     "drizzle/migrations/0123_liberacao_rota_pela_central.sql":  "9ffe5cd660d18d27e2a8d4bd87daaa9af3099cd0228b1dc2e22839a4f4f8b38e",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0-seguranca.sql":  "1cf141f50014d0201a6dd5483220dbbfa14abd8bdef8338d58dc80c4e6f45b4f",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0.test.sql":  "4ab85438b34716b366258c518ddd890826322be320a81c50e5143c524947afc4",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0.auditoria.test.sql":  "cb484616401a61bf2ae1ecbedc03ff38f5c090dde910a60fb48eb372579209c8",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0.permissoes.test.sql":  "d437452198bb52742db73d856358d08e692a5d1f8462187e4c5073a053ecf8bd"
                  }
 }

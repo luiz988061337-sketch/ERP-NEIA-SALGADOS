@@ -303,6 +303,299 @@ select jsonb_build_object(
   if ($falhas.Count -gt 0) { Falhar ('verificacoes de integridade: ' + ($falhas -join '; ')) }
   Step 'complemento: verificacoes de integridade aprovadas'
 
+  # -------------------------------------------------------------------------
+  # 5. LOTE 05 - CORRECOES DA B0 (itens 1 a 6) + U1-U9
+  # -------------------------------------------------------------------------
+  # Sonda ANTES do 05: conta quantas policies o lote vai de fato remover e
+  # quantas das 17 que ele cria ja existiam. Assim o saldo esperado e' medido,
+  # nao suposto (o laboratorio pode nao ter todas as policies do hospedado).
+  $sondaPre05 = @'
+select jsonb_build_object(
+  'policies_public', (select count(*) from pg_policies where schemaname='public'),
+  'policies_a_remover', (select count(*) from (values
+      ('parceiros','parceiros read'),('parceiros','parceiros write'),
+      ('compra_itens','compra_itens staff'),('compras','compras staff'),
+      ('ficha_itens','ficha_itens staff'),('fichas_tecnicas','fichas staff'),
+      ('fornecedores','fornecedores staff'),('insumo_lotes','insumo_lotes staff'),
+      ('insumos','insumos staff')) t(tab,pol)
+    join pg_policies p on p.schemaname='public' and p.tablename=t.tab and p.policyname=t.pol),
+  'policies_alvo_ja_existentes', (select count(*) from (values
+      ('parceiros','parceiros admin write'),
+      ('compra_itens','compra_itens read'),('compra_itens','compra_itens write'),
+      ('compras','compras read'),('compras','compras write'),
+      ('ficha_itens','ficha_itens read'),('ficha_itens','ficha_itens write'),
+      ('fichas_tecnicas','fichas read'),('fichas_tecnicas','fichas write'),
+      ('fornecedores','fornecedores read'),('fornecedores','fornecedores write'),
+      ('insumo_lotes','insumo_lotes read'),('insumo_lotes','insumo_lotes write'),
+      ('insumos','insumos read'),('insumos','insumos write'),
+      ('insumos','insumos update'),('insumos','insumos delete')) t(tab,pol)
+    join pg_policies p on p.schemaname='public' and p.tablename=t.tab and p.policyname=t.pol),
+  'reserva_auth', (select count(*) from (values ('public.reservar_estoque_atomica(uuid,uuid,integer)'),('public.liberar_reserva_atomica(uuid)')) t(sig)
+     where to_regprocedure(t.sig) is not null and has_function_privilege('authenticated', t.sig, 'EXECUTE')),
+  'reserva_anon', (select count(*) from (values ('public.reservar_estoque_atomica(uuid,uuid,integer)'),('public.liberar_reserva_atomica(uuid)')) t(sig)
+     where to_regprocedure(t.sig) is not null and has_function_privilege('anon', t.sig, 'EXECUTE')),
+  'anon_publicas', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+     where n.nspname='public' and has_function_privilege('anon', p.oid, 'EXECUTE'))
+);
+'@
+  $pre05 = ((Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-A','-t','-d','lfl_partial','-c',$sondaPre05)).Trim() | ConvertFrom-Json)
+  Step ('lote05: sonda pre-05 registrada (policies=' + $pre05.policies_public + ', a remover=' + $pre05.policies_a_remover + ', alvo ja existentes=' + $pre05.policies_alvo_ja_existentes + ')')
+
+  Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-v','ON_ERROR_STOP=1','-d','lfl_partial','-c',"SET neia_homologacao.ensaio='LFL_LOCAL_ADITIVO_0123';",'-f',(Join-Path $PSScriptRoot '05-correcoes-b0-seguranca.sql')) | Out-Null
+  Step 'lote05: 05-correcoes-b0-seguranca.sql aplicado (COMMIT)'
+
+  $saidaLote05 = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-v','ON_ERROR_STOP=1','-d','lfl_partial','-f',(Join-Path $PSScriptRoot '05-correcoes-b0.test.sql')))
+  $aprovadoLote05 = $saidaLote05 -match 'LOTE 05: testes locais aprovados \(U1-U9\)'
+  if (-not $aprovadoLote05) { Falhar 'U1-U9 nao reportaram aprovacao' }
+  Set-Content -LiteralPath (Join-Path $evidencias ($carimbo + '-u1-u9.log')) -Value $saidaLote05 -Encoding utf8
+  Step 'lote05: U1-U9 aprovados'
+
+  $sondaLote05 = @'
+select jsonb_build_object(
+  'tabelas_public', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'),
+  'policies_public', (select count(*) from pg_policies where schemaname='public'),
+  'staff_policies', (select count(*) from pg_policies where schemaname='public' and policyname like '% staff'),
+  'staff_alvo', (select count(*) from (values
+      ('compra_itens','compra_itens staff'),('compras','compras staff'),
+      ('ficha_itens','ficha_itens staff'),('fichas_tecnicas','fichas staff'),
+      ('fornecedores','fornecedores staff'),('insumo_lotes','insumo_lotes staff'),
+      ('insumos','insumos staff')) t(tab,pol)
+    join pg_policies p on p.schemaname='public' and p.tablename=t.tab and p.policyname=t.pol),
+  'parceiros_abertas', (select count(*) from pg_policies where schemaname='public' and tablename='parceiros' and policyname in ('parceiros read','parceiros write')),
+  'anon_publicas', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and has_function_privilege('anon', p.oid, 'EXECUTE')),
+  'anon_nomes', (select coalesce(string_agg(p.proname, ',' order by p.proname), '') from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and has_function_privilege('anon', p.oid, 'EXECUTE')),
+  'search_path_ok', (select count(*) from (values ('public.processar_lembretes()'),('public.reservar_estoque_atomica(uuid,uuid,integer)'),('public.liberar_reserva_atomica(uuid)')) t(sig)
+     where to_regprocedure(t.sig) is not null
+       and (select coalesce(array_to_string(p.proconfig, ','), '') from pg_proc p where p.oid = to_regprocedure(t.sig)) like '%search_path=%public%pg_temp%'),
+  'search_path_alvo', (select count(*) from (values ('public.processar_lembretes()'),('public.reservar_estoque_atomica(uuid,uuid,integer)'),('public.liberar_reserva_atomica(uuid)')) t(sig)
+     where to_regprocedure(t.sig) is not null),
+  'reserva_authenticated', (select count(*) from (values ('public.reservar_estoque_atomica(uuid,uuid,integer)'),('public.liberar_reserva_atomica(uuid)')) t(sig)
+     where to_regprocedure(t.sig) is not null and has_function_privilege('authenticated', t.sig, 'EXECUTE')),
+  'reserva_anon', (select count(*) from (values ('public.reservar_estoque_atomica(uuid,uuid,integer)'),('public.liberar_reserva_atomica(uuid)')) t(sig)
+     where to_regprocedure(t.sig) is not null and has_function_privilege('anon', t.sig, 'EXECUTE')),
+  'truncate_referencias', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+     where n.nspname='public' and c.relkind in ('r','p') and (
+       has_table_privilege('anon', c.oid, 'TRUNCATE') or has_table_privilege('authenticated', c.oid, 'TRUNCATE') or
+       has_table_privilege('anon', c.oid, 'REFERENCES') or has_table_privilege('authenticated', c.oid, 'REFERENCES') or
+       has_table_privilege('anon', c.oid, 'TRIGGER') or has_table_privilege('authenticated', c.oid, 'TRIGGER'))),
+  'tabelas_sem_rls', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind in ('r','p') and not c.relrowsecurity)
+);
+'@
+  $lote05Texto = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-A','-t','-d','lfl_partial','-c',$sondaLote05)).Trim()
+  $lote05 = $lote05Texto | ConvertFrom-Json
+
+  if ($lote05.tabelas_public -ne $antes.tabelas_public) { $falhas.Add('05 alterou tabelas') }
+  # saldo de policies medido contra o estado real pre-05 (nunca suposto)
+  $esperado05 = $pre05.policies_public - $pre05.policies_a_remover + (17 - $pre05.policies_alvo_ja_existentes)
+  if ($lote05.policies_public -ne $esperado05) { $falhas.Add('policies: ' + $pre05.policies_public + ' -> ' + $lote05.policies_public + ' (esperado ' + $esperado05 + ' = -' + $pre05.policies_a_remover + ' removidas +' + (17 - $pre05.policies_alvo_ja_existentes) + ' criadas)') }
+  if ($lote05.staff_alvo -ne 0) { $falhas.Add('policies staff do item 6 remanescentes: ' + $lote05.staff_alvo) }
+  if ($lote05.parceiros_abertas -ne 0) { $falhas.Add('parceiros permissivas: ' + $lote05.parceiros_abertas) }
+  if ($lote05.anon_publicas -gt $pre05.anon_publicas) { $falhas.Add('05 ampliou funcoes executaveis por anon: ' + $pre05.anon_publicas + ' -> ' + $lote05.anon_publicas + ' -> ' + $lote05.anon_nomes) }
+  if ($lote05.search_path_ok -ne $lote05.search_path_alvo) { $falhas.Add('search_path nao fixado em ' + ($lote05.search_path_alvo - $lote05.search_path_ok) + ' funcao(oes)') }
+  if ($lote05.reserva_authenticated -ne $pre05.reserva_auth) { $falhas.Add('05 alterou ACL de reserva (authenticated): ' + $pre05.reserva_auth + ' -> ' + $lote05.reserva_authenticated + ' (item 4 e somente analise)') }
+  if ($lote05.reserva_anon -ne $pre05.reserva_anon) { $falhas.Add('05 alterou ACL de reserva (anon): ' + $pre05.reserva_anon + ' -> ' + $lote05.reserva_anon) }
+  if ($lote05.truncate_referencias -ne 0) { $falhas.Add('TRUNCATE/REFERENCES/TRIGGER remanescente em ' + $lote05.truncate_referencias) }
+  if ($lote05.tabelas_sem_rls -ne 0) { $falhas.Add('tabelas sem RLS apos 05: ' + $lote05.tabelas_sem_rls) }
+  if ($falhas.Count -gt 0) { Falhar ('verificacoes do lote 05: ' + ($falhas -join '; ')) }
+  Step 'lote05: verificacoes de integridade aprovadas'
+
+  # -------------------------------------------------------------------------
+  # 6. AUDITORIA (anon, search_path, default privileges) E MATRIZ POR PAPEL
+  # -------------------------------------------------------------------------
+  $saidaAuditoria = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-v','ON_ERROR_STOP=1','-d','lfl_partial','-f',(Join-Path $PSScriptRoot '05-correcoes-b0.auditoria.test.sql')))
+  if ($saidaAuditoria -notmatch 'AUDITORIA 05: A1-A4 aprovadas') { Falhar 'auditoria A1-A4 nao aprovada' }
+  Set-Content -LiteralPath (Join-Path $evidencias ($carimbo + '-auditoria.log')) -Value $saidaAuditoria -Encoding utf8
+  Step 'lote05: auditoria A1-A4 aprovada'
+
+  $saidaMatriz = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','--single-transaction','-v','ON_ERROR_STOP=1','-d','lfl_partial','-f',(Join-Path $PSScriptRoot '05-correcoes-b0.permissoes.test.sql')))
+  if ($saidaMatriz -notmatch 'MATRIZ 05: matriz de permissoes das 7 tabelas aprovada') { Falhar 'matriz de permissoes nao aprovada' }
+  Set-Content -LiteralPath (Join-Path $evidencias ($carimbo + '-matriz.log')) -Value $saidaMatriz -Encoding utf8
+  Step 'lote05: matriz de permissoes por papel aprovada'
+
+  # inventario nominal de policies (base da comparacao com o esquema-alvo)
+  $sondaInventario = "select coalesce(json_agg(json_build_object('t',tablename,'p',policyname,'cmd',cmd,'roles',roles) order by tablename,policyname),'[]'::json) from pg_policies where schemaname='public';"
+  $inventarioTexto = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-A','-t','-d','lfl_partial','-c',$sondaInventario)).Trim()
+  Set-Content -LiteralPath (Join-Path $evidencias ($carimbo + '-policies.json')) -Value $inventarioTexto -Encoding utf8
+  Step ('lote05: inventario de policies registrado (' + (($inventarioTexto | ConvertFrom-Json).Count) + ')')
+
+  # -------------------------------------------------------------------------
+  # 6.1 FIXTURE DE CAPACIDADES FINANCEIRAS (SOMENTE LABORATORIO)
+  # -------------------------------------------------------------------------
+  # Fato medido, nao suposto: no procedimento aprovado a 03-capacidades e'
+  # aplicada DEPOIS de regressoes.sql (executar-local.ps1:116 vs :80), portanto
+  # as suites nunca conviveram com a checagem de capacidade. No complemento a
+  # 03 ja esta aplicada (e' o estado hospedado antes do 04) e as funcoes
+  # financeiras passam a exigir concessao em neia_operacao.financeiro_capacidades.
+  # Sem isso, regressoes.sql devolve 'nao_autorizado' por ausencia de concessao,
+  # nao por efeito do lote 05.
+  # As suites criam o usuario ...0001 dentro da propria transacao, o que impede
+  # um seed anterior (FK para auth.users). O provisionamento abaixo reproduz
+  # apenas a concessao operacional que o app grava nessa tabela: nao concede
+  # privilegio de banco, nao cria policy e nao altera funcao. Trigger, schema e
+  # linhas sao removidos antes do teste que audita essa mesma tabela.
+  $fixtureCapacidades = @'
+CREATE SCHEMA IF NOT EXISTS b0_harness;
+CREATE OR REPLACE FUNCTION b0_harness.provisionar_capacidade() RETURNS trigger
+ LANGUAGE plpgsql SET search_path = pg_catalog, public AS $$
+BEGIN
+ IF NEW.id = '10000000-0000-0000-0000-000000000001' THEN
+  INSERT INTO neia_operacao.financeiro_capacidades(usuario,capacidade,motivo) VALUES
+   (NEW.id,'executar_financeiro','fixture das suites locais pos-05'),
+   (NEW.id,'conferir_caixa','fixture das suites locais pos-05'),
+   (NEW.id,'receber_pagamento','fixture das suites locais pos-05')
+  ON CONFLICT DO NOTHING;
+ ELSIF NEW.id = '10000000-0000-0000-0000-000000000005' THEN
+  INSERT INTO neia_operacao.financeiro_capacidades(usuario,capacidade,motivo) VALUES
+   (NEW.id,'executar_financeiro','fixture das suites locais pos-05'),
+   (NEW.id,'conferir_caixa','fixture das suites locais pos-05')
+  ON CONFLICT DO NOTHING;
+ END IF;
+ RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS b0_provisionar_capacidade ON auth.users;
+CREATE TRIGGER b0_provisionar_capacidade AFTER INSERT ON auth.users
+ FOR EACH ROW EXECUTE FUNCTION b0_harness.provisionar_capacidade();
+'@
+  $saidaFixture = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-v','ON_ERROR_STOP=1','-d','lfl_partial','-c',$fixtureCapacidades))
+  Set-Content -LiteralPath (Join-Path $evidencias ($carimbo + '-capacidades-fixture.log')) -Value $saidaFixture -Encoding utf8
+  Step 'lote05: fixture de capacidades provisionada para as suites'
+
+  # -------------------------------------------------------------------------
+  # 7. AS 13 SUITES FUNCIONAIS + CONCORRENCIA SOBRE O ESTADO FINAL (POS-05)
+  #    Mesma sequencia e mesmos comandos do procedimento aprovado.
+  # -------------------------------------------------------------------------
+  $suites = [Collections.Generic.List[string]]::new()
+  function Executar-Suite([string]$nome, [string]$caminho) {
+    Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','--single-transaction','-v','ON_ERROR_STOP=1','-d','lfl_partial','-c','SET SESSION AUTHORIZATION postgres;','-f',$caminho) | Out-Null
+    $suites.Add($nome)
+    Step ('lote05-suite: ' + $nome + ' aprovada')
+  }
+
+  Executar-Suite 'regressoes.sql' (Join-Path $lote '..\regressoes.sql')
+  Executar-Suite 'funcoes-essenciais.test.sql' (Join-Path $lote 'funcoes-essenciais.test.sql')
+
+  & (Join-Path $lote 'concorrencia.test.ps1') -Cluster $cluster -State $s
+  Step 'lote05-suite: concorrencia (14 verificacoes) aprovada'
+
+  Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-v','ON_ERROR_STOP=1','-d','lfl_partial','-c','UPDATE public.reserva_proveniencia_config SET controlado=false WHERE id;') | Out-Null
+  Executar-Suite 'cliente-isolamento.test.sql' (Join-Path $lote 'cliente-isolamento.test.sql')
+
+  foreach ($teste in @('rotas-app.sql','inicio-rota-integridade.sql','impressao.sql','fechamento-turno.sql',
+                       'seguranca-financeira-motoboy.sql','pagamento-turno.sql','liberacao-central.sql',
+                       'fluxo-completo-rota.sql','motoboy-corte-gps.sql')) {
+    if ($teste -eq 'motoboy-corte-gps.sql') {
+      $preparoGps = @'
+SET LOCAL ROLE authenticated;
+DO $$ DECLARE c record; p uuid; r jsonb; BEGIN
+ FOR c IN SELECT * FROM teste_inicio.casos WHERE n IN (4,5) ORDER BY n LOOP
+  PERFORM set_config('request.jwt.claim.sub',c.usuario::text,true);
+  FOREACH p IN ARRAY c.pedidos LOOP
+   r:=public.confirmar_retirada(p);
+   IF r->>'status' IS DISTINCT FROM 'ok' THEN RAISE EXCEPTION 'Retirada de fixture GPS falhou'; END IF;
+  END LOOP;
+  r:=public.iniciar_rota(c.rota);
+  IF r->>'status' IS DISTINCT FROM 'ok' THEN RAISE EXCEPTION 'Inicio de fixture GPS falhou'; END IF;
+ END LOOP;
+END $$;
+'@
+      Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','--single-transaction','-v','ON_ERROR_STOP=1','-d','lfl_partial','-c','SET SESSION AUTHORIZATION postgres;','-c',$preparoGps) | Out-Null
+    }
+    Executar-Suite $teste (Join-Path $lote ('..\' + $teste))
+  }
+
+  # remove a fixture antes do teste que audita a tabela de capacidades
+  $removerFixtureCapacidades = @'
+DROP TRIGGER IF EXISTS b0_provisionar_capacidade ON auth.users;
+DROP FUNCTION IF EXISTS b0_harness.provisionar_capacidade();
+DROP SCHEMA IF EXISTS b0_harness CASCADE;
+DELETE FROM neia_operacao.financeiro_capacidades
+ WHERE usuario IN ('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000005');
+DO $$ BEGIN
+ IF to_regprocedure('b0_harness.provisionar_capacidade()') IS NOT NULL
+    OR EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='b0_provisionar_capacidade') THEN
+  RAISE EXCEPTION 'fixture de capacidades nao removida';
+ END IF;
+END $$;
+'@
+  Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-v','ON_ERROR_STOP=1','-d','lfl_partial','-c',$removerFixtureCapacidades) | Out-Null
+  Step 'lote05: fixture de capacidades removida antes do teste de capacidades'
+
+  Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-v','ON_ERROR_STOP=1','-d','lfl_partial','-c',"SET neia_homologacao.ensaio='LFL_LOCAL_ADITIVO_0123';",'-f',(Join-Path $lote '03-capacidades-financeiras.sql')) | Out-Null
+  Executar-Suite 'capacidades-integracao.test.sql' (Join-Path $lote 'capacidades-integracao.test.sql')
+  Step ('lote05-suite: ' + $suites.Count + ' suites funcionais + concorrencia aprovadas sobre o estado pos-05')
+
+  # -------------------------------------------------------------------------
+  # 8. SONDA FINAL: as suites nao alteraram a postura de seguranca
+  # -------------------------------------------------------------------------
+  $finalTexto = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-A','-t','-d','lfl_partial','-c',$sondaLote05)).Trim()
+  $final = $finalTexto | ConvertFrom-Json
+  foreach ($campo in @('policies_public','staff_alvo','parceiros_abertas','truncate_referencias','tabelas_sem_rls','search_path_ok','reserva_authenticated')) {
+    if ($final.$campo -ne $lote05.$campo) { $falhas.Add('pos-suites: ' + $campo + ' ' + $lote05.$campo + ' -> ' + $final.$campo) }
+  }
+  if ($falhas.Count -gt 0) { Falhar ('postura apos as suites: ' + ($falhas -join '; ')) }
+  Step 'lote05: postura de seguranca inalterada apos as 14 suites'
+
+  # -------------------------------------------------------------------------
+  # 8.1 MATRIZ DE ACL MEDIDA (por papel), somente leitura
+  # -------------------------------------------------------------------------
+  $sondaMatriz = @'
+select json_build_object(
+ 'tabelas', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p')),
+ 'rls_ligada', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p') and c.relrowsecurity),
+ 'anon_select', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p') and has_table_privilege('anon',c.oid,'SELECT')),
+ 'anon_insert', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p') and has_table_privilege('anon',c.oid,'INSERT')),
+ 'anon_estrutural', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p')
+               and (has_table_privilege('anon',c.oid,'TRUNCATE') or has_table_privilege('anon',c.oid,'REFERENCES')
+                    or has_table_privilege('anon',c.oid,'TRIGGER'))),
+ 'auth_select', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p') and has_table_privilege('authenticated',c.oid,'SELECT')),
+ 'auth_insert', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p') and has_table_privilege('authenticated',c.oid,'INSERT')),
+ 'auth_update', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p') and has_table_privilege('authenticated',c.oid,'UPDATE')),
+ 'auth_delete', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p') and has_table_privilege('authenticated',c.oid,'DELETE')),
+ 'auth_estrutural', (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace
+             where n.nspname='public' and c.relkind in ('r','p')
+               and (has_table_privilege('authenticated',c.oid,'TRUNCATE') or has_table_privilege('authenticated',c.oid,'REFERENCES')
+                    or has_table_privilege('authenticated',c.oid,'TRIGGER'))),
+ 'funcoes', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'),
+ 'anon_funcoes', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+             where n.nspname='public' and has_function_privilege('anon',p.oid,'EXECUTE')),
+ 'auth_funcoes', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+             where n.nspname='public' and has_function_privilege('authenticated',p.oid,'EXECUTE')),
+ 'svc_funcoes', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+             where n.nspname='public' and has_function_privilege('service_role',p.oid,'EXECUTE')),
+ 'definer_sem_pg_temp', (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+             where n.nspname='public' and p.prosecdef
+               and (p.proconfig is null or not exists (select 1 from unnest(p.proconfig) cfg where cfg like '%pg_temp%')))
+);
+'@
+  $matrizAclTexto = (Invoke-NeiaLocalPg $cluster 'psql' @('-X','-w','-q','-A','-t','-d','lfl_partial','-c',$sondaMatriz)).Trim()
+  $matrizAcl = $matrizAclTexto | ConvertFrom-Json
+  Set-Content -LiteralPath (Join-Path $evidencias ($carimbo + '-matriz-acl.json')) -Value $matrizAclTexto -Encoding utf8
+  Step ('lote05: matriz ACL medida (anon ' + $matrizAcl.anon_funcoes + ' funcoes, authenticated ' + $matrizAcl.auth_funcoes + ' funcoes)')
+
+  $resultado.lote05 = [ordered]@{
+    aplicado = $true
+    u1aU9 = $aprovadoLote05
+    auditoria = $true
+    matriz = $true
+    capacidades_fixture = 'provisionada e removida (03-capacidades ja aplicada no complemento)'
+    suites = @($suites)
+    concorrencia = 14
+    antes = $pre05
+    depois = $lote05
+    final = $final
+    matriz_acl = $matrizAcl
+    verificacoes = 'aprovadas'
+  }
+
   $resultado.complemento = [ordered]@{
     porta = $PortComplemento
     aplicado = $true
