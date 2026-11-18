@@ -48,8 +48,19 @@ function verificar(condicao, descricao) {
   if (!condicao) throw new Error(descricao);
 }
 
-export async function homologar(config, refAutorizada, { cliente = createClient, informar = console.log } = {}) {
+export async function homologar(config, refAutorizada, {
+  cliente = createClient, informar = console.log, somenteValidar = false, autorizacaoEscrita,
+} = {}) {
   const url = validarConfiguracao(config, refAutorizada);
+  if (somenteValidar) {
+    informar("VALIDAÇÃO LOCAL: configuração válida; nenhuma requisição. Auth/PostgREST/RLS continuam pendentes.");
+    return { status: "configuracao_validada", requisicoes: 0 };
+  }
+  // Uma referência autorizada para leitura/backup não autoriza login nem testes
+  // que alteram pedidos, rotas, GPS, acertos ou ledger no projeto reutilizado.
+  if (autorizacaoEscrita !== refAutorizada) {
+    throw new Error("A homologação altera dados. Exige autorização específica de escrita para a mesma referência; use --validar-config para preparar sem rede.");
+  }
   const f = config.fixture;
   const criarCliente = () => cliente(url, config.chavePublica, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -178,15 +189,22 @@ export async function homologar(config, refAutorizada, { cliente = createClient,
   const eventos = validarResultado(await financeiro.from("conta_pagamento_eventos")
     .select("id,valor_centavos").eq("conta_id",pagamentos[0].conta_id),"Ledger de pagamento");
   verificar(eventos.length === 1 && Number(eventos[0].valor_centavos) === total,"Ledger não contém um único evento correto.");
-  informar("PASSOU conferência, separação de funções, aprovação, pagamento e ledger");
+  informar("PASSOU conferência independente, aprovação distinta, confirmação autorizada e ledger");
 }
 
 if (process.argv[1]?.replaceAll("\\","/").endsWith("/homologar-auth-staging.mjs")) {
   try {
+    const argumentos = process.argv.slice(2);
+    assert.ok(argumentos.every((a) => ["--validar-config", "--executar"].includes(a))
+      && !(argumentos.includes("--validar-config") && argumentos.includes("--executar")),
+    "Use --validar-config para validação local ou --executar após autorização específica.");
     const arquivo = process.env.NEIA_STAGING_CONFIG;
     assert.ok(arquivo, "Informe NEIA_STAGING_CONFIG com um arquivo externo ao repositório.");
     const config = JSON.parse(readFileSync(arquivo,"utf8").replace(/^\uFEFF/,""));
-    await homologar(config,process.env.NEIA_STAGING_REF_AUTORIZADA);
+    await homologar(config,process.env.NEIA_STAGING_REF_AUTORIZADA, {
+      somenteValidar: !argumentos.includes("--executar"),
+      autorizacaoEscrita: process.env.NEIA_STAGING_ESCRITAS_AUTORIZADAS,
+    });
   } catch (erro) {
     // Erros de parse podem incluir um trecho do arquivo com credenciais.
     console.error(erro instanceof SyntaxError ? "Arquivo de configuração JSON inválido." : erro?.message ?? "Falha na homologação.");

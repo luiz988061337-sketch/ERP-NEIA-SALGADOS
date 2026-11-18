@@ -72,9 +72,8 @@ try {
     Run-Sql (Join-Path $repo "drizzle\migrations\$name") ($name -notmatch '^(0003|0079)_')
   }
   if ($FixtureStaging) {
-    Run-Sql (Join-Path $PSScriptRoot 'staging-usuarios-sinteticos.sql')
-    Run-Sql (Join-Path $PSScriptRoot '..\homologacao-staging-fixture.sql') $true @('-v', 'staging_ref=abcdefghijklmnopqrst')
-    Write-Host "Fixture de staging validada localmente. Evidências: $log"
+    & (Join-Path $PSScriptRoot 'fixture-staging.test.ps1') -ClusterRoot $work -Port $Port -PgBin $PgBin
+    Write-Host "Fixture por UUID/protocolo validada apenas no PostgreSQL local. Evidências: $log"
     return
   }
   Run-Sql (Join-Path $PSScriptRoot 'regressoes.sql')
