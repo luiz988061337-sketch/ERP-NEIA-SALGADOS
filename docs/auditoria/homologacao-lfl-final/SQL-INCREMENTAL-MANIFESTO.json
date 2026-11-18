@@ -1,0 +1,353 @@
+{
+  "project": "lflzlcqinarrcgncafol",
+  "protectedProjects": [
+    "ruioyioynwwwiqbjznoa",
+    "iqirsunzgavsuhgyjjsi"
+  ],
+  "sourceHead": "d9905e7f5acb3f544c162f08248b577d0a100bd3",
+  "status": "PRESERVADO_PAUSA_NAO_AUTORIZADA",
+  "remoteWritesAuthorized": false,
+  "remoteReadsCompleted": true,
+  "snapshotDate": "2026-11-18T07:16:18.215335-03:00",
+  "expectedOldPublicTables": 69,
+  "expectedOldSchemaMD5": "e0d524146402cf56f9928d77119af765",
+  "newDataBaseline": {
+    "publicTables": 29,
+    "columns": 35,
+    "privateCapabilityTables": 1,
+    "newEnumTypes": 4
+  },
+  "additionalEnum": {
+    "type": "public.app_role",
+    "value": "contador",
+    "sql": "ALTER TYPE public.app_role ADD VALUE 'contador';",
+    "onlyIfLiveCatalogConfirmsAbsent": true,
+    "transaction": "SEPARADA_ANTES_DA_UTILIZACAO_DO_VALOR",
+    "automaticDown": false
+  },
+  "sqlParts": [
+    {
+      "order": 1,
+      "stage": "base_aditiva",
+      "file": "scripts/homologacao-pg17/lfl-base-aditiva-local.sql",
+      "workingFileSHA256": "94ac89ab68bd72edfac98aa16ab0af4cf5bd218fcb9a3595d8f857bcc41cac51",
+      "gitBlobContentSHA256": "94ac89ab68bd72edfac98aa16ab0af4cf5bd218fcb9a3595d8f857bcc41cac51",
+      "bytes": 47046,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 2,
+      "stage": "dependencias",
+      "file": "scripts/homologacao-pg17/lfl-finalizacao-0123/00-dependencias-operacionais.sql",
+      "workingFileSHA256": "aaf11ef9296b88b4812b710f8ee0b8b5a76126bf8ff19a6958c77e420407edee",
+      "gitBlobContentSHA256": "aaf11ef9296b88b4812b710f8ee0b8b5a76126bf8ff19a6958c77e420407edee",
+      "bytes": 25834,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 3,
+      "stage": "guard_cliente",
+      "file": "scripts/homologacao-pg17/lfl-finalizacao-0123/00-guard-pedido.sql",
+      "workingFileSHA256": "85f7ae6049c295f081d71fa412582f9aa6717ebf7df1402ae7aea10e09d59b13",
+      "gitBlobContentSHA256": "59b6af5a5e9c07ec4f0b98dd16d24a484b0f2df8125e1a58ae69bc357822c914",
+      "bytes": 4587,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 4,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0105_taxa_entrega_contrato_explicito.sql",
+      "workingFileSHA256": "8bca5f69c1391a121599ecf6385f60473278cf1353d732ff70e3c49307487b35",
+      "gitBlobContentSHA256": "8bca5f69c1391a121599ecf6385f60473278cf1353d732ff70e3c49307487b35",
+      "bytes": 3707,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 5,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0106_financeiro_operacoes_atomicas.sql",
+      "workingFileSHA256": "fceb0e20aa32036e65a1de8715b9bc4aba540f62483381436dfcf62332d21fb1",
+      "gitBlobContentSHA256": "fceb0e20aa32036e65a1de8715b9bc4aba540f62483381436dfcf62332d21fb1",
+      "bytes": 31781,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 6,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0107_movimento_estoque_manual_atomico.sql",
+      "workingFileSHA256": "a76951f197dc1e0bbe10df21f685c564975acf0cd1f17950e1c933a17b10fac5",
+      "gitBlobContentSHA256": "a76951f197dc1e0bbe10df21f685c564975acf0cd1f17950e1c933a17b10fac5",
+      "bytes": 5515,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 7,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0108_criar_rota_entrega_atomica.sql",
+      "workingFileSHA256": "986c8b1d8c61eb5461c07c10730de840d0061a54195893ba8018129a9ca82d0c",
+      "gitBlobContentSHA256": "986c8b1d8c61eb5461c07c10730de840d0061a54195893ba8018129a9ca82d0c",
+      "bytes": 5064,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 8,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0109_motoboy_rotas_atribuidas.sql",
+      "workingFileSHA256": "65cda9ac736b3f372fd2540bc8d13e999114fdfb94b180d929ab25b9ca69ab0b",
+      "gitBlobContentSHA256": "65cda9ac736b3f372fd2540bc8d13e999114fdfb94b180d929ab25b9ca69ab0b",
+      "bytes": 3288,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 9,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0110_confirmar_retirada.sql",
+      "workingFileSHA256": "fc51b2d98bf12a008c3fd09a428d30053fec20e0195a84de3cb33f5e4ab0076f",
+      "gitBlobContentSHA256": "fc51b2d98bf12a008c3fd09a428d30053fec20e0195a84de3cb33f5e4ab0076f",
+      "bytes": 6747,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 10,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0111_aceitar_rota.sql",
+      "workingFileSHA256": "253684340a3345512695b42ba066037aad8161ee1cfc91c0c0e4dc052dc6bf55",
+      "gitBlobContentSHA256": "253684340a3345512695b42ba066037aad8161ee1cfc91c0c0e4dc052dc6bf55",
+      "bytes": 4895,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 11,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0112_iniciar_rota.sql",
+      "workingFileSHA256": "4b99acdccce65606b665b4ad453b0c52f0a3ae1f0ce7b598e94cfb6cfe393869",
+      "gitBlobContentSHA256": "4b99acdccce65606b665b4ad453b0c52f0a3ae1f0ce7b598e94cfb6cfe393869",
+      "bytes": 5411,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 12,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0113_confirmar_entrega.sql",
+      "workingFileSHA256": "49c87648d6ec7836040b054c0d06e9270ed232d39b16c64128e798fdb7824ea8",
+      "gitBlobContentSHA256": "49c87648d6ec7836040b054c0d06e9270ed232d39b16c64128e798fdb7824ea8",
+      "bytes": 4357,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 13,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0114_retorno_chegada_loja.sql",
+      "workingFileSHA256": "1bdb54cf88f758dee260dec656b2c6f936fe9c9bf7362e50f2704b26a06747fc",
+      "gitBlobContentSHA256": "1bdb54cf88f758dee260dec656b2c6f936fe9c9bf7362e50f2704b26a06747fc",
+      "bytes": 5952,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 14,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0115_acerto_rota.sql",
+      "workingFileSHA256": "27e7021ca438d7ad21919d888e62d84fdf19027af972ac9d85e9ee3906b89b04",
+      "gitBlobContentSHA256": "27e7021ca438d7ad21919d888e62d84fdf19027af972ac9d85e9ee3906b89b04",
+      "bytes": 13062,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 15,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0116_acerto_conferir_aprovar.sql",
+      "workingFileSHA256": "62b19145e72c827eaa71e0951a6f4629c9d91cf81a9541bd157c90a3df8de88d",
+      "gitBlobContentSHA256": "62b19145e72c827eaa71e0951a6f4629c9d91cf81a9541bd157c90a3df8de88d",
+      "bytes": 8512,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 16,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0117_fechamento_turno.sql",
+      "workingFileSHA256": "d5ff17413b32b9d583a9162033a9907b1e6e12e221e4a2507535fa2be1fdb5c6",
+      "gitBlobContentSHA256": "d5ff17413b32b9d583a9162033a9907b1e6e12e221e4a2507535fa2be1fdb5c6",
+      "bytes": 15300,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 17,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0118_bloquear_dml_financeiro_motoboy.sql",
+      "workingFileSHA256": "e5dca4df7200ee3156c249b2a7048e8df95f1f3a6ac76fade0cf6127f8e4262d",
+      "gitBlobContentSHA256": "e5dca4df7200ee3156c249b2a7048e8df95f1f3a6ac76fade0cf6127f8e4262d",
+      "bytes": 1687,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 18,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0119_conferencia_independente_motoboy.sql",
+      "workingFileSHA256": "1cfefa119771599397200a24b5787d6dd709cfeefe21beac80b389106d8374e8",
+      "gitBlobContentSHA256": "1cfefa119771599397200a24b5787d6dd709cfeefe21beac80b389106d8374e8",
+      "bytes": 7783,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 19,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0120_pagamento_turno_motoboy_autorizado.sql",
+      "workingFileSHA256": "cdc4ee4c7612c9ebe9809dcb68aac42349c1defd840be2a4be39c3d86da7e990",
+      "gitBlobContentSHA256": "cdc4ee4c7612c9ebe9809dcb68aac42349c1defd840be2a4be39c3d86da7e990",
+      "bytes": 11475,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 20,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0121_rotas_concluidas_para_acerto.sql",
+      "workingFileSHA256": "b1439733e37363c247b4ef0d3eb55c7acea31c7b379cdc7678f5af65a053c23d",
+      "gitBlobContentSHA256": "b1439733e37363c247b4ef0d3eb55c7acea31c7b379cdc7678f5af65a053c23d",
+      "bytes": 1819,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 21,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0122_corte_motoboy_rpc_gps.sql",
+      "workingFileSHA256": "320c2d4b4c136a0a8fc550db655e3bb4c5c28fc495776e81b0898e8ebf6aeacd",
+      "gitBlobContentSHA256": "320c2d4b4c136a0a8fc550db655e3bb4c5c28fc495776e81b0898e8ebf6aeacd",
+      "bytes": 14591,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 22,
+      "stage": "incremental_existente",
+      "file": "drizzle/migrations/0123_liberacao_rota_pela_central.sql",
+      "workingFileSHA256": "9ffe5cd660d18d27e2a8d4bd87daaa9af3099cd0228b1dc2e22839a4f4f8b38e",
+      "gitBlobContentSHA256": "9ffe5cd660d18d27e2a8d4bd87daaa9af3099cd0228b1dc2e22839a4f4f8b38e",
+      "bytes": 12585,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 23,
+      "stage": "funcoes_essenciais",
+      "file": "scripts/homologacao-pg17/lfl-finalizacao-0123/01-funcoes-essenciais.sql",
+      "workingFileSHA256": "623e45810f756b3c3b645b2a82772d5a1786ee9c6b7a9c7a3cffac364c04da9c",
+      "gitBlobContentSHA256": "623e45810f756b3c3b645b2a82772d5a1786ee9c6b7a9c7a3cffac364c04da9c",
+      "bytes": 101025,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 24,
+      "stage": "estorno_ledger",
+      "file": "scripts/homologacao-pg17/lfl-finalizacao-0123/02-estorno-compativel.sql",
+      "workingFileSHA256": "ecafe5bccc4e2fea1d6208e24e7052bea258816ecfd7beadf4eedf226b2164c0",
+      "gitBlobContentSHA256": "ecafe5bccc4e2fea1d6208e24e7052bea258816ecfd7beadf4eedf226b2164c0",
+      "bytes": 2764,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 25,
+      "stage": "permissoes_29_tabelas",
+      "file": "scripts/homologacao-pg17/lfl-finalizacao-0123/00-permissoes-novas.sql",
+      "workingFileSHA256": "87f8e2983d30d8ae8b97cbf4b8af0a826c70ee9c90c6d4a860c4fe366c963950",
+      "gitBlobContentSHA256": "87f8e2983d30d8ae8b97cbf4b8af0a826c70ee9c90c6d4a860c4fe366c963950",
+      "bytes": 35206,
+      "remoteExecutableAsIs": false
+    },
+    {
+      "order": 26,
+      "stage": "capacidades_caixa_financeiro",
+      "file": "scripts/homologacao-pg17/lfl-finalizacao-0123/03-capacidades-financeiras.sql",
+      "workingFileSHA256": "6f65150ca995041297a0d9790101ed0e30e3cc26b490a952704732991fa0e5ea",
+      "gitBlobContentSHA256": "6f65150ca995041297a0d9790101ed0e30e3cc26b490a952704732991fa0e5ea",
+      "bytes": 37857,
+      "remoteExecutableAsIs": false
+    }
+  ],
+  "jobSnapshot": {
+    "origem": "BACKUP_20261118_NAO_ESTADO_ATUAL",
+    "jobid": "1",
+    "agenda": "0 12 * * *",
+    "ativoNoBackup": "t",
+    "comandoEsperado": true,
+    "comandoHash": "8FE93C32AD8B7D62880EE192D1A0EEFA50D33AA6189060D05C1DAAB33D076C6A",
+    "database": "postgres"
+  },
+  "blockers": [
+    "Fontes locais conservam guardas de laboratorio; nao executar diretamente na nuvem.",
+    "Consolidar limites transacionais: as fontes contem BEGIN/COMMIT internos; concatenar nao produz uma transacao global.",
+    "Nao reproduzir as 22 memberships gerenciadas nem ALTER OWNER global do laboratorio.",
+    "Pausa do cron nao impede invocacao manual da funcao; ACL publica observada apenas no backup.",
+    "Antes da autorizacao B, derivar pacote hospedado com precondicoes e limites transacionais revisados; nao executar fontes locais diretamente.",
+    "441 grants gerenciados Auth/Storage diferem na visibilidade de role_table_grants; nao interpretar como revogacoes. Comparar ACLs diretas antes de B.",
+    "Nenhum consumidor comercial foi identificado na coleta pontual; ausencia de consumidores externos NAO comprovada."
+  ],
+  "independentAuthorizations": [
+    "A_JOB_PAUSA_E_RETORNO_ORIGINAL",
+    "B_DELTA_SQL_REVISTO_POR_HASH",
+    "C_OITO_USUARIOS_AUTH_SINTETICOS",
+    "D_FIXTURE_E_TESTES_COM_ESCRITA",
+    "E_PREVIEW_ISOLADO",
+    "F_PUBLICACAO_E_CUTOVER"
+  ],
+  "previousReadFailure": "password authentication failed",
+  "liveReadAt": "2026-11-18T13:36:09.154447+00:00",
+  "liveSchemaMD5": "e0d524146402cf56f9928d77119af765",
+  "liveCounts": {
+    "publicTables": 69,
+    "authUsers": 1,
+    "products": 31,
+    "orders": 0,
+    "motoboys": 0,
+    "routes": 0,
+    "buckets": 1,
+    "storageObjects": 3
+  },
+  "liveDifferences": {
+    "columns": {
+      "missing": [],
+      "added": [],
+      "changed": []
+    },
+    "constraints": {
+      "missing": [],
+      "added": [],
+      "changed": []
+    },
+    "functions": {
+      "missing": [],
+      "added": [],
+      "changed": []
+    }
+  },
+  "liveJob": {
+    "id": 1,
+    "schedule": "0 12 * * *",
+    "active": true,
+    "database": "postgres",
+    "recognizedReminderCommand": true,
+    "commandSHA256": "8fe93c32ad8b7d62880ee192d1a0eefa50d33aa6189060d05c1daab33d076c6a"
+  },
+  "schedulerTimezone": "GMT",
+  "firstOperation": {
+    "authorizationRequired": "A_PAUSAR_JOB_1",
+    "objects": [
+      "cron.job:jobid=1:active"
+    ],
+    "pauseFile": "A-PAUSA-JOB-1-PROPOSTA.sql",
+    "pauseSHA256": "27d64772c19f1b230527922849edb76cb313e9c0d945477fce6dbec75740e88c",
+    "rollbackFile": "A-REVERSAO-JOB-1-PROPOSTA.sql",
+    "rollbackSHA256": "32ce247b280269a106fce1f4fd5ba9b9af809b8e98510dd041e02276fb59058e",
+    "executed": false,
+    "authorizationGranted": false,
+    "executionScheduled": false,
+    "proposalRuntimeValidation": "NAO_HOMOLOGADA_COM_PG_CRON; arquivos preservados fora do commit; copia textual na documentacao"
+  },
+  "ownerDecision": {
+    "decision": "NAO_AUTORIZA_PAUSAR_JOB_1_NESTA_JANELA",
+    "recordedAt": "2026-11-18T13:58:49.392Z",
+    "keepExistingJobActive": true
+  },
+  "pendingAutomation": {
+    "homologationActionsScheduled": false,
+    "readClientsAwaitingInput": false,
+    "automaticRetries": false
+  }
+}
