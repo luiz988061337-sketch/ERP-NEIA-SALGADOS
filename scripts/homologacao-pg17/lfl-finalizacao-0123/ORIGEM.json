@@ -1,0 +1,90 @@
+{
+  "referenceHead": "b684fe985a12b11d108a7f721b048773bb96ea64",
+  "functions": [
+    {
+      "name": "distancia_linha_reta_km",
+      "referenceDefinitionSha256": "0e604d659bee7cebbce5eb9009231b66664bc53b622c76c85eba38a48d052fdd",
+      "sourceMigration": "drizzle/migrations/0103_entrega_por_km.sql"
+    },
+    {
+      "name": "pedido_cobertura_reserva",
+      "referenceDefinitionSha256": "77c7b15249728d232e78c22e2dae89b4beb3edcd8a0abe0fdfa327e64e40146a",
+      "sourceMigration": "drizzle/migrations/0095_criar_pedido_com_reserva.sql"
+    },
+    {
+      "name": "reservar_pedido_atomico",
+      "referenceDefinitionSha256": "94f94859be8302643f3c0a83aebba9b40be514f4599d32c44edc0444143621e8",
+      "sourceMigration": "drizzle/migrations/0089_reservar_pedido_atomico.sql"
+    },
+    {
+      "name": "liberar_pedido_atomico",
+      "referenceDefinitionSha256": "9755d79355bdc302943457ae68ae5a954747d98801cd89f43f865724d079e084",
+      "sourceMigration": "drizzle/migrations/0090_liberar_pedido_atomico.sql"
+    },
+    {
+      "name": "registrar_consumo_reserva",
+      "referenceDefinitionSha256": "fc17a5c3e5bff6132e898ba9969df7f1b07f61e90eadf5d46776a53e8fb7879f",
+      "sourceMigration": "drizzle/migrations/0091_registrar_consumo_reserva.sql"
+    },
+    {
+      "name": "exigir_reserva_producao",
+      "referenceDefinitionSha256": "e356f68f0969a583f0d64cb57c1004d56a7f62f46275993c94b663046a7fa227",
+      "sourceMigration": "drizzle/migrations/0095_criar_pedido_com_reserva.sql"
+    },
+    {
+      "name": "exigir_consumo_producao",
+      "referenceDefinitionSha256": "1ea36f67ce05a4154154cf92b1aadbe5b05cdbbbe8e82fd4a5ca4d59b781b646",
+      "sourceMigration": "drizzle/migrations/0095_criar_pedido_com_reserva.sql"
+    },
+    {
+      "name": "proteger_consistencia_financeira_pedido",
+      "referenceDefinitionSha256": "6234f1373488eaac90c725b9db0449863e03725f9420975c2b8f90f090eba5e3",
+      "sourceMigration": "drizzle/migrations/0094_protecao_pagamento_cancelado.sql"
+    },
+    {
+      "name": "cancelar_pedido_atomico",
+      "referenceDefinitionSha256": "585d75c953e388b7891ac47c69f2a7aca0442708e3d084930a4d5f4cd093ffd1",
+      "sourceMigration": "drizzle/migrations/0093_cancelar_pedido_atomico.sql"
+    },
+    {
+      "name": "criar_pedido_com_reserva",
+      "referenceDefinitionSha256": "dbef707840ab75cabf333a6efd4860bd1ea9ef29f4dd470e566f77e605f680b4",
+      "sourceMigration": "drizzle/migrations/0103_entrega_por_km.sql"
+    },
+    {
+      "name": "estornar_conta",
+      "referenceDefinitionSha256": "1af0487610c7a0dc82cb6093f455420bd9872c6a3a0471c4cb11ca9d8abaab13",
+      "adaptation": "Mesma assinatura; estorno por eventos; saldo historico sem parcelas bloqueado.",
+      "sourceMigration": "drizzle/migrations/0083_hardening.sql"
+    }
+  ],
+  "reopensM24": false,
+  "activatesFlags": false,
+  "adaptations": [
+    "Consumo debita lotes FEFO validos, com trilha, sem repetir debito logico da reserva.",
+    "Guarda exige consumo integral antes da producao quando regime controlado estiver ativo.",
+    "Helper FEFO legado preservado quando controle estiver desligado.",
+    "Search path explicita pg_temp por ultimo nas funcoes essenciais.",
+    "Capacidades adicionais de Caixa e Financeiro vazias por padrao; sem atribuicao historica."
+  ],
+  "localOnly": true,
+  "files": {
+    "00-dependencias-operacionais.sql": "aaf11ef9296b88b4812b710f8ee0b8b5a76126bf8ff19a6958c77e420407edee",
+    "00-guard-pedido.sql": "85f7ae6049c295f081d71fa412582f9aa6717ebf7df1402ae7aea10e09d59b13",
+    "00-permissoes-novas.sql": "87f8e2983d30d8ae8b97cbf4b8af0a826c70ee9c90c6d4a860c4fe366c963950",
+    "01-funcoes-essenciais.sql": "623e45810f756b3c3b645b2a82772d5a1786ee9c6b7a9c7a3cffac364c04da9c",
+    "02-estorno-compativel.sql": "ecafe5bccc4e2fea1d6208e24e7052bea258816ecfd7beadf4eedf226b2164c0",
+    "03-capacidades-financeiras.sql": "6f65150ca995041297a0d9790101ed0e30e3cc26b490a952704732991fa0e5ea",
+    "capacidades-integracao.test.sql": "fb644de5581e2647ecabf1dca522997952336a66f7e655010e450e7118c1816d",
+    "cliente-isolamento.test.sql": "00fd4abbca67165c30d387a6c715ef6db0d7da0ead7ceafce5aee9231de204cd",
+    "concorrencia.test.ps1": "1df0f8b37ace1a6b03a916fb067b43ed1076845e93c872c99fcfdb044d3c6d71",
+    "executar-local.ps1": "6fac008976b50b243991ea13b886cea2bc4aefc27dc0ad25f1b073a3da318aea",
+    "fixture-coexistencia.test.sql": "9e40555473b6c40b17c7792d29a43aad81b13acffc3f65be39d37837f13f0dc1",
+    "funcoes-essenciais.test.sql": "78b2a47e62f0f43a85f80a6722558be56d1c7ba378a2d7cd8cca3810af9a2219",
+    "validar-dados-legados-local.ps1": "9d8845f0e7ee04f44b81cc552ffa2ea2d6d67ce395b55358d664b3329e0a9032"
+  },
+  "privateSupport": {
+    "partial-restore.list": "f1a3e89ba7a004b5c322558d791de105ba9454fe95b9526ab7a6aae8958e4f47",
+    "roles-definitions-local.sql": "29e31d88628441ee31f76ab44878bc0bb70c5690eb12a6a9fa3566fabf2deb17"
+  }
+}

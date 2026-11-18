@@ -84,6 +84,18 @@ BEGIN
   INSERT INTO public.user_roles(user_id,role)
     SELECT a.usuario,a.papel FROM neia_homologacao.atores a
     WHERE NOT EXISTS(SELECT 1 FROM public.user_roles ur WHERE ur.user_id=a.usuario);
+  -- Capacidade nova somente para as oito contas atestadas deste protocolo.
+  -- Nenhuma concessao ou remocao sobre o usuario Auth preexistente.
+  IF to_regclass('neia_operacao.financeiro_capacidades') IS NULL THEN
+    RAISE EXCEPTION 'Separacao Caixa/Financeiro precisa ser instalada e revisada antes da fixture';
+  END IF;
+  INSERT INTO neia_operacao.financeiro_capacidades(usuario,capacidade,concedido_por,motivo)
+  SELECT a.usuario,c.capacidade,(SELECT usuario FROM neia_homologacao.atores WHERE conta='responsavel'),
+    'Homologacao sintetica protocolo '||v_protocolo
+  FROM neia_homologacao.atores a JOIN (VALUES
+    ('caixa','conferir_caixa'),('caixa','receber_pagamento'),
+    ('financeiro','executar_financeiro'),('financeiro','receber_pagamento')
+  ) c(conta,capacidade) ON c.conta=a.conta;
   SELECT usuario INTO v_user_a FROM neia_homologacao.atores WHERE conta = 'motoboyA';
   SELECT usuario INTO v_user_b FROM neia_homologacao.atores WHERE conta = 'motoboyB';
   SELECT usuario INTO v_cliente FROM neia_homologacao.atores WHERE conta = 'cliente';
@@ -110,7 +122,9 @@ END $$;
 CREATE FUNCTION public.neia_staging_identidade(p_protocolo uuid)
 RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog AS $$
   SELECT jsonb_build_object('staging',f.staging,'usuario',a.usuario,'conta',a.conta,'papel',a.papel,
-    'fixture',f.dados,'cutover',public.motoboy_corte_rpc_ativo())
+    'fixture',f.dados,'cutover',public.motoboy_corte_rpc_ativo(),
+    'capacidades',coalesce((SELECT jsonb_agg(c.capacidade ORDER BY c.capacidade)
+      FROM neia_operacao.financeiro_capacidades c WHERE c.usuario=a.usuario),'[]'::jsonb))
   FROM neia_homologacao.fixture f JOIN neia_homologacao.atores a ON a.usuario = auth.uid()
   WHERE f.protocolo = p_protocolo AND (
     SELECT array_agg(ur.role) = ARRAY[a.papel] FROM public.user_roles ur WHERE ur.user_id = a.usuario

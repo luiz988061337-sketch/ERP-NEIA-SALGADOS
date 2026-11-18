@@ -53,6 +53,30 @@ test("marcador incorreto interrompe o runner antes de qualquer escrita", async (
   assert.deepEqual(chamadas,["Auth","neia_staging_identidade"]);
 });
 
+
+test("Caixa com capacidade financeira divergente interrompe antes das operacoes", async () => {
+  const cfg=config(), chamadas=[];
+  const cliente=() => {
+    let ator;
+    return {
+      auth:{signInWithPassword:async ({email}) => {
+        ator=Object.keys(papeis).find((nome) => cfg.contas[nome].email===email);
+        chamadas.push([ator,"Auth"]);
+        return {data:{session:{},user:{id:cfg.contas[ator].id,email}},error:null};
+      }},
+      rpc:async (nome) => {
+        chamadas.push([ator,nome]);assert.equal(nome,"neia_staging_identidade");
+        return {data:{staging:ref,usuario:cfg.contas[ator].id,papel:papeis[ator],conta:ator,
+          fixture:cfg.fixture,cutover:true,capacidades:ator==="caixa"?["executar_financeiro","receber_pagamento"]:[]},error:null};
+      },
+      from:() => assert.fail("nao operar com permissao divergente"),
+    };
+  };
+  await assert.rejects(homologar(cfg,ref,{autorizacaoEscrita:ref,cliente,informar:() => {}}),/Marcador/);
+  assert.equal(chamadas.length,8);
+  assert.deepEqual(chamadas.at(-1),["caixa","neia_staging_identidade"]);
+});
+
 test("validar configuração é offline mesmo com cliente que proibiria rede", async () => {
   const resultado = await homologar(config(),ref,{
     somenteValidar:true, informar:() => {},
@@ -129,7 +153,7 @@ test("contratos locais 0123 percorrem saída sem aceite, liberação da Central 
       }),
       rpc:async (nome,args) => {
         chamadas.push([ator,nome]);
-        if(nome==="neia_staging_identidade")return dados({staging:ref,usuario:cfg.contas[ator].id,papel:papeis[ator],conta:ator,fixture:cfg.fixture,cutover:true});
+        if(nome==="neia_staging_identidade")return dados({staging:ref,usuario:cfg.contas[ator].id,papel:papeis[ator],conta:ator,fixture:cfg.fixture,cutover:true,capacidades:ator==="caixa"?["conferir_caixa","receber_pagamento"]:ator==="financeiro"?["executar_financeiro","receber_pagamento"]:[]});
         if(nome==="motoboy_listar_rotas_atribuidas")return dados([{id:ator==="motoboyA"?cfg.fixture.rotaA:cfg.fixture.rotaB}]);
         if(nome==="confirmar_retirada"){
           if(ator!=="motoboyA")return dados({status:"negado"});
@@ -150,6 +174,7 @@ test("contratos locais 0123 percorrem saída sem aceite, liberação da Central 
         if(nome==="informar_retorno_loja")return dados(entregue?{status:"ok"}:{status:"bloqueado",motivo:"rota_com_pendentes"});
         if(nome==="confirmar_chegada_loja")return dados({status:"ok"});
         if(nome==="solicitar_acerto_rota")return dados({status:"registrado",acerto_id:acerto});
+        if(nome==="conferir_acerto_rota_independente" && ator==="financeiro")return dados({status:"negado"});
         if(nome==="conferir_acerto_rota_independente")return dados({status_acerto:"em_conferencia",conferencia:{esperado_centavos:5500}});
         if(nome==="aprovar_acerto_rota"){
           if(ator==="caixa")return dados({status:"negado",motivo:"auto_aprovacao_nao_permitida"});

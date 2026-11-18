@@ -8,6 +8,11 @@ export const papeis = {
   financeiro: "financeiro", responsavel: "admin", motoboyA: "motoboy", motoboyB: "motoboy",
 };
 
+export const capacidades = {
+  cliente: [], atendente: [], producao: [], caixa: ['conferir_caixa','receber_pagamento'],
+  financeiro: ['executar_financeiro','receber_pagamento'], responsavel: [], motoboyA: [], motoboyB: [],
+};
+
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const destinos = ["protocolo", "livre", "pedidoA", "pedidoB", "rotaA", "rotaB", "motoboyA", "motoboyB"];
 
@@ -89,7 +94,8 @@ export async function homologar(config, refAutorizada, {
     verificar(identidade?.usuario === credencial.id && identidade?.papel === papel
       && identidade?.conta === nome && identidade?.staging === refAutorizada
       && Object.entries(mapa).every(([k,v]) => identidade?.fixture?.[k] === v)
-      && identidade?.cutover === true, `Marcador, papéis ou fixture incompatíveis para ${nome}.`);
+      && identidade?.cutover === true
+      && JSON.stringify(identidade?.capacidades) === JSON.stringify(capacidades[nome]), `Marcador, papéis ou fixture incompatíveis para ${nome}.`);
     usuarios[nome] = api;
     informar(`PASSOU Auth + marcador de isolamento — ${nome}`);
   }
@@ -152,6 +158,10 @@ export async function homologar(config, refAutorizada, {
   verificar((await rpc(a,"aprovar_acerto_rota",aprovacao)).status === "negado", "Motoboy aprovou o próprio acerto.");
   verificar(negada(await a.from("acertos_rota").update({status:"aprovado"}).eq("id",acerto.acerto_id).select("id")),
     "Motoboy alterou acerto diretamente.");
+  verificar((await rpc(financeiro,"conferir_acerto_rota_independente",{
+    p_acerto_id:acerto.acerto_id,p_chave:idempotencia(f,"conferencia-financeiro-negada"),
+    p_contado_centavos:5500,p_troco_loja_centavos:0,p_referencia:"Teste de separacao de papeis",
+  })).status === "negado", "Financeiro conferiu o Caixa sem autorização independente.");
   const conferido = await rpc(caixa,"conferir_acerto_rota_independente",{
     p_acerto_id:acerto.acerto_id,p_chave:idempotencia(f,"conferencia"),
     p_contado_centavos:5500,p_troco_loja_centavos:0,p_referencia:"Contagem fictícia R$ 55,00",
@@ -176,7 +186,7 @@ export async function homologar(config, refAutorizada, {
   })).status === "autorizado", "Responsável não conseguiu autorizar turno.");
   const pagamento = {p_turno:turno.turno_id,p_valor:total,p_meio:"pix",p_efetivo_em:new Date().toISOString(),
     p_referencia:idempotencia(f,"pix-simulado"),p_chave:idempotencia(f,"pagamento")};
-  for (const ator of [a,responsavel]) {
+  for (const ator of [a,responsavel,caixa]) {
     verificar((await rpc(ator,"confirmar_pagamento_turno_motoboy",pagamento)).status === "negado",
       "Perfil indevido confirmou pagamento.");
   }
