@@ -1,0 +1,50 @@
+﻿{
+    "schema":  "neia-complemento-proveniencia-1",
+    "finalidade":  "Proveniencia do complemento 04 (hardening) e do driver que o reproduz em laboratorio isolado.",
+    "autoridade":  "ORIGEM.json continua sendo o manifesto do lote aprovado; este arquivo apenas adiciona o complemento e registra as dependencias lidas por ele.",
+    "observacao":  "Qualquer alteracao em um destes arquivos invalida a execucao do driver, que aborta no preflight. Nao contem dados privados, senhas ou tokens.",
+    "driver":  "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/executar-complemento.ps1",
+    "laboratorio":  {
+                        "cluster":  "descartavel, criado por initdb local em 127.0.0.1",
+                        "portas":  [
+                                       55500,
+                                       55501
+                                   ],
+                        "banco":  "lfl_partial",
+                        "requer":  "PostgreSQL 17 e PowerShell 7"
+                    },
+    "arquivos":  {
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/executar-complemento.ps1":  "3741ea3b27bca36648e266b6cefd15b2df897029602f58352dcff4af6f2680a4",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/04-complemento-hardening.sql":  "7c54b9a3a1beffa58f3ed07a0f79dae94172dd33dad339168ce26650f64109fa",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/complemento-hardening.test.sql":  "b7eb381b3d413370ef277e6ce1739f09d93eeeaf8434524779ae5ea52e8a43f8",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/ORIGEM.json":  "124500b4d3d5705edf93b9992e9cea2e53d4159bdce45233ab084fbed237f16e",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/executar-local.ps1":  "6fac008976b50b243991ea13b886cea2bc4aefc27dc0ad25f1b073a3da318aea",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/00-dependencias-operacionais.sql":  "aaf11ef9296b88b4812b710f8ee0b8b5a76126bf8ff19a6958c77e420407edee",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/00-guard-pedido.sql":  "85f7ae6049c295f081d71fa412582f9aa6717ebf7df1402ae7aea10e09d59b13",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/00-permissoes-novas.sql":  "87f8e2983d30d8ae8b97cbf4b8af0a826c70ee9c90c6d4a860c4fe366c963950",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/01-funcoes-essenciais.sql":  "623e45810f756b3c3b645b2a82772d5a1786ee9c6b7a9c7a3cffac364c04da9c",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/02-estorno-compativel.sql":  "ecafe5bccc4e2fea1d6208e24e7052bea258816ecfd7beadf4eedf226b2164c0",
+                     "scripts/homologacao-pg17/lfl-finalizacao-0123/03-capacidades-financeiras.sql":  "6f65150ca995041297a0d9790101ed0e30e3cc26b490a952704732991fa0e5ea",
+                     "scripts/homologacao-pg17/restaurar-backup-local.ps1":  "13004087de19b7dea3470ab8476b5c203158dc2207c1af27a9441001f6febdc3",
+                     "scripts/homologacao-pg17/lfl-base-aditiva-local.sql":  "94ac89ab68bd72edfac98aa16ab0af4cf5bd218fcb9a3595d8f857bcc41cac51",
+                     "drizzle/migrations/0105_taxa_entrega_contrato_explicito.sql":  "8bca5f69c1391a121599ecf6385f60473278cf1353d732ff70e3c49307487b35",
+                     "drizzle/migrations/0106_financeiro_operacoes_atomicas.sql":  "fceb0e20aa32036e65a1de8715b9bc4aba540f62483381436dfcf62332d21fb1",
+                     "drizzle/migrations/0107_movimento_estoque_manual_atomico.sql":  "a76951f197dc1e0bbe10df21f685c564975acf0cd1f17950e1c933a17b10fac5",
+                     "drizzle/migrations/0108_criar_rota_entrega_atomica.sql":  "986c8b1d8c61eb5461c07c10730de840d0061a54195893ba8018129a9ca82d0c",
+                     "drizzle/migrations/0109_motoboy_rotas_atribuidas.sql":  "65cda9ac736b3f372fd2540bc8d13e999114fdfb94b180d929ab25b9ca69ab0b",
+                     "drizzle/migrations/0110_confirmar_retirada.sql":  "fc51b2d98bf12a008c3fd09a428d30053fec20e0195a84de3cb33f5e4ab0076f",
+                     "drizzle/migrations/0111_aceitar_rota.sql":  "253684340a3345512695b42ba066037aad8161ee1cfc91c0c0e4dc052dc6bf55",
+                     "drizzle/migrations/0112_iniciar_rota.sql":  "4b99acdccce65606b665b4ad453b0c52f0a3ae1f0ce7b598e94cfb6cfe393869",
+                     "drizzle/migrations/0113_confirmar_entrega.sql":  "49c87648d6ec7836040b054c0d06e9270ed232d39b16c64128e798fdb7824ea8",
+                     "drizzle/migrations/0114_retorno_chegada_loja.sql":  "1bdb54cf88f758dee260dec656b2c6f936fe9c9bf7362e50f2704b26a06747fc",
+                     "drizzle/migrations/0115_acerto_rota.sql":  "27e7021ca438d7ad21919d888e62d84fdf19027af972ac9d85e9ee3906b89b04",
+                     "drizzle/migrations/0116_acerto_conferir_aprovar.sql":  "62b19145e72c827eaa71e0951a6f4629c9d91cf81a9541bd157c90a3df8de88d",
+                     "drizzle/migrations/0117_fechamento_turno.sql":  "d5ff17413b32b9d583a9162033a9907b1e6e12e221e4a2507535fa2be1fdb5c6",
+                     "drizzle/migrations/0118_bloquear_dml_financeiro_motoboy.sql":  "e5dca4df7200ee3156c249b2a7048e8df95f1f3a6ac76fade0cf6127f8e4262d",
+                     "drizzle/migrations/0119_conferencia_independente_motoboy.sql":  "1cfefa119771599397200a24b5787d6dd709cfeefe21beac80b389106d8374e8",
+                     "drizzle/migrations/0120_pagamento_turno_motoboy_autorizado.sql":  "cdc4ee4c7612c9ebe9809dcb68aac42349c1defd840be2a4be39c3d86da7e990",
+                     "drizzle/migrations/0121_rotas_concluidas_para_acerto.sql":  "b1439733e37363c247b4ef0d3eb55c7acea31c7b379cdc7678f5af65a053c23d",
+                     "drizzle/migrations/0122_corte_motoboy_rpc_gps.sql":  "320c2d4b4c136a0a8fc550db655e3bb4c5c28fc495776e81b0898e8ebf6aeacd",
+                     "drizzle/migrations/0123_liberacao_rota_pela_central.sql":  "9ffe5cd660d18d27e2a8d4bd87daaa9af3099cd0228b1dc2e22839a4f4f8b38e"
+                 }
+}
