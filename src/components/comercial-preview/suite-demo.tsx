@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import comercialCss from "@/components/comercial-preview/comercial.css?url";
 import { ComercialProviderLayout } from "@/components/comercial-preview/shell";
@@ -24,8 +24,28 @@ const ABAS = [
   { valor: "resultados", rotulo: "Resultados", Conteudo: TelaResultados },
 ] as const;
 
+const VALORES = ABAS.map((a) => a.valor);
+
+/** Deep-link de navegação: /clientes#clientes, /campanhas#campanhas etc. */
+const abaDaHash = () => {
+  try {
+    const valor = window.location.hash.replace(/^#/, "");
+    return VALORES.includes(valor as (typeof VALORES)[number]) ? valor : null;
+  } catch {
+    return null;
+  }
+};
+
 export function SuiteComercialDemo({ abaInicial = "painel" }: { abaInicial?: string }) {
-  const [aba, setAba] = useState<string>(abaInicial);
+  const [aba, setAba] = useState<string>(() => abaDaHash() ?? abaInicial);
+  useEffect(() => {
+    const aoMudarHash = () => {
+      const destino = abaDaHash();
+      if (destino) setAba(destino);
+    };
+    window.addEventListener("hashchange", aoMudarHash);
+    return () => window.removeEventListener("hashchange", aoMudarHash);
+  }, []);
   return (
     <>
       <link rel="stylesheet" href={comercialCss} />

@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Crown, LogOut, RefreshCw, UserRound } from "lucide-react";
+import { ChevronDown, Crown, LogOut, RefreshCw, UserRound } from "lucide-react";
 
 import {
   Sidebar,
@@ -16,6 +16,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarSeparator,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ADMIN_NAV, type AdminNavItem, type AdminNavGroup } from "./admin-nav";
@@ -158,7 +159,17 @@ export function AdminShell({
       </Sidebar>
       {/* Conteúdo da aba (antes era descartado: a página ficava só com a
           sidebar). O SidebarInset reserva o espaço da sidebar no desktop. */}
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        {!modoPreview ? (
+          <div className="pointer-events-none absolute left-3 top-3 z-30 md:hidden">
+            <SidebarTrigger
+              aria-label="Abrir menu administrativo"
+              className="pointer-events-auto size-9 border border-[#D4A94A]/60 bg-[#141310] text-[#F2CE6B] hover:bg-[#D4A94A]/15 hover:text-[#F2CE6B]"
+            />
+          </div>
+        ) : null}
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }
@@ -194,6 +205,9 @@ function MenuLateral({
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const pathname = useLocation({ select: (s) => s.pathname });
+  // Grupos começam abertos (todas as áreas visíveis ao rolar) e podem ser
+  // recolhidos para alcançar os grupos inferiores sem percorrer a lista toda.
+  const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
 
   function ir(v: string) {
     onAba(v);
@@ -218,13 +232,31 @@ function MenuLateral({
     : undefined;
 
   return (
-    <SidebarContent className="no-scrollbar bg-[#0F0E0C]">
-      {(modoPreview && menuPreview ? menuPreview : ADMIN_NAV).map((grupo) => (
+    <SidebarContent
+      className="bg-[#0F0E0C] [scrollbar-color:rgba(212,169,74,0.55)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D4A94A]/60 [&::-webkit-scrollbar-track]:bg-transparent"
+    >
+      {(modoPreview && menuPreview ? menuPreview : ADMIN_NAV).map((grupo) => {
+        const aberto = gruposAbertos[grupo.label] !== false;
+        return (
         <SidebarGroup key={grupo.label} className="py-1">
-          <SidebarGroupLabel className="px-3 font-display text-[9px] uppercase tracking-[0.14em] text-[#8A7A52] group-data-[collapsible=icon]:hidden">
-            {grupo.label}
+          <SidebarGroupLabel asChild className="px-3 font-display text-[9px] uppercase tracking-[0.14em] text-[#8A7A52] group-data-[collapsible=icon]:hidden">
+            <button
+              type="button"
+              aria-expanded={aberto}
+              aria-label={`${aberto ? "Recolher" : "Expandir"} ${grupo.label}`}
+              onClick={() =>
+                setGruposAbertos((prev) => ({ ...prev, [grupo.label]: !aberto }))
+              }
+              className="flex w-full items-center justify-between gap-2 text-left hover:text-[#F2CE6B]"
+            >
+              <span className="truncate">{grupo.label}</span>
+              <ChevronDown
+                className={`size-3.5 shrink-0 transition-transform ${aberto ? "" : "-rotate-90"}`}
+                aria-hidden
+              />
+            </button>
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          {aberto ? <SidebarGroupContent>
             <div role="tablist" aria-orientation="vertical" className="flex flex-col gap-1">
               {itensDoGrupo(grupo.items).map((item) => {
                 // Ativo por aba interna OU pela rota real (ex.: /pdv, /producao).
@@ -250,6 +282,7 @@ function MenuLateral({
                       >
                         <Link
                           to={item.href}
+                          {...(item.hash ? { hash: item.hash } : {})}
                           onClick={(e) => {
                             if (modoPreview) {
                               if (!menuPreview || !ehPreviewModulo(item.href ?? "")) {
@@ -291,9 +324,10 @@ function MenuLateral({
                 );
               })}
             </div>
-          </SidebarGroupContent>
+          </SidebarGroupContent> : null}
         </SidebarGroup>
-      ))}
+        );
+      })}
     </SidebarContent>
   );
 }

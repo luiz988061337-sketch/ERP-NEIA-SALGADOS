@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TrendingUp, Target, Shield, Wallet, CheckCircle2, Plus, Search, ChartNoAxesCombined, CalendarDays, Layers, ReceiptText, ListChecks, ClipboardPen, Trash2, Info, Check, FlaskConical } from "lucide-react";
 import { Moedas as Coins } from "@/components/financeiro-premium/icones";
 import { FinanceiroPreviewLayout, Panel, Status } from "@/components/financeiro-premium/layout";
@@ -22,9 +22,27 @@ type Obrigacao = { id: string; descricao: string; tipo: string; competencia: str
 
 function brl(v: number) { return Number.isFinite(v) ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"; }
 
+type AbaFinanceiro = "lancamentos"|"custos"|"caixa"|"equilibrio"|"simulacoes"|"fiscal"|"relatorios";
+const ABAS_FINANCEIRO: AbaFinanceiro[] = ["lancamentos","custos","caixa","equilibrio","simulacoes","fiscal","relatorios"];
+
+/** Deep-link de navegação: /financeiro#caixa, #relatorios etc. */
+function abaDaHash(): AbaFinanceiro {
+  try {
+    const valor = window.location.hash.replace(/^#/, "");
+    return ABAS_FINANCEIRO.includes(valor as AbaFinanceiro) ? (valor as AbaFinanceiro) : "lancamentos";
+  } catch {
+    return "lancamentos";
+  }
+}
+
 export function FinanceiroPremium() {
   const [periodo, setPeriodo] = useState("Abril/2025");
-  const [aba, setAba] = useState<"lancamentos"|"custos"|"caixa"|"equilibrio"|"simulacoes"|"fiscal"|"relatorios">("lancamentos");
+  const [aba, setAba] = useState<AbaFinanceiro>(abaDaHash);
+  useEffect(() => {
+    const aoMudarHash = () => setAba(abaDaHash());
+    window.addEventListener("hashchange", aoMudarHash);
+    return () => window.removeEventListener("hashchange", aoMudarHash);
+  }, []);
   const [showForm, setShowForm] = useState(false);
   const [filtro, setFiltro] = useState("");
   const [tipoFiltro, setTipoFiltro] = useState("todos");
