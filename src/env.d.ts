@@ -17,6 +17,8 @@
  * Ver `src/lib/corte.ts` e `src/lib/versao-app.ts`.
  */
 interface ImportMetaEnv {
+  /** Preview protegido com dados fictícios: desativa todo o acesso ao Supabase. */
+  readonly VITE_DEMO_PREVIEW?: string;
   readonly VITE_NEIA_MOTOBOY_RPC?: string;
   readonly VITE_NEIA_PREVIEW_URL?: string;
   readonly VITE_NEIA_PREVIEW_CHAVE?: string;

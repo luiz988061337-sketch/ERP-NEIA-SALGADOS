@@ -38,7 +38,8 @@ export const Route = createFileRoute("/gestao")({
   component: () => {
     const navigate = useNavigate();
     useEffect(() => {
-      navigate({ to: "/admin", search: { aba: "dono" }, replace: true });
+      // /admin já abre o dashboard aprovado; o parâmetro antigo "aba" era ignorado.
+      navigate({ to: "/admin", replace: true });
     }, [navigate]);
     return null;
   },

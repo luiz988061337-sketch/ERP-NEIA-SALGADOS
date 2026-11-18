@@ -23,6 +23,7 @@ import { GuardaVersao } from "@/components/guarda-versao";
 import { supabase } from "@/integrations/supabase/client";
 import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
 import { ehPreviewModulo } from "@/lib/preview-modulos";
+import { ehModoDemo } from "@/lib/demo-preview";
 
 function NotFoundComponent() {
   return (
@@ -121,6 +122,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
+  const modoDemo = ehModoDemo();
   // Demonstração sem banco (Comercial, L2, Financeiro Premium,
   // Reembolsos/Estornos R1 e Origens R2-A): nenhuma sessão anônima é criada
   // e o listener do Supabase não é montado.
@@ -133,19 +135,19 @@ function RootComponent() {
   // Acesso direto do cliente: primeira visita cria sessão anônima nos
   // bastidores (sem tela de login). Sessões existentes são preservadas.
   useEffect(() => {
-    if (rotaDemonstrativaSemBanco) return;
+    if (modoDemo || rotaDemonstrativaSemBanco) return;
     void garantirSessaoAnonima();
-  }, [rotaDemonstrativaSemBanco]);
+  }, [modoDemo, rotaDemonstrativaSemBanco]);
 
   useEffect(() => {
-    if (rotaDemonstrativaSemBanco) return;
+    if (modoDemo || rotaDemonstrativaSemBanco) return;
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
     return () => sub.subscription.unsubscribe();
-  }, [router, queryClient, rotaDemonstrativaSemBanco]);
+  }, [router, queryClient, modoDemo, rotaDemonstrativaSemBanco]);
 
   // Rotas internas (staff): sem chrome da loja pública — cada uma tem layout próprio.
   // Rotas públicas caem no fluxo normal, sem nenhuma mudança visual.
@@ -168,6 +170,13 @@ function RootComponent() {
       <GuardaVersao>
         <CartProvider>
           <div className="flex min-h-screen flex-col">
+            {modoDemo ? (
+              <div className="pointer-events-none fixed inset-x-0 top-0 z-[9999] flex justify-center px-2">
+                <span className="rounded-b-md border border-amber-400/60 bg-amber-950/95 px-3 py-1 text-center text-[11px] font-semibold tracking-wide text-amber-100 shadow-lg">
+                  MODO DEMONSTRAÇÃO · dados fictícios · nenhuma operação real
+                </span>
+              </div>
+            ) : null}
             {ehStaff ? null : <SiteHeader />}
             <main className="flex-1">
               <Outlet />

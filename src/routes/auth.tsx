@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, useRoles } from "@/lib/session";
+import { ehModoDemo } from "@/lib/demo-preview";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -79,6 +80,14 @@ function AuthPage() {
       if (error) {
         toast.error("Não foi possível entrar. Confira e-mail e senha.");
         setCarregando(false);
+        return;
+      }
+      // No Preview de homologação a sessão é fictícia: navegar explicitamente
+      // evita depender de um papel real do Supabase para abrir o painel.
+      if (ehModoDemo()) {
+        const alvo = destino === "/" ? "/admin" : destino;
+        if (alvo.includes("?")) window.location.assign(alvo);
+        else await navigate({ to: alvo, replace: true });
         return;
       }
       toast.success("Bem-vindo de volta!");

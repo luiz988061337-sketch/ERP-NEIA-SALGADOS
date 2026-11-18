@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { ehModoDemo } from "@/lib/demo-preview";
 
 export type GpsStatus = "ativo" | "atualizando" | "sem_atualizacao" | "indisponivel" | "permissao_negada" | "offline";
 
@@ -270,6 +271,12 @@ export function useGpsTracking({
   }, []);
 
   const startTracking = useCallback(async () => {
+    // Demonstração: não pede permissão de localização nem inicia rastreamento.
+    if (ehModoDemo()) {
+      setStatus("indisponivel");
+      setError("Rastreamento desativado no modo demonstração.");
+      return;
+    }
     if (!("geolocation" in navigator)) {
       setStatus("indisponivel");
       setError("Geolocalização não suportada neste navegador/dispositivo.");

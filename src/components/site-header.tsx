@@ -24,6 +24,7 @@ export function SiteHeader() {
 
   const isAdmin = roles?.includes("admin");
   const isAtendente = roles?.includes("atendente") || isAdmin;
+  const podeVerEquipe = isAdmin || roles?.includes("financeiro") || roles?.includes("producao");
 
   async function sair() {
     await queryClient.cancelQueries();
@@ -113,11 +114,13 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem asChild>
-                  <Link to="/equipe">
-                    <User className="mr-2 size-4" /> Equipe
-                  </Link>
-                </DropdownMenuItem>
+                {podeVerEquipe ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/equipe">
+                      <User className="mr-2 size-4" /> Equipe
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
                 {isAdmin ? (
                   <DropdownMenuItem asChild>
                     <Link to="/admin">
@@ -165,7 +168,7 @@ export function SiteHeader() {
                   <Link to="/orcamentos">Orçamentos</Link>
                 </DropdownMenuItem>
               ) : null}
-              {user ? (
+              {podeVerEquipe ? (
                 <DropdownMenuItem asChild>
                   <Link to="/equipe">Equipe</Link>
                 </DropdownMenuItem>

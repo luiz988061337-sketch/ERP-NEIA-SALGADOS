@@ -31,6 +31,8 @@ import {
 } from "@/lib/inteligencia";
 import { cn } from "@/lib/utils";
 import { downloadCSV } from "@/lib/export";
+import { ehModoDemo } from "@/lib/demo-preview";
+import { SuiteComercialDemo } from "@/components/comercial-preview/suite-demo";
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({
@@ -39,7 +41,7 @@ export const Route = createFileRoute("/clientes")({
       { name: "description", content: "Relacionamento com clientes e reativação." },
     ],
   }),
-  component: Clientes,
+  component: () => (ehModoDemo() ? <SuiteComercialDemo abaInicial="clientes" /> : <Clientes />),
 });
 
 type FiltroSeg = "todos" | "ativo" | "risco" | "inativo" | "muito_inativo" | "novo";

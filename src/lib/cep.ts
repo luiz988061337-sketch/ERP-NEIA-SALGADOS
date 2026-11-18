@@ -1,5 +1,7 @@
 /** Consulta de CEP via ViaCEP (sem chave de API, com CORS liberado). */
 
+import { ehModoDemo } from "@/lib/demo-preview";
+
 export type EnderecoCep = {
   cep: string;
   logradouro: string;
@@ -27,6 +29,18 @@ export function mascararCep(valor: string): string {
 export async function buscarCep(cep: string): Promise<EnderecoCep> {
   const d = soDigitos(cep);
   if (d.length !== 8) throw new Error("CEP incompleto. Digite os 8 dígitos.");
+
+  // Demonstração: nenhuma consulta externa é realizada.
+  if (ehModoDemo()) {
+    return {
+      cep: d,
+      logradouro: "Rua Demonstração",
+      complemento: "",
+      bairro: "Centro",
+      localidade: "São Paulo",
+      uf: "SP",
+    };
+  }
 
   const resp = await fetch(`https://viacep.com.br/ws/${d}/json/`);
   if (!resp.ok) throw new Error("Não consegui consultar o CEP agora. Tente de novo.");

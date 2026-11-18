@@ -3,6 +3,7 @@ import { createMiddleware } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
+import { criarClienteDemo, ehModoDemo, USUARIO_DEMO } from '@/lib/demo-preview'
 
 
 
@@ -33,7 +34,18 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 
 export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
-    
+    // Demonstração de Preview: nenhuma validação de token contra o backend
+    // real. O contexto recebe apenas o cliente fictício e um usuário falso.
+    if (ehModoDemo()) {
+      return next({
+        context: {
+          supabase: criarClienteDemo(),
+          userId: USUARIO_DEMO.id,
+          claims: { sub: USUARIO_DEMO.id, role: "authenticated", email: USUARIO_DEMO.email } as any,
+        },
+      });
+    }
+
     const SUPABASE_URL = process.env['SUPABASE_URL'];
     const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'];
 

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ehModoDemo } from "@/lib/demo-preview";
 
 type Ponto = { lat: number; lng: number; label: string; moto?: boolean };
 
@@ -13,6 +14,8 @@ declare global {
 let loaderPromise: Promise<void> | null = null;
 
 function loadMaps(): Promise<void> {
+  // Demonstração: nenhum script externo de mapa/rastreamento é carregado.
+  if (ehModoDemo()) return Promise.reject(new Error("Mapa desativado no modo demonstração"));
   if (typeof window === "undefined") return Promise.resolve();
   if (window.__neiaMapsReady) return Promise.resolve();
   if (loaderPromise) return loaderPromise;

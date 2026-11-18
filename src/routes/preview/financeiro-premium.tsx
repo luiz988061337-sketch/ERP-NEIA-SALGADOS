@@ -22,7 +22,7 @@ type Obrigacao = { id: string; descricao: string; tipo: string; competencia: str
 
 function brl(v: number) { return Number.isFinite(v) ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"; }
 
-function FinanceiroPremium() {
+export function FinanceiroPremium() {
   const [periodo, setPeriodo] = useState("Abril/2025");
   const [aba, setAba] = useState<"lancamentos"|"custos"|"caixa"|"equilibrio"|"simulacoes"|"fiscal"|"relatorios">("lancamentos");
   const [showForm, setShowForm] = useState(false);

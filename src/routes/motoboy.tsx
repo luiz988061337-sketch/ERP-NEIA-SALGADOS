@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { ehModoDemo } from "@/lib/demo-preview";
 import { PageHeader } from "@/components/admin/ui-admin";
 import { PainelMotoboyRpc } from "@/components/admin/painel-motoboy-rpc";
 import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/motoboy")({
 });
 
 function PainelMotoboy() {
-  return import.meta.env.VITE_NEIA_MOTOBOY_RPC === "1" ? <PainelMotoboyRpc /> : <Motoboy />;
+  return ehModoDemo() || import.meta.env.VITE_NEIA_MOTOBOY_RPC === "1" ? <PainelMotoboyRpc /> : <Motoboy />;
 }
 
 function inicioSemana(d: Date) {
@@ -196,11 +197,13 @@ function Motoboy() {
       console.error("Failed to start GPS:", err);
     }
 
-    const pos = await new Promise<GeolocationPosition | null>((resolve) =>
-      navigator.geolocation
-        ? navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 8000 })
-        : resolve(null),
-    );
+    const pos = ehModoDemo()
+      ? null
+      : await new Promise<GeolocationPosition | null>((resolve) =>
+          navigator.geolocation
+            ? navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 8000 })
+            : resolve(null),
+        );
     // Fase A: se o GPS for negado, não apaga a última posição conhecida.
     const update: Record<string, unknown> = { status: "em_rota" };
     if (pos) {

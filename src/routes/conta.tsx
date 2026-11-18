@@ -20,6 +20,8 @@ import { MINIMO_COMBO, isMultiploCombo } from "@/lib/totals";
 import { pedidoHabitual } from "@/lib/inteligencia";
 import { useCrmSettings } from "@/lib/crm";
 import { DEFAULT_FIDELIDADE, podeResgatar, type FidelidadeCfg } from "@/lib/fidelidade";
+import { ehModoDemo } from "@/lib/demo-preview";
+import { MinhaContaDemoR2B } from "@/components/reembolsos-estornos/conta-demo-integrada";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/conta")({
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/conta")({
       { name: "description", content: "Pedidos, favoritos, fidelidade, endereços e avaliações." },
     ],
   }),
-  component: Conta,
+  component: () => (ehModoDemo() ? <MinhaContaDemoR2B /> : <Conta />),
 });
 
 const PONTOS_POR_REAL = 0.2; // legado: 1 ponto a cada R$ 5 (regra atual em Configurações → CRM)

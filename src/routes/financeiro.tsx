@@ -49,6 +49,8 @@ import {
 } from "@/lib/extratos-importacao";
 import { reaisParaCentavos } from "@/lib/financeiro-pagamentos";
 import { useRoles, useSession } from "@/lib/session";
+import { ehModoDemo } from "@/lib/demo-preview";
+import { FinanceiroPremium } from "@/routes/preview/financeiro-premium";
 
 export const Route = createFileRoute("/financeiro")({
   head: () => ({
@@ -57,7 +59,7 @@ export const Route = createFileRoute("/financeiro")({
       { name: "description", content: "Caixa, contas a pagar/receber e conciliação." },
     ],
   }),
-  component: Financeiro,
+  component: () => (ehModoDemo() ? <FinanceiroPremium /> : <Financeiro />),
 });
 
 const MEIOS = ["dinheiro", "pix", "credito", "debito", "transferencia", "outro"] as const;

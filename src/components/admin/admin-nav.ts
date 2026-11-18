@@ -10,6 +10,7 @@ import {
   Factory,
   ImageIcon,
   KeyRound,
+  Layers,
   LayoutDashboard,
   Package,
   Percent,
@@ -27,6 +28,7 @@ import {
   Wheat,
   type LucideIcon,
 } from "lucide-react";
+import { ehModoDemo } from "@/lib/demo-preview";
 
 export type AdminNavItem = {
   value: string;
@@ -47,6 +49,8 @@ export type AdminNavGroup = {
  * (nada removido). Itens com `href` navegam para rotas staff fora das abas.
  * Relatórios não tem módulo próprio — lacuna documentada, sem página fictícia.
  */
+const demo = ehModoDemo();
+
 export const ADMIN_NAV: AdminNavGroup[] = [
   {
     label: "Principal",
@@ -56,10 +60,15 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { value: "producao", label: "Produção", icon: CookingPot, href: "/producao" },
       { value: "central", label: "Central de Entregas", icon: Truck, href: "/central-entregas" },
       { value: "pdv", label: "PDV / Balcão", icon: ReceiptText, href: "/pdv" },
-      { value: "clientes", label: "Clientes", icon: Users },
-      { value: "produtos", label: "Produtos", icon: Package },
-      { value: "insumos", label: "Estoque", icon: Wheat },
-      { value: "financeiro", label: "Financeiro", icon: Wallet },
+      { value: "clientes", label: "Clientes", icon: Users, ...(demo ? { href: "/clientes" } : {}) },
+      {
+        value: "produtos",
+        label: "Produtos",
+        icon: Package,
+        ...(demo ? { href: "/preview/cadastro-produtos" } : {}),
+      },
+      { value: "insumos", label: "Estoque", icon: Wheat, ...(demo ? { href: "/preview/estoque-salgados" } : {}) },
+      { value: "financeiro", label: "Financeiro", icon: Wallet, ...(demo ? { href: "/financeiro" } : {}) },
       { value: "loja", label: "Configurações", icon: Store },
     ],
   },
@@ -67,6 +76,12 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "Catálogo",
     items: [
       { value: "precificacao", label: "Precificação", icon: Percent },
+      ...(demo
+        ? ([
+            { value: "combos", label: "Combos", icon: Layers, href: "/preview/combos" },
+            { value: "embalagens", label: "Embalagens", icon: Package, href: "/preview/estoque-embalagens" },
+          ] as AdminNavItem[])
+        : []),
       { value: "cupons", label: "Cupons", icon: Tag },
       { value: "calculadora", label: "Calculadora", icon: Calculator },
       { value: "hero", label: "Hero", icon: ImageIcon },
@@ -79,6 +94,9 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { value: "fichas", label: "Fichas técnicas", icon: ChefHat },
       { value: "fornecedores", label: "Fornecedores", icon: Factory },
       { value: "compras", label: "Compras", icon: ShoppingCart },
+      ...(demo
+        ? ([{ value: "insumos-demo", label: "Insumos (novo)", icon: Wheat, href: "/preview/estoque-insumos" }] as AdminNavItem[])
+        : []),
     ],
   },
   {
@@ -86,10 +104,16 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { value: "dono", label: "Relatório do dono", icon: BarChart3 },
       { value: "metas", label: "Metas", icon: Target },
-      { value: "comercial", label: "Comercial", icon: Crown },
+      { value: "comercial", label: "Comercial", icon: Crown, ...(demo ? { href: "/campanhas" } : {}) },
       { value: "equipe", label: "Equipe", icon: Briefcase, href: "/equipe" },
       { value: "contador", label: "Contador", icon: Users, href: "/contador" },
-      { value: "motoboys", label: "Motoboys", icon: Bike },
+      { value: "motoboys", label: "Motoboys", icon: Bike, ...(demo ? { href: "/motoboy" } : {}) },
+      ...(demo
+        ? ([
+            { value: "reembolsos", label: "Reembolsos e estornos", icon: ReceiptText, href: "/preview/reembolsos-estornos" },
+            { value: "fiscal", label: "Fiscal", icon: ScrollText, href: "/fiscal" },
+          ] as AdminNavItem[])
+        : []),
       { value: "impressao", label: "Impressão", icon: Printer },
     ],
   },
@@ -111,6 +135,11 @@ export const ADMIN_ABA_TITULO: Record<string, string> = {
   clientes: "Clientes",
   motoboys: "Motoboys",
   cupons: "Cupons",
+  combos: "Combos",
+  embalagens: "Embalagens",
+  "insumos-demo": "Insumos (novo)",
+  reembolsos: "Reembolsos e estornos",
+  fiscal: "Fiscal",
   metas: "Metas",
   financeiro: "Financeiro",
   impressao: "Impressão",
@@ -136,6 +165,11 @@ export const ADMIN_ABA_DESCRICAO: Record<string, string> = {
   clientes: "Base de clientes, histórico e contatos.",
   motoboys: "Cadastro e roteirização das entregas.",
   cupons: "Promoções e descontos ativos.",
+  combos: "Combos e composição de sabores (múltiplos de 50).",
+  embalagens: "Embalagens com unidades, pacotes e fardos.",
+  "insumos-demo": "Insumos com consumo, custos e reposição.",
+  reembolsos: "Solicitações, origens e estornos demonstrativos.",
+  fiscal: "Documentação e obrigações fiscais do MEI.",
   metas: "Acompanhamento de faturamento e produtos.",
   financeiro: "Receitas, custos e ticket médio.",
   impressao: "Fila da Tanca TP-550 e histórico de trabalhos.",

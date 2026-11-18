@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { ehModoDemo } from "@/lib/demo-preview";
 import type { Database } from "@/integrations/supabase/types";
 import { useCart, isComboItem } from "@/lib/cart";
 import { usePerfil, useSession, useStaffOnly } from "@/lib/session";
@@ -420,6 +421,10 @@ function Checkout() {
   /** GPS do celular — somente após ação explícita do usuário. Converte as
    * coordenadas em endereço, exige confirmação e valida a precisão. */
   async function usarLocalizacaoAtual() {
+    if (ehModoDemo()) {
+      toast.info("Localização automática desativada na demonstração.");
+      return;
+    }
     if (!("geolocation" in navigator)) {
       toast.error("Seu navegador não suporta localização.");
       return;

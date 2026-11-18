@@ -16,6 +16,8 @@ import { whatsappLink } from "@/lib/format";
 import { DEFAULT_CRM_SETTINGS, renderMensagem, useClientesStats, useCrmSettings } from "@/lib/crm";
 import { diasParaRecompra, montarWhatsApp } from "@/lib/inteligencia";
 import { simularCampanhas } from "@/lib/crm-fidelidade";
+import { ehModoDemo } from "@/lib/demo-preview";
+import { SuiteComercialDemo } from "@/components/comercial-preview/suite-demo";
 
 export const Route = createFileRoute("/campanhas")({
   validateSearch: z.object({
@@ -25,7 +27,7 @@ export const Route = createFileRoute("/campanhas")({
   head: () => ({
     meta: [{ title: "Campanhas — Néia Salgados" }],
   }),
-  component: Campanhas,
+  component: () => (ehModoDemo() ? <SuiteComercialDemo /> : <Campanhas />),
 });
 
 function Campanhas() {

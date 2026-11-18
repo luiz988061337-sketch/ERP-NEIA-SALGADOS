@@ -124,7 +124,7 @@ const PAGAMENTO_LABEL_EXT: Record<string, string> = {
   reembolsado: "Pagamento estornado",
 };
 
-function MeusPedidos() {
+export function MeusPedidos() {
   const [filtro, setFiltro] = React.useState<"todos" | "andamento" | "concluidos" | "cancelados">("todos");
 
   const pedidosFiltrados = MEUS_PEDIDOS.filter((p) => {
