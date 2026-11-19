@@ -94,6 +94,8 @@ import { FornecedoresAdmin } from "@/components/admin/estoque/fornecedores-admin
 import { ComprasAdmin } from "@/components/admin/estoque/compras-admin";
 import { PrecificacaoAdmin } from "@/components/admin/precificacao-admin";
 import { DashboardAdmin } from "@/components/admin/dashboard-admin";
+import { PainelDashboardL2 } from "@/components/admin/dashboard-l2";
+import { ehModoDemo } from "@/lib/demo-preview";
 import { EmptyState, PageHeader, StatusCard } from "@/components/admin/ui-admin";
 import fritos from "@/assets/cat-fritos.jpg";
 import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
@@ -122,6 +124,7 @@ export const Route = createFileRoute("/admin")({
 
 function Admin() {
   const navigate = useNavigate();
+  const modoDemo = ehModoDemo();
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
@@ -791,22 +794,37 @@ function Admin() {
     >
       <Tabs value={aba} onValueChange={setAba}>
         <TabsContent value="dashboard" className="mt-4">
-          <DashboardAdmin
-            pedidos={pedidos ?? []}
-            produtos={produtos ?? []}
-            profiles={profiles ?? []}
-            clientesStats={clientesStats ?? []}
-            periodo={periodo}
-            setPeriodo={setPeriodo}
-            setAba={setAba}
-            notLidas={notLidas}
-            marcarLida={marcarLida}
-            busca={buscaGlobal}
-            setBusca={setBuscaGlobal}
-            setPedidoFoco={setPedidoFoco}
-            setProdutoFoco={setProdutoFoco}
-            setClienteFoco={setClienteFoco}
-          />
+          {modoDemo ? (
+            <PainelDashboardL2
+              periodo={periodo}
+              setPeriodo={setPeriodo}
+              setAba={setAba}
+              notLidas={notLidas}
+              marcarLida={marcarLida}
+              busca={buscaGlobal}
+              setBusca={setBuscaGlobal}
+              setPedidoFoco={setPedidoFoco}
+              setProdutoFoco={setProdutoFoco}
+              setClienteFoco={setClienteFoco}
+            />
+          ) : (
+            <DashboardAdmin
+              pedidos={pedidos ?? []}
+              produtos={produtos ?? []}
+              profiles={profiles ?? []}
+              clientesStats={clientesStats ?? []}
+              periodo={periodo}
+              setPeriodo={setPeriodo}
+              setAba={setAba}
+              notLidas={notLidas}
+              marcarLida={marcarLida}
+              busca={buscaGlobal}
+              setBusca={setBuscaGlobal}
+              setPedidoFoco={setPedidoFoco}
+              setProdutoFoco={setProdutoFoco}
+              setClienteFoco={setClienteFoco}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-4">
