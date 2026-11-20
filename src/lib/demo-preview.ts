@@ -11,6 +11,10 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  aceitarPedidoEmMemoria,
+  type PedidoAceiteMemoria,
+} from "@/lib/aceite-atendente-memoria";
 
 type Linha = Record<string, any>;
 type Resposta = { data: any; error: any; count?: number | undefined; status?: number };
@@ -172,9 +176,14 @@ const SEMENTES: Record<string, Linha[]> = {
   pedidos: [
     linha("pedidos", {
       id: "00000000-0000-4000-8000-000000000201",
+      numero: 4598,
       codigo: "DEMO-001",
       cliente_nome: "Cliente fictício",
       status: "recebido",
+      tipo_entrega: "entrega",
+      aceito_em_atendente: null,
+      aceito_por: null,
+      producao_status: "pendente",
       total: 48.5,
       taxa_entrega: 5,
       forma_pagamento: "pix",
@@ -184,6 +193,9 @@ const SEMENTES: Record<string, Linha[]> = {
       telefone: "(11) 90000-0000",
       user_id: USUARIO_DEMO.id,
       motoboy_id: null,
+      pedido_itens: [
+        { nome: "Coxinha de frango (demo)", quantidade: 5, preco_unitario: 7.9 },
+      ],
     }),
     linha("pedidos", {
       id: "00000000-0000-4000-8000-000000000202",
@@ -446,7 +458,6 @@ const RPC_DEMO: Record<string, unknown> = {
   encerrar_rota_pela_central: OK,
   aceitar_entrega_motoboy: OK,
   retirar_pedido_cliente: OK,
-  aceitar_pedido_atendente: OK,
   liberar_pedido_cozinha: OK,
   conferir_pedido_cozinha: OK,
   atribuir_pedido_motoboy: OK,
@@ -458,16 +469,18 @@ const RPC_DEMO: Record<string, unknown> = {
   registrar_movimento_caixa: OK,
 };
 
-function clienteDemo(): any {
+function clienteDemo(usuarioId = USUARIO_DEMO.id): any {
+  const usuario = { ...USUARIO_DEMO, id: usuarioId };
+  const sessao = { ...SESSAO_DEMO, user: usuario };
   const auth = {
-    async getUser() { return { data: { user: USUARIO_DEMO }, error: null }; },
-    async getSession() { return { data: { session: SESSAO_DEMO }, error: null }; },
-    async setSession() { return { data: { session: SESSAO_DEMO, user: USUARIO_DEMO }, error: null }; },
-    async signInWithPassword() { return { data: { user: USUARIO_DEMO, session: SESSAO_DEMO }, error: null }; },
-    async signInAnonymously() { return { data: { user: USUARIO_DEMO, session: SESSAO_DEMO }, error: null }; },
+    async getUser() { return { data: { user: usuario }, error: null }; },
+    async getSession() { return { data: { session: sessao }, error: null }; },
+    async setSession() { return { data: { session: sessao, user: usuario }, error: null }; },
+    async signInWithPassword() { return { data: { user: usuario, session: sessao }, error: null }; },
+    async signInAnonymously() { return { data: { user: usuario, session: sessao }, error: null }; },
     async signOut() { return { error: null }; },
     async resetPasswordForEmail() { return { data: {}, error: null }; },
-    async updateUser() { return { data: { user: USUARIO_DEMO }, error: null }; },
+    async updateUser() { return { data: { user: usuario }, error: null }; },
     onAuthStateChange() {
       return { data: { subscription: { unsubscribe() { /* sem listener real */ } } } };
     },
@@ -475,7 +488,22 @@ function clienteDemo(): any {
 
   return {
     from: (nome: string) => new ConsultaDemo(nome),
-    rpc: async (nome: string, _args?: unknown) => {
+    rpc: async (nome: string, args?: unknown) => {
+      // RPC demonstrativa do aceite: mesma validação da migration 0084,
+      // porém aplicada somente ao banco em memória deste cliente.
+      if (nome === "aceitar_pedido_atendente") {
+        const papeis = tabela("user_roles")
+          .filter((r) => r["user_id"] === usuarioId)
+          .map((r) => String(r["role"] ?? ""));
+        const parametros = (args ?? {}) as Record<string, unknown>;
+        const r = aceitarPedidoEmMemoria(
+          tabela("pedidos") as unknown as PedidoAceiteMemoria[],
+          papeis,
+          usuarioId,
+          parametros["p_pedido_id"],
+        );
+        return ok([{ resultado: r.resultado, detalhe: r.detalhe }]);
+      }
       const dados = RPC_DEMO[nome];
       return ok(dados === undefined ? {} : dados);
     },
@@ -500,6 +528,6 @@ function clienteDemo(): any {
 }
 
 /** Mesma superfície do cliente real, porém sem qualquer acesso à rede. */
-export function criarClienteDemo(): SupabaseClient<Database> {
-  return clienteDemo() as SupabaseClient<Database>;
+export function criarClienteDemo(opcoes: { usuarioId?: string } = {}): SupabaseClient<Database> {
+  return clienteDemo(opcoes.usuarioId ?? USUARIO_DEMO.id) as SupabaseClient<Database>;
 }

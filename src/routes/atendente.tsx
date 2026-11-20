@@ -609,7 +609,7 @@ function Atendente() {
       />
       {visao === "kanban" ? (
         <div className="mx-auto max-w-[1700px]">
-          <CentralPedidos />
+          <CentralPedidos usuarioId={user?.id} papeis={roles} />
           <div className="flex justify-end px-3 pb-4">
             <ActionButton variant="ghost" onClick={() => setVisao("novo")}>
               + Novo Pedido

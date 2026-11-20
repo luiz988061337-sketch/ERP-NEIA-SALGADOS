@@ -24,7 +24,7 @@ const env = {
   NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --import=${new URL('./visual-aprovados-sem-rede.mjs', import.meta.url).href}`.trim(),
 };
 const testes = [
-  'proteger-dev', 'isolamento-local', 'estoques-preview', 'cadastros-estoques', 'combos-preview',
+  'proteger-dev', 'isolamento-local', 'aceite-atendente-local', 'estoques-preview', 'cadastros-estoques', 'combos-preview',
   'comercial-preview', 'comercial-campanhas', 'comercial-pesquisas',
   'comercial-sugestoes', 'comercial-resultados',
   'financeiro-premium', 'financeiro-m', 'financeiro-conciliacao',

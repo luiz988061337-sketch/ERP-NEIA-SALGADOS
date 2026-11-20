@@ -25,6 +25,7 @@ export type PedidoCentral = {
   created_at: string;
   agendado_para?: string | null;
   aceito_em_atendente?: string | null;
+  aceito_por?: string | null;
   liberado_em?: string | null;
   conferido_em?: string | null;
   pronto_em?: string | null;

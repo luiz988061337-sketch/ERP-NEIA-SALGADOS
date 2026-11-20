@@ -31,6 +31,7 @@ import {
 } from "@/lib/producao-liberacao";
 import { imagemProduto } from "@/lib/catalog";
 import { ehModoDemo } from "@/lib/demo-preview";
+import { pedidosComAceiteMemoria } from "@/lib/aceite-atendente-memoria";
 import { PEDIDOS_DEMO_PRODUCAO } from "@/lib/producao-demo-fixtures";
 import fritos from "@/assets/cat-fritos.jpg";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
@@ -263,10 +264,13 @@ export function Producao({
   });
 
   // No modo demonstração isolado (VITE_DEMO_PREVIEW=1) a rota real usa os
-  // mesmos pedidos fictícios da prévia. Nada é gravado: as ações de escrita
-  // continuam bloqueadas pelo cliente demo em memória.
+  // mesmos pedidos fictícios da prévia, acrescidos dos aceites confirmados no
+  // adaptador em memória. Nada é gravado fora da memória local.
   const pedidos =
-    pedidosInjetados ?? (ehModoDemo() ? ([...PEDIDOS_DEMO_PRODUCAO] as any[]) : pedidosHook);
+    pedidosInjetados ??
+    (ehModoDemo()
+      ? (pedidosComAceiteMemoria([...PEDIDOS_DEMO_PRODUCAO] as any[]) as any[])
+      : pedidosHook);
 
   const idsPedidos = useMemo(() => (pedidos ?? []).map((p: any) => String(p.id)), [pedidos]);
   // Reservas e consumos para a retirada fisica parcial. Leitura direta;

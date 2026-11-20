@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Bell,
@@ -51,7 +51,11 @@ import {
   type PedidoCentral,
 } from "@/lib/central-pedidos";
 import { CANAIS } from "@/lib/sincronizacao-paineis";
-import { elegivelAceiteLocal } from "@/lib/atendente-aceite";
+import {
+  executarAceiteAtendente,
+  elegivelAceiteLocal,
+  type ResultadoAceite,
+} from "@/lib/atendente-aceite";
 
 /**
  * Central de Pedidos da Atendente.
@@ -68,6 +72,23 @@ const COLUNAS = [
   { key: "pronto", titulo: "Prontos", cor: "#1E9E63", icone: CheckCircle2 },
 ] as const;
 
+function mensagemFalhaAceite(r: ResultadoAceite): string {
+  switch (r.codigo) {
+    case "negado":
+      return "Acesso negado: apenas atendentes e administradores podem aceitar pedidos.";
+    case "inelegivel":
+      return "Este pedido não está mais disponível para aceite.";
+    case "conflito":
+      return "Este pedido já foi aceito. A fila será atualizada.";
+    case "inexistente":
+      return "Pedido não encontrado.";
+    case "flag-desativada":
+      return "A integração de aceite não está ativada neste ambiente.";
+    default:
+      return r.detalhe || "Não foi possível confirmar o aceite. Tente novamente.";
+  }
+}
+
 export function CentralPedidos({
   preview = false,
   pedidosInjetados,
@@ -75,20 +96,28 @@ export function CentralPedidos({
   onAceitar,
   onAvisoReconhecido,
   configInicial,
+  usuarioId = null,
+  papeis = [],
 }: {
   preview?: boolean;
   pedidosInjetados?: PedidoCentral[];
   avisosInjetados?: AvisoCozinha[];
-  onAceitar?: (pedido: PedidoCentral) => void;
+  /** Executor injetado (prévias). Deve retornar o resultado real da operação. */
+  onAceitar?: (pedido: PedidoCentral) => ResultadoAceite | Promise<ResultadoAceite>;
   onAvisoReconhecido?: (id: string) => void;
   /** Demo: força a config aprovada (som ligado, 75%, 30s) na montagem. */
   configInicial?: ConfigAlerta;
+  usuarioId?: string | null | undefined;
+  papeis?: readonly string[] | undefined;
 }) {
+  const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState<"todos" | "analise" | "producao" | "pronto">("todos");
   const [modalidade, setModalidade] = useState<"todas" | "entrega" | "retirada">("todas");
   const [soAgendados, setSoAgendados] = useState(false);
   const [detalhe, setDetalhe] = useState<PedidoCentral | null>(null);
+  const [aceitandoId, setAceitandoId] = useState<string | null>(null);
+  const aceitandoRef = useRef<string | null>(null);
 
   /* ---------------------------------------------------------------- */
   /* Dados reais                                                      */
@@ -137,6 +166,49 @@ export function CentralPedidos({
     () => (preview ? (avisosInjetados ?? []) : (avisosHook ?? [])),
     [preview, avisosInjetados, avisosHook],
   );
+
+  const atualizarFilas = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["central-pedidos"] }),
+      queryClient.invalidateQueries({ queryKey: ["fila-producao"] }),
+      queryClient.invalidateQueries({ queryKey: ["producao-reservas"] }),
+    ]);
+
+  /** Aceite: só confirma na interface depois do resultado da operação. */
+  async function tratarAceite(pedido: PedidoCentral): Promise<void> {
+    if (aceitandoRef.current) return;
+    aceitandoRef.current = pedido.id;
+    setAceitandoId(pedido.id);
+    try {
+      const resultado = onAceitar
+        ? await onAceitar(pedido)
+        : await executarAceiteAtendente({
+            cliente: supabase,
+            pedido: {
+              id: pedido.id,
+              status: pedido.status,
+              aceito_em_atendente: pedido.aceito_em_atendente ?? null,
+              pagamento_status: pedido.pagamento_status ?? "pendente",
+            },
+            autor: { id: usuarioId, papeis },
+          });
+
+      if (!resultado.ok) {
+        if (resultado.codigo === "conflito") await atualizarFilas();
+        toast.error(mensagemFalhaAceite(resultado));
+        return;
+      }
+
+      toast.success(`Pedido #${pedido.numero} aceito e disponível para a Produção.`);
+      await atualizarFilas();
+    } catch (err) {
+      console.error("[central-pedidos] aceite:", err);
+      toast.error("Não foi possível confirmar o aceite. Nenhum status foi alterado.");
+    } finally {
+      aceitandoRef.current = null;
+      setAceitandoId(null);
+    }
+  }
 
   /* ---------------------------------------------------------------- */
   /* Alerta sonoro (aprovado: ativo, 75%, 30s, reconhecimento individual) */
@@ -498,7 +570,8 @@ export function CentralPedidos({
                       avisoCozinha={avisoDoPedido(avisos, p.id)}
                       naoReconhecido={naoReconhecidos.some((x) => x.id === p.id)}
                       onReconhecer={() => reconhecer(p.id)}
-                      onAceitar={() => onAceitar?.(p)}
+                      onAceitar={() => void tratarAceite(p)}
+                      aceitando={aceitandoId === p.id}
                       onDetalhes={() => abrirDetalhes(p)}
                       onAvisoLido={() => onAvisoReconhecido?.(p.id)}
                     />
@@ -653,6 +726,7 @@ function CardPedido({
   naoReconhecido,
   onReconhecer,
   onAceitar,
+  aceitando = false,
   onDetalhes,
 }: {
   pedido: PedidoCentral;
@@ -661,6 +735,7 @@ function CardPedido({
   naoReconhecido: boolean;
   onReconhecer: () => void;
   onAceitar?: () => void;
+  aceitando?: boolean;
   onDetalhes: () => void;
   onAvisoLido?: () => void;
 }) {
@@ -781,11 +856,12 @@ function CardPedido({
         {coluna === "analise" ? (
           <Button
             size="sm"
-            disabled={!aceite.elegivel}
+            disabled={!aceite.elegivel || aceitando}
+            aria-busy={aceitando}
             onClick={onAceitar ?? onDetalhes}
             className="erp-btn-gold h-10 flex-1 border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-xs font-bold text-[#14120C] hover:brightness-105 disabled:opacity-45"
           >
-            <CheckCircle2 className="mr-1.5 size-4" /> Aceitar pedido
+            <CheckCircle2 className="mr-1.5 size-4" /> {aceitando ? "Aceitando…" : "Aceitar pedido"}
           </Button>
         ) : null}
         {coluna === "analise" && naoReconhecido ? (

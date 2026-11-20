@@ -13,6 +13,7 @@
     "smoke": "node scripts/proteger-dev.mjs && node scripts/smoke.mjs",
     "teste:guard": "node scripts/proteger-dev.test.mjs",
     "teste:isolamento": "node --experimental-transform-types scripts/isolamento-local.test.mjs",
+    "teste:aceite-local": "node --experimental-transform-types scripts/aceite-atendente-local.test.mjs",
     "teste:comercial-campanhas": "node scripts/comercial-campanhas.test.mjs",
     "teste:comercial-sugestoes": "node scripts/comercial-sugestoes.test.mjs",
     "teste:comercial-pesquisas": "node scripts/comercial-pesquisas.test.mjs",
