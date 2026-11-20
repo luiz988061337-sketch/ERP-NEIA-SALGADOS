@@ -9,12 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { EmptyState, PageHeader } from "@/components/admin/ui-admin";
+import { ContadorPremium } from "@/components/admin/contador-premium";
 import { brl } from "@/lib/format";
 import { downloadCSV } from "@/lib/export";
 import { dreMensal, montarDRE } from "@/lib/financeiro";
 import { faixaCompetencia } from "@/lib/competencia";
 import { logAdmin } from "@/lib/operacao";
 import { useRoles, useSession } from "@/lib/session";
+import { ehModoDemo } from "@/lib/demo-preview";
 
 export const Route = createFileRoute("/contador")({
   head: () => ({ meta: [{ title: "Contador — Néia Salgados" }] }),
@@ -43,6 +45,7 @@ function Contador() {
   const permitido =
     roles?.includes("admin") || roles?.includes("financeiro") || roles?.includes("contador");
   const podeGerenciar = roles?.includes("admin") || roles?.includes("financeiro");
+  const modoDemo = ehModoDemo();
 
   const fx = faixaCompetencia(mes);
   const ini = fx.ini;
@@ -295,6 +298,14 @@ function Contador() {
     void supabase
       .from("contador_acessos")
       .insert({ usuario: user?.id ?? null, competencia: mes, acao: "exportou_vendas" });
+  }
+
+  if (modoDemo) {
+    return (
+      <div className="w-full px-4 pb-28">
+        <ContadorPremium />
+      </div>
+    );
   }
 
   if (roles && !permitido) {

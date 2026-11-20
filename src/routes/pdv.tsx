@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Banknote,
-  Calculator,
   CreditCard,
   Droplet,
   Flame,
@@ -17,20 +16,16 @@ import {
   Settings,
   Package,
   Snowflake,
-  Star,
   TicketPercent,
   Trash2,
   Truck,
   UtensilsCrossed,
   ChartColumn,
   ClipboardList,
-  Repeat2,
-  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { brl } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
@@ -126,7 +121,7 @@ export function PDV({
   const [enviando, setEnviando] = useState(false);
   const [ultimos, setUltimos] = useState<Item[]>([]);
   const [painel, setPainel] = useState<"venda" | "pedidos" | "vendas" | "config">("venda");
-  const [soFavoritos, setSoFavoritos] = useState(false);
+  const [soFavoritos] = useState(false);
   const [relogio, setRelogio] = useState(agoraSP());
   // Idempotência: mesma chave por tentativa; reenvio retorna o mesmo pedido.
   const chaveRef = useRef("");
@@ -504,13 +499,6 @@ export function PDV({
       onSair={sair}
     >
       <div className="admin-pdv-l1 flex min-h-0 min-w-0 flex-1 flex-col">
-      {/* Topo do módulo (mesmo padrão dos demais módulos) */}
-      <AdminTopbar
-        usuario={user?.email ?? null}
-        onSair={sair}
-        onVoltar={() => navigate({ to: roles?.includes("admin") ? "/admin" : "/atendente" })}
-      />
-
       <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Catálogo */}
         <main className="min-w-0 space-y-3">
@@ -962,56 +950,6 @@ export function PDV({
           )}
         </aside>
       </div>
-
-      {/* Rodapé */}
-      <footer className="flex flex-wrap items-center gap-1 border-t border-[#D4A94A]/35 bg-[#0F0E0C] px-3 py-2 text-xs text-[#A09A8E]">
-        <span className="mr-2 italic text-[#C9A24B]">O sabor que faz a diferença</span>
-        <button
-          type="button"
-          onClick={() => setSoFavoritos((v) => !v)}
-          className={`flex min-h-[36px] items-center gap-1 rounded-lg border px-2.5 py-1 transition-colors ${
-            soFavoritos
-              ? "border-[#D4A94A] bg-[#F2CE6B]/15 text-[#F2CE6B]"
-              : "border-transparent hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
-          }`}
-        >
-          <Star className="size-4 text-[#C9A24B]" />
-          Favoritos
-        </button>
-        <button
-          type="button"
-          onClick={repetir}
-          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
-        >
-          <Repeat2 className="size-4 text-[#C9A24B]" />
-          Repetir Pedido
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/calculadora" })}
-          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
-        >
-          <Calculator className="size-4 text-[#C9A24B]" />
-          Calculadora
-        </button>
-        <button
-          type="button"
-          onClick={compartilharWhats}
-          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
-        >
-          <MessageCircle className="size-4 text-[#C9A24B]" />
-          WhatsApp
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/campanhas" })}
-          className="flex min-h-[36px] items-center gap-1 rounded-lg border border-transparent px-2.5 py-1 transition-colors hover:border-[#D4A94A]/50 hover:text-[#F2CE6B]"
-        >
-          <TicketPercent className="size-4 text-[#C9A24B]" />
-          Cupom/Indicação
-        </button>
-        <span className="ml-auto hidden sm:block">Néia Salgados — Qualidade em cada mordida!</span>
-      </footer>
       </div>
     </AdminShell>
   );

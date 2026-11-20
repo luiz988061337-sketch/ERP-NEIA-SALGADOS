@@ -1,0 +1,58 @@
+{
+  "base": "https://erp-neia-salgados-1pbkr90ho-luiz988061337-3147s-projects.vercel.app",
+  "ids": {
+    "produto": "produto-demo-1",
+    "insumos": "insumos-demo-9",
+    "embalagens": "embalagens-demo-14"
+  },
+  "testes": [
+    "Quatro rotas diretas com AdminShell, oito capturas e nenhuma página com overflow horizontal em 390px",
+    "Menu mobile abre Cadastro de Produtos como página independente, sem janela de referência",
+    "Cadastro de novo sabor com ID automático, nome duplicado bloqueado e formulário validado/capturado desktop e mobile; ID duplicado coberto no teste puro",
+    "Edição, busca por sabor, consulta e ativar/desativar com o mesmo identificador e modalidade em múltiplos de 50",
+    "Mesmo novo ID aparece no estoque com 0/0/0 e lotes vazios; entrada separada gera lote e saldo 150/0/150; bebida excluída da tabela e seletor",
+    "insumos: novo cadastro, compra de 3 volumes, retirada de 1, edição, duplicidade bloqueada e saldo preservado",
+    "embalagens: novo cadastro, compra de 3 volumes, retirada de 1, edição, duplicidade bloqueada e saldo preservado",
+    "Estado local compartilhado entre as quatro rotas sem cadastros nem saldos duplicados"
+  ],
+  "capturas": [
+    "cadastro-produtos-desktop.png",
+    "cadastro-produtos-mobile.png",
+    "estoque-salgados-desktop.png",
+    "estoque-salgados-mobile.png",
+    "estoque-insumos-desktop.png",
+    "estoque-insumos-mobile.png",
+    "estoque-embalagens-desktop.png",
+    "estoque-embalagens-mobile.png",
+    "formulario-produto-desktop.png",
+    "formulario-produto-mobile.png",
+    "formulario-produto-mobile-final.png",
+    "consulta-produto-cadastrado.png",
+    "novo-salgado-estoque-zero.png",
+    "novo-salgado-entrada-150.png",
+    "cadastro-insumos-compra-retirada.png",
+    "cadastro-embalagens-compra-retirada.png"
+  ],
+  "medidas": {
+    "cadastro-produtos": {
+      "viewport": 390,
+      "documento": 390
+    },
+    "estoque-salgados": {
+      "viewport": 390,
+      "documento": 390
+    },
+    "estoque-insumos": {
+      "viewport": 390,
+      "documento": 390
+    },
+    "estoque-embalagens": {
+      "viewport": 390,
+      "documento": 390
+    }
+  },
+  "erros": [],
+  "banco": [],
+  "mutacoes": [],
+  "http": []
+}

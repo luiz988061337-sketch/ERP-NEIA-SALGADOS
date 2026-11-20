@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { PageHeader } from "@/components/admin/ui-admin";
+import { FiscalPremium } from "@/components/admin/fiscal-premium";
+import { ehModoDemo } from "@/lib/demo-preview";
 import { useRoles, useSession } from "@/lib/session";
 import { empresaConfigurada, podeTransitarFiscal, rotuloFiscal } from "@/lib/fiscal";
 
@@ -17,6 +19,12 @@ export const Route = createFileRoute("/fiscal")({
 });
 
 function Fiscal() {
+  // Lote 03: demonstração isolada com layout premium e dados fictícios;
+  // o fluxo fiscal real (Supabase, emissão via provedor) segue intacto.
+  if (ehModoDemo()) {
+    return <FiscalPremium />;
+  }
+
   const navigate = useNavigate();
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);

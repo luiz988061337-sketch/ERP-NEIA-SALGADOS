@@ -9,7 +9,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -18,6 +18,9 @@ import l1LegibilidadeCss from "../l1-a-legibilidade.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
 import { CartDock } from "@/components/cart-dock";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { ADMIN_NAV } from "@/components/admin/admin-nav";
+import { useSession } from "@/lib/session";
 import { SiteHeader } from "@/components/site-header";
 import { GuardaVersao } from "@/components/guarda-versao";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,12 +120,104 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Rotas staff que JÁ montam o AdminShell (direta ou indiretamente).
+ * Evita sidebar duplicada ao aplicar o menu global.
+ */
+function jaTemAdminShell(pathname: string, modoDemo: boolean): boolean {
+  if (pathname === "/admin" || pathname === "/producao" || pathname === "/pdv") return true;
+  if (pathname.startsWith("/preview-l2")) return true;
+  if (pathname.startsWith("/preview/comercial")) return true;
+  const previewsComShell = [
+    "/preview/cadastro-produtos",
+    "/preview/combos",
+    "/preview/estoque-salgados",
+    "/preview/estoque-insumos",
+    "/preview/estoque-embalagens",
+    "/preview/reembolsos-estornos",
+    "/preview/reembolsos-estornos-origens",
+    "/preview/financeiro-premium",
+    "/preview/central-entregas-v2",
+  ];
+  if (previewsComShell.some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))) {
+    return true;
+  }
+  if (
+    modoDemo &&
+    (pathname === "/financeiro" ||
+      pathname === "/central-entregas" ||
+      pathname === "/clientes" ||
+      pathname === "/campanhas")
+  ) {
+    return true;
+  }
+  return pathname === "/mcp" || pathname === "/gestao";
+}
+
+const ABA_ESPECIAL: Record<string, string> = {
+  "/atendente": "pedidos",
+  "/crm-config": "clientes-crm",
+  "/operacao": "dashboard",
+  "/orcamentos": "dashboard",
+  "/recorrentes": "dashboard",
+};
+
+function abaPorRota(pathname: string): string {
+  if (ABA_ESPECIAL[pathname]) return ABA_ESPECIAL[pathname]!;
+  const todos = ADMIN_NAV.flatMap((grupo) => grupo.items);
+  const item = todos.find(
+    (i) => i.href && (pathname === i.href || pathname.startsWith(`${i.href}/`)),
+  );
+  return item?.value ?? "dashboard";
+}
+
+/** Aplica o menu unificado nas rotas staff que ainda não tinham sidebar. */
+function MenuAdministrativoGlobal({ children }: { children: ReactNode }) {
+  const { user } = useSession();
+  const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const { pathname } = useLocation();
+  return (
+    <AdminShell
+      aba={abaPorRota(pathname)}
+      onAba={() => {}}
+      onRefresh={() => void queryClient.invalidateQueries()}
+      usuario={user?.email ?? null}
+      onSair={async () => {
+        await supabase.auth.signOut();
+        router.navigate({ to: "/auth" });
+      }}
+    >
+      {children}
+    </AdminShell>
+  );
+}
+
 // Componente principal das rotas publicas
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
   const modoDemo = ehModoDemo();
+  // Lote 02: os módulos premium exibem o selo de demonstração dentro do próprio
+  // cabeçalho, então o aviso fixo global é omitido nessas quatro abas.
+  const [hashDemo, setHashDemo] = useState("");
+  useEffect(() => {
+    const atualizarHash = () => setHashDemo(window.location.hash);
+    atualizarHash();
+    window.addEventListener("hashchange", atualizarHash);
+    return () => window.removeEventListener("hashchange", atualizarHash);
+  }, []);
+  const hashLote02 = ["#cupons", "#calculadora", "#fornecedores", "#compras", "#dono", "#metas", "#contador"].includes(hashDemo);
+  // Lote 03: contas premium renderizam o próprio cabeçalho com selo de
+  // demonstração (Contador, Relatório do Dono e Metas), então o aviso fixo
+  // global fica oculto nesses pontos de entrada também.
+  const painelPremiumDemo =
+    pathname === "/contador" ||
+    pathname === "/motoboy" ||
+    pathname === "/fiscal" ||
+    (pathname === "/admin" && hashLote02);
+  const bannerDemoVisivel = modoDemo && !painelPremiumDemo;
   // Demonstração sem banco (Comercial, L2, Financeiro Premium,
   // Reembolsos/Estornos R1 e Origens R2-A): nenhuma sessão anônima é criada
   // e o listener do Supabase não é montado.
@@ -170,7 +265,7 @@ function RootComponent() {
       <GuardaVersao>
         <CartProvider>
           <div className="flex min-h-screen flex-col">
-            {modoDemo ? (
+            {bannerDemoVisivel ? (
               <div className="pointer-events-none fixed inset-x-0 top-0 z-[9999] flex justify-center px-2">
                 <span className="rounded-b-md border border-amber-400/60 bg-amber-950/95 px-3 py-1 text-center text-[11px] font-semibold tracking-wide text-amber-100 shadow-lg">
                   MODO DEMONSTRAÇÃO · dados fictícios · nenhuma operação real
@@ -179,7 +274,13 @@ function RootComponent() {
             ) : null}
             {ehStaff ? null : <SiteHeader />}
             <main className="flex-1">
-              <Outlet />
+              {ehStaff && !jaTemAdminShell(pathname, modoDemo) ? (
+                <MenuAdministrativoGlobal>
+                  <Outlet />
+                </MenuAdministrativoGlobal>
+              ) : (
+                <Outlet />
+              )}
             </main>
             {ehStaff ? null : (
               <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">

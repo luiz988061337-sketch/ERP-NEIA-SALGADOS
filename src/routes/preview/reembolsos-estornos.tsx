@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Undo2 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ModuloReembolsos } from "@/components/reembolsos-estornos/modulo";
 
 /**
  * PRÉVIA R1 — Reembolsos e Estornos (módulo demonstrativo independente).
  *
- * Mesmo AdminShell real dos módulos aprovados, com o item "Reembolsos e
- * Estornos" adicionado ao menu SOMENTE nesta rota (prop opcional itemExtra).
- * Dados fictícios locais; nenhuma gravação no Supabase e nenhuma alteração
- * no Financeiro Premium aprovado.
+ * Mesmo AdminShell e menu unificado das áreas aprovadas. "Reembolsos e
+ * Estornos" já faz parte do grupo Gestão em ADMIN_NAV. Dados fictícios
+ * locais; nenhuma gravação no Supabase e nenhuma alteração no Financeiro
+ * Premium aprovado.
  */
 export const Route = createFileRoute("/preview/reembolsos-estornos")({
   head: () => ({
@@ -27,7 +26,6 @@ function PageReembolsos() {
       onRefresh={() => {}}
       usuario="neia@neiasalgados.com"
       modoPreview
-      itemExtra={{ value: "reembolsos", label: "Reembolsos e Estornos", icon: Undo2 }}
     >
       <div className="l1b-refunds min-h-screen bg-background p-3 sm:p-4">
         {/* Menu mobile (mesmo padrão do Financeiro Premium): gatilho do drawer. */}

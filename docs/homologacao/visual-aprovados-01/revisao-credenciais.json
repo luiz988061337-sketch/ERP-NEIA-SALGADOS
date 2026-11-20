@@ -1,0 +1,15 @@
+{
+  "commits": 45,
+  "blobs": 949,
+  "patterns": [
+    "private-key",
+    "github-token",
+    "github-pat",
+    "aws-access",
+    "supabase-secret",
+    "jwt-service-role",
+    "database-password-url"
+  ],
+  "findings": [],
+  "limitacao": "Busca por padroes conhecidos, sem prova de ausencia absoluta de segredos. Chaves publicaveis preexistentes em .env nao sao credenciais privadas; .env nao foi alterado."
+}

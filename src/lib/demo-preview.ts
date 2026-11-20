@@ -84,9 +84,24 @@ const SEMENTES: Record<string, Linha[]> = {
     }),
   ],
   funcionarios: [
-    linha("funcionarios", { nome: "Ana (demo)", papel: "atendente", ativo: true }),
-    linha("funcionarios", { nome: "Carlos (demo)", papel: "producao", ativo: true }),
-    linha("funcionarios", { nome: "Bia (demo)", papel: "motoboy", ativo: true }),
+    linha("funcionarios", {
+      id: "00000000-0000-4000-8000-000000000111",
+      nome: "Ana (demo)",
+      papel: "atendente",
+      ativo: true,
+    }),
+    linha("funcionarios", {
+      id: "00000000-0000-4000-8000-000000000112",
+      nome: "Carlos (demo)",
+      papel: "producao",
+      ativo: true,
+    }),
+    linha("funcionarios", {
+      id: "00000000-0000-4000-8000-000000000113",
+      nome: "Bia (demo)",
+      papel: "motoboy",
+      ativo: true,
+    }),
   ],
   motoboys: [
     linha("motoboys", {
@@ -99,14 +114,60 @@ const SEMENTES: Record<string, Linha[]> = {
     }),
   ],
   categorias: [
-    linha("categorias", { nome: "Fritos", slug: "fritos", ativo: true, ordem: 1 }),
-    linha("categorias", { nome: "Assados", slug: "assados", ativo: true, ordem: 2 }),
-    linha("categorias", { nome: "Doces", slug: "doces", ativo: true, ordem: 3 }),
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000121", nome: "Fritos", slug: "fritos", ativo: true, ordem: 1 }),
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000122", nome: "Assados", slug: "assados", ativo: true, ordem: 2 }),
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000123", nome: "Doces", slug: "doces", ativo: true, ordem: 3 }),
   ],
   produtos: [
-    linha("produtos", { nome: "Coxinha de frango (demo)", categoria: "Fritos", preco: 7.9, ativo: true, descricao: "Produto fictício", estoque: 120 }),
-    linha("produtos", { nome: "Bolinho de queijo (demo)", categoria: "Fritos", preco: 6.5, ativo: true, descricao: "Produto fictício", estoque: 90 }),
-    linha("produtos", { nome: "Pão de queijo (demo)", categoria: "Assados", preco: 5.5, ativo: true, descricao: "Produto fictício", estoque: 60 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000001", nome: "Coxinha de frango (demo)", categoria: "Fritos", preco: 7.9, ativo: true, descricao: "Produto fictício", estoque: 120, embalagem_custo: 0.35, tempo_fritura_s: 210, tempo_mao_obra_min: 0.8 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000002", nome: "Bolinho de queijo (demo)", categoria: "Fritos", preco: 6.5, ativo: true, descricao: "Produto fictício", estoque: 90, embalagem_custo: 0.25, tempo_fritura_s: 180, tempo_mao_obra_min: 0.6 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000003", nome: "Pão de queijo (demo)", categoria: "Assados", preco: 5.5, ativo: true, descricao: "Produto fictício", estoque: 60, embalagem_custo: 0.2, tempo_fritura_s: 0, tempo_mao_obra_min: 0.4 }),
+  ],
+  // Equivalente demo da migration 0076 (linha única + histórico de preços).
+  precificacao_config: [
+    linha("precificacao_config", {
+      id: true,
+      margem_desejada_pct: 40,
+      margem_baixa_pct: 15,
+      mao_obra_hora: 25,
+      gas_hora: 8,
+      custos_fixos_mensais: 6000,
+      volume_mensal_estimado: 10000,
+      taxa_credito_pct: 5,
+      taxa_debito_pct: 2,
+      taxa_pix_pct: 0,
+      taxa_ifood_pct: 27,
+    }),
+  ],
+  preco_historico: [
+    linha("preco_historico", {
+      id: "00000000-0000-4000-8000-000000000501",
+      produto_id: "00000000-0000-4000-8000-000000000001",
+      preco_antigo: 7.5,
+      preco_novo: 7.9,
+      usuario: USUARIO_DEMO.id,
+      motivo: "reajuste demonstrativo",
+    }),
+  ],
+  // Ficha fictícia apenas para demonstrar custos completos no H12.
+  insumos: [
+    linha("insumos", { id: "00000000-0000-4000-8000-000000000601", nome: "Farinha de trigo (demo)", custo_medio: 3.2, unidade_base: "kg", ativo: true }),
+    linha("insumos", { id: "00000000-0000-4000-8000-000000000602", nome: "Frango (demo)", custo_medio: 11.5, unidade_base: "kg", ativo: true }),
+    linha("insumos", { id: "00000000-0000-4000-8000-000000000603", nome: "Óleo (demo)", custo_medio: 6.8, unidade_base: "l", ativo: true }),
+  ],
+  fichas_tecnicas: [
+    linha("fichas_tecnicas", {
+      id: "00000000-0000-4000-8000-000000000701",
+      produto_id: "00000000-0000-4000-8000-000000000001",
+      rendimento: 20,
+      perda_pct: 5,
+      por_cento: false,
+      ficha_itens: [
+        linha("ficha_itens", { id: "00000000-0000-4000-8000-000000000801", ficha_id: "00000000-0000-4000-8000-000000000701", insumo_id: "00000000-0000-4000-8000-000000000601", quantidade: 0.05, unidade: "kg", insumos: { nome: "Farinha de trigo (demo)", custo_medio: 3.2, unidade_base: "kg" } }),
+        linha("ficha_itens", { id: "00000000-0000-4000-8000-000000000802", ficha_id: "00000000-0000-4000-8000-000000000701", insumo_id: "00000000-0000-4000-8000-000000000602", quantidade: 0.04, unidade: "kg", insumos: { nome: "Frango (demo)", custo_medio: 11.5, unidade_base: "kg" } }),
+        linha("ficha_itens", { id: "00000000-0000-4000-8000-000000000803", ficha_id: "00000000-0000-4000-8000-000000000701", insumo_id: "00000000-0000-4000-8000-000000000603", quantidade: 0.01, unidade: "l", insumos: { nome: "Óleo (demo)", custo_medio: 6.8, unidade_base: "l" } }),
+      ],
+    }),
   ],
   pedidos: [
     linha("pedidos", {
@@ -156,7 +217,28 @@ const SEMENTES: Record<string, Linha[]> = {
   despesas: [],
   extratos: [],
   cupons: [
-    linha("cupons", { codigo: "DEMO10", descricao: "Cupom fictício", percentual: 10, ativo: true }),
+    linha("cupons", {
+      id: "00000000-0000-4000-8000-000000000901",
+      codigo: "DEMO10", descricao: "Cupom fictício · reativação",
+      tipo: "percentual", valor: 10, percentual: 10, minimo: 40, max_desconto: 12,
+      ativo: true, usos: 18, max_usos: 50, desconto_total: 612.5, vendas_total: 2450,
+      validade_ini: "2026-11-01T00:00:00", validade_fim: "2026-11-30T23:59:59",
+    }),
+    linha("cupons", {
+      id: "00000000-0000-4000-8000-000000000902",
+      codigo: "FESTA5", descricao: "Cupom fictício · valor fixo",
+      tipo: "valor", valor: 5, minimo: 80, max_desconto: 5,
+      ativo: true, usos: 7, max_usos: 30, desconto_total: 35, vendas_total: 980,
+      validade_ini: "2026-11-10T00:00:00", validade_fim: "2026-12-15T23:59:59",
+      produtos_ids: ["00000000-0000-4000-8000-000000000001"],
+    }),
+    linha("cupons", {
+      id: "00000000-0000-4000-8000-000000000903",
+      codigo: "VOLTA15", descricao: "Cupom fictício · aguardando ativação",
+      tipo: "percentual", valor: 15, percentual: 15, minimo: 60, max_desconto: 20,
+      ativo: false, usos: 0, max_usos: 20, desconto_total: 0, vendas_total: 0,
+      validade_ini: "2026-11-20T00:00:00", validade_fim: "2026-12-20T23:59:59",
+    }),
   ],
   avaliacoes: [],
   clientes: [],

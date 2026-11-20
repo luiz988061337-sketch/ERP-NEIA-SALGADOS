@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   BarChart3,
+  Calculator,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
@@ -16,6 +17,7 @@ import {
   Pencil,
   Plus,
   Printer,
+  Settings,
   Star,
   Target,
   Ticket,
@@ -86,15 +88,25 @@ import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { ADMIN_ABA_TITULO } from "@/components/admin/admin-nav";
 import { LojaPanel } from "@/components/admin/loja-panel";
 import { EntregasConfigPanel } from "@/components/admin/entregas-config-panel";
 import { InsumosAdmin } from "@/components/admin/estoque/insumos-admin";
 import { FichasAdmin } from "@/components/admin/estoque/fichas-admin";
 import { FornecedoresAdmin } from "@/components/admin/estoque/fornecedores-admin";
 import { ComprasAdmin } from "@/components/admin/estoque/compras-admin";
+import { FornecedoresPremium } from "@/components/admin/fornecedores-premium";
+import { ComprasPremium } from "@/components/admin/compras-premium";
 import { PrecificacaoAdmin } from "@/components/admin/precificacao-admin";
+import { CuponsPremium } from "@/components/admin/cupons-premium";
+import { CalculadoraPremium } from "@/components/admin/calculadora-premium";
+import { PremiumDemoBadge, PremiumPageHeader, PremiumSection } from "@/components/admin/erp-ui";
+import { DonoPremium } from "@/components/admin/dono-premium";
+import { MetasPremium } from "@/components/admin/metas-premium";
+import { ContadorPremium } from "@/components/admin/contador-premium";
 import { DashboardAdmin } from "@/components/admin/dashboard-admin";
 import { PainelDashboardL2 } from "@/components/admin/dashboard-l2";
+import { CentralAtendenteL2 } from "@/components/admin/central-atendente-l2";
 import { ehModoDemo } from "@/lib/demo-preview";
 import { EmptyState, PageHeader, StatusCard } from "@/components/admin/ui-admin";
 import fritos from "@/assets/cat-fritos.jpg";
@@ -159,6 +171,18 @@ function Admin() {
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/admin" }, replace: true });
   }, [loading, user, navigate]);
+
+  // Deep-link do menu unificado: /admin#pedidos, /admin#relatorio etc.
+  // A aba é aplicada na montagem e também acompanha voltar/avançar.
+  useEffect(() => {
+    const aplicarHash = () => {
+      const valor = window.location.hash.replace(/^#/, "");
+      if (valor && valor in ADMIN_ABA_TITULO) setAba(valor);
+    };
+    aplicarHash();
+    window.addEventListener("hashchange", aplicarHash);
+    return () => window.removeEventListener("hashchange", aplicarHash);
+  }, []);
 
   const isAdmin = roles?.includes("admin");
 
@@ -828,13 +852,17 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-4">
-          <PedidosAdmin
-            pedidos={pedidos ?? []}
-            onStatus={mudarStatusPedido}
-            onPagamento={mudarPagamento}
-            foco={pedidoFoco}
-            onLimparFoco={() => setPedidoFoco("")}
-          />
+          {modoDemo ? (
+            <CentralAtendenteL2 usuario={user?.email ?? null} />
+          ) : (
+            <PedidosAdmin
+              pedidos={pedidos ?? []}
+              onStatus={mudarStatusPedido}
+              onPagamento={mudarPagamento}
+              foco={pedidoFoco}
+              onLimparFoco={() => setPedidoFoco("")}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="produtos" className="mt-4 space-y-6">
@@ -997,15 +1025,15 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="cupons" className="mt-4">
-          <CuponsAdmin cupons={cupons ?? []} produtos={produtos ?? []} onChange={refreshAll} />
+          <CuponsPremium cupons={cupons ?? []} produtos={produtos ?? []} onChange={refreshAll} />
         </TabsContent>
 
         <TabsContent value="dono" className="mt-4">
-          <DonoAdmin />
+          {modoDemo ? <DonoPremium /> : <DonoAdmin />}
         </TabsContent>
 
         <TabsContent value="metas" className="mt-4">
-          <MetasAdmin pedidos={pedidos ?? []} onChange={refreshAll} />
+          {modoDemo ? <MetasPremium /> : <MetasAdmin pedidos={pedidos ?? []} onChange={refreshAll} />}
         </TabsContent>
 
         <TabsContent value="financeiro" className="mt-4">
@@ -1029,11 +1057,11 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="fornecedores" className="mt-4">
-          <FornecedoresAdmin />
+          {modoDemo ? <FornecedoresPremium /> : <FornecedoresAdmin />}
         </TabsContent>
 
         <TabsContent value="compras" className="mt-4">
-          <ComprasAdmin />
+          {modoDemo ? <ComprasPremium /> : <ComprasAdmin />}
         </TabsContent>
 
         <TabsContent value="precificacao" className="mt-4">
@@ -1142,11 +1170,20 @@ function Admin() {
           </section>
         </TabsContent>
 
-        <TabsContent value="calculadora" className="mt-4">
-          <section className="rounded-xl border border-border bg-card p-5">
-            <h2 className="font-display text-xl">Calculadora de salgados</h2>
-            <p className="text-xs text-muted-foreground">Configurações da página /calculadora.</p>
-            <form onSubmit={salvarCalcConfig} className="mt-4 grid gap-3 sm:grid-cols-2">
+        <TabsContent value="calculadora" className="mt-4 space-y-5">
+          <PremiumPageHeader
+            icone={Calculator}
+            titulo="Calculadora de salgados"
+            subtitulo="Configurações da página /calculadora · definições de simulação, limites e envio de orçamentos."
+            demo={modoDemo}
+            status={<PremiumDemoBadge>{modoDemo ? "Demonstração isolada" : "Operacional"}</PremiumDemoBadge>}
+          />
+          <PremiumSection
+            icone={Settings}
+            titulo="Configurações da calculadora"
+            subtitulo="Padrões, limites e envio usados pela página pública."
+          >
+            <form onSubmit={salvarCalcConfig} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <div className="space-y-1">
                 <Label>Por pessoa (padrão)</Label>
                 <Input
@@ -1250,7 +1287,7 @@ function Admin() {
                   }
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm xl:mt-5">
                 <Switch
                   checked={
                     calcEdit?.permitir_personalizado ?? calcConfig?.permitir_personalizado ?? true
@@ -1271,11 +1308,14 @@ function Admin() {
                 />{" "}
                 Permitir quantidade personalizada
               </label>
-              <div className="sm:col-span-2">
-                <Button type="submit">Salvar configuração</Button>
+              <div className="sm:col-span-2 xl:col-span-3">
+                <Button type="submit" className="erp-btn-gold min-h-10 gap-2 font-semibold text-[#14120C]">
+                  <Settings className="size-4" aria-hidden /> Salvar configuração
+                </Button>
               </div>
             </form>
-          </section>
+          </PremiumSection>
+          <CalculadoraPremium config={calcConfig} />
         </TabsContent>
 
         <TabsContent value="loja">
@@ -2693,146 +2733,6 @@ function ClientesAdmin({
           );
         })}
       </div>
-    </section>
-  );
-}
-
-function CuponsAdmin({
-  cupons,
-  produtos,
-  onChange,
-}: {
-  cupons: any[];
-  produtos: any[];
-  onChange: () => void;
-}) {
-  const [expandir, setExpandir] = useState(false);
-  async function salvar(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const part: string[] = [];
-    for (const p of produtos) {
-      if (f.get(`prod_${p.id}`) === "on") part.push(p.id);
-    }
-    const payload: Record<string, any> = {
-      codigo: String(f.get("codigo")).toUpperCase().trim(),
-      tipo: String(f.get("tipo")),
-      valor: Number(f.get("valor")),
-      minimo: Number(f.get("minimo") ?? 0),
-      ativo: true,
-      cliente_telefone: String(f.get("cliente_telefone") ?? "").replace(/\D/g, ""),
-      validade_ini: String(f.get("validade_ini") ?? "") || null,
-      validade_fim: String(f.get("validade_fim") ?? "") || null,
-      max_usos: Number(f.get("max_usos") ?? 0),
-      produtos_ids: part,
-    };
-    let { error } = await supabase.from("cupons").insert(payload);
-    if (error && String(error.message ?? "").includes("column")) {
-      const {
-        cliente_telefone: _t,
-        validade_ini: _i,
-        validade_fim: _f2,
-        max_usos: _m,
-        produtos_ids: _p,
-        ...legacy
-      } = payload;
-      const retry = await supabase.from("cupons").insert(legacy);
-      error = retry.error;
-      if (!error) toast.error("Criado sem personalização — rode a migração 0006 no Supabase.");
-    }
-    if (error) toast.error("Erro ao criar cupom (código duplicado?).");
-    else {
-      toast.success("Cupom criado!");
-      void logAdmin("cupom_criado", String(payload["codigo"]));
-      (e.target as HTMLFormElement).reset();
-      setExpandir(false);
-      onChange();
-    }
-  }
-  return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center gap-2">
-        <h2 className="font-display text-xl">Cupons</h2>
-        <Button
-          size="sm"
-          variant="outline"
-          className="ml-auto"
-          onClick={() => setExpandir((v) => !v)}
-        >
-          {expandir ? "− Simples" : "+ Personalizado"}
-        </Button>
-      </div>
-      <form onSubmit={salvar} className="mt-3 grid gap-2 sm:grid-cols-5">
-        <Input name="codigo" placeholder="CÓDIGO" required maxLength={20} />
-        <select
-          name="tipo"
-          className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-        >
-          <option value="percentual">Percentual %</option>
-          <option value="valor">Valor R$</option>
-        </select>
-        <Input name="valor" type="number" step="0.01" placeholder="Valor" required />
-        <Input name="minimo" type="number" step="0.01" placeholder="Mínimo" defaultValue={0} />
-        <Button type="submit">Criar</Button>
-        {expandir ? (
-          <>
-            <div className="space-y-1">
-              <Label>Cliente específico (telefone)</Label>
-              <Input name="cliente_telefone" placeholder="Só este telefone (opcional)" />
-            </div>
-            <div className="space-y-1">
-              <Label>Válido de</Label>
-              <Input name="validade_ini" type="datetime-local" />
-            </div>
-            <div className="space-y-1">
-              <Label>Válido até</Label>
-              <Input name="validade_fim" type="datetime-local" />
-            </div>
-            <div className="space-y-1">
-              <Label>Limite de usos (0=ilimitado)</Label>
-              <Input name="max_usos" type="number" min={0} defaultValue={0} />
-            </div>
-            <details className="sm:col-span-5 rounded-md border border-border p-2">
-              <summary className="cursor-pointer text-sm">
-                Produtos participantes (vazio = todos)
-              </summary>
-              <div className="mt-2 grid max-h-40 gap-1 overflow-y-auto sm:grid-cols-2">
-                {produtos.map((p) => (
-                  <label key={p.id} className="flex items-center gap-2 text-xs">
-                    <input type="checkbox" name={`prod_${p.id}`} /> {p.nome}
-                  </label>
-                ))}
-              </div>
-            </details>
-          </>
-        ) : null}
-      </form>
-      <ul className="mt-3 space-y-1.5 text-sm">
-        {cupons.map((c) => (
-          <li key={c.id} className="flex items-center gap-2 rounded-lg border border-border p-2.5">
-            <Badge>{c.codigo}</Badge>
-            <span className="text-muted-foreground">
-              {c.tipo === "percentual" ? `${c.valor}%` : brl(c.valor)} • mín. {brl(c.minimo)}
-              {c.cliente_telefone ? ` • 👤 ${c.cliente_telefone}` : ""}
-              {c.validade_fim
-                ? ` • até ${new Date(c.validade_fim).toLocaleDateString("pt-BR")}`
-                : ""}
-              {Number(c.max_usos ?? 0) > 0 ? ` • máx. ${c.max_usos} usos` : ""}
-              {Array.isArray(c.produtos_ids) && c.produtos_ids.length > 0
-                ? ` • ${c.produtos_ids.length} produto(s)`
-                : ""}
-            </span>
-            <Switch
-              className="ml-auto"
-              checked={c.ativo}
-              onCheckedChange={async (v) => {
-                await supabase.from("cupons").update({ ativo: v }).eq("id", c.id);
-                onChange();
-              }}
-            />
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }

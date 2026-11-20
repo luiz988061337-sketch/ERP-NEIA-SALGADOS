@@ -1,0 +1,682 @@
+{
+  "modo": "demo-local-sem-rede",
+  "verificacoes": [
+    {
+      "nome": "typecheck",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 72400
+    },
+    {
+      "nome": "proteger-dev",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 1628
+    },
+    {
+      "nome": "estoques-preview",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 669
+    },
+    {
+      "nome": "cadastros-estoques",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 526
+    },
+    {
+      "nome": "combos-preview",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 489
+    },
+    {
+      "nome": "comercial-preview",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 1515
+    },
+    {
+      "nome": "comercial-campanhas",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 328
+    },
+    {
+      "nome": "comercial-pesquisas",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 369
+    },
+    {
+      "nome": "comercial-sugestoes",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 405
+    },
+    {
+      "nome": "comercial-resultados",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 447
+    },
+    {
+      "nome": "financeiro-premium",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 310
+    },
+    {
+      "nome": "financeiro-m",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 423
+    },
+    {
+      "nome": "financeiro-conciliacao",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 446
+    },
+    {
+      "nome": "financeiro-operacoes-atomicas",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 172
+    },
+    {
+      "nome": "financeiro-parciais-modelo",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 611
+    },
+    {
+      "nome": "precificacao",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 389
+    },
+    {
+      "nome": "central-pedidos",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 474
+    },
+    {
+      "nome": "producao-liberacao",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 451
+    },
+    {
+      "nome": "preview-producao",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 391
+    },
+    {
+      "nome": "preview-pedidos-atendente",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 505
+    },
+    {
+      "nome": "preview-central-v2",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 643
+    },
+    {
+      "nome": "estoque-operacao-atomica",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 427
+    },
+    {
+      "nome": "estoque-movimento",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 438
+    },
+    {
+      "nome": "reserva-integracao",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 489
+    },
+    {
+      "nome": "criacao-atomica",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 197
+    },
+    {
+      "nome": "criacao-atomica-wrapper",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 501
+    },
+    {
+      "nome": "insumos",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 434
+    },
+    {
+      "nome": "ofx",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 475
+    },
+    {
+      "nome": "pix-reader",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 391
+    },
+    {
+      "nome": "checkout-taxa",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 384
+    },
+    {
+      "nome": "competencia",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 445
+    },
+    {
+      "nome": "build",
+      "exitCode": 0,
+      "sinal": null,
+      "duracaoMs": 60846
+    }
+  ],
+  "recuperacao": {
+    "arvoreGitRestaurada": "932823542d1c7d9087ea80dc736523987d1b4c8f",
+    "arquivos": 1174,
+    "ausentes": [],
+    "divergentesAposBuild": [],
+    "nomesUnicodeRecuperadosDiretamenteDoGit": 2
+  },
+  "dependencias": {
+    "node": "v24.19.0",
+    "total": 77,
+    "rows": [
+      {
+        "name": "@hookform/resolvers",
+        "installed": "5.9.1",
+        "locked": "5.9.1",
+        "igual": true
+      },
+      {
+        "name": "@lovable.dev/mcp-js",
+        "installed": "3.0.4",
+        "locked": "3.0.4",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-accordion",
+        "installed": "1.2.20",
+        "locked": "1.2.20",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-alert-dialog",
+        "installed": "1.1.23",
+        "locked": "1.1.23",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-aspect-ratio",
+        "installed": "1.1.15",
+        "locked": "1.1.15",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-avatar",
+        "installed": "1.2.6",
+        "locked": "1.2.6",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-checkbox",
+        "installed": "1.3.11",
+        "locked": "1.3.11",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-collapsible",
+        "installed": "1.1.20",
+        "locked": "1.1.20",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-context-menu",
+        "installed": "2.3.7",
+        "locked": "2.3.7",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-dialog",
+        "installed": "1.1.23",
+        "locked": "1.1.23",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-dropdown-menu",
+        "installed": "2.1.24",
+        "locked": "2.1.24",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-hover-card",
+        "installed": "1.1.23",
+        "locked": "1.1.23",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-label",
+        "installed": "2.1.15",
+        "locked": "2.1.15",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-menubar",
+        "installed": "1.1.24",
+        "locked": "1.1.24",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-navigation-menu",
+        "installed": "1.2.22",
+        "locked": "1.2.22",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-popover",
+        "installed": "1.1.23",
+        "locked": "1.1.23",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-progress",
+        "installed": "1.1.16",
+        "locked": "1.1.16",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-radio-group",
+        "installed": "1.4.7",
+        "locked": "1.4.7",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-scroll-area",
+        "installed": "1.2.18",
+        "locked": "1.2.18",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-select",
+        "installed": "2.3.7",
+        "locked": "2.3.7",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-separator",
+        "installed": "1.1.15",
+        "locked": "1.1.15",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-slider",
+        "installed": "1.4.7",
+        "locked": "1.4.7",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-slot",
+        "installed": "1.3.3",
+        "locked": "1.3.3",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-switch",
+        "installed": "1.3.7",
+        "locked": "1.3.7",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-tabs",
+        "installed": "1.1.21",
+        "locked": "1.1.21",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-toggle",
+        "installed": "1.1.18",
+        "locked": "1.1.18",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-toggle-group",
+        "installed": "1.1.19",
+        "locked": "1.1.19",
+        "igual": true
+      },
+      {
+        "name": "@radix-ui/react-tooltip",
+        "installed": "1.2.16",
+        "locked": "1.2.16",
+        "igual": true
+      },
+      {
+        "name": "@supabase/supabase-js",
+        "installed": "2.117.2",
+        "locked": "2.117.2",
+        "igual": true
+      },
+      {
+        "name": "@tailwindcss/vite",
+        "installed": "4.3.3",
+        "locked": "4.3.3",
+        "igual": true
+      },
+      {
+        "name": "@tanstack/react-query",
+        "installed": "5.104.1",
+        "locked": "5.104.1",
+        "igual": true
+      },
+      {
+        "name": "@tanstack/react-router",
+        "installed": "1.170.41",
+        "locked": "1.170.41",
+        "igual": true
+      },
+      {
+        "name": "@tanstack/react-start",
+        "installed": "1.168.60",
+        "locked": "1.168.60",
+        "igual": true
+      },
+      {
+        "name": "@tanstack/router-plugin",
+        "installed": "1.168.42",
+        "locked": "1.168.42",
+        "igual": true
+      },
+      {
+        "name": "class-variance-authority",
+        "installed": "0.7.1",
+        "locked": "0.7.1",
+        "igual": true
+      },
+      {
+        "name": "clsx",
+        "installed": "2.1.1",
+        "locked": "2.1.1",
+        "igual": true
+      },
+      {
+        "name": "cmdk",
+        "installed": "1.1.1",
+        "locked": "1.1.1",
+        "igual": true
+      },
+      {
+        "name": "date-fns",
+        "installed": "4.4.0",
+        "locked": "4.4.0",
+        "igual": true
+      },
+      {
+        "name": "embla-carousel-react",
+        "installed": "8.6.0",
+        "locked": "8.6.0",
+        "igual": true
+      },
+      {
+        "name": "input-otp",
+        "installed": "1.5.0",
+        "locked": "1.5.0",
+        "igual": true
+      },
+      {
+        "name": "lucide-react",
+        "installed": "0.575.0",
+        "locked": "0.575.0",
+        "igual": true
+      },
+      {
+        "name": "qrcode",
+        "installed": "1.5.4",
+        "locked": "1.5.4",
+        "igual": true
+      },
+      {
+        "name": "react",
+        "installed": "19.3.0",
+        "locked": "19.3.0",
+        "igual": true
+      },
+      {
+        "name": "react-day-picker",
+        "installed": "9.14.0",
+        "locked": "9.14.0",
+        "igual": true
+      },
+      {
+        "name": "react-dom",
+        "installed": "19.3.0",
+        "locked": "19.3.0",
+        "igual": true
+      },
+      {
+        "name": "react-hook-form",
+        "installed": "7.89.0",
+        "locked": "7.89.0",
+        "igual": true
+      },
+      {
+        "name": "react-resizable-panels",
+        "installed": "4.14.2",
+        "locked": "4.14.2",
+        "igual": true
+      },
+      {
+        "name": "recharts",
+        "installed": "2.15.4",
+        "locked": "2.15.4",
+        "igual": true
+      },
+      {
+        "name": "sonner",
+        "installed": "2.0.8",
+        "locked": "2.0.8",
+        "igual": true
+      },
+      {
+        "name": "tailwind-merge",
+        "installed": "3.7.0",
+        "locked": "3.7.0",
+        "igual": true
+      },
+      {
+        "name": "tailwindcss",
+        "installed": "4.3.3",
+        "locked": "4.3.3",
+        "igual": true
+      },
+      {
+        "name": "tw-animate-css",
+        "installed": "1.4.0",
+        "locked": "1.4.0",
+        "igual": true
+      },
+      {
+        "name": "vaul",
+        "installed": "1.1.2",
+        "locked": "1.1.2",
+        "igual": true
+      },
+      {
+        "name": "vite",
+        "installed": "8.1.5",
+        "locked": "8.1.5",
+        "igual": true
+      },
+      {
+        "name": "vite-tsconfig-paths",
+        "installed": "6.1.1",
+        "locked": "6.1.1",
+        "igual": true
+      },
+      {
+        "name": "zod",
+        "installed": "4.6.5",
+        "locked": "4.6.5",
+        "igual": true
+      },
+      {
+        "name": "@eslint/js",
+        "installed": "9.39.5",
+        "locked": "9.39.5",
+        "igual": true
+      },
+      {
+        "name": "@lovable.dev/vite-tanstack-config",
+        "installed": "2.26.5",
+        "locked": "2.26.5",
+        "igual": true
+      },
+      {
+        "name": "@types/node",
+        "installed": "22.20.5",
+        "locked": "22.20.5",
+        "igual": true
+      },
+      {
+        "name": "@types/qrcode",
+        "installed": "1.5.6",
+        "locked": "1.5.6",
+        "igual": true
+      },
+      {
+        "name": "@types/react",
+        "installed": "19.3.0",
+        "locked": "19.3.0",
+        "igual": true
+      },
+      {
+        "name": "@types/react-dom",
+        "installed": "19.3.0",
+        "locked": "19.3.0",
+        "igual": true
+      },
+      {
+        "name": "@vitejs/plugin-react",
+        "installed": "5.2.0",
+        "locked": "5.2.0",
+        "igual": true
+      },
+      {
+        "name": "drizzle-kit",
+        "installed": "0.31.11",
+        "locked": "0.31.11",
+        "igual": true
+      },
+      {
+        "name": "drizzle-orm",
+        "installed": "0.45.3",
+        "locked": "0.45.3",
+        "igual": true
+      },
+      {
+        "name": "eslint",
+        "installed": "9.39.5",
+        "locked": "9.39.5",
+        "igual": true
+      },
+      {
+        "name": "eslint-config-prettier",
+        "installed": "10.1.8",
+        "locked": "10.1.8",
+        "igual": true
+      },
+      {
+        "name": "eslint-plugin-prettier",
+        "installed": "5.5.6",
+        "locked": "5.5.6",
+        "igual": true
+      },
+      {
+        "name": "eslint-plugin-react-hooks",
+        "installed": "5.2.0",
+        "locked": "5.2.0",
+        "igual": true
+      },
+      {
+        "name": "eslint-plugin-react-refresh",
+        "installed": "0.4.26",
+        "locked": "0.4.26",
+        "igual": true
+      },
+      {
+        "name": "globals",
+        "installed": "15.15.0",
+        "locked": "15.15.0",
+        "igual": true
+      },
+      {
+        "name": "nitro",
+        "installed": "3.0.260603-beta",
+        "locked": "3.0.260603-beta",
+        "igual": true
+      },
+      {
+        "name": "postgres",
+        "installed": "3.4.9",
+        "locked": "3.4.9",
+        "igual": true
+      },
+      {
+        "name": "prettier",
+        "installed": "3.9.9",
+        "locked": "3.9.9",
+        "igual": true
+      },
+      {
+        "name": "puppeteer-core",
+        "installed": "25.17.0",
+        "locked": "25.17.0",
+        "igual": true
+      },
+      {
+        "name": "typescript",
+        "installed": "5.9.3",
+        "locked": "5.9.3",
+        "igual": true
+      },
+      {
+        "name": "typescript-eslint",
+        "installed": "8.71.0",
+        "locked": "8.71.0",
+        "igual": true
+      }
+    ]
+  },
+  "limites": [
+    "Dependencias instaladas reutilizadas; 77 versoes diretas iguais ao package-lock. Nao executado npm ci limpo.",
+    "Sem navegador, comparacao pixel a pixel ou homologacao funcional.",
+    "Nao executados testes de banco, Auth remoto ou operacao real."
+  ],
+  "avisosBuild": [
+    "Chunk acima de 500 kB; sem alteracao de divisao de codigo.",
+    "Arquivo auxiliar preview-l2-gestao-data.ts nao exporta Route; nao e rota, permanece fixture importada.",
+    "Avisos de tempo gasto nos plugins de compilacao."
+  ]
+}

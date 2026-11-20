@@ -1,0 +1,47 @@
+{
+  "base": "http://127.0.0.1:5173",
+  "ids": {
+    "combo": "combo-demo-1"
+  },
+  "testes": [
+    "Cadastro de Combos e Estoque de Salgados: AdminShell real, quatro capturas e nenhuma página com overflow horizontal em 390px",
+    "Menu Produtos → Combos abre a página de cadastro de combos, sem janela de referência",
+    "Cadastro de combo: nome, total 100 e composição 50/30/20 somando exatamente o total, formulário capturado em desktop e mobile",
+    "Composição cuja soma não fecha o total é rejeitada com mensagem clara",
+    "Nome de combo duplicado é bloqueado",
+    "Editar, duplicar, ativar/desativar, consultar composição e pesquisar por nome",
+    "Reserva avulsa (50) e reserva de combo (120) somam no mesmo total reservado por sabor: 520 = 350 + 50 + 120, físico intocado",
+    "Confirmação duplicada do mesmo pedido é bloqueada",
+    "Retirada de 50 já reservadas: físico 2.000 → 1.950 e reservado 520 → 470, disponível permanece 1.480 (sem baixa dupla)",
+    "Cancelamento do pedido de combo libera apenas a reserva pendente: volta ao total original por sabor, sem tocar no físico",
+    "Cadastrar combo não movimenta nenhum saldo do Estoque de Salgados"
+  ],
+  "capturas": [
+    "cadastro-combos-desktop.png",
+    "cadastro-combos-mobile.png",
+    "estoque-salgados-desktop.png",
+    "estoque-salgados-mobile.png",
+    "formulario-combo-desktop.png",
+    "formulario-combo-mobile.png",
+    "formulario-combo-mobile-final.png",
+    "consulta-combo-desktop.png",
+    "estoque-reserva-avulsa.png",
+    "estoque-reserva-unificada.png",
+    "estoque-retirada-sem-baixa-dupla.png",
+    "estoque-cancelamento-liberacao.png"
+  ],
+  "medidas": {
+    "combos": {
+      "viewport": 390,
+      "documento": 390
+    },
+    "estoque-salgados": {
+      "viewport": 390,
+      "documento": 390
+    }
+  },
+  "erros": [],
+  "banco": [],
+  "mutacoes": [],
+  "http": []
+}

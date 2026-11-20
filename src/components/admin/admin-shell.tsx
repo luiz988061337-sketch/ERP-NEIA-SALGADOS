@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronDown, Crown, LogOut, RefreshCw, UserRound } from "lucide-react";
 
@@ -19,18 +19,16 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ADMIN_NAV, type AdminNavItem, type AdminNavGroup } from "./admin-nav";
-import { ehPreviewModulo } from "@/lib/preview-modulos";
+import { ADMIN_NAV, type AdminNavItem } from "./admin-nav";
 
 /**
  * Shell do Admin — aparência da referência preto/dourado:
  * sidebar compacta com moldura dourada, marca (coroa + NÉIA SALGADOS),
- * item ativo em pilula dourada, ícones claros e usuário no rodapé.
+ * item ativo em pílula dourada, ícones claros e usuário no rodapé.
  *
- * O menu continua sendo o existente (ADMIN_NAV) — nenhum item duplicado e
- * nenhuma função removida. A aba ativa continua controlada pelo estado do
- * React (sem URL); itens com `href` navegam para as rotas staff (PDV,
- * Produção, Central). Estilos usam os tokens .erp-admin (escuro/dourado).
+ * O menu vem sempre de ADMIN_NAV. Não existe mais substituição de lista por
+ * rota/preview: todos os grupos e itens permanecem acessíveis em qualquer
+ * página administrativa ou de preview.
  */
 export function AdminShell({
   aba,
@@ -40,9 +38,7 @@ export function AdminShell({
   onSair,
   children,
   modoPreview = false,
-  itemExtra,
-  menuPreview,
-  menuPreviewDuasLinhas = false,
+  grupoAtivo,
 }: {
   aba: string;
   onAba: (v: string) => void;
@@ -50,25 +46,9 @@ export function AdminShell({
   usuario?: string | null;
   onSair?: () => void;
   children: ReactNode;
-  /**
-   * Modo demonstração (rotas /preview-l2-*): mostra o mesmo shell para
-   * conferência visual, mas sem navegação real e com selo "PRÉVIA" —
-   * a administração real continua em /admin.
-   */
   modoPreview?: boolean;
-  /**
-   * Item de menu extra APENAS para prévias (ex.: "Reembolsos e Estornos").
-   * Injetado logo após o item Financeiro no grupo Principal; quando ausente
-   * (todos os módulos aprovados) o menu permanece idêntico ao original.
-   */
-  itemExtra?: AdminNavItem | undefined;
-  /** Organização alternativa somente na demonstração de estoques; padrão intacto. */
-  menuPreview?: AdminNavGroup[];
-  /**
-   * Permite quebra de linha nos rótulos do menu somente nesta prévia.
-   * O padrão falso preserva todos os demais módulos e a largura da sidebar.
-   */
-  menuPreviewDuasLinhas?: boolean;
+  /** Mantém o destaque dourado restrito ao grupo da suíte aberta. */
+  grupoAtivo?: string | undefined;
 }) {
   return (
     <SidebarProvider
@@ -104,14 +84,7 @@ export function AdminShell({
           </div>
         </SidebarHeader>
 
-        <MenuLateral
-          aba={aba}
-          onAba={onAba}
-          modoPreview={modoPreview}
-          itemExtra={itemExtra}
-          menuPreview={modoPreview ? menuPreview : undefined}
-          duasLinhas={menuPreviewDuasLinhas}
-        />
+        <MenuLateral aba={aba} onAba={onAba} grupoAtivo={grupoAtivo} />
 
         <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -157,8 +130,6 @@ export function AdminShell({
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      {/* Conteúdo da aba (antes era descartado: a página ficava só com a
-          sidebar). O SidebarInset reserva o espaço da sidebar no desktop. */}
       <SidebarInset>
         {!modoPreview ? (
           <div className="pointer-events-none absolute left-3 top-3 z-30 md:hidden">
@@ -174,158 +145,206 @@ export function AdminShell({
   );
 }
 
-/**
- * Rotas que executam um item de menu interno (aba do admin).
- * A Central da Atendente (/atendente) é o item "Pedidos" — sem criar um
- * segundo menu nem duplicar o módulo Atendimento.
- */
-const ROTA_PARA_ABA: Record<string, string> = {
-  "/atendente": "pedidos",
-};
+const CHAVE_GRUPOS = "neia-admin-grupos-abertos";
+
+function gruposIniciais(): Record<string, boolean> {
+  const padrao: Record<string, boolean> = {};
+  for (const grupo of ADMIN_NAV) padrao[grupo.label] = true;
+  try {
+    const salvo = localStorage.getItem(CHAVE_GRUPOS);
+    if (!salvo) return padrao;
+    const parseado = JSON.parse(salvo) as Record<string, boolean>;
+    const resultado = { ...padrao };
+    for (const [label, aberto] of Object.entries(parseado)) {
+      if (label in resultado && typeof aberto === "boolean") resultado[label] = aberto;
+    }
+    return resultado;
+  } catch {
+    return padrao;
+  }
+}
 
 /**
- * Navegação lateral (dentro do provider): no desktop fica sempre aberta
- * (sem recolher); no celular fecha o drawer ao escolher o destino.
- * Item ativo = pilula dourada (como na referencia).
+ * Navegação lateral única. No desktop fica sempre aberta; no celular fecha o
+ * drawer ao escolher o destino. O estado dos grupos é persistido para não ser
+ * perdido ao trocar de página ou recarregar (F5).
  */
 function MenuLateral({
   aba,
   onAba,
-  modoPreview = false,
-  itemExtra,
-  menuPreview,
-  duasLinhas = false,
+  grupoAtivo,
 }: {
   aba: string;
   onAba: (v: string) => void;
-  modoPreview?: boolean;
-  itemExtra?: AdminNavItem | undefined;
-  menuPreview?: AdminNavGroup[] | undefined;
-  duasLinhas?: boolean;
+  grupoAtivo?: string | undefined;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
-  const pathname = useLocation({ select: (s) => s.pathname });
-  // Grupos começam abertos (todas as áreas visíveis ao rolar) e podem ser
-  // recolhidos para alcançar os grupos inferiores sem percorrer a lista toda.
-  const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
+  const { pathname, hash } = useLocation();
+  // H12-D: em deep-links o router pode hidratar com `hash` vazio. Sincronizar
+  // a URL do navegador garante o destaque correto após a montagem.
+  const [hashUrl, setHashUrl] = useState("");
+  const [hidratado, setHidratado] = useState(false);
+  useEffect(() => {
+    const sincronizar = () => setHashUrl(window.location.hash.replace(/^#/, ""));
+    sincronizar();
+    window.addEventListener("hashchange", sincronizar);
+    setHidratado(true);
+    return () => window.removeEventListener("hashchange", sincronizar);
+  }, []);
+  const hashAtual = (hash || hashUrl).replace(/^#/, "");
+  const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>(gruposIniciais);
+
+  function alternarGrupo(label: string) {
+    setGruposAbertos((prev) => {
+      const next = { ...prev, [label]: prev[label] === false };
+      try {
+        localStorage.setItem(CHAVE_GRUPOS, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
 
   function ir(v: string) {
     onAba(v);
     if (isMobile) setOpenMobile(false);
   }
 
-  // Item extra de prévia: entra somente no grupo que contém "financeiro"
-  // (Principal), logo depois dele. Demais grupos ficam intactos.
-  function itensDoGrupo(items: AdminNavItem[]): AdminNavItem[] {
-    if (!itemExtra) return items;
-    const indice = items.findIndex((i) => i.value === "financeiro");
-    if (indice === -1) return items;
-    return [...items.slice(0, indice + 1), itemExtra, ...items.slice(indice + 1)];
-  }
-
-  const alturaRotulo = duasLinhas ? "h-auto min-h-11 py-2" : "h-9 min-h-9";
-  const classeRotulo = duasLinhas
-    ? "min-w-0 flex-1 whitespace-normal leading-tight"
-    : "truncate";
-  const estiloRotulo = duasLinhas
-    ? ({ overflow: "visible", whiteSpace: "normal" } as const)
-    : undefined;
-
   return (
     <SidebarContent
       className="bg-[#0F0E0C] [scrollbar-color:rgba(212,169,74,0.55)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D4A94A]/60 [&::-webkit-scrollbar-track]:bg-transparent"
     >
-      {(modoPreview && menuPreview ? menuPreview : ADMIN_NAV).map((grupo) => {
+      {ADMIN_NAV.map((grupo) => {
         const aberto = gruposAbertos[grupo.label] !== false;
+        const ehComercial = grupo.label === "Comercial";
         return (
-        <SidebarGroup key={grupo.label} className="py-1">
-          <SidebarGroupLabel asChild className="px-3 font-display text-[9px] uppercase tracking-[0.14em] text-[#8A7A52] group-data-[collapsible=icon]:hidden">
-            <button
-              type="button"
-              aria-expanded={aberto}
-              aria-label={`${aberto ? "Recolher" : "Expandir"} ${grupo.label}`}
-              onClick={() =>
-                setGruposAbertos((prev) => ({ ...prev, [grupo.label]: !aberto }))
-              }
-              className="flex w-full items-center justify-between gap-2 text-left hover:text-[#F2CE6B]"
+          <SidebarGroup key={grupo.label} data-grupo={grupo.label} className="py-1">
+            <SidebarGroupLabel
+              asChild
+              className="px-3 font-display text-[9px] uppercase tracking-[0.14em] text-[#8A7A52] group-data-[collapsible=icon]:hidden"
             >
-              <span className="truncate">{grupo.label}</span>
-              <ChevronDown
-                className={`size-3.5 shrink-0 transition-transform ${aberto ? "" : "-rotate-90"}`}
-                aria-hidden
-              />
-            </button>
-          </SidebarGroupLabel>
-          {aberto ? <SidebarGroupContent>
-            <div role="tablist" aria-orientation="vertical" className="flex flex-col gap-1">
-              {itensDoGrupo(grupo.items).map((item) => {
-                // Ativo por aba interna OU pela rota real (ex.: /pdv, /producao).
-                // No modo conferencia (rotas /preview-l2-*) a aba informada marca o item.
-                // A Central da Atendente (/atendente) destaca "Pedidos".
-                const abaDaRota = ROTA_PARA_ABA[pathname];
-                const ativo = item.href
-                  ? pathname === item.href ||
-                    pathname.startsWith(`${item.href}/`) ||
-                    (modoPreview && aba === item.value)
-                  : (abaDaRota ?? aba) === item.value;
-                return (
-                  <SidebarMenuItem key={item.value}>
-                    {item.href ? (
-                      <SidebarMenuButton
-                        asChild
-                        tooltip={item.label}
-                        className={`${
-                          ativo
-                            ? "erp-btn-gold rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
-                            : "rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
-                        } ${alturaRotulo}`}
-                      >
-                        <Link
-                          to={item.href}
-                          {...(item.hash ? { hash: item.hash } : {})}
-                          onClick={(e) => {
-                            if (modoPreview) {
-                              if (!menuPreview || !ehPreviewModulo(item.href ?? "")) {
-                                e.preventDefault();
-                                if (menuPreview) ir(item.value);
-                                return;
-                              }
-                              if (isMobile) setOpenMobile(false);
-                              return;
-                            }
-                            if (isMobile) setOpenMobile(false);
-                          }}
-                        >
-                          <item.icon className={ativo ? "text-[#14120C]" : "text-[#C9A24B]"} />
-                          <span className={classeRotulo} style={estiloRotulo}>
-                            {item.label}
-                          </span>
-                        </Link>
-                      </SidebarMenuButton>
-                    ) : (
-                      <SidebarMenuButton
-                        tooltip={item.label}
-                        data-value={menuPreview ? item.value : undefined}
-                        onClick={() => (modoPreview && !menuPreview ? undefined : ir(item.value))}
-                        aria-current={aba === item.value ? "page" : undefined}
-                        className={`${
-                          ativo
-                            ? "erp-btn-gold rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
-                            : "rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
-                        } ${alturaRotulo}`}
-                      >
-                        <item.icon className={ativo ? "text-[#14120C]" : "text-[#C9A24B]"} />
-                        <span className={classeRotulo} style={estiloRotulo}>
-                          {item.label}
+              <button
+                type="button"
+                aria-expanded={aberto}
+                aria-label={`${aberto ? "Recolher" : "Expandir"} ${grupo.label}`}
+                onClick={() => alternarGrupo(grupo.label)}
+                className="flex w-full items-center justify-between gap-2 text-left hover:text-[#F2CE6B]"
+              >
+                <span className="truncate">{grupo.label}</span>
+                <ChevronDown
+                  className={`size-3.5 shrink-0 transition-transform ${aberto ? "" : "-rotate-90"}`}
+                  aria-hidden
+                />
+              </button>
+            </SidebarGroupLabel>
+            {aberto ? (
+              <SidebarGroupContent>
+                <div role="tablist" aria-orientation="vertical" className="flex flex-col gap-1">
+                  {grupo.items.map((item) => {
+                    const naRota =
+                      item.href === pathname ||
+                      (item.href ? pathname.startsWith(`${item.href}/`) : false);
+                    const hashOk =
+                      !item.hash || hashAtual === item.hash || (!hashAtual && aba === item.value);
+                    const podeDestacar = !grupoAtivo || grupo.label === grupoAtivo;
+                    // H12-D: na página de Precificação o item do catálogo é a
+                    // fonte única do destaque, mesmo se outra aba internalmente
+                    // estiver ativa. Regra restrita a /admin#precificacao.
+                    const precificacaoAberta =
+                      !grupoAtivo &&
+                      (hashAtual === "precificacao" || aba === "precificacao");
+                    // Na suíte Comercial a aba é a fonte única do destaque,
+                    // evitando dois itens dourados ao trocar de painel.
+                    const ativoBase = podeDestacar
+                      ? item.href
+                        ? grupoAtivo
+                          ? aba === item.value
+                          : naRota && hashOk
+                        : aba === item.value
+                      : false;
+                    // Evita divergência SSR/cliente: no primeiro desenho de /admin
+                    // o servidor não conhece o hash, então mantemos o padrão
+                    // estável e aplicamos o destaque real após a hidratação.
+                    const ativo =
+                      pathname === "/admin" && !hidratado
+                        ? item.value === "dashboard"
+                        : precificacaoAberta
+                          ? item.value === "precificacao"
+                          : ativoBase;
+
+                    const alturaItem = ehComercial
+                      ? item.linhas
+                        ? "h-[58px] min-h-[58px] py-0"
+                        : "h-11 min-h-11 py-0"
+                      : "h-9 min-h-9";
+                    const classeTexto = ehComercial
+                      ? "min-w-0 flex-1 leading-[17px]"
+                      : "truncate";
+                    const estiloTexto = ehComercial
+                      ? ({ overflow: "visible", whiteSpace: "normal" } as const)
+                      : undefined;
+                    const classeIcone = `${
+                      ehComercial ? "shrink-0" : ""
+                    } ${ativo ? "text-[#14120C]" : "text-[#C9A24B]"}`;
+                    const textoItem = item.linhas ? (
+                      item.linhas.map((linha, indice) => (
+                        <span key={`${item.value}-linha-${indice}`} className="block">
+                          {linha}
                         </span>
-                      </SidebarMenuButton>
-                    )}
-                  </SidebarMenuItem>
-                );
-              })}
-            </div>
-          </SidebarGroupContent> : null}
-        </SidebarGroup>
+                      ))
+                    ) : (
+                      item.label
+                    );
+                    const classes = `${
+                      ativo
+                        ? "erp-btn-gold rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
+                        : "rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
+                    } ${alturaItem}`;
+
+                    return (
+                      <SidebarMenuItem key={item.value}>
+                        {item.href ? (
+                          <SidebarMenuButton
+                            asChild
+                            tooltip={item.label}
+                            data-value={item.value}
+                            className={classes}
+                          >
+                            <Link
+                              to={item.href}
+                              {...(item.hash ? { hash: item.hash } : {})}
+                              onClick={() => {
+                                if (isMobile) setOpenMobile(false);
+                              }}
+                            >
+                              <item.icon className={classeIcone} />
+                              <span className={classeTexto} style={estiloTexto}>
+                                {textoItem}
+                              </span>
+                            </Link>
+                          </SidebarMenuButton>
+                        ) : (
+                          <SidebarMenuButton
+                            tooltip={item.label}
+                            data-value={item.value}
+                            onClick={() => ir(item.value)}
+                            aria-current={aba === item.value ? "page" : undefined}
+                            className={classes}
+                          >
+                            <item.icon className={classeIcone} />
+                            <span className={classeTexto} style={estiloTexto}>
+                              {textoItem}
+                            </span>
+                          </SidebarMenuButton>
+                        )}
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </div>
+              </SidebarGroupContent>
+            ) : null}
+          </SidebarGroup>
         );
       })}
     </SidebarContent>

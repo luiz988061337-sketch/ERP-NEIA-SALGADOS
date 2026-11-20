@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/status-steps";
-import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { DonutChart, EmptyState, PageHeader, StatusCard } from "@/components/admin/ui-admin";
 import { ERP_COLORS, KanbanColumn } from "@/components/admin/erp-ui";
@@ -31,6 +30,8 @@ import {
   TIPO_AVISO_RETIRADA,
 } from "@/lib/producao-liberacao";
 import { imagemProduto } from "@/lib/catalog";
+import { ehModoDemo } from "@/lib/demo-preview";
+import { PEDIDOS_DEMO_PRODUCAO } from "@/lib/producao-demo-fixtures";
 import fritos from "@/assets/cat-fritos.jpg";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import {
@@ -261,7 +262,11 @@ export function Producao({
     },
   });
 
-  const pedidos = pedidosInjetados ?? pedidosHook;
+  // No modo demonstração isolado (VITE_DEMO_PREVIEW=1) a rota real usa os
+  // mesmos pedidos fictícios da prévia. Nada é gravado: as ações de escrita
+  // continuam bloqueadas pelo cliente demo em memória.
+  const pedidos =
+    pedidosInjetados ?? (ehModoDemo() ? ([...PEDIDOS_DEMO_PRODUCAO] as any[]) : pedidosHook);
 
   const idsPedidos = useMemo(() => (pedidos ?? []).map((p: any) => String(p.id)), [pedidos]);
   // Reservas e consumos para a retirada fisica parcial. Leitura direta;
@@ -795,13 +800,13 @@ export function Producao({
             }}
           >
             {estado.nivel === "hora-preparar"
-              ? `🔔 HORA DE PREPARAR — estimado ${calc?.tecnicoMin ?? "?"} min. INICIAR PREPARO.`
+              ? `🔔 HORA DE PREPARAR — INICIAR PREPARO.`
               : null}
             {estado.nivel === "atencao"
               ? `⚠️ ATENÇÃO — faltam ${formatarMinutosProducao(estado.restanteMin)} para o limite.`
               : null}
             {estado.nivel === "risco"
-              ? `🚨 RISCO DE ATRASO — restante ${formatarMinutosProducao(estado.restanteMin)}, estimado ${calc?.tecnicoMin ?? "?"} min.`
+              ? `🚨 RISCO DE ATRASO — restante ${formatarMinutosProducao(estado.restanteMin)}.`
               : null}
             {estado.nivel === "atrasado"
               ? `🔴 ATRASADO ${formatarMinutosProducao(estado.restanteMin)}.`
@@ -1264,15 +1269,6 @@ export function Producao({
       }}
     >
       <div className="admin-producao-l1 flex min-w-0 flex-1 flex-col">
-      <AdminTopbar
-        usuario={user?.email ?? null}
-        acesso="Produção"
-        onVoltar={() => navigate({ to: roles?.includes("admin") ? "/admin" : "/central-entregas" })}
-        onSair={async () => {
-          await supabase.auth.signOut();
-          navigate({ to: "/auth", replace: true });
-        }}
-      />
       <div className="px-3 py-3">
         {/* Cabecalho do modulo (padrao da referencia) */}
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D4A94A] bg-[#121110] px-4 py-3 shadow-card">

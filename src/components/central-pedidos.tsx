@@ -34,6 +34,7 @@ import {
   avisoDoPedido,
   filtrarPedidos,
   formatarMinutos,
+  gravarArmazenamento,
   gravarConhecidos,
   gravarReconhecidos,
   lerArmazenamento,
@@ -55,8 +56,8 @@ import { elegivelAceiteLocal } from "@/lib/atendente-aceite";
 /**
  * Central de Pedidos da Atendente.
  *
- * Três colunas: Em análise (laranja), Em produção (azul) e Pronto para
- * entrega (verde). Todos os dados vêm de `pedidos`/`notificacoes` reais —
+ * Três colunas: Em análise (laranja), Em produção (azul) e Prontos (verde).
+ * Todos os dados vêm de `pedidos`/`notificacoes` reais —
  * nenhuma escrita é feita aqui: as transições pertencem às ações canônicas
  * (aceite da atendente, liberação para a cozinha e o fluxo de entrega).
  */
@@ -64,21 +65,27 @@ import { elegivelAceiteLocal } from "@/lib/atendente-aceite";
 const COLUNAS = [
   { key: "analise", titulo: "Em análise", cor: "#B8862B", icone: ClipboardList },
   { key: "producao", titulo: "Em produção", cor: "#2563EB", icone: ChefHat },
-  { key: "pronto", titulo: "Pronto para entrega", cor: "#1E9E63", icone: CheckCircle2 },
+  { key: "pronto", titulo: "Prontos", cor: "#1E9E63", icone: CheckCircle2 },
 ] as const;
 
 export function CentralPedidos({
   preview = false,
   pedidosInjetados,
   avisosInjetados,
+  onAceitar,
   onAvisoReconhecido,
+  configInicial,
 }: {
   preview?: boolean;
   pedidosInjetados?: PedidoCentral[];
   avisosInjetados?: AvisoCozinha[];
+  onAceitar?: (pedido: PedidoCentral) => void;
   onAvisoReconhecido?: (id: string) => void;
+  /** Demo: força a config aprovada (som ligado, 75%, 30s) na montagem. */
+  configInicial?: ConfigAlerta;
 }) {
   const [busca, setBusca] = useState("");
+  const [status, setStatus] = useState<"todos" | "analise" | "producao" | "pronto">("todos");
   const [modalidade, setModalidade] = useState<"todas" | "entrega" | "retirada">("todas");
   const [soAgendados, setSoAgendados] = useState(false);
   const [detalhe, setDetalhe] = useState<PedidoCentral | null>(null);
@@ -135,22 +142,31 @@ export function CentralPedidos({
   /* Alerta sonoro (aprovado: ativo, 75%, 30s, reconhecimento individual) */
   /* ---------------------------------------------------------------- */
   const [config, setConfig] = useState<ConfigAlerta>(CONFIG_ALERTA_PADRAO);
+  const [reconhecidosVersao, setReconhecidosVersao] = useState(0);
   const [audioLiberado, setAudioLiberado] = useState(false);
   const [audioBloqueado, setAudioBloqueado] = useState(false);
   const reconhecidosRef = useRef<Set<string>>(new Set());
   const conhecidosRef = useRef<Set<string>>(new Set());
   const audioRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
+  const ultimoBipRef = useRef(0);
 
   // Config e reconhecimento persistidos (recarregar a página não duplica alerta).
   useEffect(() => {
-    setConfig(lerConfig(lerArmazenamento(CHAVE_CONFIG_ALERTA)));
+    if (configInicial) {
+      const aprovada = normalizarConfig(configInicial);
+      setConfig(aprovada);
+      gravarArmazenamento(CHAVE_CONFIG_ALERTA, JSON.stringify(aprovada));
+    } else {
+      setConfig(lerConfig(lerArmazenamento(CHAVE_CONFIG_ALERTA)));
+    }
     reconhecidosRef.current = lerReconhecidos();
     conhecidosRef.current = lerConhecidos();
-  }, []);
+    setReconhecidosVersao((v) => v + 1);
+  }, [configInicial]);
 
   const bip = useCallback(
-    (volume: number) => {
+    (volume: number, imediato = false) => {
       try {
         const Ctx =
           window.AudioContext ||
@@ -158,18 +174,36 @@ export function CentralPedidos({
         if (!Ctx) return;
         if (!audioRef.current) audioRef.current = new Ctx();
         const ctx = audioRef.current;
-        if (ctx.state === "suspended") void ctx.resume();
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.connect(g);
-        g.connect(ctx.destination);
-        o.frequency.value = 880;
-        o.start();
-        g.gain.setValueAtTime(Math.max(0.0001, volume), ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-        o.stop(ctx.currentTime + 0.4);
-        setAudioBloqueado(false);
-        setAudioLiberado(true);
+        // Um bip por vez: evita sobreposição entre o timer e a chegada de um pedido.
+        const agora = Date.now();
+        if (!imediato && agora - ultimoBipRef.current < 1000) return;
+        const tocar = () => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.frequency.value = 880;
+          o.start();
+          g.gain.setValueAtTime(Math.max(0.0001, volume), ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+          o.stop(ctx.currentTime + 0.4);
+          ultimoBipRef.current = Date.now();
+          setAudioBloqueado(false);
+          setAudioLiberado(true);
+        };
+        if (ctx.state === "suspended") {
+          // Restrição de autoplay do navegador: não enfileirar áudio;
+          // tentar retomar e tocar somente se o contexto ficar ativo.
+          setAudioBloqueado(true);
+          void ctx.resume().then(
+            () => {
+              if (ctx.state === "running") tocar();
+            },
+            () => setAudioBloqueado(true),
+          );
+          return;
+        }
+        tocar();
       } catch {
         setAudioBloqueado(true);
       }
@@ -215,6 +249,7 @@ export function CentralPedidos({
   const reconhecer = useCallback((id: string) => {
     reconhecidosRef.current.add(id);
     gravarReconhecidos(reconhecidosRef.current);
+    setReconhecidosVersao((v) => v + 1);
     toast.success("Alerta reconhecido.");
   }, []);
 
@@ -238,15 +273,15 @@ export function CentralPedidos({
   // Reconexão/reload: pedidos já reconhecidos não voltam a tocar.
   const naoReconhecidos = useMemo(
     () => pedidosNaoReconhecidos(colunasCentral(pedidos).analise, reconhecidosRef.current),
-    [pedidos],
+    [pedidos, reconhecidosVersao],
   );
 
   /* ---------------------------------------------------------------- */
   /* Colunas, filtros e métricas                                       */
   /* ---------------------------------------------------------------- */
   const filtrados = useMemo(
-    () => filtrarPedidos(pedidos, { busca, modalidade, agendados: soAgendados }),
-    [pedidos, busca, modalidade, soAgendados],
+    () => filtrarPedidos(pedidos, { busca, status, modalidade, agendados: soAgendados }),
+    [pedidos, busca, status, modalidade, soAgendados],
   );
   const colunas = useMemo(() => colunasCentral(filtrados), [filtrados]);
   const metricas = useMemo(() => metricasCentral(filtrados), [filtrados]);
@@ -321,11 +356,22 @@ export function CentralPedidos({
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar pedido ou cliente…"
-            aria-label="Buscar pedido ou cliente"
+            placeholder="Buscar nº, cliente ou telefone…"
+            aria-label="Buscar pedido, cliente ou telefone"
             className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-[#8A8278]"
           />
         </div>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as typeof status)}
+          aria-label="Filtrar por status"
+          className="min-h-[42px] rounded-xl border border-[#D4A94A]/45 bg-[#17150F] px-3 text-xs font-semibold text-foreground"
+        >
+          <option value="todos">Todos os status</option>
+          <option value="analise">Em análise</option>
+          <option value="producao">Em produção</option>
+          <option value="pronto">Pronto</option>
+        </select>
         <FiltroBtn
           ativo={modalidade === "todas"}
           onClick={() => setModalidade("todas")}
@@ -395,7 +441,7 @@ export function CentralPedidos({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => bip(config.volume)}
+            onClick={() => bip(config.volume, true)}
             className="h-9 border-[#D4A94A]/60 bg-transparent text-[11px] font-bold text-[#F2CE6B] hover:bg-[#F2CE6B]/12"
           >
             <BellRing className="mr-1 size-3.5" /> Testar som
@@ -452,6 +498,7 @@ export function CentralPedidos({
                       avisoCozinha={avisoDoPedido(avisos, p.id)}
                       naoReconhecido={naoReconhecidos.some((x) => x.id === p.id)}
                       onReconhecer={() => reconhecer(p.id)}
+                      onAceitar={() => onAceitar?.(p)}
                       onDetalhes={() => abrirDetalhes(p)}
                       onAvisoLido={() => onAvisoReconhecido?.(p.id)}
                     />
@@ -489,6 +536,7 @@ export function CentralPedidos({
             </div>
             <dl className="mt-3 space-y-1.5 text-sm">
               <LinhaDetalhe rotulo="Cliente" valor={detalhe.cliente_nome} />
+              <LinhaDetalhe rotulo="Telefone" valor={detalhe.telefone ?? "—"} />
               <LinhaDetalhe
                 rotulo="Modalidade"
                 valor={detalhe.tipo_entrega === "retirada" ? "Retirada" : "Entrega"}
@@ -604,6 +652,7 @@ function CardPedido({
   avisoCozinha,
   naoReconhecido,
   onReconhecer,
+  onAceitar,
   onDetalhes,
 }: {
   pedido: PedidoCentral;
@@ -611,6 +660,7 @@ function CardPedido({
   avisoCozinha: AvisoCozinha | null;
   naoReconhecido: boolean;
   onReconhecer: () => void;
+  onAceitar?: () => void;
   onDetalhes: () => void;
   onAvisoLido?: () => void;
 }) {
@@ -707,8 +757,13 @@ function CardPedido({
       ) : null}
       {retirada && coluna === "pronto" ? (
         <p className="mt-2 rounded-lg border border-[#D4A94A]/40 bg-[#F2CE6B]/10 px-2 py-1.5 text-[11px] text-[#F2CE6B]">
-          Aguardando retirada no balcão
+          Pronto para retirada — aguardando o cliente no balcão
           {pedido.retirado_em ? " · retirada confirmada" : ""}
+        </p>
+      ) : null}
+      {!retirada && coluna === "pronto" ? (
+        <p className="mt-2 rounded-lg border border-[#35C97C]/40 bg-[#35C97C]/10 px-2 py-1.5 text-[11px] text-[#35C97C]">
+          Pronto — aguardando motoboy / entrega
         </p>
       ) : null}
 
@@ -727,7 +782,7 @@ function CardPedido({
           <Button
             size="sm"
             disabled={!aceite.elegivel}
-            onClick={onDetalhes}
+            onClick={onAceitar ?? onDetalhes}
             className="erp-btn-gold h-10 flex-1 border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-xs font-bold text-[#14120C] hover:brightness-105 disabled:opacity-45"
           >
             <CheckCircle2 className="mr-1.5 size-4" /> Aceitar pedido
@@ -760,7 +815,7 @@ function CardPedido({
             onClick={onDetalhes}
             className="h-10 flex-1 border-[#35C97C]/70 bg-gradient-to-b from-[#1E9E63] to-[#146E48] text-xs font-bold text-white hover:brightness-110"
           >
-            <Bike className="mr-1.5 size-4" /> Chamar motoboy
+            <Bike className="mr-1.5 size-4" /> Avisar Central de Entregas
           </Button>
         ) : null}
         {coluna === "pronto" && retirada ? (

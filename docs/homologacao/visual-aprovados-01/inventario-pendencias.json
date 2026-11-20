@@ -1,0 +1,2927 @@
+[
+  {
+    "status": " M",
+    "path": "AGENTS.md",
+    "bytes": 3258,
+    "sha256": "3b2967e1d9f7e70e84e383a9aff82830adc822c17ea78c1336510bb4392e7d7f",
+    "category": "temporarios-config-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "docs/erp-dark/prints/central-entregas-DEPOIS-celular.png",
+    "bytes": 113605,
+    "sha256": "d781104ab5dd7b601c2aadf77f44958540f6fd52bd8979cc8067977ba7e97a88",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "docs/erp-dark/prints/central-entregas-DEPOIS.png",
+    "bytes": 183600,
+    "sha256": "decb7922575e078e48d66cd69533c6d633e1b92a80647781c857546eb9cebd41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "docs/reembolsos-estornos/capturas-origens/central-com-novas-solicitacoes.png",
+    "bytes": 532931,
+    "sha256": "79ddaaa091f714a9ae2ab1a8c247bdc626608d232a1f15d8092f97fa102b05ec",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/admin/admin-nav.ts",
+    "bytes": 10367,
+    "sha256": "71c5d5d0846f53233be1cb878449d2ded14980d365e7c0cdf9f9510ab0212acc",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/admin/admin-shell.tsx",
+    "bytes": 14654,
+    "sha256": "f27a8fe1f09eee80d2e869d4cf9d063ca828a7ac6606ceb557700822b60cd9ef",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/admin/erp-ui.tsx",
+    "bytes": 20827,
+    "sha256": "fa3970671a508576f372a2f4b08587bab1ee7d272dded240e85db497a7ce4192",
+    "category": "codigo",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/admin/precificacao-admin.tsx",
+    "bytes": 33850,
+    "sha256": "78b2a8818260c1cb8c38c4dbee7ad9e25b240decb27e9b5b36794805960ea415",
+    "category": "codigo",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/central-pedidos.tsx",
+    "bytes": 31944,
+    "sha256": "e615b3e1df74170032cb2aebf5293bf1a89aa9a069f1594402d6472b69c70d6d",
+    "category": "codigo",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/comercial-preview/comercial.css",
+    "bytes": 15457,
+    "sha256": "2a1c8f73dfca8762017f8f1496547be5a85160d97a2a04fd6ab2139f4cfa36af",
+    "category": "css",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/comercial-preview/shell.tsx",
+    "bytes": 2930,
+    "sha256": "87a11e0d65853c6b870d2eba02f3b36072bf5cb250c9d0125e9e2409cc678665",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/comercial-preview/suite-demo.tsx",
+    "bytes": 4000,
+    "sha256": "7d18962ad0034a09c9ba9057fe0de39138ef9e9ddd6c8c99a7852af2ffbdf073",
+    "category": "fixtures",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/entregas/central-entregas-premium.tsx",
+    "bytes": 30892,
+    "sha256": "fca3a4e94662d7c5b508ff03b7f210030900cfffd6cacd02acbb08d6678d8a19",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/components/estoque-preview/shell.tsx",
+    "bytes": 2006,
+    "sha256": "7d103e0d3eddefb760f3e1fdd3277ea4a728a1badac061e61a9444c1f0c0cbdd",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/lib/central-pedidos.ts",
+    "bytes": 10883,
+    "sha256": "37923db002d61c4ac287ee431b7d87e304c854ab876a6cbb4cb8dd881a3663fb",
+    "category": "codigo",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/lib/demo-preview.ts",
+    "bytes": 19944,
+    "sha256": "29b8f5876aaf7d6fa791acb43814c2df72dd5b3c722b9fd6828f83eac9e5a516",
+    "category": "fixtures",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/__root.tsx",
+    "bytes": 13731,
+    "sha256": "f6a4f70a5fb9e6fcd9522899adeacf627225f4ea9dc0d77dd0974f4e42af33b3",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/admin.tsx",
+    "bytes": 156288,
+    "sha256": "0d12ad89156e39884b6fb76d7fa62f1b782cd4d2b82c55f5b5df503e21ce8827",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/central-entregas.tsx",
+    "bytes": 88493,
+    "sha256": "4c60114e89c80c6a102a1395681d98a669d5764befa830ede21a2c9af1761218",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/contador.tsx",
+    "bytes": 18712,
+    "sha256": "ca803bfb7c5715b29cbcb39084fa379502dbaa123e8019318b9b36b5062eba32",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/fiscal.tsx",
+    "bytes": 25614,
+    "sha256": "97a8472a62ec08919b6751726d697cab9ccbc9c520afbf9f3e3f8162b9896807",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/motoboy.tsx",
+    "bytes": 32426,
+    "sha256": "da9acf3ed5c9e7f85058aa405d81af777adeeb97852f7709a8b6e852e42532f5",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/pdv.tsx",
+    "bytes": 38866,
+    "sha256": "fd04651eb45abe2301caab3024ec02eeb0e3382ff8cbedde8bce6e474d650850",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/preview-l2-atendente.tsx",
+    "bytes": 1230,
+    "sha256": "07090200c2ff4e2742834fe4ea2a99fefea1b0d8327259640c1d0f1600b29fa3",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/preview-l2-producao.tsx",
+    "bytes": 1111,
+    "sha256": "6528a12372c68864cf51aec22012ff7138885e6b5d64e3a51200fe0af66a2cac",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/preview/central-entregas-v2.tsx",
+    "bytes": 439,
+    "sha256": "2fd51d9037b280bdba528fc552a4d3413eb0a3d44967afc1538f3af11748d68b",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/preview/comercial.tsx",
+    "bytes": 1946,
+    "sha256": "5c3dfbcced264b308ff3c28e0b2f2ceb2884db358a2c9e089f7d45f4edc17165",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/preview/reembolsos-estornos-origens.tsx",
+    "bytes": 2191,
+    "sha256": "249ea624130aca27c6e9c092b4f30036d5ed3c125b985c99796e1f91af8cc380",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/preview/reembolsos-estornos.tsx",
+    "bytes": 1857,
+    "sha256": "191a95cf93c59309e45c6a32aab98d74bf5e19ce6cb9f6e4bc7859ff86d0587d",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "src/routes/producao.tsx",
+    "bytes": 67846,
+    "sha256": "c39a358aba53993b71ec708c4b6ec8c71ded4ca74d02e7bff9b3dc84e50b992b",
+    "category": "rotas-navegacao",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": " M",
+    "path": "supabase/.temp/cli-latest",
+    "bytes": 6,
+    "sha256": "5dfcc30937fcc143eb636efa5f535160f80bacb0028a74a5593a694f8045e298",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Cache local da CLI; preservado somente no backup."
+  },
+  {
+    "status": "??",
+    "path": "CARROSSEL_AJUSTE_FINAL.md",
+    "bytes": 5303,
+    "sha256": "496a1a48190c479cfd79051d400db98b4527c99516d0183f34bd43c6dbca83f1",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "CONCLUSAO.md",
+    "bytes": 2015,
+    "sha256": "4494fd6e80d587a2b355987fc0fcbbc34d0ad2f1cc5ed72a0b73035900ec123d",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "FECHAMENTO_FINAL.md",
+    "bytes": 6469,
+    "sha256": "c93b62738ba859df3dea7842228d49ff3519055148f50555504aaddeb3b0aaeb",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "FINAL_STATUS.md",
+    "bytes": 3026,
+    "sha256": "5cac08dee4f306b98d45f4271b95908f9eb37e6b4eac9802ff7274922b068dcf",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "FINAL_TECH_CLOSURE.md",
+    "bytes": 7311,
+    "sha256": "e8c32df8dd0ac45c957860396f0ca290c65bb0929db1c0c6b22a572dbebb971b",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "PUBLICACAO_CARROSSEL.md",
+    "bytes": 5115,
+    "sha256": "4f018d477e8d0a651094957f84499f988b89995996ded22536babf8d8389a082",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "RELATORIO_ACESSO_ADM.md",
+    "bytes": 6083,
+    "sha256": "4367bc23148420f06d618aff2a346b6b95b777d55e9953d3abce219b0a9f2bdc",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "RELATORIO_FINAL.md",
+    "bytes": 12438,
+    "sha256": "927321dd4f6a8053ce01f6c1ae4bbc91a44624f48cc78c37de1223376ace90c3",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "RELATORIO_FINAL_R2-B_VERIFICACAO.md",
+    "bytes": 6230,
+    "sha256": "ca1b3e9f1d2942cb3143ea84b886d225715f9c240976d2175e885d93aa2e4d24",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "RELATORIO_FINAL_TECNICO.md",
+    "bytes": 4870,
+    "sha256": "bcf2c8d7d9160139f6a0bc699cc518e3aaa6dd7a0e818429b581ac98b8535486",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "alias-curl-output.txt",
+    "bytes": 9676,
+    "sha256": "9953c37bc551f83966d3305bfc1a9ff91ebfabac3d98aa93de22f0b52cffcade",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "alias-page.txt",
+    "bytes": 9598,
+    "sha256": "ff30ff0ed9b2c8f4ab14a9044c256a71512c530e76310583826d54e4c94c1394",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "build-orig.txt",
+    "bytes": 2120,
+    "sha256": "e9461f00161013d46f307a7f7d85cff391bc7b91722c4ac5f761ddbcf6fec98d",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "build-output.txt",
+    "bytes": 102824,
+    "sha256": "c7f11a4a5c646dd168152b0cc83729cbaa5451fac3c260af79142fbdfa36e7b3",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "build_output.txt",
+    "bytes": 92372,
+    "sha256": "0576a86dc72100145c1a575a47a1194df480973c5f9e9c20dacad8c13db8bcbc",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "curl-home.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "curl-meus-pedidos.txt",
+    "bytes": 85342,
+    "sha256": "f8d52495d7a83ee0f83db52fcd8651053c638dacb2d6e03a083ec67c7cb2960f",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "curl-output.txt",
+    "bytes": 9598,
+    "sha256": "bec598ef64d04e40c83e1d798eaa1d95163252689c18446eb183ed996b6a5e24",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "curl.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "deploy-output.txt",
+    "bytes": 119938,
+    "sha256": "41f1565360141ac3b26c0f4eebbf5dc258bf3fc30a5b1cc8e651539ca7374978",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "deploy_output.txt",
+    "bytes": 1336,
+    "sha256": "827d057a6c1836155f570288ae9c08d121b0fb9785db2ea92c3205302b6a5bf1",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "dev-output.txt",
+    "bytes": 1258,
+    "sha256": "5f94ade18e6a4f6d47f56af90be6e7a390dc265be1dae33d019c8b4ddb183922",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "docs/CONTINUACAO-ERP-NEIA.md",
+    "bytes": 117241,
+    "sha256": "307d6b21c70cc339f4365f8bd649cf98775391e5f8786b256717da4620c61c32",
+    "category": "documentacao-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "docs/auditoria/f1-b3/CASOS-DE-TESTE.md",
+    "bytes": 7106,
+    "sha256": "c5bf127f1256ea4bd985e1818060c04a84d3317420151f9fed57518dc0693057",
+    "category": "documentacao-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "docs/auditoria/f1-b3/PROPOSTA-TECNICA.md",
+    "bytes": 18179,
+    "sha256": "9ef282cc27a00ec96bd5087f84cee77109c1b9210eb8c71d71f1654f25c8487f",
+    "category": "documentacao-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "docs/auditoria/homologacao-lfl-final/A-PAUSA-JOB-1-PROPOSTA.sql",
+    "bytes": 2456,
+    "sha256": "27d64772c19f1b230527922849edb76cb313e9c0d945477fce6dbec75740e88c",
+    "category": "documentacao-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "docs/auditoria/homologacao-lfl-final/A-REVERSAO-JOB-1-PROPOSTA.sql",
+    "bytes": 2471,
+    "sha256": "32ce247b280269a106fce1f4fd5ba9b9af809b8e98510dd041e02276fb59058e",
+    "category": "documentacao-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/deployment.json",
+    "bytes": 227,
+    "sha256": "a1a9427d0488db76862f51de4364828fa1daf2f0037889619e597f1ef0d77c51",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/git-status.txt",
+    "bytes": 16291,
+    "sha256": "44b712f76d659738605076cce4ca67a2bd57f2b03b4f79c8965be2d9662f5c62",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/cadastro-combos-desktop.png",
+    "bytes": 124492,
+    "sha256": "2abb0aa9efce0162960af84711f68fef7734fdf403166a70bca6256573cb59db",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/cadastro-combos-mobile.png",
+    "bytes": 71869,
+    "sha256": "d6050d0325e1f6b70ec631e47dc0d5399d0a855f6259c96eb935efb854b65c7f",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/consulta-combo-desktop.png",
+    "bytes": 152316,
+    "sha256": "3434d9895a1093a9b456d97d5acb8eb71e1abd55068e94d4e2499334a8797ad6",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/estoque-cancelamento-liberacao.png",
+    "bytes": 276075,
+    "sha256": "5c7c8c77c1a531fa545c40e0b9d20ee6fed67201b5e92bf9cfe864cf9e94a3b9",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/estoque-reserva-avulsa.png",
+    "bytes": 270436,
+    "sha256": "d44b6a39a495eb14226bc50aa743b9cae4f76e9c2d65685807035c0e9a90635a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/estoque-reserva-unificada.png",
+    "bytes": 280144,
+    "sha256": "551f4c6f26a87db84a39d931c5ca03b43c9428fe6a06bafe6f503a4f641d5680",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/estoque-retirada-sem-baixa-dupla.png",
+    "bytes": 280907,
+    "sha256": "61840ecb91b05451c7d2ab9d720ab186dc01753c60777638e888477ca8ad71f4",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/estoque-salgados-desktop.png",
+    "bytes": 262250,
+    "sha256": "abeaf6484b694e40ab9fb8fcf58d5faee78796bc0e3797a81633079a5c9cb591",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/estoque-salgados-mobile.png",
+    "bytes": 158145,
+    "sha256": "3028a140051969cfa7a7b6c19314c3d1b3ab2dc3c28dee646f1c12f875caeedb",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/falha.png",
+    "bytes": 274707,
+    "sha256": "b766dd3141d5cdcc3aa914c2c6ee5efe9e5b80a92551fe5327bb18567333c722",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/formulario-combo-desktop.png",
+    "bytes": 149025,
+    "sha256": "f614ca08121a528b285dcfe0ce7623b7ee8212b6ee0f3d40b5f39b967036a720",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/formulario-combo-mobile-final.png",
+    "bytes": 54321,
+    "sha256": "faf30ab663c46da11a3ab08dc7d4a6fff29f3b7ee0ad117a62848d958e6c5563",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/formulario-combo-mobile.png",
+    "bytes": 56281,
+    "sha256": "8a324843ef2c1fc52a786673f41d4ecee77c2b86746e60b12b9aac68646435c6",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/local/resultado.json",
+    "bytes": 1897,
+    "sha256": "9a6a7ab8400641e9904ff226d801795ce63981c025b08e069a31dca33f6adb3b",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/preservacao-arquivos.json",
+    "bytes": 53689,
+    "sha256": "4fb3dd5ced38e9a5f8396a775c785d390e29c1dbf861a6812d36f2a7d47ee408",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regras-regressoes.json",
+    "bytes": 1031,
+    "sha256": "f6ebcbc800b9a0b6fdac2f989e8a5a3982b4ed8c3a98c405078fb7ae7681c1b9",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/cadastro-embalagens-compra-retirada.png",
+    "bytes": 249829,
+    "sha256": "4d5fa38eae81d429e6cc5fe83fdda4dcf4f64939820167889ccc3b8e616b8af9",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/cadastro-insumos-compra-retirada.png",
+    "bytes": 266399,
+    "sha256": "1add349b33bf9fb2906d58183a5ecb917c178f5a5f38edd356238f0595e012ea",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/cadastro-produtos-desktop.png",
+    "bytes": 177700,
+    "sha256": "13ed6c0705b53e8c57413344b8d5de7cbe7ea7b1dea48bcab64ab0a0608736ee",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/cadastro-produtos-mobile.png",
+    "bytes": 85190,
+    "sha256": "d8794636ab04439c150af5ffbc514d6b5c222b7208f37938e50a55b63ba64262",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/consulta-produto-cadastrado.png",
+    "bytes": 134535,
+    "sha256": "6bfee885d2e7f688d9bda3b2728ef6db7eda66e9c2dfc2d222f58ac2009dcca8",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/estoque-embalagens-desktop.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/estoque-embalagens-mobile.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/estoque-insumos-desktop.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/estoque-insumos-mobile.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/estoque-salgados-desktop.png",
+    "bytes": 262250,
+    "sha256": "abeaf6484b694e40ab9fb8fcf58d5faee78796bc0e3797a81633079a5c9cb591",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/estoque-salgados-mobile.png",
+    "bytes": 158145,
+    "sha256": "3028a140051969cfa7a7b6c19314c3d1b3ab2dc3c28dee646f1c12f875caeedb",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/formulario-produto-desktop.png",
+    "bytes": 179693,
+    "sha256": "18a3b8ca072f5715552a8279cecf23542cb3038a2b20370ece9a9e49698e6370",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/formulario-produto-mobile-final.png",
+    "bytes": 81308,
+    "sha256": "ddebe659e55fedaffe2a82bde8f0a1794f0469a93acf86c82c74241a6f7f4c1e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/formulario-produto-mobile.png",
+    "bytes": 77022,
+    "sha256": "6e210463c6710ab5c6c5755cd780e1d366711c33eb7380cf66bf63a59a6fa509",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/novo-salgado-entrada-150.png",
+    "bytes": 263634,
+    "sha256": "2d4deeed4774b1f89e2dd2a18ec35348629c473ba375ffc0137260e5972354c1",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/novo-salgado-estoque-zero.png",
+    "bytes": 255458,
+    "sha256": "66ccfd493207216abdde17d53a073a9810f0adbfc7c92aedb2814cbc1f1d0a32",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-local/resultado.json",
+    "bytes": 2173,
+    "sha256": "04ff8d2ddc9d0d76d69880eb9e18c12a8769aefd1c01b4af3608cada604b86b4",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/cadastro-embalagens-compra-retirada.png",
+    "bytes": 249838,
+    "sha256": "2eb19824bf52f2fb4276795c47d0f4379774bfea6a3e8a2935122056dbf96a57",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/cadastro-insumos-compra-retirada.png",
+    "bytes": 266386,
+    "sha256": "11907a202367e216d86b89e077f4b94c9dd253eb6343a963b3cfce6dafec5f33",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/cadastro-produtos-desktop.png",
+    "bytes": 177700,
+    "sha256": "13ed6c0705b53e8c57413344b8d5de7cbe7ea7b1dea48bcab64ab0a0608736ee",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/cadastro-produtos-mobile.png",
+    "bytes": 85190,
+    "sha256": "d8794636ab04439c150af5ffbc514d6b5c222b7208f37938e50a55b63ba64262",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/consulta-produto-cadastrado.png",
+    "bytes": 134535,
+    "sha256": "6bfee885d2e7f688d9bda3b2728ef6db7eda66e9c2dfc2d222f58ac2009dcca8",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/estoque-embalagens-desktop.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/estoque-embalagens-mobile.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/estoque-insumos-desktop.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/estoque-insumos-mobile.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/estoque-salgados-desktop.png",
+    "bytes": 262202,
+    "sha256": "a64061e4d48e65e862b2c8e27845e2f69f96f8ecbf58e738807ea1cad70a4bda",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/estoque-salgados-mobile.png",
+    "bytes": 158121,
+    "sha256": "c361f8e5ed1f188b4c14bf3f37c1d9bcbd98374a548d912ab7e67807a7b9118b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/formulario-produto-desktop.png",
+    "bytes": 179685,
+    "sha256": "5824a4e78d8c102f27c18f18136f73f1d1e235e887bffe00e0ace4baf956d911",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/formulario-produto-mobile-final.png",
+    "bytes": 81308,
+    "sha256": "ddebe659e55fedaffe2a82bde8f0a1794f0469a93acf86c82c74241a6f7f4c1e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/formulario-produto-mobile.png",
+    "bytes": 77022,
+    "sha256": "6e210463c6710ab5c6c5755cd780e1d366711c33eb7380cf66bf63a59a6fa509",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/novo-salgado-entrada-150.png",
+    "bytes": 263669,
+    "sha256": "e1665307042a4517cedd4527d637d72dd479a6da49ec6be5d9aa6065b4cfd75b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/novo-salgado-estoque-zero.png",
+    "bytes": 255994,
+    "sha256": "aaa640cb37b34ee88691660fdeb18e4c85cf294d36cd0c0e39d14fd898f94ac0",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-cadastros-vercel/resultado.json",
+    "bytes": 2227,
+    "sha256": "4c193212bfa58eb2b691b7c961cf6eb0264d864cf21eef405d74f9d766f55749",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-local/embalagens-desktop-1672.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-local/embalagens-mobile-390.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-local/insumos-desktop-1672.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-local/insumos-mobile-390.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-local/resultado.json",
+    "bytes": 1645,
+    "sha256": "ff9c852750501be3a5d99a0a6bce7f2317abb55822f52b44921be9be3896cd51",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-local/salgados-desktop-1672.png",
+    "bytes": 262250,
+    "sha256": "abeaf6484b694e40ab9fb8fcf58d5faee78796bc0e3797a81633079a5c9cb591",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-local/salgados-mobile-390.png",
+    "bytes": 158145,
+    "sha256": "3028a140051969cfa7a7b6c19314c3d1b3ab2dc3c28dee646f1c12f875caeedb",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/embalagens-desktop-1672.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/embalagens-mobile-390.png",
+    "bytes": 148287,
+    "sha256": "c768b611dafe0437d7f19a4e5afd30ae25c509e28302102840715d978d3156ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/falha.png",
+    "bytes": 281323,
+    "sha256": "f520fe1725680062455c68f107ebf13e3850d9e9c36e2a4e0f7355135dd6b95a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/insumos-desktop-1672.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/insumos-mobile-390.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/resultado.json",
+    "bytes": 1700,
+    "sha256": "79395cb850939d3c3bbac6a27231ad91f1ca8b5f2079fbd76787cd085e81c303",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/salgados-desktop-1672.png",
+    "bytes": 262240,
+    "sha256": "55eeadf7499a7aa3e4df9c2dfb13f4c71e15793f70825f1e49bed1bcc7641a85",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-estoques-vercel/salgados-mobile-390.png",
+    "bytes": 158152,
+    "sha256": "5f4a6d03656a5b82189e50425a45c870bda93f38ba5bf34a71e20b9fde849131",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-r2b-vercel/acompanhe-pedido-desktop-1440.png",
+    "bytes": 499841,
+    "sha256": "9519191d0c121150b4cafb5ceec4e355a3fbd360529c5d1b218beb5b119b3e25",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-r2b-vercel/acompanhe-pedido-mobile-390.png",
+    "bytes": 361435,
+    "sha256": "bb39023b9b297a68a82dde8f843a2cdaf7cf1220fb0a4356a9cc85273d06b909",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-r2b-vercel/meus-pedidos-desktop-1440.png",
+    "bytes": 317602,
+    "sha256": "f3d04b692713d1a43fb13468641d9426e671c9f928dbd501078574a5b05023b3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-r2b-vercel/meus-pedidos-mobile-390.png",
+    "bytes": 285442,
+    "sha256": "65d771df9088a3131e73f1ce739abc6563740a21bc27b83508c2e4644f04fc41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/regressao-r2b-vercel/resultado.json",
+    "bytes": 2048,
+    "sha256": "c72ac10005983545d9238938223012d31c3c507bdb528f221a89f3786c24bf39",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/cadastro-combos-desktop.png",
+    "bytes": 124492,
+    "sha256": "2abb0aa9efce0162960af84711f68fef7734fdf403166a70bca6256573cb59db",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/cadastro-combos-mobile.png",
+    "bytes": 71869,
+    "sha256": "d6050d0325e1f6b70ec631e47dc0d5399d0a855f6259c96eb935efb854b65c7f",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/consulta-combo-desktop.png",
+    "bytes": 152381,
+    "sha256": "888630aef7469505d910b3926fd052eeb29a8436fdf5c014f653eb246fb2504d",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/estoque-cancelamento-liberacao.png",
+    "bytes": 276059,
+    "sha256": "34528f142aa533343c6ff226bdc8676545c329fb55107be758f5b31e8b030ab3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/estoque-reserva-avulsa.png",
+    "bytes": 272290,
+    "sha256": "e501d7d2c8f44f876bdafec5a6d5c5970a1d146588fbc9b7433d52b47ca117e9",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/estoque-reserva-unificada.png",
+    "bytes": 280096,
+    "sha256": "e94ee802ee32830454a37de7cee2496e11ba1752e4afd998e76e82cc89dd2d83",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/estoque-retirada-sem-baixa-dupla.png",
+    "bytes": 280441,
+    "sha256": "dda39ab0ab330f92b4e5730d3ce64c2a5b9fdb0fca902d9327e02eed3055a8d4",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/estoque-salgados-desktop.png",
+    "bytes": 262253,
+    "sha256": "7c0d51689c71b3e637c149c2f0dd814494ce844fe49388dbebfd6e9577da3934",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/estoque-salgados-mobile.png",
+    "bytes": 158158,
+    "sha256": "9a6077c58d51554db68683753346e048dbd00a260e4b82765085dacee9b96d3a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/formulario-combo-desktop.png",
+    "bytes": 149025,
+    "sha256": "f614ca08121a528b285dcfe0ce7623b7ee8212b6ee0f3d40b5f39b967036a720",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/formulario-combo-mobile-final.png",
+    "bytes": 54321,
+    "sha256": "faf30ab663c46da11a3ab08dc7d4a6fff29f3b7ee0ad117a62848d958e6c5563",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/formulario-combo-mobile.png",
+    "bytes": 56281,
+    "sha256": "8a324843ef2c1fc52a786673f41d4ecee77c2b86746e60b12b9aac68646435c6",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/combos/vercel/resultado.json",
+    "bytes": 1951,
+    "sha256": "872c85a8dfcdcc46cfdf667f8afe992e8940259ee42a97bedda29d8ac4f0c76f",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/deployment.json",
+    "bytes": 2159,
+    "sha256": "f8875af661dc1a750b755b065d055455cae42085b8ec54c7d528e0ed534de070",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/clientes-crm-desktop.png",
+    "bytes": 268290,
+    "sha256": "6ec3fd7b8485d84c005e7e362a22c9be55c472890461835b1bb13a0f50558657",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/clientes-crm-mobile.png",
+    "bytes": 145760,
+    "sha256": "738802264e07652da087c2ab81064d6c8847685a80f9a59a8649bc0ea3877eba",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/menu-comercial-mobile.png",
+    "bytes": 261284,
+    "sha256": "691756881796a07c760e30c2b7a554b173e6a2feb7fa113ecda481b3c30f14dd",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/painel-comercial-busca.png",
+    "bytes": 360409,
+    "sha256": "a8bd74255253058e3ef76f84a1ae523dcfc7cc9b393adb89a0d8aacc7595866d",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/painel-comercial-desktop.png",
+    "bytes": 362024,
+    "sha256": "1f9b90d2dccb9ad5e6d48ba3ab224f25d066cab6b11a379066472916cf829d4e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/painel-comercial-filtro-muito-inativo.png",
+    "bytes": 361755,
+    "sha256": "e8d7c246ca696fad286f8ae7511db18683ea567aebc0aee0d1e872d4fb5a4104",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/painel-comercial-filtro-origem.png",
+    "bytes": 361205,
+    "sha256": "052562f304f9ec8fedaa3eca2d80080b3240c3722427cbf7b9038be964bdcb29",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/painel-comercial-historico.png",
+    "bytes": 368913,
+    "sha256": "49e973097852011df7d22f79e542d582bcada068456ead0672fecc4a3dc6b4c9",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/painel-comercial-mobile.png",
+    "bytes": 278118,
+    "sha256": "823ee3f9962d55353213ceef6a6cd1e96f37115978da55656849c372a12111f9",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local-c1a/resultado.json",
+    "bytes": 1305,
+    "sha256": "db7202f7480bf4ee1c57428434c8c1a46b96dbd7a546eea8e44c3e7b3b59d91a",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/clientes-crm-desktop.png",
+    "bytes": 256071,
+    "sha256": "ca34c4664e26cdfeab37a62e962a3ed7bdc866781e277b775ae17445f76ce460",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/clientes-crm-mobile.png",
+    "bytes": 134943,
+    "sha256": "a185f9e0d707d9655d90bad3339ca736417606f658211f7df642592646b8b2c7",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/falha.png",
+    "bytes": 118316,
+    "sha256": "50e6e95f1f195f0567a15b81697f70d2c91a784b93ea925a710cf21b9d099a41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/painel-comercial-busca.png",
+    "bytes": 339133,
+    "sha256": "2d1acf7c241cc77ffa4c72f34e233afae8ee029f5d16a2946ac9a699ce2cb5c4",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/painel-comercial-desktop.png",
+    "bytes": 341490,
+    "sha256": "c19ea135fb3d8019fb0ad5bb1a732dc9c67a69ead619b12c96802bd6a3232789",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/painel-comercial-filtro-muito-inativo.png",
+    "bytes": 339647,
+    "sha256": "74c54a3d3c944159dc2fa7edf42b3671a318328e089cee4d3e9c1825565f1a27",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/painel-comercial-filtro-origem.png",
+    "bytes": 340478,
+    "sha256": "f71faf77a447b2c59e85da4f6451c5afde74ddc53818cb0d36a91b6e97d1bce2",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/painel-comercial-historico.png",
+    "bytes": 306259,
+    "sha256": "e962ad6a6e94318c41a3ad2fd846b63a340fbfb10fe72b5306381bd7c9c4e779",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/painel-comercial-mobile.png",
+    "bytes": 256166,
+    "sha256": "0815c929b5faee46b69dbc9e0cd9527e96b146da65e2786b4e207d8224f02037",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/local/resultado.json",
+    "bytes": 1111,
+    "sha256": "349ad1364776ddad94b95ea136c5d0369f8b84ca5b6638aeeaed9c8badd6f5b4",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/comercial/vercel/falha.png",
+    "bytes": 45778,
+    "sha256": "3816045c788d6476965c9792973cd42e46b500fed9e21005ef098ebbc474afc7",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/deployment.json",
+    "bytes": 227,
+    "sha256": "315c7565f3a0c432fe78ab75cd3df22bb757eda4bc9cf3f57c3442920827117b",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/git-status.txt",
+    "bytes": 10043,
+    "sha256": "cf91c265005f402e4be327a005555bd8bd3608a69d1bdeff34b3084a3e986dda",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/cadastro-embalagens-compra-retirada.png",
+    "bytes": 249904,
+    "sha256": "68ed4be9967e5c30bdcc980e63e04c72534841148bcab0df2db04816d793d63a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/cadastro-insumos-compra-retirada.png",
+    "bytes": 266444,
+    "sha256": "1e8c2a59d82a24b61ac3f262406b8671bc6dcdcfb0a2e3fb6666a24fc13e834a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/cadastro-produtos-desktop.png",
+    "bytes": 177700,
+    "sha256": "13ed6c0705b53e8c57413344b8d5de7cbe7ea7b1dea48bcab64ab0a0608736ee",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/cadastro-produtos-mobile.png",
+    "bytes": 85190,
+    "sha256": "d8794636ab04439c150af5ffbc514d6b5c222b7208f37938e50a55b63ba64262",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/consulta-produto-cadastrado.png",
+    "bytes": 134535,
+    "sha256": "6bfee885d2e7f688d9bda3b2728ef6db7eda66e9c2dfc2d222f58ac2009dcca8",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/estoque-embalagens-desktop.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/estoque-embalagens-mobile.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/estoque-insumos-desktop.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/estoque-insumos-mobile.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/estoque-salgados-desktop.png",
+    "bytes": 257181,
+    "sha256": "92db40982738d9fd82d7317d072616c86650a41312c9a5630d4e6aa3e9a5d3da",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/estoque-salgados-mobile.png",
+    "bytes": 162799,
+    "sha256": "427b1735c86c4550da9a7c8ebd66dc4b299b6440f841320e7ca43ea92220d8d3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/formulario-produto-desktop.png",
+    "bytes": 179693,
+    "sha256": "18a3b8ca072f5715552a8279cecf23542cb3038a2b20370ece9a9e49698e6370",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/formulario-produto-mobile-final.png",
+    "bytes": 81308,
+    "sha256": "ddebe659e55fedaffe2a82bde8f0a1794f0469a93acf86c82c74241a6f7f4c1e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/formulario-produto-mobile.png",
+    "bytes": 77022,
+    "sha256": "6e210463c6710ab5c6c5755cd780e1d366711c33eb7380cf66bf63a59a6fa509",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/novo-salgado-entrada-150.png",
+    "bytes": 259790,
+    "sha256": "9a29af15623d6094d0e70d5c79613aeb6c3193e40cc98a2cc738d229931f5d8d",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/novo-salgado-estoque-zero.png",
+    "bytes": 251098,
+    "sha256": "1c63975c477a7b30a46e184602aaaf797106aa12f2a8e04666f24caa2a5ca5c6",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/local/resultado.json",
+    "bytes": 2173,
+    "sha256": "04ff8d2ddc9d0d76d69880eb9e18c12a8769aefd1c01b4af3608cada604b86b4",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/preservacao-arquivos.json",
+    "bytes": 33004,
+    "sha256": "0fe926560cadeaa23fc14e314ccbae91ae1267a60d4b9866eb53f39e426b39f6",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regras-regressoes.json",
+    "bytes": 881,
+    "sha256": "7901fcf1cfd78cd37ed9da04976c9b6765752a74fb3f700e69a00544a901e311",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-local/embalagens-desktop-1672.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-local/embalagens-mobile-390.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-local/insumos-desktop-1672.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-local/insumos-mobile-390.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-local/resultado.json",
+    "bytes": 1650,
+    "sha256": "9af25144797f587907194e67ba43c276e53259143bcab75c9d9424db8c9e3f16",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-local/salgados-desktop-1672.png",
+    "bytes": 257181,
+    "sha256": "92db40982738d9fd82d7317d072616c86650a41312c9a5630d4e6aa3e9a5d3da",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-local/salgados-mobile-390.png",
+    "bytes": 162799,
+    "sha256": "427b1735c86c4550da9a7c8ebd66dc4b299b6440f841320e7ca43ea92220d8d3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-vercel/embalagens-desktop-1672.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-vercel/embalagens-mobile-390.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-vercel/insumos-desktop-1672.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-vercel/insumos-mobile-390.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-vercel/resultado.json",
+    "bytes": 1705,
+    "sha256": "7ac3d166e5ad2fcda474f001f96bd78286712602b2c438a09a77f87799b97344",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-vercel/salgados-desktop-1672.png",
+    "bytes": 257159,
+    "sha256": "4995ed94db654e658ea0c66dfde445b38b8df5adcb8a4ef4f7c07c095c1450fe",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-estoques-vercel/salgados-mobile-390.png",
+    "bytes": 162758,
+    "sha256": "2e5abf65e9350e79f46f531707659b33671208b64c4b7169ebac68acd86c2e33",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-local/acompanhe-pedido-desktop-1440.png",
+    "bytes": 498506,
+    "sha256": "99fb333a51641d64708c85791e9ce07f8b3803dc6afda2fd83d741de27c9f012",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-local/acompanhe-pedido-mobile-390.png",
+    "bytes": 361435,
+    "sha256": "bb39023b9b297a68a82dde8f843a2cdaf7cf1220fb0a4356a9cc85273d06b909",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-local/meus-pedidos-desktop-1440.png",
+    "bytes": 317602,
+    "sha256": "f3d04b692713d1a43fb13468641d9426e671c9f928dbd501078574a5b05023b3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-local/meus-pedidos-mobile-390.png",
+    "bytes": 285442,
+    "sha256": "65d771df9088a3131e73f1ce739abc6563740a21bc27b83508c2e4644f04fc41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-local/resultado.json",
+    "bytes": 1998,
+    "sha256": "35c86aabce1b7eeb41e18767dee3b7de17942da6d15013fc3d360aa54910f6a4",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-vercel/acompanhe-pedido-desktop-1440.png",
+    "bytes": 499841,
+    "sha256": "9519191d0c121150b4cafb5ceec4e355a3fbd360529c5d1b218beb5b119b3e25",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-vercel/acompanhe-pedido-mobile-390.png",
+    "bytes": 360591,
+    "sha256": "1edd00d20ec0fbd7fe6d34f80dc2644f81d779a96fe597bd9b1c710b520cf919",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-vercel/meus-pedidos-desktop-1440.png",
+    "bytes": 317602,
+    "sha256": "f3d04b692713d1a43fb13468641d9426e671c9f928dbd501078574a5b05023b3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-vercel/meus-pedidos-mobile-390.png",
+    "bytes": 285442,
+    "sha256": "65d771df9088a3131e73f1ce739abc6563740a21bc27b83508c2e4644f04fc41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/regressao-r2b-vercel/resultado.json",
+    "bytes": 2053,
+    "sha256": "1b106f7cbefcbf65b95d5e917724ca29102aefb54f33ce6f6975a13f2ae8f303",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/cadastro-embalagens-compra-retirada.png",
+    "bytes": 249904,
+    "sha256": "68ed4be9967e5c30bdcc980e63e04c72534841148bcab0df2db04816d793d63a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/cadastro-insumos-compra-retirada.png",
+    "bytes": 266444,
+    "sha256": "1e8c2a59d82a24b61ac3f262406b8671bc6dcdcfb0a2e3fb6666a24fc13e834a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/cadastro-produtos-desktop.png",
+    "bytes": 177700,
+    "sha256": "13ed6c0705b53e8c57413344b8d5de7cbe7ea7b1dea48bcab64ab0a0608736ee",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/cadastro-produtos-mobile.png",
+    "bytes": 85190,
+    "sha256": "d8794636ab04439c150af5ffbc514d6b5c222b7208f37938e50a55b63ba64262",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/consulta-produto-cadastrado.png",
+    "bytes": 134535,
+    "sha256": "6bfee885d2e7f688d9bda3b2728ef6db7eda66e9c2dfc2d222f58ac2009dcca8",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/estoque-embalagens-desktop.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/estoque-embalagens-mobile.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/estoque-insumos-desktop.png",
+    "bytes": 229412,
+    "sha256": "ebbec4296a394859118da961087681a9b830561e0caeae9775873c22444816ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/estoque-insumos-mobile.png",
+    "bytes": 160363,
+    "sha256": "eea4e4bbd0c2c3dd05be16b7900dda6c24d946abdb0b3f16018dc0b6cedc0e9e",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/estoque-salgados-desktop.png",
+    "bytes": 257157,
+    "sha256": "0f156b6157b9026342941ed4bae538298e0b7e53fdf83d51fc231029fd8b700c",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/estoque-salgados-mobile.png",
+    "bytes": 162743,
+    "sha256": "14ab1c7a60c0bb6b83f6dc75db151908f062258e26173cee3d78617ae593ad22",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/formulario-produto-desktop.png",
+    "bytes": 179685,
+    "sha256": "5824a4e78d8c102f27c18f18136f73f1d1e235e887bffe00e0ace4baf956d911",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/formulario-produto-mobile-final.png",
+    "bytes": 81296,
+    "sha256": "74143095e8f174a98652c79f82c6260d256b5c55ba562fc033ade1cf1db85788",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/formulario-produto-mobile.png",
+    "bytes": 77022,
+    "sha256": "6e210463c6710ab5c6c5755cd780e1d366711c33eb7380cf66bf63a59a6fa509",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/novo-salgado-entrada-150.png",
+    "bytes": 259790,
+    "sha256": "9a29af15623d6094d0e70d5c79613aeb6c3193e40cc98a2cc738d229931f5d8d",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/novo-salgado-estoque-zero.png",
+    "bytes": 252074,
+    "sha256": "875effba2ee757ac1c5972fa79ee11f1b932679debc69107639b53934f146df5",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/complemento/vercel/resultado.json",
+    "bytes": 2227,
+    "sha256": "a441442ac64b3bf24fb0d392055f959af4f7085fc96b09f7a6f5b4081ea1fc0b",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/codigo-validado.json",
+    "bytes": 2849,
+    "sha256": "609ba6c086a89f84dafca3f808ae0c554e27b4f0bed17084138b3d09dbe69e44",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/deployment.json",
+    "bytes": 227,
+    "sha256": "26dda812032b7e979ce03bc12647647ba7c0ad234f9227f005f10f67bc058693",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/diagnosticos/validacao-html-corrigida.png",
+    "bytes": 198873,
+    "sha256": "2d347941da01bd62975e726964dbcb1ef5c25dee45e077ecbe3f4e720e8ef41d",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/git-status.txt",
+    "bytes": 5406,
+    "sha256": "8d041fa6266f061ec8395387b5eb5a8b5e307a7261a8afcde7e5443a26bd7235",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/local/embalagens-desktop-1672.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/local/embalagens-mobile-390.png",
+    "bytes": 147853,
+    "sha256": "d13b753c8c55849d12b4e74ffa7fd1c23d2a777f20bd3479d235f4f2c2496dc3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/local/insumos-desktop-1672.png",
+    "bytes": 227287,
+    "sha256": "39d40be305a48f109b23aa5d30c7ec12ebc3e602795736d9e8ceb107bd9f8e24",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/local/insumos-mobile-390.png",
+    "bytes": 158044,
+    "sha256": "fa16f091c2d6de9bfc4098c36b460f7ab3b83320e0834bda79414936c1f7d1cc",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/local/resultado.json",
+    "bytes": 1629,
+    "sha256": "8387a71fd244eec2b4097722d1737e0eaaf37ba24f8a44734b56b81c34f34a65",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/local/salgados-desktop-1672.png",
+    "bytes": 256233,
+    "sha256": "f047cba4403a9d77966c79ed72f6cff31660b2ed9da179d8a8f7e1509ab01836",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/local/salgados-mobile-390.png",
+    "bytes": 161584,
+    "sha256": "21f9c755d37bc6b478598523da73ab93f438234916fcb6576f2a48eea3210f03",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/preservacao.json",
+    "bytes": 26613,
+    "sha256": "80c5132fd6302f194024fb0915597307e3b1a9d969d7d697c28f2f7571b897a1",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regras-regressoes.json",
+    "bytes": 801,
+    "sha256": "ddb72dbbc432b326ca747413bad8a20fc0f5a8ce51d630b3d30aa5b14f32def4",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b-vercel/acompanhe-pedido-desktop-1440.png",
+    "bytes": 499841,
+    "sha256": "9519191d0c121150b4cafb5ceec4e355a3fbd360529c5d1b218beb5b119b3e25",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b-vercel/acompanhe-pedido-mobile-390.png",
+    "bytes": 360591,
+    "sha256": "1edd00d20ec0fbd7fe6d34f80dc2644f81d779a96fe597bd9b1c710b520cf919",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b-vercel/meus-pedidos-desktop-1440.png",
+    "bytes": 317602,
+    "sha256": "f3d04b692713d1a43fb13468641d9426e671c9f928dbd501078574a5b05023b3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b-vercel/meus-pedidos-mobile-390.png",
+    "bytes": 285442,
+    "sha256": "65d771df9088a3131e73f1ce739abc6563740a21bc27b83508c2e4644f04fc41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b-vercel/resultado.json",
+    "bytes": 2051,
+    "sha256": "bfc0993d102b80bc4841bc5edf3466144bba8250dfa82360b7bbfce8d987433e",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b/acompanhe-pedido-desktop-1440.png",
+    "bytes": 554080,
+    "sha256": "769f3ec2f8f31f92f100ea1d80aa979402f79deacf7eb3865a221802ca8a94c9",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b/acompanhe-pedido-mobile-390.png",
+    "bytes": 361435,
+    "sha256": "bb39023b9b297a68a82dde8f843a2cdaf7cf1220fb0a4356a9cc85273d06b909",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b/meus-pedidos-desktop-1440.png",
+    "bytes": 317602,
+    "sha256": "f3d04b692713d1a43fb13468641d9426e671c9f928dbd501078574a5b05023b3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b/meus-pedidos-mobile-390.png",
+    "bytes": 285442,
+    "sha256": "65d771df9088a3131e73f1ce739abc6563740a21bc27b83508c2e4644f04fc41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/regressao-r2b/resultado.json",
+    "bytes": 1990,
+    "sha256": "89db758bd8c8b06db49e1c4293d40937312073fdd31c7589cb66e84e2623d37b",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/vercel/embalagens-desktop-1672.png",
+    "bytes": 232912,
+    "sha256": "ec8e8d81656b035ceb2a220d8dbf6453151c309107c9ff4f925e39e9df3b5d4b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/vercel/embalagens-mobile-390.png",
+    "bytes": 148287,
+    "sha256": "c768b611dafe0437d7f19a4e5afd30ae25c509e28302102840715d978d3156ad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/vercel/insumos-desktop-1672.png",
+    "bytes": 227287,
+    "sha256": "39d40be305a48f109b23aa5d30c7ec12ebc3e602795736d9e8ceb107bd9f8e24",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/vercel/insumos-mobile-390.png",
+    "bytes": 158044,
+    "sha256": "fa16f091c2d6de9bfc4098c36b460f7ab3b83320e0834bda79414936c1f7d1cc",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/vercel/resultado.json",
+    "bytes": 1684,
+    "sha256": "d9dcd7378d66b64638e3f6854680d48b3a6cc052ab9a5673e64843eca72f8f17",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/vercel/salgados-desktop-1672.png",
+    "bytes": 256256,
+    "sha256": "25cff2e55f608b6a7b8c2b57ee38ce011301c6d6556ded84cf70956daf6aa9dd",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/estoques/validacao/vercel/salgados-mobile-390.png",
+    "bytes": 161589,
+    "sha256": "0b1875b7557a52bddebcc83da3ee880e3538afbbc92e4c29c572f632138bcafc",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/ENTREGA.md",
+    "bytes": 8253,
+    "sha256": "be9907a87afb04bc22e0e5a447ef7aa2d8527a628d6f340241f96fbd507e955a",
+    "category": "documentacao-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/antes-desktop-1440.png",
+    "bytes": 417316,
+    "sha256": "dd00ccd6a9ec0c4e6a6c8330458a1fa7ee54ee6f73b2ed1c2f95e04c07d8aaaa",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/antes-resultado.json",
+    "bytes": 96,
+    "sha256": "59c3d6db7bcf3e9f24fec0d967fccc752fa1321b6a6eab4a6a838fe0422b0c12",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/antes-topo-1440.png",
+    "bytes": 185535,
+    "sha256": "85c5795764f1a8ddf9540f599f75c6cd677e29b0c801e6627266cc68e341c94b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/depois-desktop-1440.png",
+    "bytes": 892223,
+    "sha256": "a818fdf15352049eebc770fe294783da1a3a55e009362e284875223fc624c164",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/depois-gestao-1440.png",
+    "bytes": 514348,
+    "sha256": "7ae548cad9c0461e8aff46479c9c3a3e6d293239b78393c9351e0c9a777c4dad",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/depois-mobile-390.png",
+    "bytes": 792572,
+    "sha256": "53e89345caef0ba773849a3739f6296e37ca529ef365bb0f6d691bf74769268f",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/depois-resultado.json",
+    "bytes": 689,
+    "sha256": "c9daeeada11f2c68ffdfb2a74d954c6cfb2b54b948e4a84768110e9c08145812",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/financeiro-premium/validacao/depois-topo-1440.png",
+    "bytes": 605793,
+    "sha256": "7e0a9583a9105029b9e0636718535274ce197c3b9a78c49295960242d7454421",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/preview-captures/prints/preview-preview-central-entregas-v2-celular.png",
+    "bytes": 185506,
+    "sha256": "b87fe8441c11359cc189a411cfbe7f310f55e3cc19efcf07ca16a61b100b509b",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/preview-captures/prints/preview-preview-central-entregas-v2-desktop.png",
+    "bytes": 285804,
+    "sha256": "7df99ed5cea962fabc7ec67dd3f0735dcc93c512a7a01835d5c5259afae17bcd",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/R2B-CORRECAO-VISUAL.md",
+    "bytes": 7799,
+    "sha256": "f9251f9547d3a7281eddfbf1bfaf7e2040741ddd08544779578fbb55ae7b2398",
+    "category": "documentacao-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/local/acompanhe-pedido-desktop-1440.png",
+    "bytes": 554086,
+    "sha256": "1b86861fe79bb206e7ca6dfe8cb4510712126e121aed2f60f6544803f8afe30a",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/local/acompanhe-pedido-mobile-390.png",
+    "bytes": 361435,
+    "sha256": "bb39023b9b297a68a82dde8f843a2cdaf7cf1220fb0a4356a9cc85273d06b909",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/local/meus-pedidos-desktop-1440.png",
+    "bytes": 317297,
+    "sha256": "f417ec340536cf06be48fe525b46a73926c471d8785a393fd3104ad28df58dce",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/local/meus-pedidos-mobile-390.png",
+    "bytes": 285442,
+    "sha256": "65d771df9088a3131e73f1ce739abc6563740a21bc27b83508c2e4644f04fc41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/local/resultado.json",
+    "bytes": 2000,
+    "sha256": "50c6492e940691cb6a56beb516666173ae2f696bfa51993f5c0ed6dbc68f2e66",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/preview/acompanhe-pedido-desktop-1440.png",
+    "bytes": 499841,
+    "sha256": "9519191d0c121150b4cafb5ceec4e355a3fbd360529c5d1b218beb5b119b3e25",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/preview/acompanhe-pedido-mobile-390.png",
+    "bytes": 361435,
+    "sha256": "bb39023b9b297a68a82dde8f843a2cdaf7cf1220fb0a4356a9cc85273d06b909",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/preview/meus-pedidos-desktop-1440.png",
+    "bytes": 317602,
+    "sha256": "f3d04b692713d1a43fb13468641d9426e671c9f928dbd501078574a5b05023b3",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/preview/meus-pedidos-mobile-390.png",
+    "bytes": 285442,
+    "sha256": "65d771df9088a3131e73f1ce739abc6563740a21bc27b83508c2e4644f04fc41",
+    "category": "imagens",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "docs/reembolsos-estornos/capturas-cliente/preview/resultado.json",
+    "bytes": 2056,
+    "sha256": "350b7dfa8d82215580191474dccb3c803b98c9ef46f60d8f9ea013dd3c15bf62",
+    "category": "resultados-revisar",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "preview-output.txt",
+    "bytes": 337925,
+    "sha256": "92f9479ec117b37adc9a571b5f89a598c70405f8e88ff90030a090bb2b7af07d",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "prod-curl-output.txt",
+    "bytes": 12813,
+    "sha256": "58a0a5a016968941ca9547f47258b7ee69b7369fb7150f00c9901d360da6a04d",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "r1-result.txt",
+    "bytes": 4236,
+    "sha256": "aadbaada22d1aa3aa2433516a49484d7a8204afa6e5d075e3b3cf7ecc9031d0d",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "r1-test-output.txt",
+    "bytes": 2088,
+    "sha256": "a94e6b7810e4a8f715d1ba3fbf5a07705c896e8df93065f81c00081eaef15784",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "r1-verify.txt",
+    "bytes": 2088,
+    "sha256": "a94e6b7810e4a8f715d1ba3fbf5a07705c896e8df93065f81c00081eaef15784",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "r2a-result.txt",
+    "bytes": 3022,
+    "sha256": "5a1b2fcf3d0325b44b8a3e0d176b91e4b72377afce4caf0122c63061e115ef0e",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "r2a-verify.txt",
+    "bytes": 1494,
+    "sha256": "22cf9c9b774c664fa52d40f7405ffed7872d5daf6b3f3293409403c72f40c150",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "r2b-test.html",
+    "bytes": 337560,
+    "sha256": "9b06038b67eaa0b07078459d8b5e82486ff4a13e4417bc67ea352c922970d4c6",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "scripts/commit-seguro.ps1",
+    "bytes": 10393,
+    "sha256": "bee65fcfd951595cd79cd262b37c948507175b897e08ade7eeb8dc5a74ef8460",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Ferramenta auxiliar preexistente sem dependencia do aplicativo; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/README.md",
+    "bytes": 2321,
+    "sha256": "94b5b296fdda9e8c802c2225735159cc0611f66eec8ae11b88a6d2b978093efe",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/aceitar-rota.sql",
+    "bytes": 4579,
+    "sha256": "5804a10542cf5b1e9785355f5d5d8c02635306448f524c8b8d014cfdeafe7caa",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/acerto-conferir-aprovar.sql",
+    "bytes": 6566,
+    "sha256": "f43a603939002710b3a2b4f55c80a9ec1d18fe70aee3dd5efb4f47a872803f89",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/acerto-solicitar.sql",
+    "bytes": 7065,
+    "sha256": "aed68ab5af5676303a7ffdca0ea1327e1cea740684c8e41a62eea22dee5b85cb",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/compat-pix-0059-0060.sql",
+    "bytes": 1129,
+    "sha256": "8ff45e3b3806cb7ad58294a3590566efd9b87b27b0752b9dee3e8cb85753d382",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/confirmar-entrega.sql",
+    "bytes": 5928,
+    "sha256": "55311102ccd3366afa83649f065c9cad1d663b558f2f88cf0dea1bb2b36bde65",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/iniciar-rota.sql",
+    "bytes": 5122,
+    "sha256": "5f5e10be4c37743915b85d651a1ab63c2f43d26b7cc42f88d34d3c6bc0238501",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/preflight-impressao.sql",
+    "bytes": 1129,
+    "sha256": "aab7fafa6a42a06e24a5c0f33b14cfdcf23bf346a3595f01e2bc3aa70e7a802a",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/retirada.sql",
+    "bytes": 6288,
+    "sha256": "ccc51aaaec9a184cd1ded7499b90d50c7428a2405aa9e5dd9a51eee47a2031b0",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "scripts/homologacao-pg17/retorno-chegada.sql",
+    "bytes": 5700,
+    "sha256": "2b358dab6593670e77a821e8d8c6a8feea1112785a46792c3f667c62c381ed85",
+    "category": "scripts-revisar",
+    "include": false,
+    "decision": "Proposta ou procedimento de banco fora do checkpoint visual; somente backup, nao executado."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/calculadora-premium.tsx",
+    "bytes": 18728,
+    "sha256": "fb43f58f137f234e81ea03314eed254166789385e485adb3b61deabc14c5d8d6",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/central-atendente-l2-data.ts",
+    "bytes": 6107,
+    "sha256": "6724b36e50a9ce0484cb46efd95a025073f897d42beba05955bbdc6793905e66",
+    "category": "fixtures",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/central-atendente-l2.tsx",
+    "bytes": 2234,
+    "sha256": "78fa23b2008169efe5734caf4f92aa5749f9d0c2800d780214208851422029e6",
+    "category": "codigo",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/compras-premium.tsx",
+    "bytes": 28412,
+    "sha256": "89d87a0052ab7931f4f6adf03088fd864eb17ee1d0edd9aeef2b643291ae0053",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/contador-premium.tsx",
+    "bytes": 16528,
+    "sha256": "364f8346daf6fc5ab6667f5b9500814e3892c3de6abe9c72ac089c52cc1fda40",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/cupons-premium.tsx",
+    "bytes": 30016,
+    "sha256": "77ff3f5da59e4783c70b8f4f11d64b8cbaae8c517b3900a41ee8a1821a8b5811",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/dono-premium.tsx",
+    "bytes": 12192,
+    "sha256": "a638a55175da23e0ae27e61ea2b1a43ca0475cf382d3884e9f5d2f3ca78abccc",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/fiscal-premium.tsx",
+    "bytes": 16112,
+    "sha256": "550efd198c829ff2995bc10e6bc439d6d0a835b5bf59977f32c62662ba416a50",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/fornecedores-premium.tsx",
+    "bytes": 16187,
+    "sha256": "68cc59cf61ff6c0709fec35dbe0bec15ea18fcaebeff948591ec48d659e18cbc",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/metas-premium.tsx",
+    "bytes": 12139,
+    "sha256": "fb7ecf0ca9e9cbbd1b97ce6bb49203d0c74b6e74b20bd2d2f4d264110dc337b9",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/admin/motoboys-premium.tsx",
+    "bytes": 26011,
+    "sha256": "13c3848c0e43cbbdf9f45bfd6d799b10b10d97d20ed4906e0e4fbf0682b115c1",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/components/comercial-preview/comercial-padrao-h06b.css",
+    "bytes": 25037,
+    "sha256": "31161d8b8d3cee09bccf8648138901ca9d2e5bb5aedff7ee7818f4f816d5348e",
+    "category": "css",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/lib/contabilidade-premium-demo.ts",
+    "bytes": 8649,
+    "sha256": "8476f590142572abaf08608868febd9631263ef11bab97dba5c1595eb67b3a87",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/lib/estoque-premium-demo.ts",
+    "bytes": 6476,
+    "sha256": "3f1e65de07024ae6424f99cc01a797fcea025416408d8ca0a4aec01df4a99794",
+    "category": "premium",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "src/lib/producao-demo-fixtures.ts",
+    "bytes": 4465,
+    "sha256": "04e9b2be54f9b1fd7d4f759de708594adfff7a99454f672949918aedd99d5192",
+    "category": "fixtures",
+    "include": true,
+    "decision": "Preservar codigo, fixtures, regras de trabalho ou evidencias visuais historicas."
+  },
+  {
+    "status": "??",
+    "path": "tmp.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "tmp_prod.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "typecheck-output.txt",
+    "bytes": 116,
+    "sha256": "b0b0d0f428a8f1ef5b0dd4d4eba5cb3ae1000709ae605ec72c45a463ef2ebdda",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "verify-detalhe.txt",
+    "bytes": 121752,
+    "sha256": "9ba761835a2435156cd8c7cf8e96f7ee2bf76e8a9f3fe825238740ee034151c5",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "verify-detalhe2.txt",
+    "bytes": 86408,
+    "sha256": "da3100cb15ab8e9d9c4e1b8f709a621ca7abdc95348face9f7fce93d3ff503c9",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "verify-detalhe3.txt",
+    "bytes": 87098,
+    "sha256": "30170eecb74382f626286750bc08807c882536dc677d777f9ea1b62ff16187b8",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "verify-meus-pedidos.txt",
+    "bytes": 86342,
+    "sha256": "ace7647b35da631efd36554a350d68763edd26bf089cf969c0b481b31978534a",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "verify-r2b-v2.txt",
+    "bytes": 46060,
+    "sha256": "43f9e90c008cea5a85e1205b5d02d71399d554c0df376363efa103db6a4465f8",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "verify-r2b.txt",
+    "bytes": 238600,
+    "sha256": "bfe8878c0547393bf1eb94dd3db000baa704ca61e73aeac9dcd1df8d25fa8252",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "vite-dev-output.txt",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "vite-log.txt",
+    "bytes": 1258,
+    "sha256": "7a958dea4be31752d6ac041bb9891e6b33c116639d8e9eb747c02190d36e190c",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  },
+  {
+    "status": "??",
+    "path": "vite-output.txt",
+    "bytes": 1106,
+    "sha256": "ecee9db51d16f0fc671ffbbf865e33b5993e011f451d653d74d4b3bc27dc1d98",
+    "category": "temporarios-config-revisar",
+    "include": false,
+    "decision": "Relatorio avulso, log, HTML ou documento de continuidade sem dependencia de execucao dos layouts; somente backup."
+  }
+]

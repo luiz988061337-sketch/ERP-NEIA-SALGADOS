@@ -1,0 +1,16 @@
+{
+  "etapa": "depois",
+  "largura": 1440,
+  "erros": [],
+  "bancoBloqueado": [],
+  "testes": [
+    "Receita adicionada; tabela e indicador atualizados",
+    "Despesa seleciona tipo correto; atualiza totais; filtro, exclusão confirmada e cancelar funcionais",
+    "Custos: cadastro e exclusão funcionais",
+    "Caixa: abertura, sangria, suprimento, pagar, receber e fechamento executados",
+    "Obrigações fiscais: cadastro e remoção executados",
+    "Simulador e restauração funcionais",
+    "Cenário sem margem: Prejuízo, PE não calculável e margem de segurança sem valor fictício",
+    "Sem NaN/Infinity, sem chrome público, sem requisições ao banco, sem erros JS"
+  ]
+}

@@ -1,0 +1,183 @@
+{
+  "manifestosAntigosVerificados": [
+    {
+      "backup": "v1-m12-teste-2026-11-09",
+      "manifesto": "hashes-m12.txt",
+      "validos": 607,
+      "ausentes": 0,
+      "divergentes": 0
+    },
+    {
+      "backup": "v1-m13-pre-reconciliacao-2026-11-09",
+      "manifesto": "hashes-m13.txt",
+      "validos": 914,
+      "ausentes": 0,
+      "divergentes": 0
+    },
+    {
+      "backup": "v1-m16-pre-staging-2026-11-09",
+      "manifesto": "hashes-m16.txt",
+      "validos": 1522,
+      "ausentes": 0,
+      "divergentes": 0
+    },
+    {
+      "backup": "v1-m17-pre-staging-2026-11-09",
+      "manifesto": "hashes-m17.txt",
+      "validos": 1532,
+      "ausentes": 0,
+      "divergentes": 0
+    }
+  ],
+  "coberturaDosArquivosDeCodigoAtuais": [
+    {
+      "backup": "ERP-NEIA-BACKUPS/faq-ajuda-artigos",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/LFL-NATIVO-20261117-205843-0ea38ab5",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/LFL-NATIVO-20261118-065245-3c7544db",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/LFL-NATIVO-20261118-070254-38a1b983",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/LFL-NATIVO-20261118-071451-1e866d18",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/procedimento-backup-lfl",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/SUPABASE-ANTIGO-M25-2026-11-09",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-app01-original-2026-11-09",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 41,
+      "divergentes": 0,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m10-original-2026-11-08",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m12-teste-2026-11-09",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m13-pre-reconciliacao-2026-11-09",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m16-pre-staging-2026-11-09",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m17-pre-staging-2026-11-09",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m7-2026-11-08T12-08-04",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m8-original-2026-11-08",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "ERP-NEIA-BACKUPS/v1-m9-original-2026-11-08",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    },
+    {
+      "backup": "Backup-ERP-NEIA-SALGADOS/M2/codigo",
+      "codigoAtualComparado": 41,
+      "identicos": 0,
+      "ausentes": 29,
+      "divergentes": 12,
+      "coberturaCompleta": false
+    }
+  ],
+  "backupNovo": {
+    "pasta": "ERP-NEIA-BACKUPS/HOMO-BASE-03-20261120-VISUAL-APROVADOS-01",
+    "erp": {
+      "arquivos": 1728,
+      "protegidos": 389
+    },
+    "motoboySeparado": {
+      "arquivos": 842,
+      "protegidos": 4
+    },
+    "verificacao": "SHA-256 de cada copia e releitura da origem; bundles Git verificados; DPAPI CurrentUser e ACL restrita",
+    "excluidos": "Somente caches, dependencias instaladas, builds e pasta auxiliar da auditoria, conforme manifestos privados."
+  }
+}

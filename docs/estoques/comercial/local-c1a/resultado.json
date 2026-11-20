@@ -1,0 +1,36 @@
+{
+  "base": "http://127.0.0.1:4174",
+  "testes": [
+    "Painel: 6 indicadores com faixas exclusivas (soma = acumulado do rodapé), filtros por segmento (por contagem), origem e busca funcionando",
+    "C1-A: tipografia secundária legível (indicadores, tabelas, legendas e badges) e fundos locais em grafite",
+    "Histórico demonstrativo do cliente abre em modal com timeline e situação de reativação",
+    "Menu lateral do AdminShell: nomes comerciais exibidos por completo, sem corte, e navegação para Clientes / CRM",
+    "Clientes/CRM: busca, filtro por atendente, paginação entre páginas e tabela com segmento, origem e favoritos",
+    "Mobile 390px: nenhuma página com overflow horizontal (painel e clientes)"
+  ],
+  "capturas": [
+    "painel-comercial-desktop.png",
+    "painel-comercial-filtro-muito-inativo.png",
+    "painel-comercial-filtro-origem.png",
+    "painel-comercial-busca.png",
+    "painel-comercial-historico.png",
+    "menu-comercial-mobile.png",
+    "clientes-crm-desktop.png",
+    "painel-comercial-mobile.png",
+    "clientes-crm-mobile.png"
+  ],
+  "medidas": {
+    "painel": {
+      "viewport": 390,
+      "documento": 390
+    },
+    "clientes": {
+      "viewport": 390,
+      "documento": 390
+    }
+  },
+  "erros": [],
+  "banco": [],
+  "mutacoes": [],
+  "http": []
+}

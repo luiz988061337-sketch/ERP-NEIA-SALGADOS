@@ -1,0 +1,1112 @@
+[
+    {
+        "path":  "docs/erp-dark/prints/central-entregas-DEPOIS-celular.png",
+        "antes":  "D781104AB5DD7B601C2AADF77F44958540F6FD52BD8979CC8067977BA7E97A88",
+        "depois":  "D781104AB5DD7B601C2AADF77F44958540F6FD52BD8979CC8067977BA7E97A88",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/erp-dark/prints/central-entregas-DEPOIS.png",
+        "antes":  "DECB7922575E078E48D66CD69533C6D633E1B92A80647781C857546EB9CEBD41",
+        "depois":  "DECB7922575E078E48D66CD69533C6D633E1B92A80647781C857546EB9CEBD41",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-origens/central-com-novas-solicitacoes.png",
+        "antes":  "79DDAAA091F714A9AE2AB1A8C247BDC626608D232A1F15D8092F97FA102B05EC",
+        "depois":  "79DDAAA091F714A9AE2AB1A8C247BDC626608D232A1F15D8092F97FA102B05EC",
+        "preservado":  true
+    },
+    {
+        "path":  "src/components/admin/admin-shell.tsx",
+        "antes":  "065F381ECB5DBA5EBCAAC6C3892785625D89781B0B67DD6F791AAC99AAD3C6BC",
+        "depois":  "065F381ECB5DBA5EBCAAC6C3892785625D89781B0B67DD6F791AAC99AAD3C6BC",
+        "preservado":  true
+    },
+    {
+        "path":  "src/routeTree.gen.ts",
+        "antes":  "260B2D8508823BA8D31AF29985D42CC5F381EA7F33CC26E3689DA64E90D1F22B",
+        "depois":  "D3B510E262376DFA31FBE8B93CC2AC4B5DE61BCB5C36FF2A42B7B31EC903ADE7",
+        "preservado":  false
+    },
+    {
+        "path":  "src/routes/__root.tsx",
+        "antes":  "7FC00A137ED2FD2849C1E6227BEDEA426247972C5DAB9C3020765ACE5A66A1F1",
+        "depois":  "7FC00A137ED2FD2849C1E6227BEDEA426247972C5DAB9C3020765ACE5A66A1F1",
+        "preservado":  true
+    },
+    {
+        "path":  "src/routes/preview.tsx",
+        "antes":  "C40200A7E7EB8C0D256620FAF8A243F8CFCC2DA64E3334C9CCE9F63E7A14AF72",
+        "depois":  "C40200A7E7EB8C0D256620FAF8A243F8CFCC2DA64E3334C9CCE9F63E7A14AF72",
+        "preservado":  true
+    },
+    {
+        "path":  "CARROSSEL_AJUSTE_FINAL.md",
+        "antes":  "496A1A48190C479CFD79051D400DB98B4527C99516D0183F34BD43C6DBCA83F1",
+        "depois":  "496A1A48190C479CFD79051D400DB98B4527C99516D0183F34BD43C6DBCA83F1",
+        "preservado":  true
+    },
+    {
+        "path":  "CONCLUSAO.md",
+        "antes":  "4494FD6E80D587A2B355987FC0FCBBC34D0AD2F1CC5ED72A0B73035900EC123D",
+        "depois":  "4494FD6E80D587A2B355987FC0FCBBC34D0AD2F1CC5ED72A0B73035900EC123D",
+        "preservado":  true
+    },
+    {
+        "path":  "FECHAMENTO_FINAL.md",
+        "antes":  "C93B62738BA859DF3DEA7842228D49FF3519055148F50555504AADDEB3B0AAEB",
+        "depois":  "C93B62738BA859DF3DEA7842228D49FF3519055148F50555504AADDEB3B0AAEB",
+        "preservado":  true
+    },
+    {
+        "path":  "FINAL_STATUS.md",
+        "antes":  "5CAC08DEE4F306B98D45F4271B95908F9EB37E6B4EAC9802FF7274922B068DCF",
+        "depois":  "5CAC08DEE4F306B98D45F4271B95908F9EB37E6B4EAC9802FF7274922B068DCF",
+        "preservado":  true
+    },
+    {
+        "path":  "FINAL_TECH_CLOSURE.md",
+        "antes":  "E8C32DF8DD0AC45C957860396F0CA290C65BB0929DB1C0C6B22A572DBEBB971B",
+        "depois":  "E8C32DF8DD0AC45C957860396F0CA290C65BB0929DB1C0C6B22A572DBEBB971B",
+        "preservado":  true
+    },
+    {
+        "path":  "PUBLICACAO_CARROSSEL.md",
+        "antes":  "4F018D477E8D0A651094957F84499F988B89995996DED22536BABF8D8389A082",
+        "depois":  "4F018D477E8D0A651094957F84499F988B89995996DED22536BABF8D8389A082",
+        "preservado":  true
+    },
+    {
+        "path":  "RELATORIO_ACESSO_ADM.md",
+        "antes":  "4367BC23148420F06D618AFF2A346B6B95B777D55E9953D3ABCE219B0A9F2BDC",
+        "depois":  "4367BC23148420F06D618AFF2A346B6B95B777D55E9953D3ABCE219B0A9F2BDC",
+        "preservado":  true
+    },
+    {
+        "path":  "RELATORIO_FINAL.md",
+        "antes":  "927321DD4F6A8053CE01F6C1AE4BBC91A44624F48CC78C37DE1223376ACE90C3",
+        "depois":  "927321DD4F6A8053CE01F6C1AE4BBC91A44624F48CC78C37DE1223376ACE90C3",
+        "preservado":  true
+    },
+    {
+        "path":  "RELATORIO_FINAL_R2-B_VERIFICACAO.md",
+        "antes":  "CA1B3E9F1D2942CB3143EA84B886D225715F9C240976D2175E885D93AA2E4D24",
+        "depois":  "CA1B3E9F1D2942CB3143EA84B886D225715F9C240976D2175E885D93AA2E4D24",
+        "preservado":  true
+    },
+    {
+        "path":  "RELATORIO_FINAL_TECNICO.md",
+        "antes":  "BCF2C8D7D9160139F6A0BC699CC518E3AAA6DD7A0E818429B581AC98B8535486",
+        "depois":  "BCF2C8D7D9160139F6A0BC699CC518E3AAA6DD7A0E818429B581AC98B8535486",
+        "preservado":  true
+    },
+    {
+        "path":  "alias-curl-output.txt",
+        "antes":  "9953C37BC551F83966D3305BFC1A9FF91EBFABAC3D98AA93DE22F0B52CFFCADE",
+        "depois":  "9953C37BC551F83966D3305BFC1A9FF91EBFABAC3D98AA93DE22F0B52CFFCADE",
+        "preservado":  true
+    },
+    {
+        "path":  "alias-page.txt",
+        "antes":  "FF30FF0ED9B2C8F4AB14A9044C256A71512C530E76310583826D54E4C94C1394",
+        "depois":  "FF30FF0ED9B2C8F4AB14A9044C256A71512C530E76310583826D54E4C94C1394",
+        "preservado":  true
+    },
+    {
+        "path":  "build-orig.txt",
+        "antes":  "E9461F00161013D46F307A7F7D85CFF391BC7B91722C4AC5F761DDBCF6FEC98D",
+        "depois":  "E9461F00161013D46F307A7F7D85CFF391BC7B91722C4AC5F761DDBCF6FEC98D",
+        "preservado":  true
+    },
+    {
+        "path":  "build-output.txt",
+        "antes":  "C7F11A4A5C646DD168152B0CC83729CBAA5451FAC3C260AF79142FBDFA36E7B3",
+        "depois":  "C7F11A4A5C646DD168152B0CC83729CBAA5451FAC3C260AF79142FBDFA36E7B3",
+        "preservado":  true
+    },
+    {
+        "path":  "build_output.txt",
+        "antes":  "0576A86DC72100145C1A575A47A1194DF480973C5F9E9C20DACAD8C13DB8BCBC",
+        "depois":  "0576A86DC72100145C1A575A47A1194DF480973C5F9E9C20DACAD8C13DB8BCBC",
+        "preservado":  true
+    },
+    {
+        "path":  "curl-home.txt",
+        "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "preservado":  true
+    },
+    {
+        "path":  "curl-meus-pedidos.txt",
+        "antes":  "F8D52495D7A83EE0F83DB52FCD8651053C638DACB2D6E03A083EC67C7CB2960F",
+        "depois":  "F8D52495D7A83EE0F83DB52FCD8651053C638DACB2D6E03A083EC67C7CB2960F",
+        "preservado":  true
+    },
+    {
+        "path":  "curl-output.txt",
+        "antes":  "BEC598EF64D04E40C83E1D798EAA1D95163252689C18446EB183ED996B6A5E24",
+        "depois":  "BEC598EF64D04E40C83E1D798EAA1D95163252689C18446EB183ED996B6A5E24",
+        "preservado":  true
+    },
+    {
+        "path":  "curl.txt",
+        "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "preservado":  true
+    },
+    {
+        "path":  "deploy-output.txt",
+        "antes":  "41F1565360141AC3B26C0F4EEBBF5DC258BF3FC30A5B1CC8E651539CA7374978",
+        "depois":  "41F1565360141AC3B26C0F4EEBBF5DC258BF3FC30A5B1CC8E651539CA7374978",
+        "preservado":  true
+    },
+    {
+        "path":  "deploy_output.txt",
+        "antes":  "827D057A6C1836155F570288AE9C08D121B0FB9785DB2EA92C3205302B6A5BF1",
+        "depois":  "827D057A6C1836155F570288AE9C08D121B0FB9785DB2EA92C3205302B6A5BF1",
+        "preservado":  true
+    },
+    {
+        "path":  "dev-output.txt",
+        "antes":  "5F94ADE18E6A4F6D47F56AF90BE6E7A390DC265BE1DAE33D019C8B4DDB183922",
+        "depois":  "5F94ADE18E6A4F6D47F56AF90BE6E7A390DC265BE1DAE33D019C8B4DDB183922",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/ENTREGA.md",
+        "antes":  "883F6F71F66B3C99619E9DA42D7B729E8E4031577FFEE29C72F1371301652CF8",
+        "depois":  "883F6F71F66B3C99619E9DA42D7B729E8E4031577FFEE29C72F1371301652CF8",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/ENTREGA.md",
+        "antes":  "7AD4105710569CEE08DF9C80AAF602EAB3E74135BC420B56500A2BE8107F8DB0",
+        "depois":  "7AD4105710569CEE08DF9C80AAF602EAB3E74135BC420B56500A2BE8107F8DB0",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/deployment.json",
+        "antes":  "315C7565F3A0C432FE78AB75CD3DF22BB757EDA4BC9CF3F57C3442920827117B",
+        "depois":  "315C7565F3A0C432FE78AB75CD3DF22BB757EDA4BC9CF3F57C3442920827117B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/git-status.txt",
+        "antes":  "CF91C265005F402E4BE327A005555BD8BD3608A69D1BDEFF34B3084A3E986DDA",
+        "depois":  "CF91C265005F402E4BE327A005555BD8BD3608A69D1BDEFF34B3084A3E986DDA",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/cadastro-embalagens-compra-retirada.png",
+        "antes":  "68ED4BE9967E5C30BDCC980E63E04C72534841148BCAB0DF2DB04816D793D63A",
+        "depois":  "68ED4BE9967E5C30BDCC980E63E04C72534841148BCAB0DF2DB04816D793D63A",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/cadastro-insumos-compra-retirada.png",
+        "antes":  "1E8C2A59D82A24B61AC3F262406B8671BC6DCDCFB0A2E3FB6666A24FC13E834A",
+        "depois":  "1E8C2A59D82A24B61AC3F262406B8671BC6DCDCFB0A2E3FB6666A24FC13E834A",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/cadastro-produtos-desktop.png",
+        "antes":  "13ED6C0705B53E8C57413344B8D5DE7CBE7EA7B1DEA48BCAB64AB0A0608736EE",
+        "depois":  "13ED6C0705B53E8C57413344B8D5DE7CBE7EA7B1DEA48BCAB64AB0A0608736EE",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/cadastro-produtos-mobile.png",
+        "antes":  "D8794636AB04439C150AF5FFBC514D6B5C222B7208F37938E50A55B63BA64262",
+        "depois":  "D8794636AB04439C150AF5FFBC514D6B5C222B7208F37938E50A55B63BA64262",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/consulta-produto-cadastrado.png",
+        "antes":  "6BFEE885D2E7F688D9BDA3B2728EF6DB7EDA66E9C2DFC2D222F58AC2009DCCA8",
+        "depois":  "6BFEE885D2E7F688D9BDA3B2728EF6DB7EDA66E9C2DFC2D222F58AC2009DCCA8",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/estoque-embalagens-desktop.png",
+        "antes":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "depois":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/estoque-embalagens-mobile.png",
+        "antes":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "depois":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/estoque-insumos-desktop.png",
+        "antes":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "depois":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/estoque-insumos-mobile.png",
+        "antes":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "depois":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/estoque-salgados-desktop.png",
+        "antes":  "92DB40982738D9FD82D7317D072616C86650A41312C9A5630D4E6AA3E9A5D3DA",
+        "depois":  "92DB40982738D9FD82D7317D072616C86650A41312C9A5630D4E6AA3E9A5D3DA",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/estoque-salgados-mobile.png",
+        "antes":  "427B1735C86C4550DA9A7C8EBD66DC4B299B6440F841320E7CA43EA92220D8D3",
+        "depois":  "427B1735C86C4550DA9A7C8EBD66DC4B299B6440F841320E7CA43EA92220D8D3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/formulario-produto-desktop.png",
+        "antes":  "18A3B8CA072F5715552A8279CECF23542CB3038A2B20370ECE9A9E49698E6370",
+        "depois":  "18A3B8CA072F5715552A8279CECF23542CB3038A2B20370ECE9A9E49698E6370",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/formulario-produto-mobile-final.png",
+        "antes":  "DDEBE659E55FEDAFFE2A82BDE8F0A1794F0469A93ACF86C82C74241A6F7F4C1E",
+        "depois":  "DDEBE659E55FEDAFFE2A82BDE8F0A1794F0469A93ACF86C82C74241A6F7F4C1E",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/formulario-produto-mobile.png",
+        "antes":  "6E210463C6710AB5C6C5755CD780E1D366711C33EB7380CF66BF63A59A6FA509",
+        "depois":  "6E210463C6710AB5C6C5755CD780E1D366711C33EB7380CF66BF63A59A6FA509",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/novo-salgado-entrada-150.png",
+        "antes":  "9A29AF15623D6094D0E70D5C79613AEB6C3193E40CC98A2CC738D229931F5D8D",
+        "depois":  "9A29AF15623D6094D0E70D5C79613AEB6C3193E40CC98A2CC738D229931F5D8D",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/novo-salgado-estoque-zero.png",
+        "antes":  "1C63975C477A7B30A46E184602AAAF797106AA12F2A8E04666F24CAA2A5CA5C6",
+        "depois":  "1C63975C477A7B30A46E184602AAAF797106AA12F2A8E04666F24CAA2A5CA5C6",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/local/resultado.json",
+        "antes":  "04FF8D2DDC9D0D76D69880EB9E18C12A8769AEFD1C01B4AF3608CADA604B86B4",
+        "depois":  "04FF8D2DDC9D0D76D69880EB9E18C12A8769AEFD1C01B4AF3608CADA604B86B4",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/preservacao-arquivos.json",
+        "antes":  "0FE926560CADEAA23FC14E314CCBAE91AE1267A60D4B9866EB53F39E426B39F6",
+        "depois":  "0FE926560CADEAA23FC14E314CCBAE91AE1267A60D4B9866EB53F39E426B39F6",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regras-regressoes.json",
+        "antes":  "7901FCF1CFD78CD37ED9DA04976C9B6765752A74FB3F700E69A00544A901E311",
+        "depois":  "7901FCF1CFD78CD37ED9DA04976C9B6765752A74FB3F700E69A00544A901E311",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-local/embalagens-desktop-1672.png",
+        "antes":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "depois":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-local/embalagens-mobile-390.png",
+        "antes":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "depois":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-local/insumos-desktop-1672.png",
+        "antes":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "depois":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-local/insumos-mobile-390.png",
+        "antes":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "depois":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-local/resultado.json",
+        "antes":  "9AF25144797F587907194E67BA43C276E53259143BCAB75C9D9424DB8C9E3F16",
+        "depois":  "9AF25144797F587907194E67BA43C276E53259143BCAB75C9D9424DB8C9E3F16",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-local/salgados-desktop-1672.png",
+        "antes":  "92DB40982738D9FD82D7317D072616C86650A41312C9A5630D4E6AA3E9A5D3DA",
+        "depois":  "92DB40982738D9FD82D7317D072616C86650A41312C9A5630D4E6AA3E9A5D3DA",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-local/salgados-mobile-390.png",
+        "antes":  "427B1735C86C4550DA9A7C8EBD66DC4B299B6440F841320E7CA43EA92220D8D3",
+        "depois":  "427B1735C86C4550DA9A7C8EBD66DC4B299B6440F841320E7CA43EA92220D8D3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-vercel/embalagens-desktop-1672.png",
+        "antes":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "depois":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-vercel/embalagens-mobile-390.png",
+        "antes":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "depois":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-vercel/insumos-desktop-1672.png",
+        "antes":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "depois":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-vercel/insumos-mobile-390.png",
+        "antes":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "depois":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-vercel/resultado.json",
+        "antes":  "7AC3D166E5AD2FCDA474F001F96BD78286712602B2C438A09A77F87799B97344",
+        "depois":  "7AC3D166E5AD2FCDA474F001F96BD78286712602B2C438A09A77F87799B97344",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-vercel/salgados-desktop-1672.png",
+        "antes":  "4995ED94DB654E658EA0C66DFDE445B38B8DF5ADCB8A4EF4F7C07C095C1450FE",
+        "depois":  "4995ED94DB654E658EA0C66DFDE445B38B8DF5ADCB8A4EF4F7C07C095C1450FE",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-estoques-vercel/salgados-mobile-390.png",
+        "antes":  "2E5ABF65E9350E79F46F531707659B33671208B64C4B7169EBAC68ACD86C2E33",
+        "depois":  "2E5ABF65E9350E79F46F531707659B33671208B64C4B7169EBAC68ACD86C2E33",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-local/acompanhe-pedido-desktop-1440.png",
+        "antes":  "99FB333A51641D64708C85791E9CE07F8B3803DC6AFDA2FD83D741DE27C9F012",
+        "depois":  "99FB333A51641D64708C85791E9CE07F8B3803DC6AFDA2FD83D741DE27C9F012",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-local/acompanhe-pedido-mobile-390.png",
+        "antes":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "depois":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-local/meus-pedidos-desktop-1440.png",
+        "antes":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "depois":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-local/meus-pedidos-mobile-390.png",
+        "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-local/resultado.json",
+        "antes":  "35C86AABCE1B7EEB41E18767DEE3B7DE17942DA6D15013FC3D360AA54910F6A4",
+        "depois":  "35C86AABCE1B7EEB41E18767DEE3B7DE17942DA6D15013FC3D360AA54910F6A4",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-vercel/acompanhe-pedido-desktop-1440.png",
+        "antes":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+        "depois":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-vercel/acompanhe-pedido-mobile-390.png",
+        "antes":  "1EDD00D20EC0FBD7FE6D34F80DC2644F81D779A96FE597BD9B1C710B520CF919",
+        "depois":  "1EDD00D20EC0FBD7FE6D34F80DC2644F81D779A96FE597BD9B1C710B520CF919",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-vercel/meus-pedidos-desktop-1440.png",
+        "antes":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "depois":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-vercel/meus-pedidos-mobile-390.png",
+        "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/regressao-r2b-vercel/resultado.json",
+        "antes":  "1B106F7CBEFCBF65B95D5E917724CA29102AEFB54F33CE6F6975A13F2AE8F303",
+        "depois":  "1B106F7CBEFCBF65B95D5E917724CA29102AEFB54F33CE6F6975A13F2AE8F303",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/cadastro-embalagens-compra-retirada.png",
+        "antes":  "68ED4BE9967E5C30BDCC980E63E04C72534841148BCAB0DF2DB04816D793D63A",
+        "depois":  "68ED4BE9967E5C30BDCC980E63E04C72534841148BCAB0DF2DB04816D793D63A",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/cadastro-insumos-compra-retirada.png",
+        "antes":  "1E8C2A59D82A24B61AC3F262406B8671BC6DCDCFB0A2E3FB6666A24FC13E834A",
+        "depois":  "1E8C2A59D82A24B61AC3F262406B8671BC6DCDCFB0A2E3FB6666A24FC13E834A",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/cadastro-produtos-desktop.png",
+        "antes":  "13ED6C0705B53E8C57413344B8D5DE7CBE7EA7B1DEA48BCAB64AB0A0608736EE",
+        "depois":  "13ED6C0705B53E8C57413344B8D5DE7CBE7EA7B1DEA48BCAB64AB0A0608736EE",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/cadastro-produtos-mobile.png",
+        "antes":  "D8794636AB04439C150AF5FFBC514D6B5C222B7208F37938E50A55B63BA64262",
+        "depois":  "D8794636AB04439C150AF5FFBC514D6B5C222B7208F37938E50A55B63BA64262",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/consulta-produto-cadastrado.png",
+        "antes":  "6BFEE885D2E7F688D9BDA3B2728EF6DB7EDA66E9C2DFC2D222F58AC2009DCCA8",
+        "depois":  "6BFEE885D2E7F688D9BDA3B2728EF6DB7EDA66E9C2DFC2D222F58AC2009DCCA8",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/estoque-embalagens-desktop.png",
+        "antes":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "depois":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/estoque-embalagens-mobile.png",
+        "antes":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "depois":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/estoque-insumos-desktop.png",
+        "antes":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "depois":  "EBBEC4296A394859118DA961087681A9B830561E0CAEAE9775873C22444816AD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/estoque-insumos-mobile.png",
+        "antes":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "depois":  "EEA4E4BBD0C2C3DD05BE16B7900DDA6C24D946ABDB0B3F16018DC0B6CEDC0E9E",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/estoque-salgados-desktop.png",
+        "antes":  "0F156B6157B9026342941ED4BAE538298E0B7E53FDF83D51FC231029FD8B700C",
+        "depois":  "0F156B6157B9026342941ED4BAE538298E0B7E53FDF83D51FC231029FD8B700C",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/estoque-salgados-mobile.png",
+        "antes":  "14AB1C7A60C0BB6B83F6DC75DB151908F062258E26173CEE3D78617AE593AD22",
+        "depois":  "14AB1C7A60C0BB6B83F6DC75DB151908F062258E26173CEE3D78617AE593AD22",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/formulario-produto-desktop.png",
+        "antes":  "5824A4E78D8C102F27C18F18136F73F1D1E235E887BFFE00E0ACE4BAF956D911",
+        "depois":  "5824A4E78D8C102F27C18F18136F73F1D1E235E887BFFE00E0ACE4BAF956D911",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/formulario-produto-mobile-final.png",
+        "antes":  "74143095E8F174A98652C79F82C6260D256B5C55BA562FC033ADE1CF1DB85788",
+        "depois":  "74143095E8F174A98652C79F82C6260D256B5C55BA562FC033ADE1CF1DB85788",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/formulario-produto-mobile.png",
+        "antes":  "6E210463C6710AB5C6C5755CD780E1D366711C33EB7380CF66BF63A59A6FA509",
+        "depois":  "6E210463C6710AB5C6C5755CD780E1D366711C33EB7380CF66BF63A59A6FA509",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/novo-salgado-entrada-150.png",
+        "antes":  "9A29AF15623D6094D0E70D5C79613AEB6C3193E40CC98A2CC738D229931F5D8D",
+        "depois":  "9A29AF15623D6094D0E70D5C79613AEB6C3193E40CC98A2CC738D229931F5D8D",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/novo-salgado-estoque-zero.png",
+        "antes":  "875EFFBA2EE757AC1C5972FA79EE11F1B932679DEBC69107639B53934F146DF5",
+        "depois":  "875EFFBA2EE757AC1C5972FA79EE11F1B932679DEBC69107639B53934F146DF5",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/complemento/vercel/resultado.json",
+        "antes":  "A441442AC64B3BF24FB0D392055F959AF4F7085FC96B09F7A6F5B4081EA1FC0B",
+        "depois":  "A441442AC64B3BF24FB0D392055F959AF4F7085FC96B09F7A6F5B4081EA1FC0B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/codigo-validado.json",
+        "antes":  "609BA6C086A89F84DAFCA3F808AE0C554E27B4F0BED17084138B3D09DBE69E44",
+        "depois":  "609BA6C086A89F84DAFCA3F808AE0C554E27B4F0BED17084138B3D09DBE69E44",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/deployment.json",
+        "antes":  "26DDA812032B7E979CE03BC12647647BA7C0AD234F9227F005F10F67BC058693",
+        "depois":  "26DDA812032B7E979CE03BC12647647BA7C0AD234F9227F005F10F67BC058693",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/diagnosticos/validacao-html-corrigida.png",
+        "antes":  "2D347941DA01BD62975E726964DBCB1EF5C25DEE45E077ECBE3F4E720E8EF41D",
+        "depois":  "2D347941DA01BD62975E726964DBCB1EF5C25DEE45E077ECBE3F4E720E8EF41D",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/git-status.txt",
+        "antes":  "8D041FA6266F061EC8395387B5EB5A8B5E307A7261A8AFCDE7E5443A26BD7235",
+        "depois":  "8D041FA6266F061EC8395387B5EB5A8B5E307A7261A8AFCDE7E5443A26BD7235",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/local/embalagens-desktop-1672.png",
+        "antes":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "depois":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/local/embalagens-mobile-390.png",
+        "antes":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "depois":  "D13B753C8C55849D12B4E74FFA7FD1C23D2A777F20BD3479D235F4F2C2496DC3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/local/insumos-desktop-1672.png",
+        "antes":  "39D40BE305A48F109B23AA5D30C7EC12EBC3E602795736D9E8CEB107BD9F8E24",
+        "depois":  "39D40BE305A48F109B23AA5D30C7EC12EBC3E602795736D9E8CEB107BD9F8E24",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/local/insumos-mobile-390.png",
+        "antes":  "FA16F091C2D6DE9BFC4098C36B460F7AB3B83320E0834BDA79414936C1F7D1CC",
+        "depois":  "FA16F091C2D6DE9BFC4098C36B460F7AB3B83320E0834BDA79414936C1F7D1CC",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/local/resultado.json",
+        "antes":  "8387A71FD244EEC2B4097722D1737E0EAAF37BA24F8A44734B56B81C34F34A65",
+        "depois":  "8387A71FD244EEC2B4097722D1737E0EAAF37BA24F8A44734B56B81C34F34A65",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/local/salgados-desktop-1672.png",
+        "antes":  "F047CBA4403A9D77966C79ED72F6CFF31660B2ED9DA179D8A8F7E1509AB01836",
+        "depois":  "F047CBA4403A9D77966C79ED72F6CFF31660B2ED9DA179D8A8F7E1509AB01836",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/local/salgados-mobile-390.png",
+        "antes":  "21F9C755D37BC6B478598523DA73AB93F438234916FCB6576F2A48EEA3210F03",
+        "depois":  "21F9C755D37BC6B478598523DA73AB93F438234916FCB6576F2A48EEA3210F03",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/preservacao.json",
+        "antes":  "80C5132FD6302F194024FB0915597307E3B1A9D969D7D697C28F2F7571B897A1",
+        "depois":  "80C5132FD6302F194024FB0915597307E3B1A9D969D7D697C28F2F7571B897A1",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regras-regressoes.json",
+        "antes":  "DDB72DBBC432B326CA747413BAD8A20FC0F5A8CE51D630B3D30AA5B14F32DEF4",
+        "depois":  "DDB72DBBC432B326CA747413BAD8A20FC0F5A8CE51D630B3D30AA5B14F32DEF4",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b-vercel/acompanhe-pedido-desktop-1440.png",
+        "antes":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+        "depois":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b-vercel/acompanhe-pedido-mobile-390.png",
+        "antes":  "1EDD00D20EC0FBD7FE6D34F80DC2644F81D779A96FE597BD9B1C710B520CF919",
+        "depois":  "1EDD00D20EC0FBD7FE6D34F80DC2644F81D779A96FE597BD9B1C710B520CF919",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b-vercel/meus-pedidos-desktop-1440.png",
+        "antes":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "depois":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b-vercel/meus-pedidos-mobile-390.png",
+        "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b-vercel/resultado.json",
+        "antes":  "BFC0993D102B80BC4841BC5EDF3466144BBA8250DFA82360B7BBFCE8D987433E",
+        "depois":  "BFC0993D102B80BC4841BC5EDF3466144BBA8250DFA82360B7BBFCE8D987433E",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b/acompanhe-pedido-desktop-1440.png",
+        "antes":  "769F3EC2F8F31F92F100EA1D80AA979402F79DEACF7EB3865A221802CA8A94C9",
+        "depois":  "769F3EC2F8F31F92F100EA1D80AA979402F79DEACF7EB3865A221802CA8A94C9",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b/acompanhe-pedido-mobile-390.png",
+        "antes":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "depois":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b/meus-pedidos-desktop-1440.png",
+        "antes":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "depois":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b/meus-pedidos-mobile-390.png",
+        "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/regressao-r2b/resultado.json",
+        "antes":  "89DB758BD8C8B06DB49E1C4293D40937312073FDD31C7589CB66E84E2623D37B",
+        "depois":  "89DB758BD8C8B06DB49E1C4293D40937312073FDD31C7589CB66E84E2623D37B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/vercel/embalagens-desktop-1672.png",
+        "antes":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "depois":  "EC8E8D81656B035CEB2A220D8DBF6453151C309107C9FF4F925E39E9DF3B5D4B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/vercel/embalagens-mobile-390.png",
+        "antes":  "C768B611DAFE0437D7F19A4E5AFD30AE25C509E28302102840715D978D3156AD",
+        "depois":  "C768B611DAFE0437D7F19A4E5AFD30AE25C509E28302102840715D978D3156AD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/vercel/insumos-desktop-1672.png",
+        "antes":  "39D40BE305A48F109B23AA5D30C7EC12EBC3E602795736D9E8CEB107BD9F8E24",
+        "depois":  "39D40BE305A48F109B23AA5D30C7EC12EBC3E602795736D9E8CEB107BD9F8E24",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/vercel/insumos-mobile-390.png",
+        "antes":  "FA16F091C2D6DE9BFC4098C36B460F7AB3B83320E0834BDA79414936C1F7D1CC",
+        "depois":  "FA16F091C2D6DE9BFC4098C36B460F7AB3B83320E0834BDA79414936C1F7D1CC",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/vercel/resultado.json",
+        "antes":  "D9DCD7378D66B64638E3F6854680D48B3A6CC052AB9A5673E64843ECA72F8F17",
+        "depois":  "D9DCD7378D66B64638E3F6854680D48B3A6CC052AB9A5673E64843ECA72F8F17",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/vercel/salgados-desktop-1672.png",
+        "antes":  "25CFF2E55F608B6A7B8C2B57EE38CE011301C6D6556DED84CF70956DAF6AA9DD",
+        "depois":  "25CFF2E55F608B6A7B8C2B57EE38CE011301C6D6556DED84CF70956DAF6AA9DD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/estoques/validacao/vercel/salgados-mobile-390.png",
+        "antes":  "0B1875B7557A52BDDEBCC83DA3EE880E3538AFBBC92E4C29C572F632138BCAFC",
+        "depois":  "0B1875B7557A52BDDEBCC83DA3EE880E3538AFBBC92E4C29C572F632138BCAFC",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/ENTREGA.md",
+        "antes":  "BE9907A87AFB04BC22E0E5A447EF7AA2D8527A628D6F340241F96FBD507E955A",
+        "depois":  "BE9907A87AFB04BC22E0E5A447EF7AA2D8527A628D6F340241F96FBD507E955A",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/antes-desktop-1440.png",
+        "antes":  "DD00CCD6A9EC0C4E6A6C8330458A1FA7EE54EE6F73B2ED1C2F95E04C07D8AAAA",
+        "depois":  "DD00CCD6A9EC0C4E6A6C8330458A1FA7EE54EE6F73B2ED1C2F95E04C07D8AAAA",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/antes-resultado.json",
+        "antes":  "59C3D6DB7BCF3E9F24FEC0D967FCCC752FA1321B6A6EAB4A6A838FE0422B0C12",
+        "depois":  "59C3D6DB7BCF3E9F24FEC0D967FCCC752FA1321B6A6EAB4A6A838FE0422B0C12",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/antes-topo-1440.png",
+        "antes":  "85C5795764F1A8DDF9540F599F75C6CD677E29B0C801E6627266CC68E341C94B",
+        "depois":  "85C5795764F1A8DDF9540F599F75C6CD677E29B0C801E6627266CC68E341C94B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/depois-desktop-1440.png",
+        "antes":  "A818FDF15352049EEBC770FE294783DA1A3A55E009362E284875223FC624C164",
+        "depois":  "A818FDF15352049EEBC770FE294783DA1A3A55E009362E284875223FC624C164",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/depois-gestao-1440.png",
+        "antes":  "7AE548CAD9C0461E8AFF46479C9C3A3E6D293239B78393C9351E0C9A777C4DAD",
+        "depois":  "7AE548CAD9C0461E8AFF46479C9C3A3E6D293239B78393C9351E0C9A777C4DAD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/depois-mobile-390.png",
+        "antes":  "53E89345CAEF0BA773849A3739F6296E37CA529EF365BB0F6D691BF74769268F",
+        "depois":  "53E89345CAEF0BA773849A3739F6296E37CA529EF365BB0F6D691BF74769268F",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/depois-resultado.json",
+        "antes":  "C9DAEEADA11F2C68FFDFB2A74D954C6CFB2B54B948E4A84768110E9C08145812",
+        "depois":  "C9DAEEADA11F2C68FFDFB2A74D954C6CFB2B54B948E4A84768110E9C08145812",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/financeiro-premium/validacao/depois-topo-1440.png",
+        "antes":  "7E0A9583A9105029B9E0636718535274CE197C3B9A78C49295960242D7454421",
+        "depois":  "7E0A9583A9105029B9E0636718535274CE197C3B9A78C49295960242D7454421",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/preview-captures/prints/preview-preview-central-entregas-v2-celular.png",
+        "antes":  "B87FE8441C11359CC189A411CFBE7F310F55E3CC19EFCF07CA16A61B100B509B",
+        "depois":  "B87FE8441C11359CC189A411CFBE7F310F55E3CC19EFCF07CA16A61B100B509B",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/preview-captures/prints/preview-preview-central-entregas-v2-desktop.png",
+        "antes":  "7DF99ED5CEA962FABC7EC67DD3F0735DCC93C512A7A01835D5C5259AFAE17BCD",
+        "depois":  "7DF99ED5CEA962FABC7EC67DD3F0735DCC93C512A7A01835D5C5259AFAE17BCD",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/R2B-CORRECAO-VISUAL.md",
+        "antes":  "F9251F9547D3A7281EDDFBF1BFAF7E2040741DDD08544779578FBB55AE7B2398",
+        "depois":  "F9251F9547D3A7281EDDFBF1BFAF7E2040741DDD08544779578FBB55AE7B2398",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/local/acompanhe-pedido-desktop-1440.png",
+        "antes":  "1B86861FE79BB206E7CA6DFE8CB4510712126E121AED2F60F6544803F8AFE30A",
+        "depois":  "1B86861FE79BB206E7CA6DFE8CB4510712126E121AED2F60F6544803F8AFE30A",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/local/acompanhe-pedido-mobile-390.png",
+        "antes":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "depois":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/local/meus-pedidos-desktop-1440.png",
+        "antes":  "F417EC340536CF06BE48FE525B46A73926C471D8785A393FD3104AD28DF58DCE",
+        "depois":  "F417EC340536CF06BE48FE525B46A73926C471D8785A393FD3104AD28DF58DCE",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/local/meus-pedidos-mobile-390.png",
+        "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/local/resultado.json",
+        "antes":  "50C6492E940691CB6A56BEB516666173AE2F696BFA51993F5C0ED6DBC68F2E66",
+        "depois":  "50C6492E940691CB6A56BEB516666173AE2F696BFA51993F5C0ED6DBC68F2E66",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/preview/acompanhe-pedido-desktop-1440.png",
+        "antes":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+        "depois":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/preview/acompanhe-pedido-mobile-390.png",
+        "antes":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "depois":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/preview/meus-pedidos-desktop-1440.png",
+        "antes":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "depois":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/preview/meus-pedidos-mobile-390.png",
+        "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+        "preservado":  true
+    },
+    {
+        "path":  "docs/reembolsos-estornos/capturas-cliente/preview/resultado.json",
+        "antes":  "350B7DFA8D82215580191474DCCB3C803B98C9EF46F60D8F9EA013DD3C15BF62",
+        "depois":  "350B7DFA8D82215580191474DCCB3C803B98C9EF46F60D8F9EA013DD3C15BF62",
+        "preservado":  true
+    },
+    {
+        "path":  "preview-output.txt",
+        "antes":  "92F9479EC117B37ADC9A571B5F89A598C70405F8E88FF90030A090BB2B7AF07D",
+        "depois":  "92F9479EC117B37ADC9A571B5F89A598C70405F8E88FF90030A090BB2B7AF07D",
+        "preservado":  true
+    },
+    {
+        "path":  "prod-curl-output.txt",
+        "antes":  "58A0A5A016968941CA9547F47258B7EE69B7369FB7150F00C9901D360DA6A04D",
+        "depois":  "58A0A5A016968941CA9547F47258B7EE69B7369FB7150F00C9901D360DA6A04D",
+        "preservado":  true
+    },
+    {
+        "path":  "r1-result.txt",
+        "antes":  "AADBAADA22D1AA3AA2433516A49484D7A8204AFA6E5D075E3B3CF7ECC9031D0D",
+        "depois":  "AADBAADA22D1AA3AA2433516A49484D7A8204AFA6E5D075E3B3CF7ECC9031D0D",
+        "preservado":  true
+    },
+    {
+        "path":  "r1-test-output.txt",
+        "antes":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+        "depois":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+        "preservado":  true
+    },
+    {
+        "path":  "r1-verify.txt",
+        "antes":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+        "depois":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+        "preservado":  true
+    },
+    {
+        "path":  "r2a-result.txt",
+        "antes":  "5A1B2FCF3D0325B44B8A3E0D176B91E4B72377AFCE4CAF0122C63061E115EF0E",
+        "depois":  "5A1B2FCF3D0325B44B8A3E0D176B91E4B72377AFCE4CAF0122C63061E115EF0E",
+        "preservado":  true
+    },
+    {
+        "path":  "r2a-verify.txt",
+        "antes":  "22CF9C9B774C664FA52D40F7405FFED7872D5DAF6B3F3293409403C72F40C150",
+        "depois":  "22CF9C9B774C664FA52D40F7405FFED7872D5DAF6B3F3293409403C72F40C150",
+        "preservado":  true
+    },
+    {
+        "path":  "r2b-test.html",
+        "antes":  "9B06038B67EAA0B07078459D8B5E82486FF4A13E4417BC67EA352C922970D4C6",
+        "depois":  "9B06038B67EAA0B07078459D8B5E82486FF4A13E4417BC67EA352C922970D4C6",
+        "preservado":  true
+    },
+    {
+        "path":  "scripts/cadastros-estoques-visual.mjs",
+        "antes":  "E307E3FA743513B5152AB727F6127DFC081EB87B6EB0B1137A13291A5AA5548F",
+        "depois":  "E307E3FA743513B5152AB727F6127DFC081EB87B6EB0B1137A13291A5AA5548F",
+        "preservado":  true
+    },
+    {
+        "path":  "scripts/cadastros-estoques.test.mjs",
+        "antes":  "CC0E35D01A57ADF457AE5867365C488127995B673B16278EE89DF022D4559B05",
+        "depois":  "CC0E35D01A57ADF457AE5867365C488127995B673B16278EE89DF022D4559B05",
+        "preservado":  true
+    },
+    {
+        "path":  "scripts/estoques-preview-visual.mjs",
+        "antes":  "397F2E2C86554632B153628DF21855C426E358FCB22DBFE2CC9C9166F5B2D6E9",
+        "depois":  "EA702F102C36A949A832711BB3F3CF9E78ED177C8E7FDEB315A3BCA5ACF7133B",
+        "preservado":  false
+    },
+    {
+        "path":  "scripts/estoques-preview.test.mjs",
+        "antes":  "941DB6A238AA1615CE451531795980AE3A70D6189F2C7BE094EA60ACC8C5CED9",
+        "depois":  "941DB6A238AA1615CE451531795980AE3A70D6189F2C7BE094EA60ACC8C5CED9",
+        "preservado":  true
+    },
+    {
+        "path":  "src/components/estoque-preview/compartilhados.tsx",
+        "antes":  "2C861F282DC4BB5A1B456A0FDFEB65861E9E09083492598AAA465D85D4C28C37",
+        "depois":  "48D1E93CA30B2EE5B56195A50896470022D912810EBE2B38D7675E6BFA993E16",
+        "preservado":  false
+    },
+    {
+        "path":  "src/components/estoque-preview/contexto.tsx",
+        "antes":  "834849F205559F7F467D5A9FC4F12C51105B6DCDEEFF18A0F8A7045B4F4C297F",
+        "depois":  "26146F5826D987EA0FDDDBD5A6ACFCA4A2D1BAA2ED3BC9D404380FB62C008764",
+        "preservado":  false
+    },
+    {
+        "path":  "src/components/estoque-preview/estoques.css",
+        "antes":  "079A3A2A3700BCF454A10EF4412788AAA9805728D6BA592E138C168806A239A6",
+        "depois":  "1306D98ADA4D7343974A6F8778DB4B0F8C78C2E92140CCA3F0D19FFAA7B52792",
+        "preservado":  false
+    },
+    {
+        "path":  "src/components/estoque-preview/produtos.ts",
+        "antes":  "492D2095EEC8A78C9D884CC0A2896BD625AC4483074A1CFC91E8228019307C50",
+        "depois":  "492D2095EEC8A78C9D884CC0A2896BD625AC4483074A1CFC91E8228019307C50",
+        "preservado":  true
+    },
+    {
+        "path":  "src/components/estoque-preview/salgados.ts",
+        "antes":  "9DD5E337426909DE79F6411CC92FF36AE75FB47E762F527F43D3FEDC01C26A96",
+        "depois":  "0A6080151F5DAD5C6890A75BB0A4C2B6EA0A20E4DE3F08D55E3A9EAAAE34377D",
+        "preservado":  false
+    },
+    {
+        "path":  "src/components/estoque-preview/shell.tsx",
+        "antes":  "436F95342B62316C42E87E924CFDC4890EFF629BEB6AE449AF95ED61A0A5288D",
+        "depois":  "B6C80A771CE76F7737B3367ABF9FF144B365BF97BE9E68AE3F046320199CDBC4",
+        "preservado":  false
+    },
+    {
+        "path":  "src/components/estoque-preview/suprimentos.ts",
+        "antes":  "D2CEBC765A6303FCED8F2080B75427A81C2174D69BCCCC6DF907F1CFFB5D596C",
+        "depois":  "D2CEBC765A6303FCED8F2080B75427A81C2174D69BCCCC6DF907F1CFFB5D596C",
+        "preservado":  true
+    },
+    {
+        "path":  "src/components/estoque-preview/tela-produtos.tsx",
+        "antes":  "F4DF899023B26FBF4D32822E8AC08E0F0F1DA7C431D12516769B7F350D075E3B",
+        "depois":  "F4DF899023B26FBF4D32822E8AC08E0F0F1DA7C431D12516769B7F350D075E3B",
+        "preservado":  true
+    },
+    {
+        "path":  "src/components/estoque-preview/tela-salgados.tsx",
+        "antes":  "27F74D4F548912BC400456B00E4B616DBBC2B923F8004377D37CD325BF7873FA",
+        "depois":  "3E55D7191774DD4FECC86BBCF7683FFE1F4E05545BC0AC1C84AE4D1BEDEDB3F8",
+        "preservado":  false
+    },
+    {
+        "path":  "src/components/estoque-preview/tela-suprimentos.tsx",
+        "antes":  "A8CF9549AE999849530960756713A2AB88F9792845D0E3E38BF9F11AC7306D7B",
+        "depois":  "A8CF9549AE999849530960756713A2AB88F9792845D0E3E38BF9F11AC7306D7B",
+        "preservado":  true
+    },
+    {
+        "path":  "src/lib/preview-estoques.ts",
+        "antes":  "C716B3D31B30098DDCB9CC9AB0CF25C8782F6871C20E1BD338077A1EA5AF6992",
+        "depois":  "3C7E9345AA89056BC2233E3F55478CAA8FE04C9E005D8E584192569C9ADA8199",
+        "preservado":  false
+    },
+    {
+        "path":  "src/routes/preview/_estoques.tsx",
+        "antes":  "F83ED01F47C9FA6FEC03925CFCA4B2D59A686E4A829C8F7CE4EE25BFCA461B97",
+        "depois":  "F83ED01F47C9FA6FEC03925CFCA4B2D59A686E4A829C8F7CE4EE25BFCA461B97",
+        "preservado":  true
+    },
+    {
+        "path":  "src/routes/preview/_estoques/cadastro-produtos.tsx",
+        "antes":  "B5D3D0B1A4CC5570527C5C2390925D3C9006820E9C0C749EE0A7EC29C0B4C1D1",
+        "depois":  "B5D3D0B1A4CC5570527C5C2390925D3C9006820E9C0C749EE0A7EC29C0B4C1D1",
+        "preservado":  true
+    },
+    {
+        "path":  "src/routes/preview/_estoques/estoque-embalagens.tsx",
+        "antes":  "B4962913FB5626FEB73B82E01F09637C5DC0BAE6C065B043291E8096030A1E57",
+        "depois":  "B4962913FB5626FEB73B82E01F09637C5DC0BAE6C065B043291E8096030A1E57",
+        "preservado":  true
+    },
+    {
+        "path":  "src/routes/preview/_estoques/estoque-insumos.tsx",
+        "antes":  "B5CE1FCB77449DB1E26A0BA3783BA5A54D43AD2BB8D26E61EAAC6FABA8C47273",
+        "depois":  "B5CE1FCB77449DB1E26A0BA3783BA5A54D43AD2BB8D26E61EAAC6FABA8C47273",
+        "preservado":  true
+    },
+    {
+        "path":  "src/routes/preview/_estoques/estoque-salgados.tsx",
+        "antes":  "C28E5C48D3F04586A3CBF6DA23B24403D8A4C6419193EC5FE8E745976F66143B",
+        "depois":  "C28E5C48D3F04586A3CBF6DA23B24403D8A4C6419193EC5FE8E745976F66143B",
+        "preservado":  true
+    },
+    {
+        "path":  "tmp.txt",
+        "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "preservado":  true
+    },
+    {
+        "path":  "tmp_prod.txt",
+        "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "preservado":  true
+    },
+    {
+        "path":  "typecheck-output.txt",
+        "antes":  "B0B0D0F428A8F1EF5B0DD4D4EBA5CB3AE1000709AE605EC72C45A463EF2EBDDA",
+        "depois":  "B0B0D0F428A8F1EF5B0DD4D4EBA5CB3AE1000709AE605EC72C45A463EF2EBDDA",
+        "preservado":  true
+    },
+    {
+        "path":  "verify-detalhe.txt",
+        "antes":  "9BA761835A2435156CD8C7CF8E96F7EE2BF76E8A9F3FE825238740EE034151C5",
+        "depois":  "9BA761835A2435156CD8C7CF8E96F7EE2BF76E8A9F3FE825238740EE034151C5",
+        "preservado":  true
+    },
+    {
+        "path":  "verify-detalhe2.txt",
+        "antes":  "DA3100CB15AB8E9D9C4E1B8F709A621CA7ABDC95348FACE9F7FCE93D3FF503C9",
+        "depois":  "DA3100CB15AB8E9D9C4E1B8F709A621CA7ABDC95348FACE9F7FCE93D3FF503C9",
+        "preservado":  true
+    },
+    {
+        "path":  "verify-detalhe3.txt",
+        "antes":  "30170EECB74382F626286750BC08807C882536DC677D777F9EA1B62FF16187B8",
+        "depois":  "30170EECB74382F626286750BC08807C882536DC677D777F9EA1B62FF16187B8",
+        "preservado":  true
+    },
+    {
+        "path":  "verify-meus-pedidos.txt",
+        "antes":  "ACE7647B35DA631EFD36554A350D68763EDD26BF089CF969C0B481B31978534A",
+        "depois":  "ACE7647B35DA631EFD36554A350D68763EDD26BF089CF969C0B481B31978534A",
+        "preservado":  true
+    },
+    {
+        "path":  "verify-r2b-v2.txt",
+        "antes":  "43F9E90C008CEA5A85E1205B5D02D71399D554C0DF376363EFA103DB6A4465F8",
+        "depois":  "43F9E90C008CEA5A85E1205B5D02D71399D554C0DF376363EFA103DB6A4465F8",
+        "preservado":  true
+    },
+    {
+        "path":  "verify-r2b.txt",
+        "antes":  "BFE8878C0547393BF1EB94DD3DB000BAA704CA61E73AEAC9DCD1DF8D25FA8252",
+        "depois":  "BFE8878C0547393BF1EB94DD3DB000BAA704CA61E73AEAC9DCD1DF8D25FA8252",
+        "preservado":  true
+    },
+    {
+        "path":  "vite-dev-output.txt",
+        "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+        "preservado":  true
+    },
+    {
+        "path":  "vite-log.txt",
+        "antes":  "7A958DEA4BE31752D6AC041BB9891E6B33C116639D8E9EB747C02190D36E190C",
+        "depois":  "7A958DEA4BE31752D6AC041BB9891E6B33C116639D8E9EB747C02190D36E190C",
+        "preservado":  true
+    },
+    {
+        "path":  "vite-output.txt",
+        "antes":  "ECEE9DB51D16F0FC671FFBBF865E33B5993E011F451D653D74D4B3BC27DC1D98",
+        "depois":  "ECEE9DB51D16F0FC671FFBBF865E33B5993E011F451D653D74D4B3BC27DC1D98",
+        "preservado":  true
+    }
+]

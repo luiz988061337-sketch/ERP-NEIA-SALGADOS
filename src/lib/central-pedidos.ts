@@ -18,6 +18,7 @@ export type PedidoCentral = {
   id: string;
   numero: number;
   cliente_nome: string;
+  telefone?: string | null;
   status: string;
   tipo_entrega: string;
   total: number;
@@ -66,25 +67,38 @@ export function colunasCentral(pedidos: PedidoCentral[]): ColunasCentral {
 
 export type FiltrosCentral = {
   busca?: string;
+  status?: "todos" | keyof ColunasCentral;
   modalidade?: "todas" | "entrega" | "retirada";
   agendados?: boolean;
 };
 
-/** Busca (nº ou cliente) + filtros de modalidade e agendados. */
+/** Busca (nº, cliente ou telefone) + filtros de status e modalidade. */
 export function filtrarPedidos(
   pedidos: PedidoCentral[],
   filtros: FiltrosCentral = {},
 ): PedidoCentral[] {
   const termo = (filtros.busca ?? "").trim().toLowerCase();
+  const status = filtros.status ?? "todos";
   return pedidos.filter((p) => {
     if (filtros.modalidade && filtros.modalidade !== "todas") {
       if ((p.tipo_entrega ?? "entrega") !== filtros.modalidade) return false;
     }
     if (filtros.agendados && !p.agendado_para) return false;
+    if (status !== "todos") {
+      const analise = p.status === "recebido" && !p.aceito_em_atendente;
+      const producao =
+        (p.status === "recebido" && Boolean(p.aceito_em_atendente)) ||
+        p.status === "em_producao";
+      const pronto = p.status === "pronto";
+      if (status === "analise" && !analise) return false;
+      if (status === "producao" && !producao) return false;
+      if (status === "pronto" && !pronto) return false;
+    }
     if (!termo) return true;
     const numero = String(p.numero ?? "").toLowerCase();
     const cliente = String(p.cliente_nome ?? "").toLowerCase();
-    return numero.includes(termo) || cliente.includes(termo);
+    const telefone = String(p.telefone ?? "").toLowerCase();
+    return numero.includes(termo) || cliente.includes(termo) || telefone.includes(termo);
   });
 }
 

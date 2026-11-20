@@ -1,0 +1,431 @@
+{
+    "branch":  "homologacao-finalizacao",
+    "head":  "673a0c98e4452a608cfe5f3065712ffa6cc0709a",
+    "arquivosPreexistentes":  67,
+    "divergencias":  0,
+    "arquivos":  [
+                     {
+                         "path":  "docs/erp-dark/prints/central-entregas-DEPOIS-celular.png",
+                         "antes":  "D781104AB5DD7B601C2AADF77F44958540F6FD52BD8979CC8067977BA7E97A88",
+                         "depois":  "D781104AB5DD7B601C2AADF77F44958540F6FD52BD8979CC8067977BA7E97A88",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/erp-dark/prints/central-entregas-DEPOIS.png",
+                         "antes":  "DECB7922575E078E48D66CD69533C6D633E1B92A80647781C857546EB9CEBD41",
+                         "depois":  "DECB7922575E078E48D66CD69533C6D633E1B92A80647781C857546EB9CEBD41",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-origens/central-com-novas-solicitacoes.png",
+                         "antes":  "79DDAAA091F714A9AE2AB1A8C247BDC626608D232A1F15D8092F97FA102B05EC",
+                         "depois":  "79DDAAA091F714A9AE2AB1A8C247BDC626608D232A1F15D8092F97FA102B05EC",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "CARROSSEL_AJUSTE_FINAL.md",
+                         "antes":  "496A1A48190C479CFD79051D400DB98B4527C99516D0183F34BD43C6DBCA83F1",
+                         "depois":  "496A1A48190C479CFD79051D400DB98B4527C99516D0183F34BD43C6DBCA83F1",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "CONCLUSAO.md",
+                         "antes":  "4494FD6E80D587A2B355987FC0FCBBC34D0AD2F1CC5ED72A0B73035900EC123D",
+                         "depois":  "4494FD6E80D587A2B355987FC0FCBBC34D0AD2F1CC5ED72A0B73035900EC123D",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "FECHAMENTO_FINAL.md",
+                         "antes":  "C93B62738BA859DF3DEA7842228D49FF3519055148F50555504AADDEB3B0AAEB",
+                         "depois":  "C93B62738BA859DF3DEA7842228D49FF3519055148F50555504AADDEB3B0AAEB",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "FINAL_STATUS.md",
+                         "antes":  "5CAC08DEE4F306B98D45F4271B95908F9EB37E6B4EAC9802FF7274922B068DCF",
+                         "depois":  "5CAC08DEE4F306B98D45F4271B95908F9EB37E6B4EAC9802FF7274922B068DCF",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "FINAL_TECH_CLOSURE.md",
+                         "antes":  "E8C32DF8DD0AC45C957860396F0CA290C65BB0929DB1C0C6B22A572DBEBB971B",
+                         "depois":  "E8C32DF8DD0AC45C957860396F0CA290C65BB0929DB1C0C6B22A572DBEBB971B",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "PUBLICACAO_CARROSSEL.md",
+                         "antes":  "4F018D477E8D0A651094957F84499F988B89995996DED22536BABF8D8389A082",
+                         "depois":  "4F018D477E8D0A651094957F84499F988B89995996DED22536BABF8D8389A082",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "RELATORIO_ACESSO_ADM.md",
+                         "antes":  "4367BC23148420F06D618AFF2A346B6B95B777D55E9953D3ABCE219B0A9F2BDC",
+                         "depois":  "4367BC23148420F06D618AFF2A346B6B95B777D55E9953D3ABCE219B0A9F2BDC",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "RELATORIO_FINAL.md",
+                         "antes":  "927321DD4F6A8053CE01F6C1AE4BBC91A44624F48CC78C37DE1223376ACE90C3",
+                         "depois":  "927321DD4F6A8053CE01F6C1AE4BBC91A44624F48CC78C37DE1223376ACE90C3",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "RELATORIO_FINAL_R2-B_VERIFICACAO.md",
+                         "antes":  "CA1B3E9F1D2942CB3143EA84B886D225715F9C240976D2175E885D93AA2E4D24",
+                         "depois":  "CA1B3E9F1D2942CB3143EA84B886D225715F9C240976D2175E885D93AA2E4D24",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "RELATORIO_FINAL_TECNICO.md",
+                         "antes":  "BCF2C8D7D9160139F6A0BC699CC518E3AAA6DD7A0E818429B581AC98B8535486",
+                         "depois":  "BCF2C8D7D9160139F6A0BC699CC518E3AAA6DD7A0E818429B581AC98B8535486",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "alias-curl-output.txt",
+                         "antes":  "9953C37BC551F83966D3305BFC1A9FF91EBFABAC3D98AA93DE22F0B52CFFCADE",
+                         "depois":  "9953C37BC551F83966D3305BFC1A9FF91EBFABAC3D98AA93DE22F0B52CFFCADE",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "alias-page.txt",
+                         "antes":  "FF30FF0ED9B2C8F4AB14A9044C256A71512C530E76310583826D54E4C94C1394",
+                         "depois":  "FF30FF0ED9B2C8F4AB14A9044C256A71512C530E76310583826D54E4C94C1394",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "build-orig.txt",
+                         "antes":  "E9461F00161013D46F307A7F7D85CFF391BC7B91722C4AC5F761DDBCF6FEC98D",
+                         "depois":  "E9461F00161013D46F307A7F7D85CFF391BC7B91722C4AC5F761DDBCF6FEC98D",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "build-output.txt",
+                         "antes":  "C7F11A4A5C646DD168152B0CC83729CBAA5451FAC3C260AF79142FBDFA36E7B3",
+                         "depois":  "C7F11A4A5C646DD168152B0CC83729CBAA5451FAC3C260AF79142FBDFA36E7B3",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "build_output.txt",
+                         "antes":  "0576A86DC72100145C1A575A47A1194DF480973C5F9E9C20DACAD8C13DB8BCBC",
+                         "depois":  "0576A86DC72100145C1A575A47A1194DF480973C5F9E9C20DACAD8C13DB8BCBC",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "curl-home.txt",
+                         "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "curl-meus-pedidos.txt",
+                         "antes":  "F8D52495D7A83EE0F83DB52FCD8651053C638DACB2D6E03A083EC67C7CB2960F",
+                         "depois":  "F8D52495D7A83EE0F83DB52FCD8651053C638DACB2D6E03A083EC67C7CB2960F",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "curl-output.txt",
+                         "antes":  "BEC598EF64D04E40C83E1D798EAA1D95163252689C18446EB183ED996B6A5E24",
+                         "depois":  "BEC598EF64D04E40C83E1D798EAA1D95163252689C18446EB183ED996B6A5E24",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "curl.txt",
+                         "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "deploy-output.txt",
+                         "antes":  "41F1565360141AC3B26C0F4EEBBF5DC258BF3FC30A5B1CC8E651539CA7374978",
+                         "depois":  "41F1565360141AC3B26C0F4EEBBF5DC258BF3FC30A5B1CC8E651539CA7374978",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "deploy_output.txt",
+                         "antes":  "827D057A6C1836155F570288AE9C08D121B0FB9785DB2EA92C3205302B6A5BF1",
+                         "depois":  "827D057A6C1836155F570288AE9C08D121B0FB9785DB2EA92C3205302B6A5BF1",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "dev-output.txt",
+                         "antes":  "5F94ADE18E6A4F6D47F56AF90BE6E7A390DC265BE1DAE33D019C8B4DDB183922",
+                         "depois":  "5F94ADE18E6A4F6D47F56AF90BE6E7A390DC265BE1DAE33D019C8B4DDB183922",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/ENTREGA.md",
+                         "antes":  "BE9907A87AFB04BC22E0E5A447EF7AA2D8527A628D6F340241F96FBD507E955A",
+                         "depois":  "BE9907A87AFB04BC22E0E5A447EF7AA2D8527A628D6F340241F96FBD507E955A",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/antes-desktop-1440.png",
+                         "antes":  "DD00CCD6A9EC0C4E6A6C8330458A1FA7EE54EE6F73B2ED1C2F95E04C07D8AAAA",
+                         "depois":  "DD00CCD6A9EC0C4E6A6C8330458A1FA7EE54EE6F73B2ED1C2F95E04C07D8AAAA",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/antes-resultado.json",
+                         "antes":  "59C3D6DB7BCF3E9F24FEC0D967FCCC752FA1321B6A6EAB4A6A838FE0422B0C12",
+                         "depois":  "59C3D6DB7BCF3E9F24FEC0D967FCCC752FA1321B6A6EAB4A6A838FE0422B0C12",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/antes-topo-1440.png",
+                         "antes":  "85C5795764F1A8DDF9540F599F75C6CD677E29B0C801E6627266CC68E341C94B",
+                         "depois":  "85C5795764F1A8DDF9540F599F75C6CD677E29B0C801E6627266CC68E341C94B",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/depois-desktop-1440.png",
+                         "antes":  "A818FDF15352049EEBC770FE294783DA1A3A55E009362E284875223FC624C164",
+                         "depois":  "A818FDF15352049EEBC770FE294783DA1A3A55E009362E284875223FC624C164",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/depois-gestao-1440.png",
+                         "antes":  "7AE548CAD9C0461E8AFF46479C9C3A3E6D293239B78393C9351E0C9A777C4DAD",
+                         "depois":  "7AE548CAD9C0461E8AFF46479C9C3A3E6D293239B78393C9351E0C9A777C4DAD",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/depois-mobile-390.png",
+                         "antes":  "53E89345CAEF0BA773849A3739F6296E37CA529EF365BB0F6D691BF74769268F",
+                         "depois":  "53E89345CAEF0BA773849A3739F6296E37CA529EF365BB0F6D691BF74769268F",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/depois-resultado.json",
+                         "antes":  "C9DAEEADA11F2C68FFDFB2A74D954C6CFB2B54B948E4A84768110E9C08145812",
+                         "depois":  "C9DAEEADA11F2C68FFDFB2A74D954C6CFB2B54B948E4A84768110E9C08145812",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/financeiro-premium/validacao/depois-topo-1440.png",
+                         "antes":  "7E0A9583A9105029B9E0636718535274CE197C3B9A78C49295960242D7454421",
+                         "depois":  "7E0A9583A9105029B9E0636718535274CE197C3B9A78C49295960242D7454421",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/preview-captures/prints/preview-preview-central-entregas-v2-celular.png",
+                         "antes":  "B87FE8441C11359CC189A411CFBE7F310F55E3CC19EFCF07CA16A61B100B509B",
+                         "depois":  "B87FE8441C11359CC189A411CFBE7F310F55E3CC19EFCF07CA16A61B100B509B",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/preview-captures/prints/preview-preview-central-entregas-v2-desktop.png",
+                         "antes":  "7DF99ED5CEA962FABC7EC67DD3F0735DCC93C512A7A01835D5C5259AFAE17BCD",
+                         "depois":  "7DF99ED5CEA962FABC7EC67DD3F0735DCC93C512A7A01835D5C5259AFAE17BCD",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/R2B-CORRECAO-VISUAL.md",
+                         "antes":  "F9251F9547D3A7281EDDFBF1BFAF7E2040741DDD08544779578FBB55AE7B2398",
+                         "depois":  "F9251F9547D3A7281EDDFBF1BFAF7E2040741DDD08544779578FBB55AE7B2398",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/local/acompanhe-pedido-desktop-1440.png",
+                         "antes":  "1B86861FE79BB206E7CA6DFE8CB4510712126E121AED2F60F6544803F8AFE30A",
+                         "depois":  "1B86861FE79BB206E7CA6DFE8CB4510712126E121AED2F60F6544803F8AFE30A",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/local/acompanhe-pedido-mobile-390.png",
+                         "antes":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+                         "depois":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/local/meus-pedidos-desktop-1440.png",
+                         "antes":  "F417EC340536CF06BE48FE525B46A73926C471D8785A393FD3104AD28DF58DCE",
+                         "depois":  "F417EC340536CF06BE48FE525B46A73926C471D8785A393FD3104AD28DF58DCE",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/local/meus-pedidos-mobile-390.png",
+                         "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+                         "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/local/resultado.json",
+                         "antes":  "50C6492E940691CB6A56BEB516666173AE2F696BFA51993F5C0ED6DBC68F2E66",
+                         "depois":  "50C6492E940691CB6A56BEB516666173AE2F696BFA51993F5C0ED6DBC68F2E66",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/preview/acompanhe-pedido-desktop-1440.png",
+                         "antes":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+                         "depois":  "9519191D0C121150B4CAFB5CEEC4E355A3FBD360529C5D1B218BEB5B119B3E25",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/preview/acompanhe-pedido-mobile-390.png",
+                         "antes":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+                         "depois":  "BB39023B9B297A68A82DDE8F843A2CDAF7CF1220FB0A4356A9CC85273D06B909",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/preview/meus-pedidos-desktop-1440.png",
+                         "antes":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+                         "depois":  "F3D04B692713D1A43FB13468641D9426E671C9F928DBD501078574A5B05023B3",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/preview/meus-pedidos-mobile-390.png",
+                         "antes":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+                         "depois":  "65D771DF9088A3131E73F1CE739ABC6563740A21BC27B83508C2E4644F04FC41",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "docs/reembolsos-estornos/capturas-cliente/preview/resultado.json",
+                         "antes":  "350B7DFA8D82215580191474DCCB3C803B98C9EF46F60D8F9EA013DD3C15BF62",
+                         "depois":  "350B7DFA8D82215580191474DCCB3C803B98C9EF46F60D8F9EA013DD3C15BF62",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "preview-output.txt",
+                         "antes":  "92F9479EC117B37ADC9A571B5F89A598C70405F8E88FF90030A090BB2B7AF07D",
+                         "depois":  "92F9479EC117B37ADC9A571B5F89A598C70405F8E88FF90030A090BB2B7AF07D",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "prod-curl-output.txt",
+                         "antes":  "58A0A5A016968941CA9547F47258B7EE69B7369FB7150F00C9901D360DA6A04D",
+                         "depois":  "58A0A5A016968941CA9547F47258B7EE69B7369FB7150F00C9901D360DA6A04D",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "r1-result.txt",
+                         "antes":  "AADBAADA22D1AA3AA2433516A49484D7A8204AFA6E5D075E3B3CF7ECC9031D0D",
+                         "depois":  "AADBAADA22D1AA3AA2433516A49484D7A8204AFA6E5D075E3B3CF7ECC9031D0D",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "r1-test-output.txt",
+                         "antes":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+                         "depois":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "r1-verify.txt",
+                         "antes":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+                         "depois":  "A94E6B7810E4A8F715D1BA3FBF5A07705C896E8DF93065F81C00081EAEF15784",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "r2a-result.txt",
+                         "antes":  "5A1B2FCF3D0325B44B8A3E0D176B91E4B72377AFCE4CAF0122C63061E115EF0E",
+                         "depois":  "5A1B2FCF3D0325B44B8A3E0D176B91E4B72377AFCE4CAF0122C63061E115EF0E",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "r2a-verify.txt",
+                         "antes":  "22CF9C9B774C664FA52D40F7405FFED7872D5DAF6B3F3293409403C72F40C150",
+                         "depois":  "22CF9C9B774C664FA52D40F7405FFED7872D5DAF6B3F3293409403C72F40C150",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "r2b-test.html",
+                         "antes":  "9B06038B67EAA0B07078459D8B5E82486FF4A13E4417BC67EA352C922970D4C6",
+                         "depois":  "9B06038B67EAA0B07078459D8B5E82486FF4A13E4417BC67EA352C922970D4C6",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "tmp.txt",
+                         "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "tmp_prod.txt",
+                         "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "typecheck-output.txt",
+                         "antes":  "B0B0D0F428A8F1EF5B0DD4D4EBA5CB3AE1000709AE605EC72C45A463EF2EBDDA",
+                         "depois":  "B0B0D0F428A8F1EF5B0DD4D4EBA5CB3AE1000709AE605EC72C45A463EF2EBDDA",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "verify-detalhe.txt",
+                         "antes":  "9BA761835A2435156CD8C7CF8E96F7EE2BF76E8A9F3FE825238740EE034151C5",
+                         "depois":  "9BA761835A2435156CD8C7CF8E96F7EE2BF76E8A9F3FE825238740EE034151C5",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "verify-detalhe2.txt",
+                         "antes":  "DA3100CB15AB8E9D9C4E1B8F709A621CA7ABDC95348FACE9F7FCE93D3FF503C9",
+                         "depois":  "DA3100CB15AB8E9D9C4E1B8F709A621CA7ABDC95348FACE9F7FCE93D3FF503C9",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "verify-detalhe3.txt",
+                         "antes":  "30170EECB74382F626286750BC08807C882536DC677D777F9EA1B62FF16187B8",
+                         "depois":  "30170EECB74382F626286750BC08807C882536DC677D777F9EA1B62FF16187B8",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "verify-meus-pedidos.txt",
+                         "antes":  "ACE7647B35DA631EFD36554A350D68763EDD26BF089CF969C0B481B31978534A",
+                         "depois":  "ACE7647B35DA631EFD36554A350D68763EDD26BF089CF969C0B481B31978534A",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "verify-r2b-v2.txt",
+                         "antes":  "43F9E90C008CEA5A85E1205B5D02D71399D554C0DF376363EFA103DB6A4465F8",
+                         "depois":  "43F9E90C008CEA5A85E1205B5D02D71399D554C0DF376363EFA103DB6A4465F8",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "verify-r2b.txt",
+                         "antes":  "BFE8878C0547393BF1EB94DD3DB000BAA704CA61E73AEAC9DCD1DF8D25FA8252",
+                         "depois":  "BFE8878C0547393BF1EB94DD3DB000BAA704CA61E73AEAC9DCD1DF8D25FA8252",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "vite-dev-output.txt",
+                         "antes":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "depois":  "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "vite-log.txt",
+                         "antes":  "7A958DEA4BE31752D6AC041BB9891E6B33C116639D8E9EB747C02190D36E190C",
+                         "depois":  "7A958DEA4BE31752D6AC041BB9891E6B33C116639D8E9EB747C02190D36E190C",
+                         "preservado":  true
+                     },
+                     {
+                         "path":  "vite-output.txt",
+                         "antes":  "ECEE9DB51D16F0FC671FFBBF865E33B5993E011F451D653D74D4B3BC27DC1D98",
+                         "depois":  "ECEE9DB51D16F0FC671FFBBF865E33B5993E011F451D653D74D4B3BC27DC1D98",
+                         "preservado":  true
+                     }
+                 ],
+    "productionAntes":  {
+                            "url":  "erp-neia-salgados-q9gvt9i8m-luiz988061337-3147s-projects.vercel.app",
+                            "target":  "production",
+                            "state":  "READY",
+                            "createdAt":  1794479879887
+                        },
+    "productionDepois":  {
+                             "url":  "erp-neia-salgados-q9gvt9i8m-luiz988061337-3147s-projects.vercel.app",
+                             "target":  "production",
+                             "state":  "READY",
+                             "createdAt":  1794479879887
+                         },
+    "arquivosCodigoRastreadosModificados":  [
+                                                "src/components/admin/admin-shell.tsx",
+                                                "src/routeTree.gen.ts",
+                                                "src/routes/__root.tsx",
+                                                "src/routes/preview.tsx"
+                                            ],
+    "staged":  [
+
+               ]
+}

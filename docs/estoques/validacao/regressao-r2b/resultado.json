@@ -1,0 +1,73 @@
+{
+  "base": "http://127.0.0.1:5173",
+  "out": "C:\\Users\\User\\ERP-NEIA-SALGADOS\\docs\\estoques\\validacao\\regressao-r2b",
+  "viewport": {
+    "desktop": "1440x1024",
+    "mobile": "390x844"
+  },
+  "testes": [
+    "Lista: 6 cards brancos, header branco, fundo #FAF9F6 e navegação pública ativa; sem erp-admin",
+    "Filtros: 6 / 1 / 4 / 1 pedidos",
+    "Detalhe: rota direta, sem lista, ciclo claro, resumo/entrega lado a lado, mapa e ajuda abaixo em largura completa; cancelamento bloqueado em rota",
+    "Endereço alterado somente localmente; consentimento aceito/recusado sem GPS real",
+    "Repetir abre revisão demonstrativa, sem criar compra/cobrança",
+    "Formulário: limite R1 e duplicidade bloqueados, solicitação válida aparece no acompanhamento do cliente",
+    "Duas páginas em 390px: cards empilhados e sem overflow horizontal",
+    "Menu público mobile funcional"
+  ],
+  "cores": {
+    "admin": false,
+    "header": "rgb(255, 255, 255)",
+    "fundo": "rgb(250, 249, 246)",
+    "cards": [
+      "rgb(255, 255, 255)",
+      "rgb(255, 255, 255)",
+      "rgb(255, 255, 255)",
+      "rgb(255, 255, 255)",
+      "rgb(255, 255, 255)",
+      "rgb(255, 255, 255)"
+    ],
+    "activeNav": "active"
+  },
+  "medidas": {
+    "r2b-ciclo": {
+      "x": 140,
+      "y": 258.59375,
+      "width": 1160,
+      "bottom": 515.59375
+    },
+    "r2b-notificacoes": {
+      "x": 140,
+      "y": 533.59375,
+      "width": 1160,
+      "bottom": 612.296875
+    },
+    "r2b-resumo": {
+      "x": 140,
+      "y": 630.296875,
+      "width": 571,
+      "bottom": 958.296875
+    },
+    "r2b-entrega": {
+      "x": 729,
+      "y": 630.296875,
+      "width": 571,
+      "bottom": 958.296875
+    },
+    "r2b-rastreamento": {
+      "x": 140,
+      "y": 976.296875,
+      "width": 1160,
+      "bottom": 1511.796875
+    },
+    "r2b-ajuda": {
+      "x": 140,
+      "y": 1529.796875,
+      "width": 1160,
+      "bottom": 1652.796875
+    }
+  },
+  "erros": [],
+  "bloqueadas": [],
+  "falhasHTTP": []
+}

@@ -1,0 +1,643 @@
+[
+  {
+    "sha": "564df52a2c11dcdb27258917f3d381e9cb99ffa9",
+    "summary": "H01 — Dashboard L2 aprovado",
+    "changed": [
+      "A\tsrc/components/admin/dashboard-l2.tsx",
+      "M\tsrc/routes/admin.tsx",
+      "M\tsrc/routes/preview-l2-gestao.tsx"
+    ]
+  },
+  {
+    "sha": "bfefcf44c9778b5c3fe6dfdace6a4a14e8dd2a36",
+    "summary": "fix(preview): expoe todas as areas no menu lateral administrativo",
+    "changed": [
+      "M\tsrc/components/admin/admin-nav.ts",
+      "M\tsrc/components/admin/admin-shell.tsx",
+      "M\tsrc/components/comercial-preview/suite-demo.tsx",
+      "M\tsrc/routes/preview/financeiro-premium.tsx"
+    ]
+  },
+  {
+    "sha": "29b5b7f870749be31b6b2bf7a9265c9dcee56342",
+    "summary": "feat(preview): integra telas aprovadas e isola demonstracao",
+    "changed": [
+      "M\tsrc/components/admin/admin-nav.ts",
+      "A\tsrc/components/comercial-preview/suite-demo.tsx",
+      "M\tsrc/components/map-view.tsx",
+      "A\tsrc/components/reembolsos-estornos/conta-demo-integrada.tsx",
+      "M\tsrc/components/site-header.tsx",
+      "M\tsrc/env.d.ts",
+      "M\tsrc/hooks/useGpsTracking.ts",
+      "M\tsrc/integrations/supabase/auth-middleware.ts",
+      "M\tsrc/integrations/supabase/client.server.ts",
+      "M\tsrc/integrations/supabase/client.ts",
+      "M\tsrc/lib/cep.ts",
+      "A\tsrc/lib/demo-preview.ts",
+      "M\tsrc/lib/mcp/supabase.ts",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/auth.tsx",
+      "M\tsrc/routes/campanhas.tsx",
+      "M\tsrc/routes/checkout.tsx",
+      "M\tsrc/routes/clientes.tsx",
+      "M\tsrc/routes/conta.tsx",
+      "M\tsrc/routes/financeiro.tsx",
+      "M\tsrc/routes/gestao.tsx",
+      "M\tsrc/routes/motoboy.tsx",
+      "M\tsrc/routes/preview/financeiro-premium.tsx",
+      "M\tsrc/routes/preview/reembolsos-estornos-cliente/index.tsx"
+    ]
+  },
+  {
+    "sha": "74eedd775d16826f8ba2ef4dacf2712eb48301f6",
+    "summary": "feat(homologacao): autoriza RPCs por papel no lote 06 e revisa plano P1",
+    "changed": [
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/06-autorizacao-rpcs.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/06-autorizacao-rpcs.test.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/ORIGEM-06.json",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/P1-PARCEIROS-PLANO-REVISADO.md",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/README.md",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/executar-lote06.ps1",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/lote06-autorizacao-rpcs/lote06.test.mjs"
+    ]
+  },
+  {
+    "sha": "1c9a1b8f0e7d9f0b9dafdcb99517b666a54f221f",
+    "summary": "feat(homologacao): valida hardening b0 e regressao pos-lote-05",
+    "changed": [
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0-seguranca.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0.auditoria.test.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0.permissoes.test.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/05-correcoes-b0.test.sql",
+      "M\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/ORIGEM-COMPLEMENTO.json",
+      "M\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/executar-complemento.ps1"
+    ]
+  },
+  {
+    "sha": "fd440b1d2e2b7d81b943c8bbccebb3b340dff05c",
+    "summary": "test(homologacao): automatiza complemento sql em laboratorio isolado",
+    "changed": [
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/ORIGEM-COMPLEMENTO.json",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/executar-complemento.ps1"
+    ]
+  },
+  {
+    "sha": "d914876027450b0d7938491004f42b1297c67555",
+    "summary": "test(homologacao): cria motoboy sintetico na fixture t3 do complemento",
+    "changed": [
+      "M\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/complemento-hardening.test.sql"
+    ]
+  },
+  {
+    "sha": "ed1e5d70d0c7f0eb921926744b9532d81c97a9d9",
+    "summary": "feat(homologacao): complementa delta com hardening e acl financeira",
+    "changed": [
+      "A\tscripts/homologacao-complemento.test.mjs",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/04-complemento-hardening.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/README.md",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/complemento-b-laboratorio/complemento-hardening.test.sql",
+      "M\tscripts/homologar-auth-staging.test.mjs",
+      "M\tscripts/motoboy-monitor-localizacao.test.mjs"
+    ]
+  },
+  {
+    "sha": "ddb2088a6c3abdf0610dec959c5e4d5cb7ecf8c1",
+    "summary": "docs(homologacao): registra janela controlada e manifesto sql incremental",
+    "changed": [
+      "A\tdocs/auditoria/homologacao-lfl-final/JANELA-CONTROLADA.md",
+      "A\tdocs/auditoria/homologacao-lfl-final/PREFLIGHT-HOSPEDADO-E-AUTORIZACAO-A.md",
+      "A\tdocs/auditoria/homologacao-lfl-final/SQL-INCREMENTAL-MANIFESTO.json"
+    ]
+  },
+  {
+    "sha": "d9905e7f5acb3f544c162f08248b577d0a100bd3",
+    "summary": "feat(homologacao): conclui funcoes essenciais e isola caixa financeiro",
+    "changed": [
+      "M\tdocs/HOMOLOGACAO-REAL-ERP-MOTOBOY.md",
+      "A\tdocs/auditoria/homologacao-lfl-final/PLANO-E-RESULTADOS.md",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/00-dependencias-operacionais.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/00-guard-pedido.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/00-permissoes-novas.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/01-funcoes-essenciais.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/02-estorno-compativel.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/03-capacidades-financeiras.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/ORIGEM.json",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/capacidades-integracao.test.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/cliente-isolamento.test.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/concorrencia.test.ps1",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/executar-local.ps1",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/fixture-coexistencia.test.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/funcoes-essenciais.test.sql",
+      "A\tscripts/homologacao-pg17/lfl-finalizacao-0123/validar-dados-legados-local.ps1",
+      "M\tscripts/homologacao-staging-fixture.sql",
+      "M\tscripts/homologar-auth-staging.mjs",
+      "M\tscripts/homologar-auth-staging.test.mjs"
+    ]
+  },
+  {
+    "sha": "b684fe985a12b11d108a7f721b048773bb96ea64",
+    "summary": "test(homologacao): valida recuperacao parcial e base aditiva lfl",
+    "changed": [
+      "M\tdocs/HOMOLOGACAO-REAL-ERP-MOTOBOY.md",
+      "A\tdocs/auditoria/homologacao-lfl-20261118/RESULTADO-E-PLANO.md",
+      "A\tscripts/homologacao-pg17/lfl-base-aditiva-local.sql",
+      "A\tscripts/homologacao-pg17/lfl-base-aditiva-local.test.ps1"
+    ]
+  },
+  {
+    "sha": "12c949e6a96c88a55779744648384aad77258779",
+    "summary": "fix(homologacao): exige autorizacao e preserva usuarios existentes",
+    "changed": [
+      "M\tscripts/homologacao-pg17/executar.ps1",
+      "A\tscripts/homologacao-pg17/fixture-staging.test.ps1",
+      "M\tscripts/homologacao-pg17/staging-usuarios-sinteticos.sql",
+      "M\tscripts/homologacao-staging-fixture.sql",
+      "M\tscripts/homologar-auth-staging.mjs",
+      "M\tscripts/homologar-auth-staging.test.mjs"
+    ]
+  },
+  {
+    "sha": "c3050ae0af57f0629b5e3f6b4d7c970069f1339a",
+    "summary": "test(backup): valida restauracao PostgreSQL isolada",
+    "changed": [
+      "A\tscripts/homologacao-pg17/restaurar-backup-local.ps1",
+      "A\tscripts/homologacao-pg17/restaurar-backup-local.test.ps1"
+    ]
+  },
+  {
+    "sha": "d864af2daa5de97dbaf6900c330eb2c8dc5cc5ea",
+    "summary": "feat(entregas): exige liberacao da Central sem aceite do motoboy",
+    "changed": [
+      "M\tdocs/HOMOLOGACAO-REAL-ERP-MOTOBOY.md",
+      "A\tdrizzle/migrations/0123_liberacao_rota_pela_central.sql",
+      "M\tscripts/homologacao-pg17/executar.ps1",
+      "M\tscripts/homologacao-pg17/fechamento-turno.sql",
+      "A\tscripts/homologacao-pg17/fluxo-completo-rota.sql",
+      "M\tscripts/homologacao-pg17/inicio-rota-integridade.sql",
+      "M\tscripts/homologacao-pg17/instalacao-limpa.txt",
+      "A\tscripts/homologacao-pg17/liberacao-central-concorrencia.sql",
+      "A\tscripts/homologacao-pg17/liberacao-central.sql",
+      "M\tscripts/homologar-auth-staging.mjs",
+      "M\tsrc/components/admin/painel-motoboy-rpc.tsx",
+      "M\tsrc/routes/central-entregas.tsx"
+    ]
+  },
+  {
+    "sha": "dd89672ee7616ce4b7889d636b5b6a4cfd8009c0",
+    "summary": "fix(gps): valida amostras e encerra coleta sem permissao",
+    "changed": [
+      "M\tscripts/homologacao-pg17/motoboy-corte-gps.sql",
+      "M\tscripts/motoboy-corte-ui.test.mjs",
+      "A\tscripts/motoboy-monitor-localizacao.test.mjs",
+      "M\tsrc/components/admin/coleta-localizacao-rota.tsx",
+      "A\tsrc/components/admin/monitor-localizacao-rota.ts"
+    ]
+  },
+  {
+    "sha": "c6133d0c9814413d8198ed747285363005d95324",
+    "summary": "test(staging): prepara Auth RLS e Preview com isolamento",
+    "changed": [
+      "A\tdocs/HOMOLOGACAO-REAL-ERP-MOTOBOY.md",
+      "M\tscripts/homologacao-pg17/executar.ps1",
+      "M\tscripts/homologacao-pg17/instalacao-limpa.txt",
+      "A\tscripts/homologacao-pg17/staging-usuarios-sinteticos.sql",
+      "A\tscripts/homologacao-staging-fixture.sql",
+      "A\tscripts/homologar-auth-staging.mjs",
+      "A\tscripts/homologar-auth-staging.test.mjs",
+      "A\tsrc/lib/staging-runtime.ts",
+      "M\tsrc/server.ts",
+      "A\tvite.staging.config.ts"
+    ]
+  },
+  {
+    "sha": "5a9b1a95ed771e5e08ef7688b525019c1b9743cc",
+    "summary": "feat(entregas): prepara corte por RPC e GPS autorizado",
+    "changed": [
+      "A\tdrizzle/migrations/0122_corte_motoboy_rpc_gps.sql",
+      "M\tscripts/e9_1-bloqueios-p0.test.mjs",
+      "A\tscripts/homologacao-pg17/motoboy-corte-gps.sql",
+      "A\tscripts/motoboy-corte-ui.test.mjs",
+      "A\tsrc/components/admin/coleta-localizacao-rota.tsx",
+      "A\tsrc/components/admin/painel-motoboy-rpc.tsx",
+      "M\tsrc/env.d.ts",
+      "A\tsrc/lib/localizacao-entrega.ts",
+      "M\tsrc/routes/central-entregas.tsx",
+      "M\tsrc/routes/motoboy.tsx",
+      "M\tsrc/routes/pedido.$id.tsx"
+    ]
+  },
+  {
+    "sha": "8c834af528e84f1164f197165b9cf3b44a92698a",
+    "summary": "test(homologacao): consolida cadeia PostgreSQL das fases E e F",
+    "changed": [
+      "A\tscripts/homologacao-pg17/executar.ps1",
+      "A\tscripts/homologacao-pg17/impressao.sql",
+      "A\tscripts/homologacao-pg17/instalacao-limpa.txt",
+      "A\tscripts/homologacao-pg17/plataforma-sintetica.sql",
+      "A\tscripts/homologacao-pg17/regressoes.sql"
+    ]
+  },
+  {
+    "sha": "13fb26e037a01aa2582ee91192c3db4dde3ad2e4",
+    "summary": "feat(financeiro): confere acertos e registra pagamentos autorizados",
+    "changed": [
+      "A\tdrizzle/migrations/0115_acerto_rota.sql",
+      "A\tdrizzle/migrations/0116_acerto_conferir_aprovar.sql",
+      "A\tdrizzle/migrations/0117_fechamento_turno.sql",
+      "A\tdrizzle/migrations/0118_bloquear_dml_financeiro_motoboy.sql",
+      "A\tdrizzle/migrations/0119_conferencia_independente_motoboy.sql",
+      "A\tdrizzle/migrations/0120_pagamento_turno_motoboy_autorizado.sql",
+      "A\tdrizzle/migrations/0121_rotas_concluidas_para_acerto.sql",
+      "A\tscripts/homologacao-pg17/fechamento-turno.sql",
+      "A\tscripts/homologacao-pg17/financeiro-motoboy-concorrencia.sql",
+      "A\tscripts/homologacao-pg17/pagamento-turno.sql",
+      "A\tscripts/homologacao-pg17/seguranca-financeira-motoboy.sql",
+      "A\tsrc/components/admin/acertos-motoboy.tsx",
+      "M\tsrc/routes/financeiro.tsx"
+    ]
+  },
+  {
+    "sha": "56cbf2c9bd34a6ae1fa035607676d05e431e2f2f",
+    "summary": "feat(entregas): valida retirada e transicoes de rota do motoboy",
+    "changed": [
+      "A\tdrizzle/migrations/0110_confirmar_retirada.sql",
+      "A\tdrizzle/migrations/0111_aceitar_rota.sql",
+      "A\tdrizzle/migrations/0112_iniciar_rota.sql",
+      "A\tdrizzle/migrations/0113_confirmar_entrega.sql",
+      "A\tdrizzle/migrations/0114_retorno_chegada_loja.sql",
+      "A\tscripts/homologacao-pg17/inicio-rota-concorrencia.sql",
+      "A\tscripts/homologacao-pg17/inicio-rota-integridade.sql"
+    ]
+  },
+  {
+    "sha": "9d621cf8e9600e047f0db4f8ba883c23b969018a",
+    "summary": "fix(motoboy): bloqueia autoatribuicao de pedidos",
+    "changed": [
+      "A\tdrizzle/migrations/0109_motoboy_rotas_atribuidas.sql",
+      "A\tscripts/homologacao-pg17/rotas-app.sql"
+    ]
+  },
+  {
+    "sha": "0567c576cfd5038e97816f6f96ee5f7f397b173a",
+    "summary": "fix(estoque): desambigua RPC de movimento manual",
+    "changed": [
+      "M\tdrizzle/migrations/0107_movimento_estoque_manual_atomico.sql"
+    ]
+  },
+  {
+    "sha": "53e829c0e445cf6dbd1d91843bf8afe34ea466bd",
+    "summary": "fix(financeiro): endurece migration de pagamentos",
+    "changed": [
+      "M\tdrizzle/migrations/0106_financeiro_operacoes_atomicas.sql"
+    ]
+  },
+  {
+    "sha": "43044ce84de7b2ae8ecc27dfe791f88ab028b56a",
+    "summary": "feat(erp): conclui protecoes financeiras e estoque F1 F2",
+    "changed": [
+      "A\tdrizzle/migrations/0106_financeiro_operacoes_atomicas.sql",
+      "A\tdrizzle/migrations/0107_movimento_estoque_manual_atomico.sql",
+      "A\tscripts/estoque-operacao-atomica.test.mjs",
+      "A\tscripts/financeiro-operacoes-atomicas.test.mjs",
+      "M\tscripts/financeiro-parciais-modelo.test.mjs",
+      "M\tsrc/lib/financeiro.ts",
+      "M\tsrc/routes/admin.tsx",
+      "M\tsrc/routes/contador.tsx",
+      "M\tsrc/routes/financeiro.tsx",
+      "M\tsrc/routes/gestao.tsx"
+    ]
+  },
+  {
+    "sha": "6093d7b513b8b617926c44bfe1622402dec25afe",
+    "summary": "feat(entregas): cria rotas atomicas F4",
+    "changed": [
+      "A\tdrizzle/migrations/0108_criar_rota_entrega_atomica.sql",
+      "M\tscripts/e4-atribuicao.test.mjs",
+      "M\tsrc/routes/central-entregas.tsx"
+    ]
+  },
+  {
+    "sha": "5870e1bb0383f08e4df623fca429f2ab5821bb1e",
+    "summary": "fix(operacao): endurece pedidos, rotas e frete F3-F5",
+    "changed": [
+      "A\tdrizzle/migrations/0105_taxa_entrega_contrato_explicito.sql",
+      "M\tscripts/e3-cozinha.test.mjs",
+      "M\tscripts/e4-atribuicao.test.mjs",
+      "A\tscripts/frete-area-contrato.test.mjs",
+      "A\tscripts/frete-area.test.mjs",
+      "M\tsrc/lib/config-entrega.ts",
+      "M\tsrc/routes/atendente.tsx",
+      "M\tsrc/routes/central-entregas.tsx",
+      "M\tsrc/routes/checkout.tsx",
+      "M\tsrc/routes/producao.tsx"
+    ]
+  },
+  {
+    "sha": "8ede148a0cae8fbedf2d9f9ff03e762a35fd1ae7",
+    "summary": "fix(checkout): sincroniza taxa de entrega exibida e gravada",
+    "changed": [
+      "A\tscripts/checkout-taxa.test.mjs",
+      "M\tsrc/lib/totals.ts",
+      "M\tsrc/routes/checkout.tsx"
+    ]
+  },
+  {
+    "sha": "c2d55d61a33e1c59eb7e992279807e9fd63f47bb",
+    "summary": "fix(entregas): reporta atribuicoes parciais corretamente",
+    "changed": [
+      "M\tscripts/e4-atribuicao.test.mjs",
+      "M\tsrc/lib/central-atribuicao.ts",
+      "M\tsrc/routes/central-entregas.tsx"
+    ]
+  },
+  {
+    "sha": "65016ef059ec30496240590e86a9872308a43e32",
+    "summary": "fix(estoque): rejeita quantidades e saldos invalidos",
+    "changed": [
+      "A\tscripts/estoque-movimento.test.mjs",
+      "M\tsrc/lib/estoque.ts"
+    ]
+  },
+  {
+    "sha": "9d87da24dbf531e6dae0e0d874b6cc1fd79cf194",
+    "summary": "feat(financeiro): prepara dominio puro de pagamentos parciais",
+    "changed": [
+      "A\tscripts/financeiro-parciais-modelo.test.mjs",
+      "A\tsrc/lib/financeiro-pagamentos.ts"
+    ]
+  },
+  {
+    "sha": "2e0418265590c4319a892a4ab739355a12ba5b21",
+    "summary": "fix(financeiro): protege conciliacao e importacao de extratos",
+    "changed": [
+      "A\tscripts/financeiro-conciliacao.test.mjs",
+      "A\tsrc/lib/extratos-importacao.ts",
+      "M\tsrc/lib/ofx.ts",
+      "M\tsrc/routes/financeiro.tsx"
+    ]
+  },
+  {
+    "sha": "9d29ef56eb17640df3a5acae0dc90e67813c782e",
+    "summary": "feat(comercial): conclui resultados e rentabilidade C5",
+    "changed": [
+      "M\tpackage.json",
+      "A\tscripts/comercial-resultados.test.mjs",
+      "A\tsrc/components/comercial-preview/resultados-regras.ts",
+      "A\tsrc/components/comercial-preview/resultados.css",
+      "M\tsrc/components/comercial-preview/shell.tsx",
+      "A\tsrc/components/comercial-preview/tela-resultados.tsx",
+      "M\tsrc/lib/preview-modulos.ts",
+      "M\tsrc/routeTree.gen.ts",
+      "A\tsrc/routes/preview/comercial/resultados.tsx"
+    ]
+  },
+  {
+    "sha": "8cb9e1314879877c5903e800f833556fa8ad4d8e",
+    "summary": "feat(comercial): conclui pesquisas e reclamacoes C4",
+    "changed": [
+      "M\tpackage.json",
+      "A\tscripts/comercial-pesquisas.test.mjs",
+      "A\tsrc/components/comercial-preview/pesquisas-reclamacoes-regras.ts",
+      "A\tsrc/components/comercial-preview/pesquisas-reclamacoes.css",
+      "M\tsrc/components/comercial-preview/shell.tsx",
+      "A\tsrc/components/comercial-preview/tela-pesquisas-reclamacoes.tsx",
+      "M\tsrc/lib/preview-modulos.ts",
+      "M\tsrc/routeTree.gen.ts",
+      "A\tsrc/routes/preview/comercial/pesquisas-reclamacoes.tsx"
+    ]
+  },
+  {
+    "sha": "adf1087a790beec08c8984ca442a628d1fbd397c",
+    "summary": "style(erp): melhora legibilidade dos layouts L1-B",
+    "changed": [
+      "M\tsrc/l1-a-legibilidade.css",
+      "M\tsrc/routes/preview/central-entregas-v2.tsx",
+      "M\tsrc/routes/preview/reembolsos-estornos.tsx"
+    ]
+  },
+  {
+    "sha": "dededb01d2cd6534c04e4c90d9d0dbab473befa4",
+    "summary": "style(erp): melhora legibilidade dos layouts L1-A",
+    "changed": [
+      "M\tsrc/components/admin/dashboard-admin.tsx",
+      "M\tsrc/components/comercial-preview/sugestoes.css",
+      "M\tsrc/components/comercial-preview/tela-sugestoes.tsx",
+      "A\tsrc/l1-a-legibilidade.css",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/pdv.tsx",
+      "M\tsrc/routes/preview-l2-gestao.tsx",
+      "M\tsrc/routes/preview-l2-pdv.tsx",
+      "M\tsrc/routes/preview-l2-producao.tsx",
+      "M\tsrc/routes/producao.tsx"
+    ]
+  },
+  {
+    "sha": "5be9b82b724808d91a75675659d5e1e3a86edf9a",
+    "summary": "feat(comercial): conclui sugestoes promocoes C3",
+    "changed": [
+      "M\tpackage.json",
+      "A\tscripts/comercial-sugestoes.test.mjs",
+      "M\tsrc/components/comercial-preview/campanhas-regras.ts",
+      "A\tsrc/components/comercial-preview/candidatos-campanha.ts",
+      "A\tsrc/components/comercial-preview/rascunho-sugestao.ts",
+      "M\tsrc/components/comercial-preview/shell.tsx",
+      "A\tsrc/components/comercial-preview/sugestoes-regras.ts",
+      "A\tsrc/components/comercial-preview/sugestoes.css",
+      "M\tsrc/components/comercial-preview/tela-campanhas.tsx",
+      "A\tsrc/components/comercial-preview/tela-sugestoes.tsx",
+      "M\tsrc/lib/preview-modulos.ts",
+      "M\tsrc/routeTree.gen.ts",
+      "A\tsrc/routes/preview/comercial/sugestoes.tsx"
+    ]
+  },
+  {
+    "sha": "2a0d3d30e05669459746ba1a8a37a5972a1e9f27",
+    "summary": "feat(comercial): conclui campanhas e aprovacao C2",
+    "changed": [
+      "M\tpackage.json",
+      "A\tscripts/comercial-campanhas.test.mjs",
+      "A\tsrc/components/comercial-preview/campanhas-regras.ts",
+      "A\tsrc/components/comercial-preview/campanhas.css",
+      "M\tsrc/components/comercial-preview/shell.tsx",
+      "A\tsrc/components/comercial-preview/tela-campanhas.tsx",
+      "M\tsrc/lib/preview-modulos.ts",
+      "M\tsrc/routeTree.gen.ts",
+      "A\tsrc/routes/preview/comercial/campanhas.tsx"
+    ]
+  },
+  {
+    "sha": "b133dbe5c23e5ee21a1b79192e9070c2a0abe5d4",
+    "summary": "feat(comercial): conclui painel e segmentacao C1",
+    "changed": [
+      "A\tscripts/comercial-preview-visual.mjs",
+      "A\tscripts/comercial-preview.test.mjs",
+      "M\tsrc/components/admin/admin-shell.tsx",
+      "A\tsrc/components/comercial-preview/comercial.css",
+      "A\tsrc/components/comercial-preview/compartilhados.tsx",
+      "A\tsrc/components/comercial-preview/contexto.tsx",
+      "A\tsrc/components/comercial-preview/dados.ts",
+      "A\tsrc/components/comercial-preview/shell.tsx",
+      "A\tsrc/components/comercial-preview/tela-clientes.tsx",
+      "A\tsrc/components/comercial-preview/tela-painel.tsx",
+      "A\tsrc/lib/preview-modulos.ts",
+      "M\tsrc/routeTree.gen.ts",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/preview.tsx",
+      "A\tsrc/routes/preview/comercial.tsx",
+      "A\tsrc/routes/preview/comercial/clientes.tsx",
+      "A\tsrc/routes/preview/comercial/painel.tsx"
+    ]
+  },
+  {
+    "sha": "7ce05f06a166cb5852ed4d8545900f0e311aed2a",
+    "summary": "feat(estoque): conclui cadastro produtos combos insumos embalagens",
+    "changed": [
+      "A\tdocs/estoques/ENTREGA.md",
+      "A\tdocs/estoques/combos/ENTREGA.md",
+      "A\tdocs/estoques/complemento/ENTREGA.md",
+      "A\tscripts/cadastros-estoques-visual.mjs",
+      "A\tscripts/cadastros-estoques.test.mjs",
+      "A\tscripts/combos-preview-visual.mjs",
+      "A\tscripts/combos-preview.test.mjs",
+      "A\tscripts/estoques-preview-visual.mjs",
+      "A\tscripts/estoques-preview.test.mjs",
+      "M\tsrc/components/admin/admin-shell.tsx",
+      "A\tsrc/components/estoque-preview/combos.ts",
+      "A\tsrc/components/estoque-preview/compartilhados.tsx",
+      "A\tsrc/components/estoque-preview/contexto.tsx",
+      "A\tsrc/components/estoque-preview/estoques.css",
+      "A\tsrc/components/estoque-preview/produtos.ts",
+      "A\tsrc/components/estoque-preview/salgados.ts",
+      "A\tsrc/components/estoque-preview/shell.tsx",
+      "A\tsrc/components/estoque-preview/suprimentos.ts",
+      "A\tsrc/components/estoque-preview/tela-combos.tsx",
+      "A\tsrc/components/estoque-preview/tela-produtos.tsx",
+      "A\tsrc/components/estoque-preview/tela-salgados.tsx",
+      "A\tsrc/components/estoque-preview/tela-suprimentos.tsx",
+      "A\tsrc/lib/preview-estoques.ts",
+      "M\tsrc/routeTree.gen.ts",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/preview.tsx",
+      "A\tsrc/routes/preview/_estoques.tsx",
+      "A\tsrc/routes/preview/_estoques/cadastro-produtos.tsx",
+      "A\tsrc/routes/preview/_estoques/combos.tsx",
+      "A\tsrc/routes/preview/_estoques/estoque-embalagens.tsx",
+      "A\tsrc/routes/preview/_estoques/estoque-insumos.tsx",
+      "A\tsrc/routes/preview/_estoques/estoque-salgados.tsx"
+    ]
+  },
+  {
+    "sha": "673a0c98e4452a608cfe5f3065712ffa6cc0709a",
+    "summary": "feat(cliente): conclui R2-B pedidos rastreamento e reembolsos",
+    "changed": [
+      "A\tscripts/reembolsos-estornos-cliente-visual.mjs",
+      "A\tsrc/components/reembolsos-estornos/cliente-mapa.tsx",
+      "A\tsrc/components/reembolsos-estornos/cliente-publico.css",
+      "A\tsrc/components/reembolsos-estornos/cliente-publico.tsx",
+      "A\tsrc/components/reembolsos-estornos/cliente-sessao.tsx",
+      "M\tsrc/routeTree.gen.ts",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/preview.tsx",
+      "A\tsrc/routes/preview/reembolsos-estornos-cliente.$id.tsx",
+      "A\tsrc/routes/preview/reembolsos-estornos-cliente.tsx",
+      "A\tsrc/routes/preview/reembolsos-estornos-cliente/index.tsx",
+      "A\tsrc/routes/preview/reembolsos-estornos-cliente/novo.tsx",
+      "M\tsrc/styles-preview.css"
+    ]
+  },
+  {
+    "sha": "123c9a222e6c0e8c0d62db7c3531a6a3e767165c",
+    "summary": "feat(reembolsos-estornos): R2-A - origens das solicitacoes de reembolso (demonstrativo)",
+    "changed": [
+      "A\tdocs/reembolsos-estornos/capturas-origens/andamento-cliente.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/central-com-novas-solicitacoes.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/desktop-origens-completo.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/duplicidade-bloqueada.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/mobile-menu-origens.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/mobile-origens-390.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/origem-atendente.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/origem-cliente.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/origem-compras.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/origem-funcionario.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/origem-motoboy.png",
+      "A\tdocs/reembolsos-estornos/capturas-origens/resultado.json",
+      "A\tscripts/reembolsos-estornos-origens-visual.mjs",
+      "A\tscripts/reembolsos-estornos-origens.test.mjs",
+      "M\tsrc/components/reembolsos-estornos/modulo.tsx",
+      "A\tsrc/components/reembolsos-estornos/origens-dados.ts",
+      "A\tsrc/components/reembolsos-estornos/origens.tsx",
+      "M\tsrc/routeTree.gen.ts",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/preview.tsx",
+      "A\tsrc/routes/preview/reembolsos-estornos-origens.tsx"
+    ]
+  },
+  {
+    "sha": "ea54f42be4c55f929ea8ab9f8f2dd864234b2ad2",
+    "summary": "feat(reembolsos-estornos): R1 - modulo demonstrativo de reembolsos, estornos e comprovacoes",
+    "changed": [
+      "A\tdocs/reembolsos-estornos/capturas/desktop-1440-completo.png",
+      "A\tdocs/reembolsos-estornos/capturas/desktop-detalhe.png",
+      "A\tdocs/reembolsos-estornos/capturas/desktop-dossie.png",
+      "A\tdocs/reembolsos-estornos/capturas/desktop-fluxo-aprovado.png",
+      "A\tdocs/reembolsos-estornos/capturas/desktop-lista-filtrada-estornos.png",
+      "A\tdocs/reembolsos-estornos/capturas/desktop-pagamento-registrado.png",
+      "A\tdocs/reembolsos-estornos/capturas/mobile-390.png",
+      "A\tdocs/reembolsos-estornos/capturas/mobile-menu.png",
+      "A\tdocs/reembolsos-estornos/capturas/resultado.json",
+      "A\tscripts/reembolsos-estornos-visual.mjs",
+      "A\tscripts/reembolsos-estornos.test.mjs",
+      "M\tsrc/components/admin/admin-shell.tsx",
+      "A\tsrc/components/reembolsos-estornos/dados.ts",
+      "A\tsrc/components/reembolsos-estornos/modulo.tsx",
+      "M\tsrc/routeTree.gen.ts",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/preview.tsx",
+      "A\tsrc/routes/preview/reembolsos-estornos.tsx"
+    ]
+  },
+  {
+    "sha": "ac66e0f942d862a1999ec9c1bba99ab3376f7db1",
+    "summary": "feat(financeiro): versionar Financeiro Premium aprovado",
+    "changed": [
+      "A\tdocs/financeiro-premium/ACABAMENTO-FINAL.md",
+      "A\tdocs/financeiro-premium/acabamento-final/antes-desktop-1440.png",
+      "A\tdocs/financeiro-premium/acabamento-final/antes-mobile-390.png",
+      "A\tdocs/financeiro-premium/acabamento-final/antes-resultado.json",
+      "A\tdocs/financeiro-premium/acabamento-final/antes-topo-1440.png",
+      "A\tdocs/financeiro-premium/acabamento-final/depois-desktop-1440.png",
+      "A\tdocs/financeiro-premium/acabamento-final/depois-gestao-1440.png",
+      "A\tdocs/financeiro-premium/acabamento-final/depois-menu-mobile-390.png",
+      "A\tdocs/financeiro-premium/acabamento-final/depois-mobile-390.png",
+      "A\tdocs/financeiro-premium/acabamento-final/depois-resultado.json",
+      "A\tdocs/financeiro-premium/acabamento-final/depois-topo-1440.png",
+      "A\tdocs/financeiro-premium/acabamento-final/preservacao.json",
+      "A\tscripts/financeiro-premium-visual.mjs",
+      "A\tscripts/financeiro-premium.test.mjs",
+      "A\tsrc/components/financeiro-premium/dados.ts",
+      "A\tsrc/components/financeiro-premium/icones.ts",
+      "A\tsrc/components/financeiro-premium/layout.tsx",
+      "A\tsrc/components/financeiro-premium/paineis.tsx",
+      "A\tsrc/components/financeiro-premium/premium.css",
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/preview.tsx",
+      "M\tsrc/routes/preview/financeiro-premium.tsx"
+    ]
+  },
+  {
+    "sha": "53c173f72b832c937b459f1ec829b638d53f7b99",
+    "summary": "fix(financeiro-premium): refinamento premium F1-V2 - correção tema, indicadores e consistência",
+    "changed": [
+      "M\tsrc/routes/__root.tsx",
+      "M\tsrc/routes/preview/financeiro-premium.tsx"
+    ]
+  },
+  {
+    "sha": "4b4c0f1a902436516b526d86d40e704508ee1706",
+    "summary": "feat(financeiro-premium): homologação final F1 com gráficos, riscos, fiscal e caixa demonstrativo",
+    "changed": [
+      "M\tsrc/routeTree.gen.ts",
+      "A\tsrc/routes/preview/financeiro-premium.tsx"
+    ]
+  }
+]

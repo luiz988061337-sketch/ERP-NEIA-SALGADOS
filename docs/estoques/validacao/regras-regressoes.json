@@ -1,0 +1,42 @@
+[
+    {
+        "teste":  "estoques-preview",
+        "exitCode":  0
+    },
+    {
+        "teste":  "insumos",
+        "exitCode":  0
+    },
+    {
+        "teste":  "reserva-integracao",
+        "exitCode":  0
+    },
+    {
+        "teste":  "reembolsos-estornos",
+        "exitCode":  0
+    },
+    {
+        "teste":  "reembolsos-estornos-origens",
+        "exitCode":  0
+    },
+    {
+        "teste":  "financeiro-premium",
+        "exitCode":  0
+    },
+    {
+        "teste":  "preview-producao",
+        "exitCode":  0
+    },
+    {
+        "teste":  "preview-pedidos-atendente",
+        "exitCode":  0
+    },
+    {
+        "teste":  "preview-central-v2",
+        "exitCode":  0
+    },
+    {
+        "teste":  "proteger-dev",
+        "exitCode":  0
+    }
+]

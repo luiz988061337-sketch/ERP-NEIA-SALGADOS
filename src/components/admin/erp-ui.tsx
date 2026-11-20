@@ -63,6 +63,69 @@ export function ModuleHeader({
   );
 }
 
+/**
+ * Cabeçalho de módulo premium (Lote 02): cartão com contorno dourado,
+ * ícone grande, título, subtítulo, selo de demonstração e ações à direita.
+ */
+export function PremiumPageHeader({
+  icone: Icone,
+  titulo,
+  subtitulo,
+  demo = false,
+  maiusculo = true,
+  status,
+  acoes,
+}: {
+  icone: LucideIcon;
+  titulo: string;
+  subtitulo?: string;
+  demo?: boolean;
+  maiusculo?: boolean;
+  status?: ReactNode;
+  acoes?: ReactNode;
+}) {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#D4A94A] bg-[linear-gradient(120deg,#1C1912_0%,#141310_55%,#1A1712_100%)] px-4 py-3 shadow-card">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-[#D4A94A] bg-[#1A1712]">
+          <Icone className="size-6 text-[#F2CE6B]" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <h1
+            className={cn(
+              "font-display text-[22px] font-bold leading-tight tracking-tight text-[#F4F1EA]",
+              maiusculo && "uppercase tracking-wide",
+            )}
+          >
+            {titulo}
+          </h1>
+          {subtitulo ? (
+            <p className="mt-0.5 text-[13px] leading-snug text-[#A09A8E]">{subtitulo}</p>
+          ) : null}
+        </div>
+      </div>
+      {demo ? (
+        <span className="hidden rounded-full border border-[#D4A94A]/70 bg-[#1A1712] px-3 py-1 text-[11px] font-semibold tracking-wide text-[#F2CE6B] lg:inline-flex">
+          MODO DEMONSTRAÇÃO · dados fictícios · nenhuma operação real
+        </span>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {acoes}
+        {status}
+      </div>
+    </header>
+  );
+}
+
+/** Selo dourado de demonstração isolada (cabeçalho premium). */
+export function PremiumDemoBadge({ children = "Demonstração isolada" }: { children?: ReactNode }) {
+  return (
+    <span className="inline-flex items-center whitespace-nowrap rounded-full border border-[#D4A94A]/70 bg-[#1A1712] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#F2CE6B]">
+      {children}
+    </span>
+  );
+}
+
 /** Indicador de status ● texto, com cor. */
 export function StatusDot({ label, cor = "#35C97C" }: { label: string; cor?: string }) {
   return (
@@ -467,5 +530,133 @@ export function PainelCabecalho({
       </div>
       {acoes ? <div className="flex shrink-0 items-center gap-2">{acoes}</div> : null}
     </header>
+  );
+}
+
+/**
+ * Indicador premium (Lote 02): rótulo/valor/detalhe + ícone. Com
+ * `posicao="esquerda"` o ícone fica à esquerda; com `tint` a cor de fundo é
+ * aplicada por métrica (verde/azul/laranja/vermelho) nos painéis de Contador,
+ * Dono e Metas.
+ */
+export function PremiumKpi({
+  icone: Icone,
+  rotulo,
+  valor,
+  detalhe,
+  cor = ERP_COLORS.goldStrong,
+  posicao = "direita",
+  tint,
+}: {
+  icone: LucideIcon;
+  rotulo: string;
+  valor: ReactNode;
+  detalhe?: ReactNode | undefined;
+  cor?: string;
+  posicao?: "esquerda" | "direita";
+  tint?: "gold" | "green" | "blue" | "orange" | "red";
+}) {
+  const conteudo = (
+    <div
+      className={cn(
+        "relative z-10",
+        posicao === "esquerda" ? "min-h-[50px] py-3 pl-14 pr-3" : "min-h-[50px] py-3 pl-4 pr-16",
+      )}
+    >
+      <p className="text-[13px] font-medium text-[#A09A8E]">{rotulo}</p>
+      <p className="font-display text-[22px] font-bold leading-tight text-[#F4F1EA]">{valor}</p>
+      {detalhe ? <p className="text-[12px] leading-snug text-[#C9C2B8]">{detalhe}</p> : null}
+    </div>
+  );
+  const card = (
+    <div
+      className={cn(
+        "relative min-h-[86px] overflow-hidden rounded-xl border border-[#D4A94A] shadow-card",
+        !tint && "bg-[linear-gradient(115deg,#201D14_0%,#15130E_58%,#1C1811_100%)]",
+      )}
+      style={tint ? { backgroundColor: `${cor}1F` } : undefined}
+    >
+      {posicao === "esquerda" ? (
+        <div className="relative z-10 flex min-h-[86px] items-center gap-3 pl-4 pr-3">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl border border-[#D4A94A] bg-[#1A1712]">
+            <Icone className="size-5 text-[#F2CE6B]" aria-hidden />
+          </span>
+          {conteudo}
+        </div>
+      ) : (
+        <>
+          {conteudo}
+          <Icone
+            className="pointer-events-none absolute right-4 top-1/2 size-12 -translate-y-1/2 opacity-25"
+            style={{ color: cor }}
+            aria-hidden
+          />
+          <span
+            className="pointer-events-none absolute right-6 top-1/2 size-14 -translate-y-1/2 rounded-full blur-2xl"
+            style={{ backgroundColor: `${cor}22` }}
+            aria-hidden
+          />
+        </>
+      )}
+      {tint ? (
+        <span
+          className="pointer-events-none absolute -right-2 -top-2 size-28 rounded-full blur-2xl"
+          style={{ backgroundColor: `${cor}1F` }}
+          aria-hidden
+        />
+      ) : null}
+    </div>
+  );
+  return card;
+}
+
+/**
+ * Card de seção premium do Lote 02: cabeçalho com ícone dourado + título em
+ * caixa alta + subtítulo opcional e ações à direita.
+ */
+export function PremiumSection({
+  icone: Icone,
+  titulo,
+  subtitulo,
+  acoes,
+  children,
+  className,
+  bodyClassName,
+}: {
+  icone?: LucideIcon;
+  titulo: ReactNode;
+  subtitulo?: ReactNode;
+  acoes?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        "overflow-hidden rounded-xl border border-[#D4A94A] bg-[#17150F] shadow-card",
+        className,
+      )}
+    >
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D4A94A] bg-[#1B1811] px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {Icone ? (
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-[#D4A94A]/70 bg-[#1A1712]">
+              <Icone className="size-4 text-[#F2CE6B]" aria-hidden />
+            </span>
+          ) : null}
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-bold uppercase leading-tight tracking-wide text-[#F4F1EA]">
+              {titulo}
+            </h3>
+            {subtitulo ? (
+              <p className="text-[12px] leading-snug text-[#A09A8E]">{subtitulo}</p>
+            ) : null}
+          </div>
+        </div>
+        {acoes ? <div className="flex flex-wrap items-center gap-2">{acoes}</div> : null}
+      </header>
+      <div className={cn("p-4", bodyClassName)}>{children}</div>
+    </section>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Share2, Undo2 } from "lucide-react";
+import { Share2 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ModuloOrigensReembolsos } from "@/components/reembolsos-estornos/origens";
 
@@ -28,7 +28,6 @@ function PageOrigensReembolsos() {
       onRefresh={() => {}}
       usuario="neia@neiasalgados.com"
       modoPreview
-      itemExtra={{ value: "reembolsos", label: "Reembolsos e Estornos", icon: Undo2 }}
     >
       <div className="min-h-screen bg-background p-3 sm:p-4">
         {/* Menu mobile (mesmo padrão da R1/Financeiro Premium): gatilho do drawer. */}

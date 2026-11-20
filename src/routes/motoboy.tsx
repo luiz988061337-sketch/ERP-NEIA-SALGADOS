@@ -11,6 +11,7 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { ehModoDemo } from "@/lib/demo-preview";
 import { PageHeader } from "@/components/admin/ui-admin";
 import { PainelMotoboyRpc } from "@/components/admin/painel-motoboy-rpc";
+import { MotoboysPremium } from "@/components/admin/motoboys-premium";
 import { mensagemPortaria, MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL, ordenarRota } from "@/lib/entrega";
 import { cabeNaRota } from "@/lib/central-atribuicao";
 import { notificarPedido } from "@/lib/notificacoes";
@@ -32,7 +33,14 @@ export const Route = createFileRoute("/motoboy")({
 });
 
 function PainelMotoboy() {
-  return ehModoDemo() || import.meta.env.VITE_NEIA_MOTOBOY_RPC === "1" ? <PainelMotoboyRpc /> : <Motoboy />;
+  const modoDemo = ehModoDemo();
+  const usarRpc = modoDemo || import.meta.env.VITE_NEIA_MOTOBOY_RPC === "1";
+  if (modoDemo) {
+    // Lote 02/03: painel de motoboys em demonstração usa o kit premium com
+    // dados fictícios; o fluxo operacional real permanece no caminho não-demo.
+    return <MotoboysPremium />;
+  }
+  return <PainelMotoboyRpc />;
 }
 
 function inicioSemana(d: Date) {

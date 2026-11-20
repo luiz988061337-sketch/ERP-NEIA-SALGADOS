@@ -27,6 +27,8 @@ import { StatusCard, EmptyState } from "@/components/admin/ui-admin";
 import fritos from "@/assets/cat-fritos.jpg";
 import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { ehModoDemo } from "@/lib/demo-preview";
+import { CentralEntregasPremium } from "@/components/entregas/central-entregas-premium";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { comLocalizacaoSegura, lerLocalizacoesEntrega, MOTOBOY_RPC_ATIVO } from "@/lib/localizacao-entrega";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
@@ -50,7 +52,12 @@ export const Route = createFileRoute("/central-entregas")({
       { name: "description", content: "Painel administrativo de entregas e motoboys" },
     ],
   }),
-  component: CentralEntregas,
+  // Na homologação local (VITE_DEMO_PREVIEW=1) a rota abre o painel premium
+  // com dados fictícios. O módulo operacional real permanece intacto e com
+  // suas verificações de sessão/papel para uso fora do modo demonstração.
+  component: function RotaCentralEntregas() {
+    return ehModoDemo() ? <CentralEntregasPremium /> : <CentralEntregas />;
+  },
 });
 
 // Metadados visuais dos eventos reais de motoboy_historico (J3-C). Sem inventar eventos.

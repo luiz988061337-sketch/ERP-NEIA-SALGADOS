@@ -1,0 +1,662 @@
+/**
+ * H06-B — Padrão visual do Comercial (Painel, Clientes, Campanhas,
+ * Pesquisas/Reclamações, Sugestões e Resultados).
+ *
+ * Camada apenas de apresentação: não altera markup, dados, regras de CRM,
+ * filtros ou navegação. Carregada depois dos CSS de cada tela para unificar
+ * cabeçalho, abas, indicadores, tabelas, filtros e blocos.
+ */
+
+html:has(.comercial-preview) .comercial-preview {
+  font-size: 14px;
+  line-height: 1.5;
+}
+html:has(.comercial-preview) .comercial-preview .com-recuperados li > span:nth-child(2) {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------- A) Topo */
+html:has(.comercial-preview) .comercial-preview .com-cabecalho,
+html:has(.comercial-preview) .comercial-preview .c2-heading,
+html:has(.comercial-preview) .comercial-preview .c4-heading,
+html:has(.comercial-preview) .comercial-preview .c5-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+html:has(.comercial-preview) .comercial-preview .com-cabecalho {
+  margin: 0 0 14px;
+}
+html:has(.comercial-preview) .comercial-preview .com-cabecalho-icone,
+html:has(.comercial-preview) .comercial-preview .c2-heading-icon,
+html:has(.comercial-preview) .comercial-preview .c4-heading-icon,
+html:has(.comercial-preview) .comercial-preview .c5-heading-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex: 0 0 auto;
+}
+html:has(.comercial-preview) .comercial-preview .com-cabecalho h1,
+html:has(.comercial-preview) .comercial-preview .c2-heading h1,
+html:has(.comercial-preview) .comercial-preview .c3-page .c2-heading h1,
+html:has(.comercial-preview) .comercial-preview .c4-heading h1,
+html:has(.comercial-preview) .comercial-preview .c5-heading h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--erp-text);
+}
+html:has(.comercial-preview) .comercial-preview .com-cabecalho p,
+html:has(.comercial-preview) .comercial-preview .c2-heading p:not(.c2-eyebrow),
+html:has(.comercial-preview) .comercial-preview .c3-page .c2-heading > div > p:last-child,
+html:has(.comercial-preview) .comercial-preview .c4-heading p:last-child,
+html:has(.comercial-preview) .comercial-preview .c5-heading p:last-child {
+  margin: 4px 0 0;
+  max-width: 96ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--erp-text-muted);
+}
+html:has(.comercial-preview) .comercial-preview .c2-eyebrow,
+html:has(.comercial-preview) .comercial-preview .c3-page .c2-eyebrow,
+html:has(.comercial-preview) .comercial-preview .c4-eyebrow,
+html:has(.comercial-preview) .comercial-preview .c5-eyebrow {
+  margin: 0 0 3px;
+  color: var(--erp-gold-strong);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+}
+
+/* ---------------------------------------------------------------- B) Abas */
+html:has(.comercial-preview) .comercial-preview [role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  width: 100%;
+  height: auto;
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 1px solid var(--erp-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--erp-text-muted);
+}
+html:has(.comercial-preview) .comercial-preview [role="tablist"] [role="tab"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  color: #cfc8ba;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+html:has(.comercial-preview) .comercial-preview [role="tablist"] [role="tab"]:hover {
+  border-color: var(--erp-line-strong);
+  background: #211e16;
+  color: var(--erp-text);
+}
+html:has(.comercial-preview) .comercial-preview [role="tablist"] [role="tab"][data-state="active"] {
+  border-color: #8a6f33;
+  background: #2b2313;
+  color: #ffe197;
+  box-shadow: inset 0 -2px 0 #d4a94a;
+}
+/* Abas internas da tela de Pesquisas e Reclamações. */
+html:has(.comercial-preview) .comercial-preview .c4-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  overflow: visible;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--erp-line);
+}
+html:has(.comercial-preview) .comercial-preview .c4-tabs button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #cfc8ba;
+  padding: 8px 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+html:has(.comercial-preview) .comercial-preview .c4-tabs button:hover {
+  border-color: var(--erp-line-strong);
+  background: #211e16;
+  color: var(--erp-text);
+}
+html:has(.comercial-preview) .comercial-preview .c4-tabs button.is-active {
+  border-color: #8a6f33;
+  background: #2b2313;
+  color: #ffe197;
+  box-shadow: inset 0 -2px 0 #d4a94a;
+}
+
+/* --------------------------------------------------- C) Cards e indicadores */
+html:has(.comercial-preview) .comercial-preview .com-kpis > div,
+html:has(.comercial-preview) .comercial-preview .com-kpis > button,
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div,
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div,
+html:has(.comercial-preview) .comercial-preview .c4-metric,
+html:has(.comercial-preview) .comercial-preview .c5-kpi {
+  min-width: 0;
+  min-height: 102px;
+  align-items: center;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--erp-line-strong);
+  border-radius: 12px;
+  background: #181917;
+  box-shadow: 0 8px 24px -18px #000c, inset 0 1px 0 #ffffff08;
+}
+html:has(.comercial-preview) .comercial-preview .c4-metric-icon,
+html:has(.comercial-preview) .comercial-preview .c5-kpi > span {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+html:has(.comercial-preview) .comercial-preview .com-kpis > div > div > p:first-child,
+html:has(.comercial-preview) .comercial-preview .com-kpis > button > div > p:first-child,
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div > div > p:first-child,
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div > .min-w-0 > p:first-child,
+html:has(.comercial-preview) .comercial-preview .c4-metric > div > p,
+html:has(.comercial-preview) .comercial-preview .c5-kpi > div > p {
+  margin: 0;
+  color: #cbc4b6;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+html:has(.comercial-preview) .comercial-preview .com-kpis > div > div > p:nth-child(2),
+html:has(.comercial-preview) .comercial-preview .com-kpis > button > div > p:nth-child(2),
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div > div > p:nth-child(2),
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div > .min-w-0 > p:nth-child(2) {
+  margin: 4px 0 0;
+  color: var(--erp-text);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+html:has(.comercial-preview) .comercial-preview .c4-metric strong,
+html:has(.comercial-preview) .comercial-preview .c5-kpi strong {
+  display: block;
+  color: var(--erp-text);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+html:has(.comercial-preview) .comercial-preview .com-kpis > div > div > p:last-child,
+html:has(.comercial-preview) .comercial-preview .com-kpis > button > div > p:last-child,
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div > div > p:last-child,
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div > .min-w-0 > p:last-child,
+html:has(.comercial-preview) .comercial-preview .c4-metric small,
+html:has(.comercial-preview) .comercial-preview .c5-kpi small {
+  margin: 4px 0 0;
+  color: #b6b0a4;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+/* Painel: seis indicadores ficam em duas linhas equilibradas abaixo de 1600px. */
+@media (min-width: 768px) and (max-width: 1600px) {
+  html:has(.comercial-preview) .comercial-preview .com-kpis:not(.com-kpis-quatro) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ------------------------------------------------------ D) Blocos e seções */
+html:has(.comercial-preview) .comercial-preview .c2-list-card,
+html:has(.comercial-preview) .comercial-preview .c3-card,
+html:has(.comercial-preview) .comercial-preview .c4-card,
+html:has(.comercial-preview) .comercial-preview .c5-panel {
+  border: 1px solid var(--erp-line-strong);
+  border-radius: 12px;
+  background: #181917;
+}
+html:has(.comercial-preview) .comercial-preview .c2-list-heading h2,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-card .c2-list-heading h2,
+html:has(.comercial-preview) .comercial-preview .c3-actions-panel h2,
+html:has(.comercial-preview) .comercial-preview .c4-card-heading h2,
+html:has(.comercial-preview) .comercial-preview .c5-panel-heading h2 {
+  margin: 0;
+  color: var(--erp-text);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+html:has(.comercial-preview) .comercial-preview .c2-list-heading p,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-card .c2-list-heading p,
+html:has(.comercial-preview) .comercial-preview .c4-card-heading p:not(.c4-eyebrow),
+html:has(.comercial-preview) .comercial-preview .c5-panel-heading p:not(.c5-eyebrow) {
+  margin: 4px 0 0;
+  color: var(--erp-text-muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+html:has(.comercial-preview) .comercial-preview .c2-warning,
+html:has(.comercial-preview) .comercial-preview .c3-page .c2-warning,
+html:has(.comercial-preview) .comercial-preview .c4-warning,
+html:has(.comercial-preview) .comercial-preview .c5-demo-note {
+  padding: 11px 13px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/* ------------------------------------------------- E) Tabelas e listagens */
+html:has(.comercial-preview) .comercial-preview .c2-table,
+html:has(.comercial-preview) .comercial-preview .c5-simple-table,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples,
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table {
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+html:has(.comercial-preview) .comercial-preview .c2-table th,
+html:has(.comercial-preview) .comercial-preview .c5-simple-table th,
+html:has(.comercial-preview) .comercial-preview .com-tabela th,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples th,
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table th {
+  padding: 11px 10px;
+  border-bottom: 1px solid #78673d;
+  color: #e6c982;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+html:has(.comercial-preview) .comercial-preview .c2-table td,
+html:has(.comercial-preview) .comercial-preview .c5-simple-table td,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples td,
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table td {
+  padding: 11px 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table td {
+  font-size: 14px;
+}
+html:has(.comercial-preview) .comercial-preview .c2-table td b,
+html:has(.comercial-preview) .comercial-preview .c5-simple-table td b,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples td b,
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table td b {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table td b {
+  font-size: 14px;
+}
+html:has(.comercial-preview) .comercial-preview .c2-table td small,
+html:has(.comercial-preview) .comercial-preview .c5-simple-table td small,
+html:has(.comercial-preview) .comercial-preview .com-tabela-simples td small,
+html:has(.comercial-preview) .comercial-preview .com-tabela-card table td small {
+  margin-top: 3px;
+  color: #b6b0a4;
+  font-size: 12px;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .c5-simple-table .c5-status,
+html:has(.comercial-preview) .comercial-preview .c4-status,
+html:has(.comercial-preview) .comercial-preview .com-badge {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* -------------------------------------------------- F) Filtros e formulários */
+html:has(.comercial-preview) .comercial-preview .com-filtros > label,
+html:has(.comercial-preview) .comercial-preview .c4-filters label,
+html:has(.comercial-preview) .comercial-preview .c5-filters label,
+html:has(.comercial-preview) .comercial-preview .c4-status-filter label {
+  gap: 5px;
+  color: #cbc4b6;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+html:has(.comercial-preview) .comercial-preview .com-select,
+html:has(.comercial-preview) .comercial-preview .com-busca-input,
+html:has(.comercial-preview) .comercial-preview .c2-profile select,
+html:has(.comercial-preview) .comercial-preview .c2-filters select,
+html:has(.comercial-preview) .comercial-preview .c2-filters input,
+html:has(.comercial-preview) .comercial-preview .c4-page input,
+html:has(.comercial-preview) .comercial-preview .c4-page select,
+html:has(.comercial-preview) .comercial-preview .c5-filters select {
+  min-height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .com-input {
+  font-size: 13px;
+}
+html:has(.comercial-preview) .comercial-preview .c2-form-fields label,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-form label,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-profile-review label,
+html:has(.comercial-preview) .comercial-preview .c4-form-grid label,
+html:has(.comercial-preview) .comercial-preview .c4-controls label {
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .c2-form-fields input,
+html:has(.comercial-preview) .comercial-preview .c2-form-fields select,
+html:has(.comercial-preview) .comercial-preview .c2-form-fields textarea,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-form input,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-form select,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-profile-review select,
+html:has(.comercial-preview) .comercial-preview .c4-page textarea {
+  min-height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .c2-form-fields small,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-form small,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-caption {
+  font-size: 12px;
+  line-height: 1.45;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-form {
+  gap: 12px 16px;
+  padding: 16px;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-caption {
+  padding: 0 16px 16px;
+}
+
+/* -------------------------------------------------------- G) Botões e notas */
+html:has(.comercial-preview) .comercial-preview .c2-button,
+html:has(.comercial-preview) .comercial-preview .c4-button {
+  min-height: 38px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+}
+html:has(.comercial-preview) .comercial-preview .c5-detail-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+html:has(.comercial-preview) .comercial-preview .c2-icon-button {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+}
+html:has(.comercial-preview) .comercial-preview .c2-footnote,
+html:has(.comercial-preview) .comercial-preview .c2-final-note,
+html:has(.comercial-preview) .comercial-preview .c4-report-foot,
+html:has(.comercial-preview) .comercial-preview .c5-classification-note,
+html:has(.comercial-preview) .comercial-preview .c5-recovery-note,
+html:has(.comercial-preview) .comercial-preview .com-nota {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* -------------------------------------- H) Ajustes finos por tela (Sugestões) */
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div > .min-w-0 {
+  display: grid;
+  gap: 0;
+  align-content: start;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page {
+  gap: 14px;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-margin-copy h2,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-margin-blocked .c3-margin-copy h2 {
+  font-size: 18px;
+  line-height: 1.25;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-margin-copy > p:last-child {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-margin-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-margin-value strong {
+  font-size: 24px;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-margin-value span,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-review-note,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-actions-row > span {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-actions-panel > div:first-child > p:last-child {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-actions-panel .c2-button {
+  min-height: 40px;
+  font-size: 13px;
+}
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-excluidos,
+html:has(.comercial-preview) .comercial-preview .c3-page .c3-excluidos li {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ------------------------------------------ I) Ajustes finos (Pesquisas/Resultados) */
+html:has(.comercial-preview) .comercial-preview .c4-page,
+html:has(.comercial-preview) .comercial-preview .c5-page {
+  gap: 14px;
+}
+html:has(.comercial-preview) .comercial-preview .c4-review {
+  font-size: 13px;
+}
+html:has(.comercial-preview) .comercial-preview .c4-case-row,
+html:has(.comercial-preview) .comercial-preview .c4-urgent,
+html:has(.comercial-preview) .comercial-preview .c4-model-list button {
+  font-size: 13px;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .c4-review > p {
+  margin: 8px 0 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+html:has(.comercial-preview) .comercial-preview .c4-review-top > div b,
+html:has(.comercial-preview) .comercial-preview .c4-model-list b,
+html:has(.comercial-preview) .comercial-preview .c4-question-list b {
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .c4-review-top > div span,
+html:has(.comercial-preview) .comercial-preview .c4-review-bottom > span,
+html:has(.comercial-preview) .comercial-preview .c4-case-row small,
+html:has(.comercial-preview) .comercial-preview .c4-history time,
+html:has(.comercial-preview) .comercial-preview .c4-history small,
+html:has(.comercial-preview) .comercial-preview .c4-model-list small,
+html:has(.comercial-preview) .comercial-preview .c4-urgent small {
+  font-size: 12px;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .c4-urgent b,
+html:has(.comercial-preview) .comercial-preview .c4-urgent strong,
+html:has(.comercial-preview) .comercial-preview .c4-case-summary b,
+html:has(.comercial-preview) .comercial-preview .c4-link-button {
+  font-size: 13px;
+}
+html:has(.comercial-preview) .comercial-preview .c4-empty {
+  font-size: 13px;
+}
+html:has(.comercial-preview) .comercial-preview .c4-pending h2 {
+  font-size: 16px;
+}
+html:has(.comercial-preview) .comercial-preview .c4-pending p {
+  font-size: 12.5px;
+}
+html:has(.comercial-preview) .comercial-preview .c4-history h3 {
+  font-size: 15px;
+}
+html:has(.comercial-preview) .comercial-preview .c5-primary-kpis .c5-kpi strong {
+  font-size: 26px;
+}
+html:has(.comercial-preview) .comercial-preview .c5-primary-kpis .c5-kpi small.c5-margin-note {
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+html:has(.comercial-preview) .comercial-preview .c5-summary-strip strong,
+html:has(.comercial-preview) .comercial-preview .c5-detail-stats b {
+  font-size: 14px;
+}
+html:has(.comercial-preview) .comercial-preview .c5-classification-note,
+html:has(.comercial-preview) .comercial-preview .c5-alert-summary small,
+html:has(.comercial-preview) .comercial-preview .c5-alert small,
+html:has(.comercial-preview) .comercial-preview .c5-highlight-copy > span {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* ------------------------------------- J) Densidade final dos indicadores */
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div,
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div,
+html:has(.comercial-preview) .comercial-preview .c5-primary-kpis .c5-kpi {
+  gap: 7px;
+  padding: 12px 13px;
+}
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div > div > p:first-child,
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div > .min-w-0 > p:first-child,
+html:has(.comercial-preview) .comercial-preview .c5-kpi > div > p {
+  font-size: 11px;
+  line-height: 1.3;
+}
+html:has(.comercial-preview) .comercial-preview .c2-kpis > div > div > p:last-child,
+html:has(.comercial-preview) .comercial-preview .c3-kpis > div > .min-w-0 > p:last-child,
+html:has(.comercial-preview) .comercial-preview .c5-kpi > div > small {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+html:has(.comercial-preview) .comercial-preview .c5-kpi small.c5-margin-note {
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+/* ------------------------------------------------- K) Larguras reduzidas */
+@media (max-width: 1024px) {
+  html:has(.comercial-preview) .comercial-preview .c2-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  html:has(.comercial-preview) .comercial-preview .c5-primary-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 767px) {
+  html:has(.comercial-preview) .comercial-preview .com-cabecalho h1,
+  html:has(.comercial-preview) .comercial-preview .c2-heading h1,
+  html:has(.comercial-preview) .comercial-preview .c3-page .c2-heading h1,
+  html:has(.comercial-preview) .comercial-preview .c4-heading h1,
+  html:has(.comercial-preview) .comercial-preview .c5-heading h1 {
+    font-size: 19px;
+  }
+  html:has(.comercial-preview) .comercial-preview .com-cabecalho-icone,
+  html:has(.comercial-preview) .comercial-preview .c2-heading-icon,
+  html:has(.comercial-preview) .comercial-preview .c4-heading-icon,
+  html:has(.comercial-preview) .comercial-preview .c5-heading-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  html:has(.comercial-preview) .comercial-preview [role="tablist"] {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  html:has(.comercial-preview) .comercial-preview [role="tablist"] [role="tab"] {
+    flex: 0 0 auto;
+    padding: 8px 11px;
+    font-size: 12.5px;
+  }
+  html:has(.comercial-preview) .comercial-preview .com-kpis > div,
+  html:has(.comercial-preview) .comercial-preview .c2-kpis > div,
+  html:has(.comercial-preview) .comercial-preview .c3-kpis > div,
+  html:has(.comercial-preview) .comercial-preview .c4-metric,
+  html:has(.comercial-preview) .comercial-preview .c5-kpi {
+    min-height: 96px;
+    padding: 12px;
+  }
+  html:has(.comercial-preview) .comercial-preview .c2-kpis,
+  html:has(.comercial-preview) .comercial-preview .c4-metrics,
+  html:has(.comercial-preview) .comercial-preview .c5-primary-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html:has(.comercial-preview) .comercial-preview .c4-tabs {
+    display: flex;
+  }
+}
+@media (max-width: 520px) {
+  html:has(.comercial-preview) .comercial-preview .c2-kpis,
+  html:has(.comercial-preview) .comercial-preview .c3-kpis,
+  html:has(.comercial-preview) .comercial-preview .c4-metrics,
+  html:has(.comercial-preview) .comercial-preview .c5-primary-kpis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html:has(.comercial-preview) .comercial-preview .com-cabecalho h1,
+  html:has(.comercial-preview) .comercial-preview .c2-heading h1,
+  html:has(.comercial-preview) .comercial-preview .c3-page .c2-heading h1,
+  html:has(.comercial-preview) .comercial-preview .c4-heading h1,
+  html:has(.comercial-preview) .comercial-preview .c5-heading h1 {
+    font-size: 17px;
+  }
+  html:has(.comercial-preview) .comercial-preview .com-cabecalho p,
+  html:has(.comercial-preview) .comercial-preview .c2-heading p:not(.c2-eyebrow),
+  html:has(.comercial-preview) .comercial-preview .c4-heading p:last-child,
+  html:has(.comercial-preview) .comercial-preview .c5-heading p:last-child {
+    font-size: 12.5px;
+  }
+}

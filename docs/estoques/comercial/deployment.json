@@ -1,0 +1,53 @@
+{
+  "c1": "Comercial — Painel e Clientes/Segmentação",
+  "branch": "homologacao-finalizacao",
+  "head": "7ce05f06a166cb5852ed4d8545900f0e311aed2a",
+  "preview": {
+    "deploymentId": "dpl_FxdGGVKPqYe4veLydpqNpyP4jFVf",
+    "url": "https://erp-neia-salgados-lq30tcj1l-luiz988061337-3147s-projects.vercel.app",
+    "painel": "https://erp-neia-salgados-lq30tcj1l-luiz988061337-3147s-projects.vercel.app/preview/comercial/painel",
+    "clientes": "https://erp-neia-salgados-lq30tcj1l-luiz988061337-3147s-projects.vercel.app/preview/comercial/clientes",
+    "status": "READY",
+    "target": "preview",
+    "protection": ["vercel_authentication"]
+  },
+  "c1a": {
+    "descricao": "Acabamento visual do Preview Comercial: tipografia legível, grafite local, menu sem cortes e rótulos oficiais de segmento",
+    "branch": "homologacao-finalizacao",
+    "head": "7ce05f06a166cb5852ed4d8545900f0e311aed2a",
+    "preview": {
+      "deploymentId": "dpl_CS4btp3XKPyhB34iLNPPthcDYVPK",
+      "url": "https://erp-neia-salgados-d6yljdphc-luiz988061337-3147s-projects.vercel.app",
+      "painel": "https://erp-neia-salgados-d6yljdphc-luiz988061337-3147s-projects.vercel.app/preview/comercial/painel",
+      "clientes": "https://erp-neia-salgados-d6yljdphc-luiz988061337-3147s-projects.vercel.app/preview/comercial/clientes",
+      "status": "READY",
+      "target": "preview",
+      "protection": ["vercel_authentication"]
+    },
+    "captures": "docs/estoques/comercial/local-c1a",
+    "safety": {
+      "commitCreated": false,
+      "pushExecuted": false,
+      "supabaseChanged": false,
+      "migrationsExecuted": false,
+      "environmentChanged": false,
+      "realDataUsed": false,
+      "productionChanged": false
+    }
+  },
+  "production": {
+    "deploymentId": "dpl_DK144zp5kG9FSsL4J5HdniQ34Ukk",
+    "url": "https://erp-neia-salgados-q9gvt9i8m-luiz988061337-3147s-projects.vercel.app",
+    "status": "READY",
+    "target": "production",
+    "changed": false
+  },
+  "safety": {
+    "commitCreated": false,
+    "pushExecuted": false,
+    "supabaseChanged": false,
+    "migrationsExecuted": false,
+    "environmentChanged": false,
+    "realDataUsed": false
+  }
+}
