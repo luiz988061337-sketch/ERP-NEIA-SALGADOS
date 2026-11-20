@@ -29,7 +29,7 @@ const testes = [
   'comercial-sugestoes', 'comercial-resultados',
   'financeiro-premium', 'financeiro-m', 'financeiro-conciliacao',
   'financeiro-operacoes-atomicas', 'financeiro-parciais-modelo',
-  'precificacao', 'central-pedidos', 'producao-liberacao',
+  'precificacao', 'central-pedidos', 'producao-liberacao', 'producao-remessas-local',
   'preview-producao', 'preview-pedidos-atendente', 'preview-central-v2',
   'estoque-operacao-atomica', 'estoque-movimento',
   'reserva-integracao', 'criacao-atomica', 'criacao-atomica-wrapper',

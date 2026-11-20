@@ -30,9 +30,22 @@ import {
   TIPO_AVISO_RETIRADA,
 } from "@/lib/producao-liberacao";
 import { imagemProduto } from "@/lib/catalog";
-import { ehModoDemo } from "@/lib/demo-preview";
+import { ehModoDemo, USUARIO_DEMO } from "@/lib/demo-preview";
 import { pedidosComAceiteMemoria } from "@/lib/aceite-atendente-memoria";
 import { PEDIDOS_DEMO_PRODUCAO } from "@/lib/producao-demo-fixtures";
+import {
+  conferirPedidoMemoria,
+  construirConferencia,
+  despacharPedidoMemoria,
+  finalizarPedidoMemoria,
+  finalizarRemessaMemoria,
+  iniciarProducaoMemoria,
+  pedidosComEstadoProducaoMemoria,
+  pedidosVisiveisProducao,
+  proximaRemessaMemoria,
+  sincronizarProducaoMemoria,
+  type AutorProducao,
+} from "@/lib/producao-remessas-memoria";
 import fritos from "@/assets/cat-fritos.jpg";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import {
@@ -219,6 +232,9 @@ export function Producao({
   const { user, loading } = useSession();
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
+  // B3: versão local força a rerenderização do card após cada remessa,
+  // conferência ou despacho no adaptador simulado. Nenhum dado sai da memória.
+  const [versaoSimulacao, setVersaoSimulacao] = useState(0);
   const [sonsAtivos, setSonsAtivos] = useState(false);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
   // Snapshot de status p/ detectar TRANSIÇÃO real para pronto (1 bip por pedido).
@@ -266,11 +282,32 @@ export function Producao({
   // No modo demonstração isolado (VITE_DEMO_PREVIEW=1) a rota real usa os
   // mesmos pedidos fictícios da prévia, acrescidos dos aceites confirmados no
   // adaptador em memória. Nada é gravado fora da memória local.
-  const pedidos =
-    pedidosInjetados ??
-    (ehModoDemo()
-      ? (pedidosComAceiteMemoria([...PEDIDOS_DEMO_PRODUCAO] as any[]) as any[])
-      : pedidosHook);
+  const modoSimuladoLocal = preview || ehModoDemo();
+  const pedidosBase = useMemo(() => {
+    if (pedidosInjetados) return pedidosInjetados;
+    if (ehModoDemo()) return pedidosComAceiteMemoria([...PEDIDOS_DEMO_PRODUCAO] as any[]) as any[];
+    return pedidosHook;
+  }, [pedidosInjetados, pedidosHook]);
+
+  // B3: o adaptador mantém remessas, conferência e despacho em memória; a fila
+  // continua sendo exatamente a mesma lista de pedidos do painel aprovado.
+  const pedidos = useMemo(() => {
+    if (!modoSimuladoLocal || !pedidosBase) return pedidosBase;
+    const base = pedidosBase as any[];
+    sincronizarProducaoMemoria(base);
+    return pedidosComEstadoProducaoMemoria(base);
+  }, [modoSimuladoLocal, pedidosBase, versaoSimulacao]);
+
+  const autorSimulado: AutorProducao = {
+    id: user?.id ?? USUARIO_DEMO.id,
+    papeis: roles?.length ? roles : ["producao", "admin"],
+    nome: user?.email ?? "Demonstração",
+  };
+
+  function visivelNaProducao(p: any): boolean {
+    if (!modoSimuladoLocal) return true;
+    return pedidosVisiveisProducao([p]).length > 0;
+  }
 
   const idsPedidos = useMemo(() => (pedidos ?? []).map((p: any) => String(p.id)), [pedidos]);
   // Reservas e consumos para a retirada fisica parcial. Leitura direta;
@@ -351,8 +388,12 @@ export function Producao({
     };
   }, [autorizado, queryClient]);
 
-  const produzindo = (pedidos ?? []).filter((p: any) => p.status === "em_producao").length;
-  const prontos = (pedidos ?? []).filter((p: any) => p.status === "pronto").length;
+  const produzindo = (pedidos ?? []).filter(
+    (p: any) => visivelNaProducao(p) && p.status === "em_producao",
+  ).length;
+  const prontos = (pedidos ?? []).filter(
+    (p: any) => visivelNaProducao(p) && p.status === "pronto",
+  ).length;
 
   // Categorias p/ classificar itens em processos (fritura/pastel/assado).
   // Falha aqui não quebra a fila: cai para classificação por nome.
@@ -435,7 +476,10 @@ export function Producao({
 
   const pedidosValidos = useMemo(() => {
     const base = (pedidos ?? []).filter(
-      (p: any) => (incluirProntos ? true : p.status !== "pronto") && p.status !== "cancelado",
+      (p: any) =>
+        visivelNaProducao(p) &&
+        (incluirProntos ? true : p.status !== "pronto") &&
+        p.status !== "cancelado",
     );
     // Agendados aparecem no dia agendado; sem agendamento entram como "para agora".
     return base.filter((p: any) => {
@@ -555,6 +599,7 @@ export function Producao({
     () =>
       (pedidos ?? []).filter(
         (p: any) =>
+          visivelNaProducao(p) &&
           p.status !== "cancelado" &&
           (!p.agendado_para || String(p.agendado_para).slice(0, 10) === diaFiltro),
       ),
@@ -855,7 +900,7 @@ export function Producao({
               onClick={() => mudarStatus(p, "pronto", "finalizado", { conferir: true })}
               className="h-11 w-full border border-[#5B93F5] bg-gradient-to-b from-[#5B93F5] to-[#2F62C8] text-sm font-bold text-white hover:brightness-105"
             >
-              ✓ Finalizar
+              Finalizar combo
             </Button>
           ) : null}
           {pronto && !retirada ? (
@@ -964,13 +1009,30 @@ export function Producao({
       );
       return;
     }
+    // B3: no modo simulado, o adaptador é a fonte da verdade do despacho.
+    if (modoSimuladoLocal) {
+      const r = despacharPedidoMemoria({
+        pedidoId: String(p.id),
+        canal: "caixa",
+        autor: autorSimulado,
+      });
+      if (!r.ok) {
+        toast.error(r.detalhe);
+        return;
+      }
+      if (r.jaAvisado) {
+        toast.info("O caixa já foi avisado deste pedido.");
+        return;
+      }
+    }
+    // Prévia sem VITE_DEMO_PREVIEW não pode gravar nem no banco de demonstração.
+    if (preview && !ehModoDemo()) {
+      toast.info("Prévia visual: aviso registrado apenas na simulação local.");
+      return;
+    }
     const link = linkAviso(p.id);
     if (await jaAvisado(TIPO_AVISO_CAIXA, link)) {
       toast.info("O caixa já foi avisado deste pedido.");
-      return;
-    }
-    if (preview) {
-      toast.info("Prévia visual: aviso de caixa desativado (nada é gravado).");
       return;
     }
     const { error } = await supabase
@@ -1004,13 +1066,30 @@ export function Producao({
       );
       return;
     }
+    // B3: no modo simulado, o adaptador é a fonte da verdade do despacho.
+    if (modoSimuladoLocal) {
+      const r = despacharPedidoMemoria({
+        pedidoId: String(p.id),
+        canal: "retirada",
+        autor: autorSimulado,
+      });
+      if (!r.ok) {
+        toast.error(r.detalhe);
+        return;
+      }
+      if (r.jaAvisado) {
+        toast.info("Este pedido já foi liberado para retirada.");
+        return;
+      }
+    }
+    // Prévia sem VITE_DEMO_PREVIEW não pode gravar nem no banco de demonstração.
+    if (preview && !ehModoDemo()) {
+      toast.info("Prévia visual: liberação registrada apenas na simulação local.");
+      return;
+    }
     const link = linkAviso(p.id);
     if (await jaAvisado(TIPO_AVISO_RETIRADA, link)) {
       toast.info("Este pedido já foi liberado para retirada.");
-      return;
-    }
-    if (preview) {
-      toast.info("Prévia visual: liberação de retirada desativada (nada é gravado).");
       return;
     }
     const { error } = await supabase
@@ -1032,8 +1111,74 @@ export function Producao({
     producao_status: ProdStatus,
     opts?: { conferir?: boolean },
   ) {
-    if (preview) {
-      toast.info("Prévia visual: alteração de status desativada (nada é gravado).");
+    // B3 — simulação local: o clique continua no MESMO botão do layout aprovado,
+    // mas a transição é registrada no adaptador em memória. Nada é gravado no
+    // Supabase, nem impresso, nem enviado ao caixa/motoboy fora da memória.
+    if (modoSimuladoLocal) {
+      if (status === "em_producao") {
+        const r = iniciarProducaoMemoria({
+          pedidoId: String(pedido.id),
+          autor: autorSimulado,
+        });
+        if (!r.ok) {
+          toast.error(r.detalhe);
+          return;
+        }
+        toast.success(`Preparo iniciado: ${r.remessas.length} remessa(s) planejada(s).`);
+        setVersaoSimulacao((v) => v + 1);
+        return;
+      }
+      if (status === "pronto" && opts?.conferir) {
+        const pendente = proximaRemessaMemoria(String(pedido.id));
+        if (pendente) {
+          const r = finalizarRemessaMemoria({
+            pedidoId: String(pedido.id),
+            remessaId: pendente.id,
+            quantidade: pendente.quantidade,
+            autor: autorSimulado,
+            idemKey: crypto.randomUUID(),
+          });
+          if (!r.ok) {
+            toast.error(r.detalhe);
+            return;
+          }
+          if (r.pedidoConcluido) {
+            toast.info("Última remessa registrada. Registre a conferência final antes de liberar.");
+          } else {
+            toast.success(
+              `Remessa ${r.progresso.concluidas}/${r.progresso.total} registrada (${pendente.quantidade} un).`,
+            );
+          }
+          setVersaoSimulacao((v) => v + 1);
+          return;
+        }
+        const conferencia = construirConferencia(pedido as any, autorSimulado);
+        const conferida = conferirPedidoMemoria({
+          pedidoId: String(pedido.id),
+          conferencia,
+          autor: autorSimulado,
+        });
+        if (!conferida.ok) {
+          toast.error(conferida.detalhe);
+          return;
+        }
+        const pronta = finalizarPedidoMemoria({
+          pedidoId: String(pedido.id),
+          autor: autorSimulado,
+        });
+        if (!pronta.ok) {
+          toast.error(pronta.detalhe);
+          return;
+        }
+        toast.success(
+          `Conferência aprovada. Pedido pronto para ${
+            pronta.canal === "caixa" ? "avisar o caixa" : "liberação de retirada"
+          }.`,
+        );
+        setVersaoSimulacao((v) => v + 1);
+        return;
+      }
+      toast.info("Simulação local: transição não disponível neste botão.");
       return;
     }
     // "Iniciar preparo" NÃO registra retirada física. Um clique no inicio do
