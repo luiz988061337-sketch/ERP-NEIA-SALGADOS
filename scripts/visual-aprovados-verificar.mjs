@@ -9,6 +9,7 @@ const env = {
   ...process.env,
   VITE_DEMO_PREVIEW: '1',
   NEIA_AMBIENTE: 'teste',
+  VITE_NEIA_AMBIENTE: 'teste',
   SUPABASE_URL: 'https://visual-demo.invalid',
   VITE_SUPABASE_URL: 'https://visual-demo.invalid',
   SUPABASE_PROJECT_ID: 'visual-demo',
@@ -23,7 +24,7 @@ const env = {
   NODE_OPTIONS: `${process.env.NODE_OPTIONS || ''} --import=${new URL('./visual-aprovados-sem-rede.mjs', import.meta.url).href}`.trim(),
 };
 const testes = [
-  'proteger-dev', 'estoques-preview', 'cadastros-estoques', 'combos-preview',
+  'proteger-dev', 'isolamento-local', 'estoques-preview', 'cadastros-estoques', 'combos-preview',
   'comercial-preview', 'comercial-campanhas', 'comercial-pesquisas',
   'comercial-sugestoes', 'comercial-resultados',
   'financeiro-premium', 'financeiro-m', 'financeiro-conciliacao',

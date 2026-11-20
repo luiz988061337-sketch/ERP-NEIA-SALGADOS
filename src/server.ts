@@ -1,3 +1,4 @@
+import "@/lib/instalar-isolamento-local";
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
