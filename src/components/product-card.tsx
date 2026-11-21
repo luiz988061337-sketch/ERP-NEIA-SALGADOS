@@ -4,9 +4,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { brl } from "@/lib/format";
-import { imagemProduto, isPromoAtiva, precoFinal, tipoVendaProduto, type Produto } from "@/lib/catalog";
+import { imagemProduto, isPromoAtiva, precoFinal, type Produto } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { MINIMO_COMBO } from "@/lib/totals";
+import { regraQuantidade } from "@/lib/quantidade";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -22,8 +23,8 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
   const preco = precoFinal(produto);
   const promo = produto.preco_promocional != null && isPromoAtiva(produto);
   const indisponivel = !produto.disponivel || produto.estoque <= 0;
-  const tipo = tipoVendaProduto(produto, slugCategoria);
-  const ehCombo = tipo === "combo_50";
+  const regra = regraQuantidade(produto, slugCategoria);
+  const ehCombo = regra.tipoVenda === "combo_50";
   const adicionando = useRef(false);
 
   function adicionar() {
@@ -38,9 +39,10 @@ export function ProductCard({ produto, slugCategoria, nota, favorito, onToggleFa
         imagem: produto.imagem_url,
         produtoId: produto.id,
         combo: ehCombo,
+        regra,
         estoque: produto.estoque,
       },
-      ehCombo ? MINIMO_COMBO : 1,
+      regra.minimo,
     );
     toast.success(
       ehCombo

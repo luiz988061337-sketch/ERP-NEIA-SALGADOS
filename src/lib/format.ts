@@ -139,6 +139,12 @@ export function mensagemStatus(status: string, cliente: string, numero: number):
   return base[status] ?? "";
 }
 
+/** Retorna o telefone configurado somente quando há número válido (10-13 dígitos). */
+export function telefoneWhatsappConfigurado(telefone: string | null | undefined): string | null {
+  const digits = (telefone ?? "").replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 13 ? digits : null;
+}
+
 export function whatsappLink(telefone: string, texto: string): string {
   const digits = telefone.replace(/\D/g, "");
   const numero = digits.startsWith("55") ? digits : `55${digits}`;

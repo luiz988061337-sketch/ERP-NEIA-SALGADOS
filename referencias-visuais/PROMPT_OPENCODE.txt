@@ -1,0 +1,15 @@
+ERP NÉIA SALGADOS — IMPLEMENTAÇÃO DAS TELAS PÚBLICAS COM REFERÊNCIA EM TEXTO
+
+O modelo anterior não conseguiu interpretar as imagens. NÃO tente ler PNGs e NÃO pare por esse motivo.
+
+1. Localize e LEIA INTEGRALMENTE o arquivo: referencias-visuais/REFERENCIA_VISUAL_ESCRITA.md
+   Use leitura de arquivo de texto ou comando de terminal, e confirme que leu as seções 0 a 6.
+2. Esse Markdown descreve com detalhes o visual APROVADO de Monte seu Combo, Ajuda, Orçamentos e Parceiros. É sua fonte de verdade para aparência, com o Carrinho aprovado como padrão de cabeçalho público.
+3. Antes de editar, inspecione rotas/componentes já existentes e `git status`; preserve alterações pendentes e regras existentes. Não substitua funcionalidades por mockups.
+4. Execute com etapas rastreáveis: cabeçalho público compartilhado; Monte seu Combo; Ajuda; Orçamentos; Parceiros. Termine cada uma com validação local.
+5. Preserve separação de tema Admin (escuro) e cliente (claro). Não altere Carrinho, Checkout ou Acompanhamento fora do estritamente necessário para o cabeçalho compartilhado; avise antes de qualquer alteração funcional fora do escopo.
+6. Teste somente no modo demo local isolado; proíbido Supabase real, migrations, transações, commit, push ou deploy. Sem `git add .`, reset ou clean.
+7. Execute TypeScript/build/testes pertinentes e captures capturas DESKTOP e MOBILE de cada tela. Se você não possui visão, entregue as capturas sem alegar que as comparou automaticamente.
+8. No fim, informe arquivos alterados, URLs locais, validações, pendências e aguarde aprovação visual do proprietário.
+
+Se o arquivo não existir, PARE e reporte exatamente o caminho procurado; não invente que leu a referência.

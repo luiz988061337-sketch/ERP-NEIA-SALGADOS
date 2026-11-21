@@ -8,11 +8,11 @@ import { MeusPedidos } from "@/routes/preview/reembolsos-estornos-cliente/index"
  */
 export function MinhaContaDemoR2B() {
   return (
-    <>
+    <div className="r2b-public">
       <link rel="stylesheet" href={css} />
       <ClientePreviewProvider>
         <MeusPedidos />
       </ClientePreviewProvider>
-    </>
+    </div>
   );
 }

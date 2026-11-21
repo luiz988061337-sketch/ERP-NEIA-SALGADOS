@@ -14,7 +14,7 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { useCart } from "@/lib/cart";
 import { useCalculadoraConfig } from "@/lib/calculadora-salgados";
 import { brl, TAXA_ENTREGA, whatsappLink } from "@/lib/format";
-import { useLojaConfig } from "@/lib/loja";
+import { prazosAtendimento, useLojaConfig } from "@/lib/loja";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -51,6 +51,7 @@ function Home() {
   const { itens: heroItens, carregando: heroCarregando } = useHeroCarousel();
 const { data: lojaConfig } = useLojaConfig();
 const { data: cfgCalculadora } = useCalculadoraConfig();
+const prazos = prazosAtendimento(lojaConfig);
 const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap_contato ?? "").trim();
 
   useEffect(() => {
@@ -135,6 +136,9 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
 
   return (
     <div>
+      {/* HOMO-CLIENTE-14: um único banner principal. Com slides ativos em
+          hero_carousel, o carrossel OCUPA o hero; sem slides, mantém-se o
+          fallback estático aprovado. Nunca há dois blocos gigantes. */}
       {heroItens.length > 0 || heroCarregando ? (
         <HeroCarousel itens={heroItens} carregando={heroCarregando} />
       ) : (
@@ -165,10 +169,13 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-4 text-xs text-white/85 sm:text-sm">
                 <span className="flex items-center gap-1.5">
-                  <Clock className="size-4" /> 40-60 min
+                  <Clock className="size-4" /> Retirada: {prazos.retiradaMin} a {prazos.retiradaMax} min
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Truck className="size-4" /> Entrega a partir de {brl(TAXA_ENTREGA)}
+                  <Truck className="size-4" /> Entrega: {prazos.entregaMin} a {prazos.entregaMax} min
+                </span>
+                <span className="flex items-center gap-1.5" data-testid="banner-taxa-entrega">
+                  <Truck className="size-4" /> Taxa mínima de entrega: {brl(TAXA_ENTREGA)} — valor calculado conforme endereço.
                 </span>
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="size-4" /> Pagamento na entrega ou PIX
@@ -186,6 +193,14 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
         </div>
       </section>
       )}
+
+      {/* Faixa compacta: mantém taxa/prazos sem criar um segundo hero. */}
+      <div
+        className="border-b border-[#F0D9A8] bg-[#FFFBF4] px-4 py-2 text-center text-[11px] text-[#60524C] sm:text-xs"
+        data-testid="faixa-entrega"
+      >
+        Retirada: {prazos.retiradaMin} a {prazos.retiradaMax} min · Entrega: {prazos.entregaMin} a {prazos.entregaMax} min · Taxa mínima de entrega: {brl(TAXA_ENTREGA)} — valor calculado conforme endereço.
+      </div>
 
       <div className="sticky top-16 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 py-3">

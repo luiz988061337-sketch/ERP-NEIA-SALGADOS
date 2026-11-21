@@ -14,6 +14,7 @@
 
 type Ambiente = Record<string, unknown>;
 type Tentativa = { tipo: string; destino: string };
+type FalhaInstalacao = { efeito: string; motivo: string };
 type OuvinteClique = (evento: Event) => void;
 
 const CHAVE_DEMO = "VITE_DEMO_PREVIEW";
@@ -200,14 +201,42 @@ function destinoExterno(destino: unknown): boolean {
 const estado: {
   instalada: boolean;
   tentativas: Tentativa[];
+  falhas: FalhaInstalacao[];
   originais: Record<string, unknown>;
   ouvinteClique: OuvinteClique | null;
 } = {
   instalada: false,
   tentativas: [],
+  falhas: [],
   originais: {},
   ouvinteClique: null,
 };
+
+class FalhaBarreiraLocal extends Error {}
+
+/**
+ * Em Chrome, `location.assign`/`replace` são métodos não configuráveis do
+ * objeto Location. Tentar sobrescrevê-los lança TypeError e, pior, interrompe
+ * a instalação dos efeitos seguintes. Não fingimos que a barreira funcionou:
+ * registramos a falha e revertemos tudo o que já havia sido instalado.
+ */
+function registrarFalha(efeito: string, erro: unknown): never {
+  const motivo = String((erro as { message?: unknown })?.message ?? erro);
+  const registro: FalhaInstalacao = { efeito, motivo };
+  estado.falhas.push(registro);
+  throw new FalhaBarreiraLocal(
+    `ISOLAMENTO_LOCAL: não foi possível instalar "${efeito}" com segurança (${motivo})`,
+  );
+}
+
+function proteger(efeito: string, instalar: () => void): void {
+  if (estado.falhas.length > 0) return;
+  try {
+    instalar();
+  } catch (erro) {
+    registrarFalha(efeito, erro);
+  }
+}
 
 function erroBloqueio(tipo: string, destino: unknown): Error {
   const registro: Tentativa = { tipo, destino: hostSeguro(destino) };
@@ -333,21 +362,52 @@ function instalarWebSocket(): void {
   } as unknown as new (...args: unknown[]) => unknown;
 }
 
-/** Navegação externa via location.assign/replace também é barrada. */
+/**
+ * Navegação externa é barrada por capture de clique (links) e pelo evento
+ * `beforeunload` para mudanças programáticas de `location`. Em navegadores
+ * modernos, `Location.assign`/`replace` não podem ser reatribuídos; tentar
+ * fazê-los é uma falsa sensação de segurança e interrompe a instalação.
+ */
 function instalarNavegacao(): void {
   const win = (globalThis as unknown as { window?: Record<string, unknown> }).window;
-  const location = win?.["location"] as
-    | { assign?: unknown; replace?: unknown; href?: unknown }
-    | undefined;
-  if (!location) return;
-  for (const metodo of ["assign", "replace"] as const) {
-    const original = location[metodo];
-    if (typeof original !== "function") continue;
-    estado.originais[`location_${metodo}`] = original;
-    location[metodo] = (...args: unknown[]) => {
-      if (destinoExterno(args[0])) throw erroBloqueio(`location.${metodo}`, args[0]);
-      return (original as (...a: unknown[]) => unknown).apply(location, args);
+  const doc = (globalThis as unknown as { document?: Document }).document;
+
+  if (doc && typeof doc.addEventListener === "function") {
+    const ouvinte = (evento: Event) => {
+      const alvo = evento.target as
+        | { closest?: (seletor: string) => { getAttribute?: (n: string) => string | null } | null }
+        | null;
+      const ancora = alvo?.closest?.("a[href]");
+      const href = ancora?.getAttribute?.("href");
+      if (href && destinoExterno(href)) {
+        evento.preventDefault();
+        evento.stopPropagation();
+        throw erroBloqueio("navegação externa", href);
+      }
     };
+    doc.addEventListener("click", ouvinte, true);
+    estado.originais["ouvinteNavegacao"] = ouvinte;
+  }
+
+  // `beforeunload` detecta navegações programáticas mesmo quando o método
+  // Location não é substituível. Não é usado para navigações same-origin.
+  if (win && typeof win["addEventListener"] === "function") {
+    const ouvinte = (evento: Event) => {
+      const location = win["location"] as { href?: unknown } | undefined;
+      const destino = location?.href;
+      if (destinoExterno(destino)) {
+        throw erroBloqueio("navegação externa", destino);
+      }
+      // Eventos beforeunload não podem ser cancelados de forma confiável em
+      // Chrome; apenas registrar a tentativa não garante bloqueio.
+      void evento;
+    };
+    (win["addEventListener"] as (tipo: string, fn: EventListener, captura?: boolean) => void)(
+      "beforeunload",
+      ouvinte,
+      true,
+    );
+    estado.originais["ouvinteBeforeUnload"] = ouvinte;
   }
 }
 
@@ -373,16 +433,31 @@ export function ativarBarreiraLocal(): void {
   if (!ehModoTesteLocal()) return;
   garantirIsolamentoLocal();
   if (estado.instalada) return;
+  estado.falhas = [];
+  try {
+    proteger("fetch", instalarFetch);
+    proteger("XMLHttpRequest", instalarXhr);
+    proteger("window.open", instalarWindow);
+    proteger("navegação", instalarNavegacao);
+    proteger("geolocalização", instalarGeolocalizacao);
+    proteger("sendBeacon", instalarBeacon);
+    proteger("push/service worker", instalarPush);
+    proteger("WebSocket", instalarWebSocket);
+    proteger("cliques externos", instalarCliques);
+  } catch {
+    desativarIsolamentoLocal();
+    throw new Error(
+      `ISOLAMENTO_LOCAL: instalação incompleta — teste interativo interrompido (${estado.falhas
+        .map((f) => f.efeito)
+        .join(", ")})`,
+    );
+  }
   estado.instalada = true;
-  instalarFetch();
-  instalarXhr();
-  instalarWindow();
-  instalarNavegacao();
-  instalarGeolocalizacao();
-  instalarBeacon();
-  instalarPush();
-  instalarWebSocket();
-  instalarCliques();
+}
+
+/** Falhas de instalação detectadas na última tentativa. */
+export function falhasIsolamento(): FalhaInstalacao[] {
+  return estado.falhas.map((f) => ({ ...f }));
 }
 
 /** Restaura os globais. Uso exclusivo de testes. */
@@ -422,12 +497,19 @@ export function desativarIsolamentoLocal(): void {
     globalComo["WebSocket"] = estado.originais["WebSocket"];
   }
   const win = globalComo["window"] as Record<string, unknown> | undefined;
-  const location = win?.["location"] as Record<string, unknown> | undefined;
-  for (const metodo of ["assign", "replace"] as const) {
-    const original = estado.originais[`location_${metodo}`];
-    if (typeof original === "function" && location) location[metodo] = original;
-  }
   const doc = globalComo["document"] as Document | undefined;
+  if (win && typeof win["removeEventListener"] === "function") {
+    const ouvinte = estado.originais["ouvinteBeforeUnload"];
+    if (typeof ouvinte === "function") {
+      (win["removeEventListener"] as (tipo: string, fn: EventListener, captura?: boolean) => void)(
+        "beforeunload",
+        ouvinte as EventListener,
+        true,
+      );
+    }
+  }
+  const navegacao = estado.originais["ouvinteNavegacao"];
+  if (doc && typeof navegacao === "function") doc.removeEventListener("click", navegacao as EventListener, true);
   if (doc && estado.ouvinteClique) doc.removeEventListener("click", estado.ouvinteClique, true);
   estado.originais = {};
   estado.ouvinteClique = null;

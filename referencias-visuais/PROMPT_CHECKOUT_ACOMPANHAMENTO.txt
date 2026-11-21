@@ -1,0 +1,15 @@
+ERP NÉIA SALGADOS — HOMO-CLIENTE-05 / 06 — CHECKOUT + ACOMPANHAMENTO
+
+Os dois mockups aprovados de Checkout e Acompanhamento estão na pasta `referencias-visuais/`, com especificação textual completa.
+
+1. LEIA INTEGRALMENTE `referencias-visuais/REFERENCIA_CHECKOUT_ACOMPANHAMENTO.md`.
+2. LEIA TAMBÉM `referencias-visuais/REFERENCIA_VISUAL_ESCRITA.md` (4 telas anteriores) se estiver presente.
+3. Se não tiver leitura de imagem, NÃO tente interpretar PNGs. Use o texto. Se puder ler imagens, compare também `05_checkout.png` e `06_acompanhamento.png`.
+4. Preserve exatamente o cabeçalho público aprovado e o tema claro vermelho→laranja→dourado; Admin permanece escuro.
+5. Checkout: PRESERVAR cinco etapas reais Dados/Endereço/Entrega/Pagamento/Revisão, embora a imagem mostre três. Evitar taxa de entrega antes de endereço validado, calcular frete real R$1,50/km mínimo R$6, invalidar quando endereço mudar, sem valores fictícios. Congelados +1 unidade comercial, salgados prontos/combos múltiplos de 50 e bebidas +1. Sem caixa/embalagem no resumo público. Preservar validações reais e meios de pagamento existentes.
+6. Acompanhamento: preservar estados reais da Atendente/Produção/Entregas; mapear retirada e entrega separadamente. Mapa GPS SOMENTE se houver dados reais válidos; sem localização fictícia. Fidelidade SOMENTE se funcional. Solicitação de reembolso não significa reembolso automático. Cancelamento somente quando permitido.
+7. Inspecione Git e preserve working tree; execute por etapas pequenas, com testes e captures desktop/mobile, e informe o que ficou pendente por falta de integração real.
+8. AMBIENTE B1 DEMO LOCAL EXCLUSIVAMENTE: sem Supabase real, migrations, pedidos/cobranças reais, commit, push ou deploy. Não alterar B1/B2/B3 nem Admin.
+9. Entregar arquivos modificados, evidências dos testes, screenshots desktop/mobile das duas telas; PARAR para aprovação visual.
+
+Se não localizar o(s) Markdown(s), reportar erro exato e não implementar com especificação inventada.

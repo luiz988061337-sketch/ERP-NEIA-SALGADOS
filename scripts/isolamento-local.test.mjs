@@ -106,13 +106,14 @@ stubs.window = {
   open: (url) => ({ aberta: String(url) }),
   location: {
     origin: "http://localhost:5173",
-    assign: (url) => ({ atribuido: String(url) }),
-    replace: (url) => ({ substituido: String(url) }),
+    href: "http://localhost:5173/",
   },
+  addEventListener: (tipo, fn) => listeners.set(`win:${tipo}`, fn),
+  removeEventListener: (tipo) => listeners.delete(`win:${tipo}`),
 };
 stubs.document = {
-  addEventListener: (tipo, fn) => listeners.set(tipo, fn),
-  removeEventListener: (tipo) => listeners.delete(tipo),
+  addEventListener: (tipo, fn) => listeners.set(`doc:${tipo}`, fn),
+  removeEventListener: (tipo) => listeners.delete(`doc:${tipo}`),
 };
 stubs.navigator = {
   geolocation: {
@@ -164,7 +165,7 @@ await fetch("http://localhost:5173/api/versao");
 t("fetch same-origin é permitido", chamadosFetch.length === 1);
 t("XHR externo é bloqueado", lanca(() => new XMLHttpRequest().open("GET", "https://wa.me/5511999999999"), "ISOLAMENTO_LOCAL"));
 t("window.open externo é bloqueado", lanca(() => window.open("https://wa.me/5511999999999"), "ISOLAMENTO_LOCAL"));
-t("location.assign externo é bloqueado", lanca(() => window.location.assign("https://wa.me/5511999999999"), "ISOLAMENTO_LOCAL"));
+t("nenhuma falha de instalação foi registrada", Array.isArray(iso.falhasIsolamento()) && iso.falhasIsolamento().length === 0);
 t("geolocalização é bloqueada", lanca(() => navigator.geolocation.getCurrentPosition(() => {}), "ISOLAMENTO_LOCAL"));
 t("watchPosition é bloqueado", lanca(() => navigator.geolocation.watchPosition(() => {}), "ISOLAMENTO_LOCAL"));
 t("sendBeacon externo é bloqueado", lanca(() => navigator.sendBeacon("https://api.exemplo.com", "x"), "ISOLAMENTO_LOCAL"));
@@ -189,7 +190,7 @@ t("WebSocket externo é bloqueado", lanca(() => new WebSocket("wss://app.supabas
       this.parado = true;
     },
   };
-  const ouvinte = listeners.get("click");
+  const ouvinte = listeners.get("doc:click") ?? listeners.get("click");
   let bloqueou = false;
   try {
     ouvinte?.(evento);

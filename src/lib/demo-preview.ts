@@ -6,7 +6,8 @@
  * Supabase real é utilizada: não há fetch para backend algum.
  *
  * Os dados abaixo são 100% fictícios. As mutações alteram apenas o estado
- * desta memória, descartado a cada recarregamento da página.
+ * desta memória; pedidos criados no Checkout são espelhados no localStorage
+ * do próprio navegador para sobreviver a F5 sem tocar em qualquer servidor.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -15,6 +16,9 @@ import {
   aceitarPedidoEmMemoria,
   type PedidoAceiteMemoria,
 } from "@/lib/aceite-atendente-memoria";
+import { MEUS_PEDIDOS_CLIENTE_DEMO } from "@/lib/pedidos-demo-cliente";
+import fritos from "@/assets/cat-fritos.jpg";
+import assados from "@/assets/cat-assados.jpg";
 
 type Linha = Record<string, any>;
 type Resposta = { data: any; error: any; count?: number | undefined; status?: number };
@@ -67,6 +71,46 @@ function linha(tabela: string, base: Linha): Linha {
   void tabela;
   return comum;
 }
+
+/** Pedidos da lista pública viram registros reais do cliente demo: o detalhe
+ * moderno (/pedido/$id) carrega exatamente o ID clicado, sem dados fixos. */
+const PEDIDOS_CLIENTE_SEMENTE = MEUS_PEDIDOS_CLIENTE_DEMO.map((p) =>
+  linha("pedidos", {
+    id: p.id,
+    numero: Number(p.numero),
+    codigo: `DEMO-${p.numero}`,
+    cliente_nome: "Cliente demonstrativo",
+    created_at: `${p.data}:00`,
+    status: p.status,
+    tipo_entrega: p.modalidade,
+    total: p.valor,
+    subtotal: p.valor,
+    taxa_entrega: 0,
+    desconto: 0,
+    forma_pagamento: "pix",
+    pagamento_status: p.pagamento,
+    endereco:
+      p.modalidade === "retirada"
+        ? "Retirada na loja — endereço não configurado nesta demonstração"
+        : "Rua das Flores, 249 — Jardim Primavera — Cidade demonstrativa",
+    bairro: "Jardim Primavera",
+    cidade: "Cidade demonstrativa",
+    telefone: "(00) 90000-0000 — demonstração",
+    user_id: USUARIO_DEMO.id,
+  }),
+);
+
+const ITENS_PEDIDOS_CLIENTE_SEMENTE = MEUS_PEDIDOS_CLIENTE_DEMO.map((p, i) =>
+  linha("pedido_itens", {
+    id: `demo-item-cliente-${p.id}`,
+    pedido_id: p.id,
+    nome: p.modalidade === "retirada" ? "Item para retirada (demonstração)" : "Item para entrega (demonstração)",
+    quantidade: p.itens,
+    preco_unitario: p.valor / Math.max(1, p.itens),
+    subtotal: p.valor,
+    ordem: i,
+  }),
+);
 
 const SEMENTES: Record<string, Linha[]> = {
   // Papéis fictícios apenas para permitir a navegação de todas as telas.
@@ -123,9 +167,31 @@ const SEMENTES: Record<string, Linha[]> = {
     linha("categorias", { id: "00000000-0000-4000-8000-000000000123", nome: "Doces", slug: "doces", ativo: true, ordem: 3 }),
   ],
   produtos: [
-    linha("produtos", { id: "00000000-0000-4000-8000-000000000001", nome: "Coxinha de frango (demo)", categoria: "Fritos", preco: 7.9, ativo: true, descricao: "Produto fictício", estoque: 120, embalagem_custo: 0.35, tempo_fritura_s: 210, tempo_mao_obra_min: 0.8 }),
-    linha("produtos", { id: "00000000-0000-4000-8000-000000000002", nome: "Bolinho de queijo (demo)", categoria: "Fritos", preco: 6.5, ativo: true, descricao: "Produto fictício", estoque: 90, embalagem_custo: 0.25, tempo_fritura_s: 180, tempo_mao_obra_min: 0.6 }),
-    linha("produtos", { id: "00000000-0000-4000-8000-000000000003", nome: "Pão de queijo (demo)", categoria: "Assados", preco: 5.5, ativo: true, descricao: "Produto fictício", estoque: 60, embalagem_custo: 0.2, tempo_fritura_s: 0, tempo_mao_obra_min: 0.4 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000001", nome: "Coxinha de frango (demo)", categoria: "Fritos", preco: 7.9, ativo: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 120, embalagem_custo: 0.35, tempo_fritura_s: 210, tempo_mao_obra_min: 0.8 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000002", nome: "Bolinho de queijo (demo)", categoria: "Fritos", preco: 6.5, ativo: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 90, embalagem_custo: 0.25, tempo_fritura_s: 180, tempo_mao_obra_min: 0.6 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000003", nome: "Pão de queijo (demo)", categoria: "Assados", preco: 5.5, ativo: true, descricao: "Produto fictício", imagem_url: assados, estoque: 60, embalagem_custo: 0.2, tempo_fritura_s: 0, tempo_mao_obra_min: 0.4 }),
+  ],
+  // HOMO-CLIENTE-14: fixtures do carrossel da home. Nomes e fotos vêm do
+  // próprio catálogo demonstrativo; nenhum produto ou imagem é inventado e
+  // nenhum bucket/Storage real é consultado.
+  hero_carousel: [
+    // Cada legenda/imagem reproduz EXATAMENTE o produto do catálogo demo
+    // (mesmo nome e mesma URL). Nenhuma foto genérica é reaproveitada para
+    // sabores diferentes — por isso o bolinho não entra como slide.
+    linha("hero_carousel", {
+      id: "00000000-0000-4000-8000-000000000901",
+      imagem_url: fritos,
+      legenda: "Coxinha de frango (demo)",
+      ordem: 1,
+      ativo: true,
+    }),
+    linha("hero_carousel", {
+      id: "00000000-0000-4000-8000-000000000902",
+      imagem_url: assados,
+      legenda: "Pão de queijo (demo)",
+      ordem: 2,
+      ativo: true,
+    }),
   ],
   // Equivalente demo da migration 0076 (linha única + histórico de preços).
   precificacao_config: [
@@ -212,9 +278,11 @@ const SEMENTES: Record<string, Linha[]> = {
       user_id: USUARIO_DEMO.id,
       motoboy_id: null,
     }),
+    ...PEDIDOS_CLIENTE_SEMENTE,
   ],
   pedido_itens: [
     linha("pedido_itens", { pedido_id: "00000000-0000-4000-8000-000000000201", produto_id: "00000000-0000-4000-8000-000000000001", nome: "Coxinha de frango (demo)", quantidade: 5, preco_unitario: 7.9, subtotal: 39.5 }),
+    ...ITENS_PEDIDOS_CLIENTE_SEMENTE,
   ],
   estoque_movimentacoes: [],
   reservas_estoque: [],
@@ -257,13 +325,85 @@ const SEMENTES: Record<string, Linha[]> = {
   campanhas: [],
   configuracoes: [],
   loja_config: [
-    linha("loja_config", { nome: "Néia Salgados — DEMONSTRAÇÃO", chave_pix: "", whatsapp: "", endereco: "Rua Demonstração, 100" }),
+    // id booleano para casar com .eq("id", true) de useLojaConfig/admin.
+    // Endereço fictício de demonstração — nenhum dado real de loja é inventado.
+    linha("loja_config", { id: true, nome: "Néia Salgados — DEMONSTRAÇÃO", chave_pix: "", whatsapp: "", endereco: "Rua Demonstração, 100" }),
+  ],
+  // Origem apenas para exercitar o cálculo de frete no preview isolado.
+  // Está marcada como simulação e NUNCA é exibida como endereço oficial.
+  config_entrega: [
+    linha("config_entrega", {
+      id: true,
+      aceitar_entregas: true,
+      valor_por_km: 1.5,
+      taxa_minima_ativa: true,
+      taxa_minima: 6,
+      distancia_max_ativa: false,
+      distancia_max_km: 0,
+      gratis_ativa: false,
+      gratis_acima: 0,
+      ajuste_manual: false,
+      origem_nome: "Origem demonstrativa (simulação)",
+      origem_logradouro: "Rua Demonstrativa (simulação)",
+      origem_numero: "0",
+      origem_complemento: "",
+      origem_bairro: "Centro demonstrativo",
+      origem_cidade: "Cidade demonstrativa",
+      origem_uf: "SP",
+      origem_cep: "00000000",
+      origem_lat: -23.55,
+      origem_lng: -46.63,
+      origem_place_id: "",
+      atualizado_em: AGORA,
+    }),
   ],
 };
 
+/** Pedidos criados no Checkout demo precisam sobreviver a F5. Nada sai do
+ * navegador: é somente um espelho local das mutações em memória. */
+export const CHAVE_PERSISTENCIA_PEDIDOS_DEMO = "neia-demo-pedidos-cliente-v1";
+const TABELAS_PERSISTIDAS = new Set(["pedidos", "pedido_itens"]);
+
+function lerPersistencia(): Record<string, Linha[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    const bruto = window.localStorage.getItem(CHAVE_PERSISTENCIA_PEDIDOS_DEMO);
+    if (!bruto) return {};
+    const objeto = JSON.parse(bruto) as Record<string, unknown>;
+    const saida: Record<string, Linha[]> = {};
+    for (const nome of TABELAS_PERSISTIDAS) {
+      if (Array.isArray(objeto[nome])) saida[nome] = objeto[nome] as Linha[];
+    }
+    return saida;
+  } catch {
+    return {};
+  }
+}
+
+function gravarPersistencia(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const sementes = new Set((SEMENTES["pedidos"] ?? []).map((r) => String(r["id"])));
+    const pedidos = (banco.get("pedidos") ?? [])
+      .filter((r) => !sementes.has(String(r["id"])))
+      .slice(-30);
+    const ids = new Set(pedidos.map((r) => String(r["id"])));
+    const itens = (banco.get("pedido_itens") ?? []).filter((r) => ids.has(String(r["pedido_id"])));
+    window.localStorage.setItem(
+      CHAVE_PERSISTENCIA_PEDIDOS_DEMO,
+      JSON.stringify({ pedidos, pedido_itens: itens }),
+    );
+  } catch {
+    /* storage cheio/bloqueado: o pedido segue vivo apenas nesta aba */
+  }
+}
+
 const banco = new Map<string, Linha[]>();
 function tabela(nome: string): Linha[] {
-  if (!banco.has(nome)) banco.set(nome, (SEMENTES[nome] ?? []).map((r) => ({ ...r })));
+  if (!banco.has(nome)) {
+    const persistidos = lerPersistencia()[nome] ?? [];
+    banco.set(nome, [...(SEMENTES[nome] ?? []), ...persistidos].map((r) => ({ ...r })));
+  }
   return banco.get(nome) as Linha[];
 }
 
@@ -353,17 +493,30 @@ class ConsultaDemo implements PromiseLike<Resposta> {
     return resultado;
   }
 
+  private persistir(): void {
+    if (TABELAS_PERSISTIDAS.has(this.nome)) gravarPersistencia();
+  }
+
   private executar(): Resposta {
     const dados = tabela(this.nome);
     if (this.modo === "insert" || this.modo === "upsert") {
       const entradas = Array.isArray(this.payload) ? this.payload : [this.payload];
-      const gravadas = entradas.map((e) => linha(this.nome, { id: e["id"] ?? crypto.randomUUID(), ...e }));
+      const gravadas = entradas.map((e) => {
+        const nova: Linha = { id: e["id"] ?? crypto.randomUUID(), ...e };
+        // Pedido sem número visível quebrava o toast e o acompanhamento no demo.
+        if (this.nome === "pedidos" && nova["numero"] == null) {
+          nova["numero"] = 4000 + dados.length + 1;
+        }
+        return linha(this.nome, nova);
+      });
       dados.push(...gravadas);
+      this.persistir();
       return ok(Array.isArray(this.payload) ? gravadas : gravadas[0]);
     }
     if (this.modo === "update") {
       const alvo = this.aplicar(dados);
       alvo.forEach((r) => Object.assign(r, this.payload, { updated_at: AGORA }));
+      this.persistir();
       return ok(alvo);
     }
     if (this.modo === "delete") {
@@ -371,6 +524,7 @@ class ConsultaDemo implements PromiseLike<Resposta> {
       const ids = new Set(alvo.map((r) => r["id"]));
       const restante = dados.filter((r) => !ids.has(r["id"]));
       banco.set(this.nome, restante);
+      this.persistir();
       return ok(alvo);
     }
     const encontrados = this.aplicar(dados).map((r) => ({ ...r }));
@@ -451,7 +605,7 @@ const RPC_DEMO: Record<string, unknown> = {
   solicitar_reimpressao: OK,
   reservar_estoque_atomica: [],
   liberar_reserva_atomica: OK,
-  creditar_pontos_pedido: { pontos: 10 },
+  creditar_pontos_pedido: 10,
   resgatar_fidelidade: "DEMO10",
   criar_rota_entrega_atomica: { status: "criada", quantidade: 1 },
   liberar_rota_entrega: OK,
@@ -503,6 +657,31 @@ function clienteDemo(usuarioId = USUARIO_DEMO.id): any {
           parametros["p_pedido_id"],
         );
         return ok([{ resultado: r.resultado, detalhe: r.detalhe }]);
+      }
+      // Reserva demonstrativa com a MESMA regra do servidor: só confirma quando
+      // há estoque disponível. Assim o bloqueio por falta de estoque continua
+      // ativo no preview, mas um pedido válido consegue chegar ao acompanhamento.
+      if (nome === "reservar_estoque_atomica") {
+        const p = (args ?? {}) as Record<string, unknown>;
+        const produtoId = String(p["p_produto_id"] ?? "");
+        const qtd = Math.max(0, Math.floor(Number(p["p_qtd"] ?? 0)));
+        const produto = tabela("produtos").find(
+          (r) => r["id"] === produtoId && r["ativo"] !== false,
+        );
+        const estoque = Number(produto?.["estoque"] ?? 0);
+        const jaReservado = tabela("reservas_estoque")
+          .filter((r) => r["produto_id"] === produtoId && r["status"] === "ativa")
+          .reduce((soma, r) => soma + Number(r["quantidade"] ?? 0), 0);
+        if (!produto || estoque - jaReservado < qtd) return ok(false);
+        tabela("reservas_estoque").push(
+          linha("reservas_estoque", {
+            pedido_id: p["p_pedido_id"],
+            produto_id: produtoId,
+            quantidade: qtd,
+            status: "ativa",
+          }),
+        );
+        return ok(true);
       }
       const dados = RPC_DEMO[nome];
       return ok(dados === undefined ? {} : dados);

@@ -138,6 +138,7 @@ function jaTemAdminShell(pathname: string, modoDemo: boolean): boolean {
     "/preview/reembolsos-estornos-origens",
     "/preview/financeiro-premium",
     "/preview/central-entregas-v2",
+    "/preview/pedidos",
   ];
   if (previewsComShell.some((rota) => pathname === rota || pathname.startsWith(`${rota}/`))) {
     return true;
@@ -258,7 +259,18 @@ function RootComponent() {
     pathname.startsWith("/preview/l1") ||
     pathname.startsWith("/preview-l2") ||
     pathname.startsWith("/preview/financeiro-premium") ||
-    pathname.startsWith("/preview/reembolsos-estornos");
+    // A R2-B do cliente (lista e detalhe) é pública: o layout /preview já monta
+    // cabeçalho/rodapé próprios. O shell administrativo só vale para R1/Origens.
+    (pathname.startsWith("/preview/reembolsos-estornos") &&
+      !pathname.startsWith("/preview/reembolsos-estornos-cliente"));
+  // R2-B pública (lista e detalhe): o layout /preview já monta cabeçalho e
+  // rodapé próprios. Suprime o chrome público sem aplicar AdminShell.
+  const rotaR2BPublica =
+    pathname === "/preview/pedidos" ||
+    pathname.startsWith("/preview/reembolsos-estornos-cliente");
+  const semChromePublico = ehStaff || rotaR2BPublica;
+  // Checkout usa a folha de finalização; o carrinho flutuante atrapalha os campos no celular.
+  const esconderCartDock = semChromePublico || pathname === "/checkout";
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -272,7 +284,7 @@ function RootComponent() {
                 </span>
               </div>
             ) : null}
-            {ehStaff ? null : <SiteHeader />}
+            {semChromePublico ? null : <SiteHeader />}
             <main className="flex-1">
               {ehStaff && !jaTemAdminShell(pathname, modoDemo) ? (
                 <MenuAdministrativoGlobal>
@@ -282,7 +294,7 @@ function RootComponent() {
                 <Outlet />
               )}
             </main>
-            {ehStaff ? null : (
+            {semChromePublico ? null : (
               <footer className="border-t border-border/60 bg-card py-8 pb-24 md:pb-8">
                 <div className="mx-auto max-w-6xl px-4 text-sm text-muted-foreground">
                   <p className="font-display text-base text-foreground">Néia Salgados</p>
@@ -301,7 +313,7 @@ function RootComponent() {
                 </div>
               </footer>
             )}
-            {ehStaff ? null : <CartDock />}
+            {esconderCartDock ? null : <CartDock />}
             <Toaster position="top-center" richColors />
           </div>
         </CartProvider>

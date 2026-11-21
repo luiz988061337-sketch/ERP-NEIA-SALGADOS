@@ -48,6 +48,8 @@ export type Produto = {
   estoque: number;
   /** Novo (migração 0001): combo_50 = múltiplos de 50, unidade = qtd livre. Opcional até migrar o banco. */
   tipo_venda?: TipoVenda | null | undefined;
+  /** Unidade comercial cadastrada (un, pacote, etc.) — rótulo, sem conversão de quantidade. */
+  unidade_medida?: string | null | undefined;
   destaque?: boolean | null | undefined;
   promo_inicio?: string | null | undefined;
   promo_fim?: string | null | undefined;

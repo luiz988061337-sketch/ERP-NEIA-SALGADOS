@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, Eye, Package, RotateCcw, ShieldAlert, Truck, Wallet } from "lucide-react";
+import { Eye, Package, RotateCcw, ShieldAlert, Store, Truck, Wallet } from "lucide-react";
 import { AjudaCliente, FidelidadeCliente } from "@/components/reembolsos-estornos/cliente-publico";
 import { SolicitacoesCliente } from "@/components/reembolsos-estornos/cliente-sessao";
 import { cn } from "@/lib/utils";
-import { brl } from "@/lib/format";
+import { brl, PAGAMENTO_STATUS_LABEL, statusLabel } from "@/lib/format";
+import { MEUS_PEDIDOS_CLIENTE_DEMO } from "@/lib/pedidos-demo-cliente";
 import React from "react";
 
 /**
@@ -20,86 +21,9 @@ export const Route = createFileRoute("/preview/reembolsos-estornos-cliente/")({
   component: MeusPedidos,
 });
 
-// Dados fictícios de pedidos do cliente (demonstração)
-const MEUS_PEDIDOS = [
-  {
-    id: "1053",
-    numero: "1053",
-    data: "2026-11-14T09:54",
-    itens: 1,
-    modalidade: "entrega",
-    status: "em_rota",
-    pagamento: "pago",
-    valor: 1745.0,
-    podeRepetir: true,
-  },
-  {
-    id: "1052",
-    numero: "1052",
-    data: "2026-11-12T07:24",
-    itens: 1,
-    modalidade: "entrega",
-    status: "entregue",
-    pagamento: "pago",
-    valor: 89.9,
-    podeRepetir: true,
-  },
-  {
-    id: "1048",
-    numero: "1048",
-    data: "2026-11-11T17:38",
-    itens: 1,
-    modalidade: "retirada",
-    status: "entregue",
-    pagamento: "pago",
-    valor: 80.0,
-    podeRepetir: true,
-  },
-  {
-    id: "1045",
-    numero: "1045",
-    data: "2026-11-10T14:20",
-    itens: 1,
-    modalidade: "entrega",
-    status: "cancelado",
-    pagamento: "reembolsado",
-    valor: 210.0,
-    podeRepetir: false,
-  },
-  {
-    id: "1041",
-    numero: "1041",
-    data: "2026-11-08T10:16",
-    itens: 1,
-    modalidade: "entrega",
-    status: "entregue",
-    pagamento: "pago",
-    valor: 95.0,
-    podeRepetir: true,
-  },
-  {
-    id: "1038",
-    numero: "1038",
-    data: "2026-11-05T18:30",
-    itens: 1,
-    modalidade: "entrega",
-    status: "entregue",
-    pagamento: "pago",
-    valor: 180.0,
-    podeRepetir: true,
-  },
-];
-
-const STATUS_LABEL: Record<string, string> = {
-  recebido: "Pedido Recebido",
-  em_producao: "Em Produção",
-  pronto: "Pronto para Entrega",
-  aguardando_motoboy: "Aguardando Motoboy",
-  em_rota: "Em Rota de Entrega",
-  entregue: "Entregue",
-  cancelado: "Cancelado",
-  aguardando_pagamento: "Aguardando Pagamento",
-};
+// Fonte única dos pedidos fictícios (lista e detalhe compartilham status,
+// modalidade e pagamento). Nenhum valor é inventado fora da demonstração.
+const MEUS_PEDIDOS = MEUS_PEDIDOS_CLIENTE_DEMO;
 
 const STATUS_COLORS: Record<string, string> = {
   recebido: "bg-amber-100 text-amber-800 border-amber-200",
@@ -118,9 +42,8 @@ const MODALIDADE_LABEL: Record<string, string> = {
 };
 
 const PAGAMENTO_LABEL_EXT: Record<string, string> = {
+  ...PAGAMENTO_STATUS_LABEL,
   pago: "Pago e confirmado",
-  pendente: "Aguardando pagamento",
-  falhou: "Pagamento não aprovado",
   reembolsado: "Pagamento estornado",
 };
 
@@ -218,10 +141,10 @@ function FilterChip({
       className={cn("r2b-filter", active && "is-active")}
     >
       <span className="flex items-center gap-1">
-        {label === "Todos" && <Package className="size-3" />}
-        {label === "Em andamento" && <Truck className="size-3" />}
-        {label === "Concluídos" && <Wallet className="size-3" />}
-        {label === "Cancelados" && <ShieldAlert className="size-3" />}
+        {label === "Todos" && <Package className="size-4 shrink-0" />}
+        {label === "Em andamento" && <Truck className="size-4 shrink-0" />}
+        {label === "Concluídos" && <Wallet className="size-4 shrink-0" />}
+        {label === "Cancelados" && <ShieldAlert className="size-4 shrink-0" />}
         {label}
       </span>
       <span className="r2b-filter-count">{count}</span>
@@ -230,7 +153,7 @@ function FilterChip({
 }
 
 function PedidoCard({ pedido }: { pedido: (typeof MEUS_PEDIDOS)[number] }) {
-  const statusInfo = STATUS_LABEL[pedido.status] ?? pedido.status;
+  const statusInfo = statusLabel(pedido.status, pedido.modalidade);
   const statusColor = STATUS_COLORS[pedido.status] ?? "bg-muted";
   const pagamentoInfo = PAGAMENTO_LABEL_EXT[pedido.pagamento] ?? pedido.pagamento;
   const modalidadeInfo = MODALIDADE_LABEL[pedido.modalidade];
@@ -258,14 +181,24 @@ function PedidoCard({ pedido }: { pedido: (typeof MEUS_PEDIDOS)[number] }) {
         </div>
 
         <div className="r2b-order-status">
-          <span className={cn("r2b-badge", statusColor)}>{pedido.status === "entregue" ? <Check size={14} /> : <Truck size={14} />}{statusInfo}</span>
-          <span className={pedido.pagamento === "pago" ? "r2b-payment-good" : "r2b-payment-refunded"}><span aria-hidden="true">●</span> {pagamentoInfo}</span>
+          <span className={cn("r2b-badge", statusColor)}>
+            {pedido.modalidade === "retirada" ? <Store size={14} aria-hidden /> : <Truck size={14} aria-hidden />}
+            {statusInfo}
+          </span>
+          <span className={cn(
+            "r2b-payment",
+            pedido.pagamento === "pago" && "r2b-payment-good",
+            pedido.pagamento === "reembolsado" && "r2b-payment-refunded",
+            (pedido.pagamento === "pendente" || pedido.pagamento === "falhou") && "r2b-payment-pending",
+          )}>
+            <span aria-hidden="true">●</span> {pagamentoInfo}
+          </span>
         </div>
         <div className="r2b-order-actions">
           <strong className="r2b-order-value">{brl(pedido.valor)}</strong>
           <div>
-            <Link to="/preview/reembolsos-estornos-cliente/$id" params={{ id: pedido.id }} className="r2b-button r2b-button-primary"><Eye size={15} />Ver pedido</Link>
-            {pedido.podeRepetir && <Link to="/preview/reembolsos-estornos-cliente/$id" params={{ id: pedido.id }} search={{ repetir: true }} className="r2b-button r2b-button-outline"><RotateCcw size={15} />Repetir pedido</Link>}
+            <Link to="/pedido/$id" params={{ id: pedido.id }} className="r2b-button r2b-button-primary"><Eye size={15} />Ver pedido</Link>
+            {pedido.podeRepetir && <Link to="/pedido/$id" params={{ id: pedido.id }} search={{ repetir: true }} className="r2b-button r2b-button-outline"><RotateCcw size={15} />Repetir pedido</Link>}
           </div>
         </div>
     </article>

@@ -75,6 +75,8 @@ export type DadosOrcamento = {
   dataEvento: string;
   pessoas: number;
   porPessoa: number;
+  /** Preenchido quando o cliente informou a quantidade diretamente (sem mix). */
+  quantidadeDireta?: number | undefined;
   unidades: number;
   unidadesCombo: number;
   categoria: string;
@@ -89,6 +91,8 @@ export function mensagemOrcamento(d: DadosOrcamento): string {
   const linhas = [`*Orçamento de salgados — ${d.categoria}*`];
   if (d.itens?.length) {
     linhas.push(...d.itens);
+  } else if (d.quantidadeDireta) {
+    linhas.push(`Quantidade informada: ${d.quantidadeDireta} unidades`);
   } else {
     linhas.push(`Pessoas: ${d.pessoas}`);
     linhas.push(`Por pessoa: ${d.porPessoa}`);

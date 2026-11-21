@@ -73,8 +73,8 @@ export function PagamentoStatusBadge({ status }: { status?: string | null }) {
     reembolsado: "bg-muted text-foreground",
   };
   return (
-    <Badge className={cn("border-0", cores[s] ?? "bg-muted")}>
+    <span className={cn("inline-flex items-center rounded-md border-0 px-2.5 py-0.5 text-xs font-semibold", cores[s] ?? "bg-muted")}>
       {PAGAMENTO_STATUS_LABEL[s] ?? s}
-    </Badge>
+    </span>
   );
 }

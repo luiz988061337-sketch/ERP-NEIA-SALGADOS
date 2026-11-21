@@ -19,7 +19,11 @@ export const Route = createFileRoute("/preview")({
     ],
     links: [
       // R2-B carrega seu CSS compilado no layout pai, nunca um caminho /src em produção.
-      ...(matches.some((m) => m.pathname.startsWith("/preview/reembolsos-estornos-cliente") || ehPreviewModulo(m.pathname))
+      ...(matches.some((m) =>
+        m.pathname.startsWith("/preview/reembolsos-estornos-cliente") ||
+        m.pathname === "/preview/pedidos" ||
+        ehPreviewModulo(m.pathname),
+      )
         ? [] : [{ rel: "stylesheet", href: "/src/styles-preview.css" }]),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -36,7 +40,10 @@ function PreviewLayout() {
   const { pathname } = useLocation();
   if (ehPreviewModulo(pathname)) return <Outlet />;
   // R2-B público: sem hooks de sessão, consultas ou chrome administrativo.
-  if (pathname.startsWith("/preview/reembolsos-estornos-cliente")) return <R2BPublicLayout />;
+  // /preview/pedidos usa o mesmo layout isolado, sem o cabeçalho público duplicado.
+  if (pathname.startsWith("/preview/reembolsos-estornos-cliente") || pathname === "/preview/pedidos") {
+    return <R2BPublicLayout />;
+  }
   // Demonstração com shell administrativo próprio (Financeiro Premium,
   // Reembolsos/Estornos R1, Origens R2-A e Cliente R2-B). Não montar o chrome
   // público nem seus hooks de sessão nessas demonstrações sem banco.
@@ -52,10 +59,12 @@ function PreviewLayout() {
 function R2BPublicLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  // Mesmo carrinho do cabeçalho público: contador dinâmico, sem depender de sessão.
+  const { totalItens } = useCart();
   return (
     <div className="r2b-public flex min-h-screen flex-col">
       <PreviewHeader
-        totalItens={0} user={{}} loading={false} staffOnly={false} demoPublic
+        totalItens={totalItens} user={{}} loading={false} staffOnly={false} demoPublic
         mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
         userMenuOpen={userMenuOpen} setUserMenuOpen={setUserMenuOpen}
         isScrolled={false}
@@ -146,6 +155,24 @@ function PreviewHeader({
   onSair,
   demoPublic = false,
 }: any) {
+  const { pathname } = useLocation();
+  const rotaPedidos =
+    pathname === "/preview/pedidos"
+      ? "/preview/pedidos"
+      : demoPublic
+        ? "/preview/reembolsos-estornos-cliente"
+        : "/preview/pedidos";
+  // As duas rotas R2-B de pedidos compartilham o mesmo realce no cabeçalho.
+  const pedidosAtivo =
+    pathname === "/preview/pedidos" || pathname === "/conta" ||
+    pathname.startsWith("/preview/reembolsos-estornos-cliente");
+  // HOMO-CLIENTE-14 (ajuste visual): "Meus pedidos" neutro quando inativo,
+  // sem fundo caramelo; pílula vermelha #C9000B somente na rota ativa.
+  const pedidosClasse = cn(
+    "h-10 gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-bold text-[#500B08] shadow-none transition-colors hover:bg-[#FFF4D8] hover:text-[#500B08] focus-visible:ring-2 focus-visible:ring-[#F6B300] focus-visible:ring-offset-2",
+    pedidosAtivo &&
+      "border-[#C9000B] bg-[#C9000B] text-white shadow-[var(--shadow-card)] hover:bg-[#C9000B] hover:text-white focus-visible:ring-[#C9000B]",
+  );
   return (
     <header
       className={cn(
@@ -169,12 +196,14 @@ function PreviewHeader({
             <>
               <PreviewNavLink to="/preview" label="Início" icon={Home} exact={demoPublic} />
               <PreviewNavLink to="/preview/cardapio" label="Cardápio" icon={Package} />
-              <PreviewNavLink to="/preview/combo" label="Montar Combo" icon={Package} />
+              <PreviewNavLink to="/preview/combo" label="Montar combo" icon={Package} />
               <PreviewNavLink to="/preview/calculadora" label="Orçamento" icon={Package} />
             </>
           )}
           {user && !staffOnly && (
-            <PreviewNavLink to={demoPublic ? "/preview/reembolsos-estornos-cliente" : "/preview/pedidos"} label="Meus Pedidos" icon={Package} />
+            <Link to={rotaPedidos} aria-current={pedidosAtivo ? "page" : undefined} className={cn(pedidosClasse, "r2b-pedidos-link")}>
+              <Package className="size-4 shrink-0" aria-hidden /> Meus pedidos
+            </Link>
           )}
           {user && staffOnly && (
             <>
@@ -188,14 +217,26 @@ function PreviewHeader({
 
         <div className="flex items-center gap-2 ml-auto md:ml-4">
           {!staffOnly && (
-            <Button asChild variant="ghost" size="icon" className="relative">
-              <Link to="/preview/carrinho" aria-label="Carrinho">
-                <ShoppingBag className="size-5" />
-                {totalItens > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            <Button
+              asChild
+              size="sm"
+              className={cn(
+                "relative h-10 gap-1.5 rounded-xl bg-[#E8AD16] px-2.5 font-bold text-[#3B2600] shadow-[var(--shadow-card)] hover:bg-[#f0bc2b] focus-visible:ring-2 focus-visible:ring-[#E8AD16] focus-visible:ring-offset-2 sm:px-3",
+                pathname === "/preview/carrinho" && "ring-2 ring-[#C9000B] ring-offset-2",
+              )}
+            >
+              <Link
+                to="/preview/carrinho"
+                aria-label={`Carrinho com ${totalItens} ${totalItens === 1 ? "item" : "itens"}`}
+                aria-current={pathname === "/preview/carrinho" ? "page" : undefined}
+              >
+                <ShoppingBag className="size-5" aria-hidden />
+                <span className="text-xs sm:text-sm">Carrinho</span>
+                {totalItens > 0 ? (
+                  <span className="grid min-w-6 place-items-center rounded-full bg-[#650900] px-1 text-xs font-bold text-white">
                     {totalItens > 99 ? "99+" : totalItens}
                   </span>
-                )}
+                ) : null}
               </Link>
             </Button>
           )}
@@ -215,8 +256,15 @@ function PreviewHeader({
                       <p className="text-xs text-muted-foreground">Preview do novo layout</p>
                     </div>
                     {!staffOnly && (
-                      <Link to={demoPublic ? "/preview/reembolsos-estornos-cliente" : "/preview/pedidos"} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent rounded-lg">
-                        <Package className="size-4" /> Meus pedidos
+                      <Link
+                        to={rotaPedidos}
+                        aria-current={pedidosAtivo ? "page" : undefined}
+                        className={cn(
+                          "flex items-center gap-2 rounded-full border border-transparent px-3 py-2 text-sm font-bold text-[#500B08] hover:bg-[#FFF4D8] hover:text-[#500B08] focus-visible:ring-2 focus-visible:ring-[#F6B300] focus-visible:ring-offset-2",
+                          pedidosAtivo && "border-[#C9000B] bg-[#C9000B] text-white hover:bg-[#C9000B] hover:text-white",
+                        )}
+                      >
+                        <Package className="size-4 shrink-0" aria-hidden /> Meus pedidos
                       </Link>
                     )}
                     {staffOnly && (
@@ -274,7 +322,14 @@ function PreviewHeader({
               </>
             )}
             {user && !staffOnly && (
-              <PreviewMobileNavLink to={demoPublic ? "/preview/reembolsos-estornos-cliente" : "/preview/pedidos"} label="Meus Pedidos" icon={Package} onClick={() => setMobileMenuOpen(false)} />
+              <Link
+                to={rotaPedidos}
+                aria-current={pedidosAtivo ? "page" : undefined}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(pedidosClasse, "w-full justify-start", "r2b-pedidos-link")}
+              >
+                <Package className="size-4 shrink-0" aria-hidden /> Meus pedidos
+              </Link>
             )}
             {user && staffOnly && (
               <>
@@ -341,14 +396,14 @@ function PreviewFooter() {
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
               <li><Link to="/preview" className="hover:text-primary transition-colors">Início</Link></li>
               <li><Link to="/preview/cardapio" className="hover:text-primary transition-colors">Cardápio</Link></li>
-              <li><Link to="/preview/combo" className="hover:text-primary transition-colors">Montar Combo</Link></li>
+              <li><Link to="/preview/combo" className="hover:text-primary transition-colors">Montar combo</Link></li>
               <li><Link to="/preview/calculadora" className="hover:text-primary transition-colors">Orçamento</Link></li>
             </ul>
           </div>
           <div>
             <h3 className="font-display text-sm text-foreground">Atendimento</h3>
             <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li>WhatsApp: (11) 99999-9999</li>
+              <li>Contato: (11) 99999-9999 — demonstração</li>
               <li>Seg–Sáb: 08h–22h</li>
               <li>Dom: Fechado</li>
             </ul>

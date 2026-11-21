@@ -1,0 +1,4 @@
+COPIE os 4 arquivos desta pasta para a pasta referencias-visuais na raiz do ERP.
+Abra o PROMPT_CHECKOUT_ACOMPANHAMENTO.txt, copie seu conteúdo e envie ao OpenCode.
+Mesmo que o Big Pickle não leia os PNGs, ele pode usar o .md.
+Não copie dados fictícios das imagens para o ERP.
