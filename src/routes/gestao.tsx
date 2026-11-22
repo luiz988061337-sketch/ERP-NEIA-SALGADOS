@@ -33,7 +33,6 @@ import { useRoles, useSession } from "@/lib/session";
 export const Route = createFileRoute("/gestao")({
   head: () => ({
     meta: [{ title: "Gestão — Néia Salgados" }],
-    links: [{ rel: "stylesheet", href: "/src/l1-preview.css" }],
   }),
   component: () => {
     const navigate = useNavigate();

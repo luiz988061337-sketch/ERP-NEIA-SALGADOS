@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -105,6 +105,19 @@ function Financeiro() {
   const { data: roles } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const [mes, setMes] = useState(() => competenciaSaoPaulo(new Date().toISOString()) ?? new Date().toISOString().slice(0, 7));
+
+  useEffect(() => {
+    const irParaHash = () => {
+      const alvo = window.location.hash.replace(/^#/, "");
+      if (alvo !== "caixa" && alvo !== "relatorios") return;
+      window.requestAnimationFrame(() => {
+        document.getElementById(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    };
+    irParaHash();
+    window.addEventListener("hashchange", irParaHash);
+    return () => window.removeEventListener("hashchange", irParaHash);
+  }, []);
   const chavesOperacao = useRef(new Map<string, string>());
 
   function chaveOperacao(identidade: string): string {
@@ -1027,7 +1040,7 @@ function Financeiro() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-4">
+        <section id="relatorios" className="rounded-xl border border-border bg-card p-4">
           <h2 className="font-display text-xl">DRE do mês — {mes}</h2>
           <p className="text-xs text-muted-foreground">
             Receita de pedidos não cancelados; CMV = insumos pagos; despesas = demais contas pagas.
@@ -1243,7 +1256,7 @@ function Financeiro() {
           </form>
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-4">
+        <section id="caixa" className="rounded-xl border border-border bg-card p-4">
           <h2 className="font-display text-xl">Caixa</h2>
           {caixaAberto ? (
             <form onSubmit={fecharCaixa} className="mt-3 space-y-2 text-sm">

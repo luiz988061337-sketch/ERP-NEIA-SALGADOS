@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Bike, ChefHat, Check, ClipboardList, Clock, Flame, Home, TriangleAlert } from "lucide-react";
 import { L1Alert, L1Badge, L1Btn, L1Root, L1Section, L1Shell, L1Stat } from "@/components/l1/ui";
 import { L1_PRODUCAO } from "@/lib/l1-data";
+import l1PreviewCss from "../../l1-preview.css?url";
 
 /**
  * L1 PREVIEW ONLY — Produção e Cozinha (tema claro).
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/preview/l1-producao")({
   head: () => ({
     meta: [{ title: "L1 Preview — Produção e Cozinha" }],
     links: [
-      { rel: "stylesheet", href: "/src/l1-preview.css" },
+      { rel: "stylesheet", href: l1PreviewCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "stylesheet",

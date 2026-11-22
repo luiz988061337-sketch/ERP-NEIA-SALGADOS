@@ -4,6 +4,26 @@ import { register } from "node:module";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { readFileSync } from "node:fs";
+
+Object.assign(process.env, {
+  VITE_DEMO_PREVIEW: "1",
+  VITE_NEIA_AMBIENTE: "teste",
+  NEIA_AMBIENTE: "teste",
+  VITE_SUPABASE_URL: "https://visual-demo.invalid",
+  SUPABASE_URL: "https://visual-demo.invalid",
+  VITE_NEIA_PREVIEW_URL: "https://visual-demo.invalid",
+  NEIA_STAGING_URL: "https://visual-demo.invalid",
+  VITE_SUPABASE_PROJECT_ID: "visual-demo",
+  SUPABASE_PROJECT_ID: "visual-demo",
+  VITE_SUPABASE_PUBLISHABLE_KEY: "demo-nao-e-credencial",
+  SUPABASE_PUBLISHABLE_KEY: "demo-nao-e-credencial",
+  VERCEL: "0",
+  VERCEL_ENV: "development",
+});
+for (const chave of ["SUPABASE_SERVICE_ROLE_KEY", "VITE_SUPABASE_SERVICE_ROLE_KEY"]) {
+  delete process.env[chave];
+}
+
 register(pathToFileURL(path.resolve("scripts/alias-loader.mjs")).href);
 
 const A = await import("@/lib/atendente-aceite.ts");

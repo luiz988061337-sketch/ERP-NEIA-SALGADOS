@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BarChart3, Bike, ChefHat, ClipboardList, DollarSign, Home, Package, Settings, ShoppingCart, Users } from "lucide-react";
 import { L1Badge, L1Btn, L1Root, L1Section, L1Shell, L1Stat } from "@/components/l1/ui";
+import l1PreviewCss from "../../l1-preview.css?url";
 
 /**
  * L1 PREVIEW ONLY — Gestão Administrativa (tema claro).
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/preview/l1-gestao")({
   head: () => ({
     meta: [{ title: "L1 Preview — Gestão Administrativa" }],
     links: [
-      { rel: "stylesheet", href: "/src/l1-preview.css" },
+      { rel: "stylesheet", href: l1PreviewCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "stylesheet",

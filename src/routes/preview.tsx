@@ -10,6 +10,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/neia-logo.png.asset.json";
 import { ehPreviewModulo } from "@/lib/preview-modulos";
+import stylesPreviewCss from "../styles-preview.css?url";
 
 export const Route = createFileRoute("/preview")({
   head: ({ matches }) => ({
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/preview")({
         m.pathname === "/preview/pedidos" ||
         ehPreviewModulo(m.pathname),
       )
-        ? [] : [{ rel: "stylesheet", href: "/src/styles-preview.css" }]),
+        ? [] : [{ rel: "stylesheet", href: stylesPreviewCss }]),
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

@@ -1,0 +1,66 @@
+# FINALIZAÇÃO ERP NÉIA SALGADOS — PONTO DE RETOMADA
+
+## Estado atual
+
+- Etapa: FASE A concluída; FASE B (build, rotas e navegação) implementada e validada localmente; início da FASE C (autenticação e autorização).
+- Branch: `homologacao-finalizacao`.
+- Último commit validado: `0044673bbe403a800547163e5dec9db567bb8512` — `checkpoint: M24 ACL segura para homologacao`.
+- Checkpoint anterior: `1dc0e0d0c0ddd7c008628f473d33799136d689e2`.
+- Diretório: `C:\Users\luiz9\Projetos\ERP-NEIA-SALGADOS`.
+
+## Regras de execução
+
+- Preservar layouts aprovados; não refazer telas.
+- Não alterar `main`; não fazer push, deploy ou acessar produção.
+- Não executar migrations em banco remoto sem autorização específica.
+- Não aplicar `0124` ao Supabase existente; não reaplicar `0098`.
+- Usar `lflzlcqinarrcgncafol` somente após confirmação de identidade e acesso autorizado.
+- Não usar `.env` versionado com referências de produção para iniciar aplicativos ou testes.
+- Checkpoints locais pequenos, após verificação real de cada módulo.
+- Não declarar homologação integrada quando houver apenas teste local ou simulação.
+
+## Progresso
+
+| Item | Status | Evidência |
+|---|---|---|
+| M24 — migration `0124`, teste e documentação | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | commit `0044673`; verificação estática de assinaturas, ACL, owner, `SECURITY DEFINER`, pré/pós-condições e atomicidade pelo runner |
+| M24 — aplicação em banco | BLOQUEADO POR DEPENDÊNCIA EXTERNA | exige autorização e laboratório isolado; não executar no Supabase existente |
+| FASE B — build, rotas e navegação | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | 89 rotas inventariadas; 0 links literais quebrados; `/historia` restaurada; hashes `/financeiro#caixa` e `/financeiro#relatorios` com alvos reais; CSS `?url` em rotas preview; `typecheck` e `build` passaram |
+| FASE C — autenticação e autorização | PENDENTE | — |
+| FASE D — Cliente e Checkout | PENDENTE | — |
+| FASE E — Atendente e PDV | PENDENTE | — |
+| FASE F — Produção e Estoque | PENDENTE | — |
+| FASE G — Central de Entregas | PENDENTE | — |
+| FASE H — App Motoboy | PENDENTE | — |
+| FASE I — Financeiro Premium | PENDENTE | — |
+| FASE J — integrações externas | PENDENTE | — |
+| FASE K — testes completos e segurança | PENDENTE | — |
+| FASE L — homologação visual e funcional | PENDENTE | — |
+| FASE M — preparação de publicação | PENDENTE | — |
+
+## Testes executados até agora
+
+- M24: verificação estática e Git do checkpoint; nenhum SQL executado.
+- `npm.cmd run typecheck`: passou (`tsc --noEmit`).
+- `npm.cmd run build`: passou (cliente, SSR e Nitro; `.output/public` e `.output/server` gerados).
+- `npm.cmd run lint`: falhou com dívida pré-existente de 16127 problemas (principalmente `prettier/prettier`); não houve reformatação em massa.
+- `npm.cmd run teste:guard`: passou — 41 cenários.
+- `npm.cmd run teste:isolamento`: passou — 46 cenários.
+- `npm.cmd run teste:homo-cliente-02`: passou.
+- `npm.cmd run teste:aceite-local`: passou após configurar ambiente fictício no próprio teste — 7 cenários e verificações estáticas.
+- O loop completo de testes locais teve saída truncada; FASE K não foi declarada concluída.
+
+## Bloqueios reais
+
+- Execução de SQL em Supabase hospedado: depende de autorização explícita.
+- Credenciais de pagamentos, WhatsApp, GPS e fiscal: não utilizar ou ativar sem autorização.
+- Deploy/publicação: fora de escopo até aprovação final.
+- `lint` com dívida pré-existente: não bloqueia build, mas impede status verde; correção em massa não foi feita para preservar diffs e layouts aprovados.
+- Testes de navegação em navegador/homologação integrada: ainda pendentes; build e testes estáticos não substituem homologação.
+
+## Próxima ação concreta
+
+1. Criar checkpoint local da FASE B com o documento de progresso e as correções validadas.
+2. FASE C: revisar autenticação/autorização e isolamento de ambiente sem tocar em produção.
+3. Retomar FASE D em diante, mantendo checkpoints curtos por módulo.
+4. Antes da entrega final, gerar `ERP-NEIA-SALGADOS-PRONTO-PARA-HOMOLOGACAO.md` com status honesto de cada fase.

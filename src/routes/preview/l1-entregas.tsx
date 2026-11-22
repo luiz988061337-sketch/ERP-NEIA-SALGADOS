@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Bike, Check, Clock, Home, MapPin, Plus, TriangleAlert } from "lucide-react";
 import { L1Badge, L1Btn, L1Root, L1Section, L1Shell, L1Stat } from "@/components/l1/ui";
 import { L1_ENTREGAS, L1_MOTOBOYS, L1_ROTAS } from "@/lib/l1-data";
+import l1PreviewCss from "../../l1-preview.css?url";
 
 /**
  * L1 PREVIEW ONLY — Central de Entregas (tema claro).
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/preview/l1-entregas")({
   head: () => ({
     meta: [{ title: "L1 Preview — Central de Entregas" }],
     links: [
-      { rel: "stylesheet", href: "/src/l1-preview.css" },
+      { rel: "stylesheet", href: l1PreviewCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "stylesheet",
