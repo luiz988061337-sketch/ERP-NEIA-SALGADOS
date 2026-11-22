@@ -470,7 +470,11 @@ class ConsultaDemo implements PromiseLike<Resposta> {
   contains(coluna: string, valor: any) { return this.where(coluna, "contains", valor); }
   textSearch(coluna: string, valor: any) { return this.where(coluna, "like", valor); }
   or() { return this; }
-  not() { return this; }
+  not(coluna: string, operador: string, valor: any) {
+    if (operador === "is") return this.where(coluna, "not_is", valor);
+    if (operador === "in") return this.where(coluna, "not_in", valor);
+    return this;
+  }
 
   select(colunas = "*"): this { this.colunas = colunas; if (this.modo === "select") return this; return this; }
   order(coluna: string, opcoes?: { ascending?: boolean }) {
@@ -497,7 +501,14 @@ class ConsultaDemo implements PromiseLike<Resposta> {
           case "lt": return v < valor;
           case "lte": return v <= valor;
           case "is": return v === valor;
+          case "not_is": return v !== valor;
           case "in": return Array.isArray(valor) && valor.includes(v);
+          case "not_in": {
+            const lista = Array.isArray(valor)
+              ? valor
+              : String(valor ?? "").replace(/^\(|\)$/g, "").split(",").map((s) => s.trim()).filter(Boolean);
+            return !lista.includes(v);
+          }
           case "like":
           case "ilike": return String(v ?? "").toLowerCase().includes(String(valor ?? "").replace(/%/g, "").toLowerCase());
           default: return true;

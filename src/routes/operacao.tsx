@@ -125,7 +125,7 @@ function Operacao() {
           {oQuePrecisaAtencao(lista, criticos).length === 0 ? <li>Tudo sob controle. ✅</li> : null}
         </ul>
         <p className="text-sm text-muted-foreground">{acontecendoAgora(lista, 0, 0)}</p>
-        <LembretesBox />;
+        <LembretesBox />
         <AvisosBox />
         <DemandaBox />
         <GargaloBox />

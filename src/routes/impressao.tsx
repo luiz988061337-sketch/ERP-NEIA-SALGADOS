@@ -70,7 +70,7 @@ function Fila() {
     reimpressoes: number;
   }) {
     try {
-      await supabase.from("fila_impressao").insert({
+      const { error: erroInsert } = await supabase.from("fila_impressao").insert({
         trabalho_uuid: `reimp:${job.id}:${Date.now()}`,
         pedido_id: job.pedido_id,
         tipo: "pedido",
@@ -78,10 +78,12 @@ function Fila() {
         impressora: "Tanca TP-550",
         motivo_reimpressao: "manual",
       });
-      await supabase
+      if (erroInsert) throw new Error("Falha ao reimprimir. Rode o PASSO-11 no Supabase.");
+      const { error: erroUpdate } = await supabase
         .from("fila_impressao")
         .update({ reimpressoes: (job.reimpressoes ?? 0) + 1 })
         .eq("id", job.id);
+      if (erroUpdate) throw new Error("Reimpressão na fila, mas falha ao atualizar a origem.");
       toast.success("Reimpressão na fila.");
       fila.refetch();
     } catch (e) {
@@ -91,7 +93,7 @@ function Fila() {
 
   async function tentarNovamente(job: { id: string }) {
     try {
-      await supabase
+      const { error } = await supabase
         .from("fila_impressao")
         .update({
           status: "pendente",
@@ -100,6 +102,7 @@ function Fila() {
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
+      if (error) throw new Error("Falha ao retornar o trabalho para a fila.");
       toast.success("Trabalho de volta à fila.");
       fila.refetch();
     } catch (e) {
@@ -110,10 +113,11 @@ function Fila() {
   async function cancelarJob(job: { id: string }) {
     if (!window.confirm("Cancelar este trabalho de impressão?")) return;
     try {
-      await supabase
+      const { error } = await supabase
         .from("fila_impressao")
         .update({ status: "cancelado", updated_at: new Date().toISOString() })
         .eq("id", job.id);
+      if (error) throw new Error("Falha ao cancelar o trabalho.");
       toast.success("Trabalho cancelado.");
       fila.refetch();
     } catch (e) {

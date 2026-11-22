@@ -2,6 +2,7 @@
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 register(pathToFileURL(path.resolve("scripts/alias-loader.mjs")).href);
 const { converterUnidade, custoMedioPonderado, consumoPorInsumo, sugestaoCompra } = await import(
   "@/lib/insumos.ts"
@@ -53,6 +54,12 @@ ok(alertaEstoque(0, 10) === "zerado", "status zerado");
 ok(alertaEstoque(4, 10) === "critico", "status crítico ≤50% mínimo");
 ok(alertaEstoque(9, 10) === "baixo", "status baixo");
 ok(alertaEstoque(50, 10) === "ok", "status ok");
+
+const codigoInsumos = readFileSync("src/components/admin/estoque/insumos-admin.tsx", "utf8");
+ok(codigoInsumos.split('.eq("estoque_atual", antes)').length - 1 >= 2, "perda e inventário usam estoque esperado");
+ok(codigoInsumos.includes(".select(\"id\")"), "ajuste de insumo confirma linha atualizada");
+const movimentosSemErro = codigoInsumos.replace(/const \{ error: e2 \} = await supabase\.from\("insumo_movimentacoes"\)\.insert\(\{/g, "");
+ok(!/await supabase\.from\("insumo_movimentacoes"\)\.insert\(\{/.test(movimentosSemErro), "movimento de insumo sempre verifica erro");
 
 if (falhas > 0) {
   console.error(`\n${falhas} falha(s).`);

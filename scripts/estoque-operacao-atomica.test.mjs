@@ -46,6 +46,15 @@ assert.match(productSave, /if \(id\) delete payloadProduto\["estoque"\]/,
 assert.match(productSave, /p_estoque_esperado: estoqueAnterior/,
   "ajuste de saldo no cadastro compara com a versão lida");
 
+const demo = readFileSync("src/lib/demo-preview.ts", "utf8");
+const operacao = readFileSync("src/routes/operacao.tsx", "utf8");
+assert.match(demo, /case "not_is": return v !== valor/,
+  "demo aplica filtro not(is)");
+assert.match(demo, /case "not_in":/,
+  "demo aplica filtro not(in)");
+assert.doesNotMatch(operacao, /<LembretesBox \/>;/,
+  "painel da operação não renderiza ponto e vírgula literal");
+
 // Teste local do validador puro; concorrência do PostgreSQL não é simulada aqui.
 assert.deepEqual(novoEstoque(12, "saida", 5), { ok: true, valor: 7 });
 assert.equal(novoEstoque(12, "perda", 13).ok, false);

@@ -128,28 +128,34 @@ export function InsumosAdmin() {
       return;
     }
     const motivo = String(f.get("motivo") ?? "").trim();
-    const { error: e1 } = await supabase
+    const antes = Number(foco.estoque_atual);
+    const depois = antes - qtdBase;
+    const { data: atualizado, error: e1 } = await supabase
       .from("insumos")
-      .update({ estoque_atual: Number(foco.estoque_atual) - qtdBase, updated_at: new Date().toISOString() })
-      .eq("id", foco.id);
-    if (e1) {
-      toast.error("Falha ao baixar estoque.");
+      .update({ estoque_atual: depois, updated_at: new Date().toISOString() })
+      .eq("id", foco.id)
+      .eq("estoque_atual", antes)
+      .select("id");
+    if (e1 || !atualizado?.length) {
+      toast.error("Estoque alterado por outra operação. Recarregue e tente novamente.");
+      refresh();
       return;
     }
     const { error: e2 } = await supabase.from("insumo_movimentacoes").insert({
       insumo_id: foco.id,
       tipo: "perda",
       quantidade: qtdBase,
-      saldo_antes: Number(foco.estoque_atual),
-      saldo_depois: Number(foco.estoque_atual) - qtdBase,
+      saldo_antes: antes,
+      saldo_depois: depois,
       referencia: motivo || "perda registrada na produção",
     });
     if (e2) {
-      toast.error("Movimento não gravado (estoque já baixado — confira).");
-    } else {
-      void logAdmin("insumo_perda", `${foco.nome} -${qtdBase}${foco.unidade_base}`);
-      toast.success("Perda registrada.");
+      toast.error("Estoque baixado, mas o movimento não foi gravado. Confira antes de repetir.");
+      refresh();
+      return;
     }
+    void logAdmin("insumo_perda", `${foco.nome} -${qtdBase}${foco.unidade_base}`);
+    toast.success("Perda registrada.");
     (e.target as HTMLFormElement).reset();
     refresh();
   }
@@ -165,15 +171,18 @@ export function InsumosAdmin() {
     }
     const antes = Number(foco.estoque_atual ?? 0);
     const motivo = String(f.get("motivo") ?? "").trim() || "inventário";
-    const { error: e1 } = await supabase
+    const { data: atualizado, error: e1 } = await supabase
       .from("insumos")
       .update({ estoque_atual: contado, updated_at: new Date().toISOString() })
-      .eq("id", foco.id);
-    if (e1) {
-      toast.error("Falha no inventário.");
+      .eq("id", foco.id)
+      .eq("estoque_atual", antes)
+      .select("id");
+    if (e1 || !atualizado?.length) {
+      toast.error("Estoque alterado por outra operação. Recarregue e tente novamente.");
+      refresh();
       return;
     }
-    await supabase.from("insumo_movimentacoes").insert({
+    const { error: e2 } = await supabase.from("insumo_movimentacoes").insert({
       insumo_id: foco.id,
       tipo: "inventario",
       quantidade: Math.abs(contado - antes),
@@ -181,6 +190,11 @@ export function InsumosAdmin() {
       saldo_depois: contado,
       referencia: motivo,
     });
+    if (e2) {
+      toast.error("Estoque atualizado, mas o movimento não foi gravado. Confira antes de repetir.");
+      refresh();
+      return;
+    }
     void logAdmin("insumo_inventario", `${foco.nome}: ${antes} → ${contado}${foco.unidade_base} (${motivo})`);
     toast.success(`Inventário: diferença ${contado - antes >= 0 ? "+" : ""}${contado - antes} ${foco.unidade_base}.`);
     (e.target as HTMLFormElement).reset();

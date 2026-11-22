@@ -179,7 +179,22 @@ function processoDoItem(item: ItemProducaoMemoria): ProcessoSimplificado {
 }
 
 function idProduto(item: ItemProducaoMemoria, pedidoId: string): string {
-  return texto(item.produto_id ?? item.produtoId ?? item.id) || `${pedidoId}:${texto(item.nome)}`;
+  return (
+    texto(item.produto_id ?? item.produtoId) ||
+    texto(item.nome) ||
+    `${pedidoId}:sem-produto`
+  );
+}
+
+function itensAgrupadosDoPedido(pedido: PedidoProducaoMemoria): ItemProducaoMemoria[] {
+  const agrupados = new Map<string, ItemProducaoMemoria>();
+  for (const item of itensDoPedido(pedido)) {
+    const produtoId = idProduto(item, pedido.id);
+    const atual = agrupados.get(produtoId);
+    if (atual) atual.quantidade += inteiro(item.quantidade);
+    else agrupados.set(produtoId, { ...item, produto_id: produtoId, produtoId });
+  }
+  return [...agrupados.values()];
 }
 
 /**
@@ -202,7 +217,7 @@ export function planoRemessas(pedido: PedidoProducaoMemoria): RemessaMemoria[] {
   let atual: RemessaMemoria | null = null;
   let sequencia = 0;
 
-  for (const item of itensDoPedido(pedido)) {
+  for (const item of itensAgrupadosDoPedido(pedido)) {
     let restante = inteiro(item.quantidade);
     const produtoId = idProduto(item, pedido.id);
     const processo = processoDoItem(item);
@@ -253,11 +268,13 @@ export function validarPlanoRemessas(
   const porItem = new Map<string, number>();
   for (const r of remessas) {
     for (const i of r.itens) {
-      porItem.set(i.nome, (porItem.get(i.nome) ?? 0) + i.quantidade);
+      const chave = `${i.produtoId}\u0000${i.nome}`;
+      porItem.set(chave, (porItem.get(chave) ?? 0) + i.quantidade);
     }
   }
-  for (const i of itensDoPedido(pedido)) {
-    if ((porItem.get(texto(i.nome)) ?? 0) !== inteiro(i.quantidade))
+  for (const i of itensAgrupadosDoPedido(pedido)) {
+    const chave = `${idProduto(i, pedido.id)}\u0000${texto(i.nome)}`;
+    if ((porItem.get(chave) ?? 0) !== inteiro(i.quantidade))
       motivos.push(`quantidade de ${texto(i.nome)} divergente`);
   }
   return { valida: motivos.length === 0, motivos };
@@ -377,9 +394,7 @@ function eEstado(
 
 function consumirReservasDaRemessa(estado: EstadoProducaoMemoria, remessa: RemessaMemoria, idemKey: string, criadoEm: string): boolean {
   for (const item of remessa.itens) {
-    const reserva = estado.reservas.find(
-      (r) => r.produtoId === item.produtoId || r.nome === item.nome,
-    );
+    const reserva = estado.reservas.find((r) => r.produtoId === item.produtoId);
     if (!reserva || reserva.status === "liberada") return false;
     if (reserva.consumido + item.quantidade > reserva.quantidade) return false;
     reserva.consumido += item.quantidade;
@@ -406,7 +421,7 @@ function criarEstado(pedidoFonte: PedidoProducaoMemoria, instante: string): Esta
     pedido_itens: itensDoPedido(pedidoFonte).map((i) => ({ ...i })),
   };
   const remessas = planoRemessas(pedido);
-  const reservas: ReservaMemoria[] = itensDoPedido(pedido).map((item, indice) => ({
+  const reservas: ReservaMemoria[] = itensAgrupadosDoPedido(pedido).map((item, indice) => ({
     id: `${pedido.id}:reserva:${indice + 1}`,
     pedidoId: pedido.id,
     produtoId: idProduto(item, pedido.id),
@@ -625,9 +640,7 @@ export function finalizarRemessaMemoria(params: {
   const instante = agoraISO(params.agora);
   // Validação de reservas antes de qualquer gravação (operação atômica local).
   for (const item of remessa.itens) {
-    const reserva = bruto.reservas.find(
-      (r) => r.produtoId === item.produtoId || r.nome === item.nome,
-    );
+    const reserva = bruto.reservas.find((r) => r.produtoId === item.produtoId);
     if (!reserva || reserva.status === "liberada")
       return falha("sem-reserva", `sem reserva para ${item.nome}`);
     if (reserva.consumido + item.quantidade > reserva.quantidade)

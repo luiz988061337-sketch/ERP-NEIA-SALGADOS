@@ -79,6 +79,15 @@ ok(I.trabalhoUuid("abc", "liberado") === "abc:ficha:liberado", "E6.18 uuid deter
   ok(!/[\u0080-\uFFFF]/.test(cupom), "E6.25 payload final e ASCII");
 }
 
+const rotaImpressao = readFileSync("src/routes/impressao.tsx", "utf8");
+const rotaAdmin = readFileSync("src/routes/admin.tsx", "utf8");
+ok(rotaImpressao.includes('if (erroInsert) throw new Error("Falha ao reimprimir'), "E6.26 reimpressão não reporta sucesso se a fila falhar");
+ok(rotaImpressao.includes('if (erroUpdate) throw new Error("Reimpressão na fila'), "E6.27 reimpressão não reporta sucesso se a origem falhar");
+ok(rotaImpressao.includes('if (error) throw new Error("Falha ao retornar'), "E6.28 nova tentativa verifica erro do banco");
+ok(rotaImpressao.includes('if (error) throw new Error("Falha ao cancelar'), "E6.29 cancelamento verifica erro do banco");
+ok(rotaAdmin.includes('if (erroInsert) throw new Error("Falha ao reimprimir'), "E6.30 admin de impressão não reporta reimpressão falsa");
+ok(rotaAdmin.includes('if (error) throw new Error("Falha ao cancelar'), "E6.31 admin de impressão não reporta cancelamento falso");
+
 if (falhas > 0) {
   console.error(`E6: ${falhas} caso(s) falhando.`);
   process.exit(1);

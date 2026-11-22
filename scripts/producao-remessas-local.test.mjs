@@ -263,6 +263,74 @@ function prontoParaDespacho(pedidoBase) {
   );
 }
 
+{
+  const p = pedido({
+    id: "b3-05-duplicados",
+    pedido_itens: [
+      { id: "i1", nome: "Coxinha de Frango", quantidade: 50, produto_id: "p1", produtos: { slug: "fritos" } },
+      { id: "i2", nome: "Coxinha de Frango", quantidade: 50, produto_id: "p1", produtos: { slug: "fritos" } },
+    ],
+  });
+  const plano = R.planoRemessas(p);
+  ok(plano.length === 2 && plano.every((r) => r.quantidade === 50), "itens duplicados geram duas remessas de 50");
+  ok(R.validarPlanoRemessas(p, plano).valida, "plano com itens duplicados conserva quantidades");
+  reiniciar([p]);
+  ok(R.iniciarProducaoMemoria({ pedidoId: p.id, autor: AUTOR, agora: AGORA_TXT }).ok, "preparo com itens duplicados iniciado");
+  let finalizou = true;
+  for (let i = 0; i < 2; i += 1) {
+    const remessa = R.proximaRemessaMemoria(p.id);
+    const resultado = remessa
+      ? R.finalizarRemessaMemoria({
+          pedidoId: p.id,
+          remessaId: remessa.id,
+          quantidade: remessa.quantidade,
+          autor: AUTOR,
+          idemKey: `b3-05-duplicados-${i}`,
+          agora: AGORA_TXT,
+        })
+      : { ok: false };
+    if (!resultado.ok) finalizou = false;
+  }
+  ok(finalizou, "remessas com itens duplicados consomem a reserva correta");
+  const estado = R.estadoProducaoMemoria(p.id);
+  ok(
+    estado.reservas.length === 1 && estado.reservas[0].consumido === 100 && estado.reservas[0].status === "consumida",
+    "reserva duplicada é agregada e totalmente consumida",
+  );
+}
+
+{
+  const p = pedido({
+    id: "b3-05-mesmo-nome",
+    pedido_itens: [
+      { id: "i1", nome: "Coxinha de Frango", quantidade: 30, produto_id: "p1", produtos: { slug: "fritos" } },
+      { id: "i2", nome: "Coxinha de Frango", quantidade: 20, produto_id: "p2", produtos: { slug: "fritos" } },
+    ],
+  });
+  const plano = R.planoRemessas(p);
+  ok(plano.length === 1 && plano[0].itens.length === 2, "produtos distintos com o mesmo nome ficam separados");
+  ok(R.validarPlanoRemessas(p, plano).valida, "plano com nomes repetidos conserva quantidades por produto");
+  reiniciar([p]);
+  ok(R.iniciarProducaoMemoria({ pedidoId: p.id, autor: AUTOR, agora: AGORA_TXT }).ok, "preparo com nomes repetidos iniciado");
+  const remessa = R.proximaRemessaMemoria(p.id);
+  const finalizado = R.finalizarRemessaMemoria({
+    pedidoId: p.id,
+    remessaId: remessa.id,
+    quantidade: remessa.quantidade,
+    autor: AUTOR,
+    idemKey: "b3-05-mesmo-nome",
+    agora: AGORA_TXT,
+  });
+  ok(finalizado.ok, "remessa com nomes repetidos consome reservas distintas", finalizado.detalhe);
+  const estado = R.estadoProducaoMemoria(p.id);
+  ok(
+    estado.reservas.length === 2 &&
+      estado.reservas.some((r) => r.produtoId === "p1" && r.consumido === 30) &&
+      estado.reservas.some((r) => r.produtoId === "p2" && r.consumido === 20),
+    "cada produto consome somente sua reserva",
+  );
+}
+
 // ---------------------------------------------------------------------------
 // 6. Soma acima da quantidade do pedido/remessa é bloqueada.
 // ---------------------------------------------------------------------------
