@@ -99,6 +99,53 @@ export function prazosAtendimento(cfg: Partial<LojaConfig> | null | undefined): 
   return { retiradaMin, retiradaMax, entregaMin, entregaMax };
 }
 
+/**
+ * HOMO-CLIENTE-15 — fonte unica de "endereco oficial da loja".
+ * Texto de demonstracao, modo demo e ausencia de coordenadas/place id nao
+ * caracterizam configuracao oficial validada: nesses casos a UI deve dizer
+ * que a localizacao esta pendente, sem abrir rota para destino ficticio.
+ */
+export type EnderecoLojaOficial = {
+  validada: boolean;
+  texto: string;
+  motivoPendencia: string;
+};
+
+export const MOTIVO_ENDERECO_LOJA_PENDENTE =
+  "Localização da loja pendente de configuração oficial.";
+
+export function enderecoLojaOficial(
+  loja: LojaConfig,
+  cfgEntrega?: unknown | null,
+  modoDemo = false,
+): EnderecoLojaOficial {
+  const cfg = (cfgEntrega ?? {}) as Record<string, any>;
+  const partirOrigem = [
+    cfg["origem_logradouro"], cfg["origem_numero"], cfg["origem_bairro"], cfg["origem_cidade"],
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const textoOrigem = cfg["origem_nome"] && partirOrigem
+    ? `${cfg["origem_nome"]} — ${partirOrigem}`
+    : "";
+  const texto = textoOrigem || enderecoLoja(loja);
+  const ficticio = /demonstra|fictíci|simulação/i.test(
+    [cfg["origem_nome"], cfg["origem_logradouro"], cfg["origem_bairro"], texto]
+      .filter(Boolean)
+      .join(" "),
+  );
+  const origemPlaceId = Boolean(cfg["origem_place_id"]);
+  const origemCoordenadas = cfg["origem_lat"] != null && cfg["origem_lng"] != null;
+  const mapaLoja = loja.mapa_lat != null && loja.mapa_lng != null;
+  const validada = !modoDemo && !ficticio && Boolean(texto) &&
+    ((origemPlaceId && origemCoordenadas) || mapaLoja);
+  return {
+    validada,
+    texto: validada ? texto : MOTIVO_ENDERECO_LOJA_PENDENTE,
+    motivoPendencia: MOTIVO_ENDERECO_LOJA_PENDENTE,
+  };
+}
+
 /** "Rua, 123 - Bairro - Cidade" (ignora partes vazias). */
 export function enderecoLoja(cfg: LojaConfig): string {
   const partes = [

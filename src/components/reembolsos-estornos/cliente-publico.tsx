@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Crown, Headphones, ShieldCheck } from "lucide-react";
 import { DEFAULT_CRM_SETTINGS, useCrmSettings } from "@/lib/crm";
+import { DEFAULT_FIDELIDADE, podeResgatar } from "@/lib/fidelidade";
 import { ehModoDemo } from "@/lib/demo-preview";
 
 /**
@@ -13,15 +14,17 @@ export function FidelidadeCliente({ pontos }: { pontos?: number } = {}) {
   // preview) e usamos apenas a configuração padrão, sem inventar saldo.
   const consultaCrm = useCrmSettings();
   const settings = ehModoDemo() ? null : consultaCrm.data;
+  // HOMO-CLIENTE-15: mesma regra e mesmos defaults dos demais componentes.
   const cfg = {
+    ...DEFAULT_FIDELIDADE,
     ativo: settings?.fid_ativo ?? DEFAULT_CRM_SETTINGS.fid_ativo,
+    reaisPorPonto: settings?.fid_reais_por_ponto ?? DEFAULT_CRM_SETTINGS.fid_reais_por_ponto,
     metaPontos: settings?.fid_meta_pontos ?? DEFAULT_CRM_SETTINGS.fid_meta_pontos,
     recompensaValor: settings?.fid_recompensa_valor ?? DEFAULT_CRM_SETTINGS.fid_recompensa_valor,
   };
   if (!cfg.ativo) return null;
-  const saldo = ehModoDemo()
-    ? (pontos ?? 0)
-    : (pontos ?? 0);
+  const saldo = pontos ?? 0;
+  const resgate = podeResgatar(saldo, cfg);
   const meta = Math.max(1, cfg.metaPontos);
   const falta = Math.max(0, meta - saldo);
   const largura = Math.min(100, Math.round((saldo / meta) * 100));
@@ -47,11 +50,8 @@ export function FidelidadeCliente({ pontos }: { pontos?: number } = {}) {
         <span style={{ width: `${largura}%` }} />
       </div>
       <p className="r2b-loyalty-note">
-        {ehModoDemo()
-          ? "Demonstração: nenhum ponto real é creditado."
-          : falta > 0
-            ? `Faltam ${falta} pontos para sua próxima recompensa!`
-            : "Você já pode resgatar sua recompensa!"}
+        {resgate.ok ? "Você já pode resgatar sua recompensa!" : `Faltam ${falta} pontos para sua próxima recompensa!`}
+        {ehModoDemo() ? " Demonstração: nenhum ponto real é creditado." : null}
       </p>
     </aside>
   );

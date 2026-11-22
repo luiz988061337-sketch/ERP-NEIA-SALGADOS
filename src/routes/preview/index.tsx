@@ -65,7 +65,7 @@ function PreviewHome() {
               </Button>
             </div>
             <div className="mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/80">
-              <span className="flex items-center gap-2"><Clock className="size-4 text-primary" /> 40–60 min</span>
+              <span className="flex items-center gap-2"><Clock className="size-4 text-primary" /> Retirada 40–60 / Entrega 60–90 min (sujeito à disponibilidade)</span>
               <span className="flex items-center gap-2"><Truck className="size-4 text-primary" /> Entrega a partir de R$ XX,XX DEMO</span>
               <span className="flex items-center gap-2"><ShieldCheck className="size-4 text-primary" /> PIX e cartão na entrega</span>
             </div>
@@ -168,7 +168,7 @@ function PreviewHome() {
       <section className="mx-auto w-full max-w-7xl px-4 pb-24 md:pb-10" aria-label="Avaliação">
         <div className="flex items-center gap-2">
           <Star className="size-5 fill-primary text-primary" />
-          <p className="text-sm text-muted-foreground">4.9 — 1.200+ avaliações (DEMO visual) • Entrega 40–60 min • PIX na entrega</p>
+          <p className="text-sm text-muted-foreground">4.9 — 1.200+ avaliações (DEMO visual) • Retirada 40–60 / Entrega 60–90 min (sujeito à disponibilidade) • PIX na entrega</p>
         </div>
       </section>
 

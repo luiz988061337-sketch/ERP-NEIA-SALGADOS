@@ -3,15 +3,16 @@ import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart";
 import { useStaffOnly } from "@/lib/session";
-import { brl, TAXA_ENTREGA } from "@/lib/format";
-import { calcTotals } from "@/lib/totals";
+import { brl } from "@/lib/format";
 
 /** Barra fixa inferior no mobile — visível em todas as rotas de loja quando há itens. */
 export function CartDock() {
   const { items, subtotal, totalItens } = useCart();
   const { staffOnly } = useStaffOnly();
   if (staffOnly || items.length === 0 || totalItens <= 0) return null;
-  const { total } = calcTotals({ subtotal, taxaEntrega: TAXA_ENTREGA });
+  // HOMO-CLIENTE-15: a taxa depende da modalidade e do endereço validado no
+  // checkout. A barra flutuante mostra apenas o subtotal, sem frete presumido.
+  const valorCarrinho = subtotal;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
@@ -20,7 +21,7 @@ export function CartDock() {
           <Link to="/carrinho" aria-label={`Ver pedido com ${totalItens} itens`}>
             <span className="flex items-center gap-2">
               <ShoppingBag className="size-5" aria-hidden />
-              {totalItens} {totalItens === 1 ? "item" : "itens"} — {brl(total)}
+              {totalItens} {totalItens === 1 ? "item" : "itens"} — {brl(valorCarrinho)}
             </span>
             <span className="font-bold">VER PEDIDO</span>
           </Link>

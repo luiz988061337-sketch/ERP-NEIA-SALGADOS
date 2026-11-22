@@ -17,8 +17,10 @@ import {
   type PedidoAceiteMemoria,
 } from "@/lib/aceite-atendente-memoria";
 import { MEUS_PEDIDOS_CLIENTE_DEMO } from "@/lib/pedidos-demo-cliente";
+import { DEFAULT_FIDELIDADE, pontosGanhos } from "@/lib/fidelidade";
 import fritos from "@/assets/cat-fritos.jpg";
 import assados from "@/assets/cat-assados.jpg";
+import hero from "@/assets/hero.jpg";
 
 type Linha = Record<string, any>;
 type Resposta = { data: any; error: any; count?: number | undefined; status?: number };
@@ -162,14 +164,31 @@ const SEMENTES: Record<string, Linha[]> = {
     }),
   ],
   categorias: [
-    linha("categorias", { id: "00000000-0000-4000-8000-000000000121", nome: "Fritos", slug: "fritos", ativo: true, ordem: 1 }),
-    linha("categorias", { id: "00000000-0000-4000-8000-000000000122", nome: "Assados", slug: "assados", ativo: true, ordem: 2 }),
+    // combo_preco_unit espelha a migration 0097: autoridade de preço do combo
+    // misto (soma das componentes = quantidade do item, não 50 por sabor).
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000121", nome: "Fritos", slug: "fritos", ativo: true, ordem: 1, combo_preco_unit: 1.6 }),
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000122", nome: "Assados", slug: "assados", ativo: true, ordem: 2, combo_preco_unit: 2.3 }),
     linha("categorias", { id: "00000000-0000-4000-8000-000000000123", nome: "Doces", slug: "doces", ativo: true, ordem: 3 }),
+    // HOMO-13B: categorias fictícias para exercitar congelados e bebidas com
+    // unidade comercial própria. Não são combos e não entram no carrossel.
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000124", nome: "Congelados", slug: "salgados-congelados", ativo: true, ordem: 4 }),
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000125", nome: "Bebidas", slug: "bebidas", ativo: true, ordem: 5 }),
   ],
   produtos: [
-    linha("produtos", { id: "00000000-0000-4000-8000-000000000001", nome: "Coxinha de frango (demo)", categoria: "Fritos", preco: 7.9, ativo: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 120, embalagem_custo: 0.35, tempo_fritura_s: 210, tempo_mao_obra_min: 0.8 }),
-    linha("produtos", { id: "00000000-0000-4000-8000-000000000002", nome: "Bolinho de queijo (demo)", categoria: "Fritos", preco: 6.5, ativo: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 90, embalagem_custo: 0.25, tempo_fritura_s: 180, tempo_mao_obra_min: 0.6 }),
-    linha("produtos", { id: "00000000-0000-4000-8000-000000000003", nome: "Pão de queijo (demo)", categoria: "Assados", preco: 5.5, ativo: true, descricao: "Produto fictício", imagem_url: assados, estoque: 60, embalagem_custo: 0.2, tempo_fritura_s: 0, tempo_mao_obra_min: 0.4 }),
+    // HOMO-13B: salgados prontos seguem o contrato real — venda em múltiplos
+    // de 50, com unidade comercial "un". O carrinho demo já entra com 50un;
+    // a revalidação do checkout usa este cadastro, não a flag do localStorage.
+    // HOMO-CLIENTE-15: `disponivel: true` explicito nas fixtures. O ProductCard
+    // trata campo ausente como esgotado, enquanto a regra central do catalogo
+    // considera ausente como disponivel; aqui alinhamos os dois sem tocar no
+    // estoque real nem na regra comercial aprovada.
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000001", nome: "Coxinha de frango (demo)", categoria: "Fritos", categoria_id: "00000000-0000-4000-8000-000000000121", tipo_venda: "combo_50", unidade_medida: "un", preco: 7.9, ativo: true, disponivel: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 120, embalagem_custo: 0.35, tempo_fritura_s: 210, tempo_mao_obra_min: 0.8 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000002", nome: "Bolinho de queijo (demo)", categoria: "Fritos", categoria_id: "00000000-0000-4000-8000-000000000121", tipo_venda: "combo_50", unidade_medida: "un", preco: 6.5, ativo: true, disponivel: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 90, embalagem_custo: 0.25, tempo_fritura_s: 180, tempo_mao_obra_min: 0.6 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000003", nome: "Pão de queijo (demo)", categoria: "Assados", categoria_id: "00000000-0000-4000-8000-000000000122", tipo_venda: "combo_50", unidade_medida: "un", preco: 5.5, ativo: true, disponivel: true, descricao: "Produto fictício", imagem_url: assados, estoque: 60, embalagem_custo: 0.2, tempo_fritura_s: 0, tempo_mao_obra_min: 0.4 }),
+    // Congelado vendido por PACOTE (incremento de 1 unidade comercial) e
+    // bebida vendida por UN. Nenhum dos dois usa passo de 50.
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000004", nome: "Coxinha congelada (demo)", categoria: "Congelados", categoria_id: "00000000-0000-4000-8000-000000000124", tipo_venda: "unidade", unidade_medida: "pacote", preco: 32.9, ativo: true, disponivel: true, descricao: "Produto fictício — 1 pacote", imagem_url: hero, estoque: 40, embalagem_custo: 1.2, tempo_fritura_s: 0, tempo_mao_obra_min: 0 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000005", nome: "Refrigerante (demo)", categoria: "Bebidas", categoria_id: "00000000-0000-4000-8000-000000000125", tipo_venda: "unidade", unidade_medida: "un", preco: 6.9, ativo: true, disponivel: true, descricao: "Produto fictício — 1 unidade", imagem_url: assados, estoque: 80, embalagem_custo: 0.4, tempo_fritura_s: 0, tempo_mao_obra_min: 0 }),
   ],
   // HOMO-CLIENTE-14: fixtures do carrossel da home. Nomes e fotos vêm do
   // próprio catálogo demonstrativo; nenhum produto ou imagem é inventado e
@@ -372,7 +391,14 @@ function lerPersistencia(): Record<string, Linha[]> {
     const objeto = JSON.parse(bruto) as Record<string, unknown>;
     const saida: Record<string, Linha[]> = {};
     for (const nome of TABELAS_PERSISTIDAS) {
-      if (Array.isArray(objeto[nome])) saida[nome] = objeto[nome] as Linha[];
+      if (!Array.isArray(objeto[nome])) continue;
+      // HOMO-CLIENTE-15: pedidos persistidos antes do default de status nasciam
+      // sem `status`; normaliza sem sobrescrever nenhum valor explicito já salvo.
+      saida[nome] = (objeto[nome] as Linha[]).map((r) =>
+        nome === "pedidos"
+          ? { status: "recebido", producao_status: "aguardando", ...r }
+          : r,
+      );
     }
     return saida;
   } catch {
@@ -507,6 +533,15 @@ class ConsultaDemo implements PromiseLike<Resposta> {
         if (this.nome === "pedidos" && nova["numero"] == null) {
           nova["numero"] = 4000 + dados.length + 1;
         }
+        // HOMO-CLIENTE-15: o banco real aplica estes defaults (migration 0000).
+        // O emulador demo nao tem defaults de coluna, entao replica-os aqui:
+        // o pedido recem-criado nasce "recebido", sem inventar transicoes.
+        if (this.nome === "pedidos" && nova["status"] == null) {
+          nova["status"] = "recebido";
+        }
+        if (this.nome === "pedidos" && nova["producao_status"] == null) {
+          nova["producao_status"] = "aguardando";
+        }
         return linha(this.nome, nova);
       });
       dados.push(...gravadas);
@@ -575,7 +610,19 @@ function canalDemo(): any {
 const OK = { status: "ok", ok: true };
 
 const RPC_DEMO: Record<string, unknown> = {
-  calcular_taxa_entrega: { taxa: 5, taxa_entrega: 5 },
+  // Payload completo exigido por normalizarResultadoTaxa: um retorno apenas
+  // com `taxa` era descartado como legado e bloqueava o checkout de entrega.
+  calcular_taxa_entrega: {
+    modo: "config",
+    taxa: 6,
+    taxa_entrega: 6,
+    distancia_km: 4,
+    valor_por_km: 1.5,
+    fonte: "linha_reta",
+    entrega_gratis: false,
+    fora_da_area: false,
+    aceitar_entregas: true,
+  },
   consultar_localizacao_entrega: { latitude: -23.55, longitude: -46.63, capturado_em: AGORA },
   consultar_localizacoes_entregas: [],
   consultar_localizacao_entregas: [],
@@ -605,8 +652,10 @@ const RPC_DEMO: Record<string, unknown> = {
   solicitar_reimpressao: OK,
   reservar_estoque_atomica: [],
   liberar_reserva_atomica: OK,
-  creditar_pontos_pedido: 10,
-  resgatar_fidelidade: "DEMO10",
+  // HOMO-CLIENTE-15: demonstracao usa a MESMA regra do RPC real, calculada a
+  // partir do total do pedido. Nenhum ponto real e creditado (banco em memoria).
+  creditar_pontos_pedido: 0,
+  resgatar_fidelidade: "FID-DEMO",
   criar_rota_entrega_atomica: { status: "criada", quantidade: 1 },
   liberar_rota_entrega: OK,
   encerrar_rota_pela_central: OK,
@@ -682,6 +731,14 @@ function clienteDemo(usuarioId = USUARIO_DEMO.id): any {
           }),
         );
         return ok(true);
+      }
+      // Credito demonstrativo: substitui o antigo stub fixo (10 pontos) pela
+      // regra cadastrada, usando o total do pedido gravado no banco em memoria.
+      if (nome === "creditar_pontos_pedido") {
+        const p = (args ?? {}) as Record<string, unknown>;
+        const pedidoId = String(p["p_pedido_id"] ?? "");
+        const pedido = tabela("pedidos").find((r) => String(r["id"]) === pedidoId);
+        return ok(pontosGanhos(Number(pedido?.["total"] ?? 0), DEFAULT_FIDELIDADE));
       }
       const dados = RPC_DEMO[nome];
       return ok(dados === undefined ? {} : dados);

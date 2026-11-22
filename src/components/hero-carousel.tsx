@@ -129,10 +129,10 @@ export function HeroCarousel({ itens, carregando }: { itens: HeroCarouselItem[];
             className="relative size-full object-contain"
           />
           {/* Cada slide traz SOMENTE a própria foto e o próprio nome. */}
-          <div className="pointer-events-none absolute inset-0 flex items-center">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center">
             <div className="mx-auto w-full max-w-6xl px-4">
               <div className="max-w-lg text-white">
-                <h2 className="font-display text-2xl leading-tight drop-shadow sm:text-4xl" data-testid="hero-slide-nome">
+                <h2 className="font-display text-2xl leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] sm:text-4xl" data-testid="hero-slide-nome">
                   {item.legenda}
                 </h2>
               </div>

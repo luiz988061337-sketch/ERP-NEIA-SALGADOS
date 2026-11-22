@@ -390,7 +390,7 @@ const telefoneLoja = (lojaConfig?.telefone ?? "").trim() || (cfgCalculadora?.zap
         </section>
 
         <section className="mb-4 flex flex-wrap gap-2 text-xs sm:text-sm" aria-label="Informações de confiança">
-          <span className="rounded-full border border-border bg-card px-3 py-1.5">🚚 Entrega em 40–60 minutos</span>
+          <span className="rounded-full border border-border bg-card px-3 py-1.5" title="Prazos cadastrados pela loja, sujeitos à disponibilidade operacional">🚚 Retirada: {prazos.retiradaMin}–{prazos.retiradaMax} min · Entrega: {prazos.entregaMin}–{prazos.entregaMax} min</span>
           <span className="rounded-full border border-border bg-card px-3 py-1.5">📦 Pedidos para festas e eventos</span>
           <span className="rounded-full border border-border bg-card px-3 py-1.5">🔢 Combos a partir de 50 unidades</span>
           <span className="rounded-full border border-border bg-card px-3 py-1.5">🧊 Congelados vendidos por unidade</span>

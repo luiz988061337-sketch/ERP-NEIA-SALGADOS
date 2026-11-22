@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { DEFAULT_FIDELIDADE } from "@/lib/fidelidade";
 
 export type CrmSettings = {
   ativo_ate_dias: number;
@@ -36,10 +37,11 @@ export const DEFAULT_CRM_SETTINGS: CrmSettings = {
   sugestoes_ativas: true,
   recompra_ativa: true,
   carrinho_recuperacao_ativa: true,
-  fid_ativo: true,
-  fid_reais_por_ponto: 5,
-  fid_meta_pontos: 200,
-  fid_recompensa_valor: 20,
+  // HOMO-CLIENTE-15: a regra de fidelidade tem uma unica fonte de defaults.
+  fid_ativo: DEFAULT_FIDELIDADE.ativo,
+  fid_reais_por_ponto: DEFAULT_FIDELIDADE.reaisPorPonto,
+  fid_meta_pontos: DEFAULT_FIDELIDADE.metaPontos,
+  fid_recompensa_valor: DEFAULT_FIDELIDADE.recompensaValor,
 };
 
 export const LIMIAR_FREQUENTE_PEDIDOS = 4;

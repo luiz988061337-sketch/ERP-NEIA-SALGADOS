@@ -41,6 +41,7 @@ import { decidirCancelamentoAtomico, type RpcClient } from "@/lib/reserva-integr
 import { BUILD_DE_CORTE } from "@/lib/corte";
 import {
   DEFAULT_LOJA_CONFIG,
+  enderecoLojaOficial,
   prazosAtendimento,
   useLojaConfig,
 } from "@/lib/loja";
@@ -105,10 +106,9 @@ function enderecoRetirada(loja: any, cfg: ConfigEntrega | null | undefined): End
     referencia ? `Referência: ${referencia}` : "",
   ].filter(Boolean);
   const texto = [rua, bairro, cidadeUf, cep].filter(Boolean).join(", ");
-  const configurado =
-    !ehModoDemo() &&
-    !!texto &&
-    !/demonstra|fictíci/i.test(texto);
+  // HOMO-CLIENTE-15: mesma validacao usada no Checkout — em demo ou sem
+  // configuracao oficial validada, a localizacao da loja fica pendente.
+  const configurado = enderecoLojaOficial(loja, cfg, ehModoDemo()).validada;
   return {
     configurado,
     linhas,
@@ -520,6 +520,14 @@ function Acompanhar() {
   const recompensa = cfgFidelidade.recompensaValor;
   const faltam = Math.max(0, meta - pontos);
   const pctFidelidade = meta > 0 ? Math.min(100, Math.round((pontos / meta) * 100)) : 0;
+  // HOMO-CLIENTE-15: pedido 1053 e uma fixture antiga sem campo de taxa. Nao
+  // reescrevemos historico; apenas nao apresentamos R$ 0,00 como frete valido.
+  const entregaGratisAutorizada = Boolean(
+    (pedido as unknown as Record<string, any>)?.["entrega_snapshot"]?.["entrega_gratis"],
+  );
+  const freteHistoricoSemInfo =
+    ehModoDemo() && !isRetirada &&
+    Number(pedido.taxa_entrega) === 0 && !entregaGratisAutorizada;
   const linkReembolso = ehModoDemo() ? "/preview/reembolsos-estornos-cliente/novo" : "/ajuda";
   const telAtendente = telefoneWhatsappConfigurado(loja.telefone);
   const linkAtendente = telAtendente
@@ -583,7 +591,9 @@ function Acompanhar() {
               <span className="text-xs text-white/90">neste pedido</span>
             </div>
             <p className="mt-2 text-xs text-white/90">
-              Faltam {faltam} pontos para um cupom de {brl(recompensa)}.
+              {faltam > 0
+                ? `Faltam ${faltam} pontos para um cupom de ${brl(recompensa)}.`
+                : `Meta de ${meta} pontos atingida neste pedido — cupom de ${brl(recompensa)} conforme a regra cadastrada.`}
             </p>
             <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/30">
               <div className="h-full rounded-full bg-white transition-all" style={{ width: `${pctFidelidade}%` }} />
@@ -687,7 +697,15 @@ function Acompanhar() {
             <div className="border-t border-[#F0D9A8] pt-2">
               <div className="flex justify-between">
                 <span className="text-[#60524C]">{isRetirada ? "Retirada na loja" : "Taxa de entrega"}</span>
-                <span>{isRetirada ? "Grátis" : brl(pedido.taxa_entrega)}</span>
+                <span>
+                  {isRetirada
+                    ? "Grátis"
+                    : freteHistoricoSemInfo
+                      ? "Frete não informado (fixture demonstrativa)"
+                      : entregaGratisAutorizada
+                        ? "Entrega grátis (regra autorizada)"
+                        : brl(pedido.taxa_entrega)}
+                </span>
               </div>
               {Number(pedido.desconto) > 0 ? (
                 <div className="flex justify-between text-success">

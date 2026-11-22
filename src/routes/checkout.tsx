@@ -45,7 +45,7 @@ import {
   type RegraQuantidade,
 } from "@/lib/quantidade";
 import { validarCupom } from "@/lib/cupons";
-import { pontosGanhos as calcPontos } from "@/lib/fidelidade";
+import { DEFAULT_FIDELIDADE, pontosGanhos as calcPontos } from "@/lib/fidelidade";
 import { useCrmSettings } from "@/lib/crm";
 import { registrarEventoCarrinho } from "@/lib/inteligencia";
 import { gerarPix } from "@/lib/pix";
@@ -71,7 +71,12 @@ import {
   type PrevisaoTaxa,
 } from "@/lib/config-entrega";
 import { garantirSessaoAnonima } from "@/lib/sessao-anonima";
-import { enderecoLoja, pontoDaLoja, DEFAULT_LOJA_CONFIG, useLojaConfig } from "@/lib/loja";
+import {
+  enderecoLojaOficial,
+  pontoDaLoja,
+  DEFAULT_LOJA_CONFIG,
+  useLojaConfig,
+} from "@/lib/loja";
 import { validarAgendamento, mensagemLotado, janelaLotada } from "@/lib/horario";
 import { decidirCriacaoAtomica, type RpcClient } from "@/lib/criacao-atomica";
 import { BUILD_DE_CORTE } from "@/lib/corte";
@@ -167,6 +172,9 @@ function Checkout() {
   const [cupomTexto, setCupomTexto] = useState("");
   const [cupom, setCupom] = useState<{ codigo: string; desconto: number } | null>(null);
   const [enviando, setEnviando] = useState(false);
+  // Trava síncrona: o estado do React só é refletido no próximo render, e até
+  // lá um duplo clique poderia iniciar duas gravações (HOMO-13).
+  const enviandoRef = useRef(false);
   const [enderecoId, setEnderecoId] = useState<string>("");
   const [obsPedido, setObsPedido] = useState("");
   const [etapaAtiva, setEtapaAtiva] = useState(1);
@@ -174,6 +182,14 @@ function Checkout() {
   const formRef = useRef<HTMLFormElement | null>(null);
   const rascunhoRestaurado = useRef(false);
   const modalidadeRascunhoRef = useRef<TipoEntrega | null | undefined>(undefined);
+  // Os inputs de entrega só existem depois que o Carrinho define a modalidade.
+  // Guardamos o rascunho para reaplicá-lo quando eles aparecerem (HOMO-13).
+  const camposRascunhoRef = useRef<Record<string, string> | null>(null);
+  const camposRascunhoAplicadosRef = useRef(false);
+  // Um rascunho pode ser rebaixado enquanto o frete é calculado. Guardamos a
+  // etapa salva para promovê-la de volta assim que todas as etapas validarem.
+  const etapaRascunhoRef = useRef<number | null>(null);
+  const promocaoRascunhoPendenteRef = useRef(false);
   // Só grava/valida o rascunho depois que a restauração foi commitada; sem isso,
   // o efeito de gravação sobrescreve a etapa salva com o valor inicial (1).
   const [rascunhoPronto, setRascunhoPronto] = useState(false);
@@ -182,7 +198,6 @@ function Checkout() {
   const { data: settings } = useCrmSettings();
   const { data: lojaConfig } = useLojaConfig();
   const loja = lojaConfig ?? DEFAULT_LOJA_CONFIG;
-  const enderecoLojaTexto = enderecoLoja(loja);
   const pontoLoja = pontoDaLoja(loja);
   const funilRef = useRef(false);
   // Idempotência: mesma chave por tentativa; reenvio retorna o mesmo pedido.
@@ -202,6 +217,9 @@ function Checkout() {
     isLoading: carregandoConfigEntrega,
   } = useConfigEntrega();
   const porKm = modoPorKm(cfgEntrega);
+  // HOMO-CLIENTE-15: endereco da loja tem uma unica origem/validacao. Em demo,
+  // ou sem configuracao oficial, a pendencia e exibida em vez do texto ficticio.
+  const retiradaOficial = enderecoLojaOficial(loja, cfgEntrega, ehModoDemo());
   const [selEnd, setSelEnd] = useState<EnderecoDetalhado | null>(null);
   const [semNumero, setSemNumero] = useState(false);
   const [pinFinal, setPinFinal] = useState<{ lat: number; lng: number } | null>(null);
@@ -232,6 +250,9 @@ function Checkout() {
   useEffect(() => {
     if (modalidadeAnteriorRef.current === tipoEntrega) return;
     modalidadeAnteriorRef.current = tipoEntrega;
+    // O Carrinho carrega depois da hidratação: se a modalidade que chegou é a
+    // mesma do rascunho restaurado, o pin/frete salvos continuam válidos.
+    if (modalidadeRascunhoRef.current === tipoEntrega) return;
     setPinFinal(null);
     setSelEnd(null);
     setRotaKm(null);
@@ -382,11 +403,13 @@ function Checkout() {
         ? "Retirada grátis"
         : brl(taxaEntregaFinalUI);
   const totalFinalUI = Math.max(0, subtotal - desconto) + (taxaEntregaFinalUI ?? 0);
+  // HOMO-CLIENTE-15: uma unica copia dos defaults, compartilhada com o cartao
+  // do acompanhamento e com o RPC demonstrativo de credito.
   const pontosGanhos = calcPontos(totalFinalUI, {
-    ativo: settings?.fid_ativo ?? true,
-    reaisPorPonto: settings?.fid_reais_por_ponto ?? 5,
-    metaPontos: settings?.fid_meta_pontos ?? 200,
-    recompensaValor: settings?.fid_recompensa_valor ?? 20,
+    ativo: settings?.fid_ativo ?? DEFAULT_FIDELIDADE.ativo,
+    reaisPorPonto: settings?.fid_reais_por_ponto ?? DEFAULT_FIDELIDADE.reaisPorPonto,
+    metaPontos: settings?.fid_meta_pontos ?? DEFAULT_FIDELIDADE.metaPontos,
+    recompensaValor: settings?.fid_recompensa_valor ?? DEFAULT_FIDELIDADE.recompensaValor,
   });
   const pixChaveEfetiva = (loja.pix_chave || PIX_CHAVE).trim();
   // Demonstração local nunca produz BR Code/QR com chave real nem cobrança.
@@ -536,6 +559,20 @@ function Checkout() {
     });
   }
 
+  /** Reaplica os campos salvos quando a etapa 2 ainda não estava montada no
+   * primeiro render (a modalidade do Carrinho chega depois da hidratação). */
+  function aplicarCamposSalvos(camposSalvos: Record<string, string>) {
+    const form = document.getElementById("form-checkout") as HTMLFormElement | null;
+    if (!form) return;
+    const controlados = new Set(["observacoes", "origem_cliente", "agendamento_para", "tipo_imovel"]);
+    for (const [nome, valor] of Object.entries(camposSalvos)) {
+      if (controlados.has(nome)) continue;
+      const el = form.elements.namedItem(nome) as HTMLInputElement | null;
+      // Não sobrescreve nada que o cliente já tenha digitado neste render.
+      if (el && "value" in el && !el.value) el.value = valor;
+    }
+  }
+
   // Restaura o rascunho depois da hidratação (sem divergência SSR) e impede
   // que as preferências do carrinho sobrescrevam o que o cliente já digitou.
   useEffect(() => {
@@ -564,23 +601,29 @@ function Checkout() {
     const pin = lerJsonSeguro<{ lat: number; lng: number }>(r.pinFinal);
     if (pin) setPinFinal(pin);
     const camposSalvos = r.campos ?? {};
+    camposRascunhoRef.current = camposSalvos;
     setCampos(camposSalvos);
-    const form = document.getElementById("form-checkout") as HTMLFormElement | null;
-    const controlados = new Set(["observacoes", "origem_cliente", "agendamento_para", "tipo_imovel"]);
-    if (form) {
-      for (const [nome, valor] of Object.entries(camposSalvos)) {
-        if (controlados.has(nome)) continue;
-        const el = form.elements.namedItem(nome) as HTMLInputElement | null;
-        if (el && "value" in el) el.value = valor;
-      }
-    }
+    aplicarCamposSalvos(camposSalvos);
     if (r.cupomTexto?.trim()) void aplicarCupom(r.cupomTexto);
     if (typeof r.etapa === "number") {
-      setEtapaAtiva(Math.min(4, Math.max(1, r.etapa)));
+      const etapa = Math.min(4, Math.max(1, r.etapa));
+      etapaRascunhoRef.current = etapa;
+      promocaoRascunhoPendenteRef.current = true;
+      setEtapaAtiva(etapa);
     }
     rascunhoRestaurado.current = true;
     requestAnimationFrame(() => setRascunhoPronto(true));
   }, []);
+
+  // Quando o Carrinho termina de carregar, os inputs de entrega finalmente
+  // existem. Reaplica o rascunho ANTES da validação que rebaixaria a etapa.
+  useEffect(() => {
+    if (!rascunhoPronto || carregandoCarrinho || camposRascunhoAplicadosRef.current) return;
+    const salvos = camposRascunhoRef.current;
+    if (!salvos) return;
+    aplicarCamposSalvos(salvos);
+    camposRascunhoAplicadosRef.current = true;
+  }, [rascunhoPronto, carregandoCarrinho, tipoEntrega]);
 
   // Rascunho de outra modalidade não pode reaproveitar pin/frete calculados
   // para a seleção anterior no Carrinho.
@@ -623,12 +666,26 @@ function Checkout() {
   // etapas anteriores deixaram de ser válidas — ex.: frete recalculado.
   useEffect(() => {
     if (!rascunhoRestaurado.current || !rascunhoPronto) return;
+    // O frete é recalculado de forma assíncrona; durante esse intervalo a
+    // previsão é null. Não rebaixar a etapa por um estado transitório.
+    if (carregandoCarrinho || carregandoConfigEntrega || calculandoTaxa) return;
     let permitida = 1;
     while (permitida < 4 && !validarEtapa(permitida)) permitida++;
-    if (etapaAtiva > permitida) setEtapaAtiva(permitida);
+    if (etapaAtiva > permitida) {
+      setEtapaAtiva(permitida);
+    } else if (
+      promocaoRascunhoPendenteRef.current &&
+      etapaRascunhoRef.current &&
+      etapaAtiva < etapaRascunhoRef.current &&
+      permitida >= etapaRascunhoRef.current
+    ) {
+      setEtapaAtiva(etapaRascunhoRef.current);
+      promocaoRascunhoPendenteRef.current = false;
+    }
   }, [
     etapaAtiva,
     campos,
+    carregandoCarrinho,
     tipoEntrega,
     quando,
     agDt,
@@ -640,6 +697,7 @@ function Checkout() {
     pinFinal,
     taxaPrev,
     taxaPrevValida,
+    calculandoTaxa,
     rascunhoPronto,
   ]);
 
@@ -843,7 +901,11 @@ function Checkout() {
     e.preventDefault();
     // Defesa em profundidade: nem um submit programático/Enter duplo cria pedido
     // fora da Revisão nem inicia uma segunda gravação enquanto a primeira corre.
-    if (enviando || etapaAtiva !== 4 || !podeConfirmar) return;
+    if (enviandoRef.current || enviando || etapaAtiva !== 4 || !podeConfirmar) return;
+    enviandoRef.current = true;
+    const cancelarEnvio = () => {
+      enviandoRef.current = false;
+    };
     const form = new FormData(e.currentTarget);
     // Revalida o troco no submit: um submit direto não pode driblar a etapa 3.
     const trocoSubmit = valorTroco(String(form.get("troco") ?? ""));
@@ -854,7 +916,7 @@ function Checkout() {
           : `O valor para troco deve ser maior ou igual ao total (${brl(totalFinalUI)}).`,
       );
       setEtapaAtiva(3);
-      return;
+      return cancelarEnvio();
     }
     // Sessão anônima garantida nos bastidores antes de gravar o pedido
     // (cliente pede sem login; funcionário logado preserva a própria sessão).
@@ -863,7 +925,7 @@ function Checkout() {
     const uidPedido = (sessao.data.session?.user ?? null)?.id ?? user?.id ?? null;
     if (!uidPedido) {
       toast.error("Não foi possível iniciar seu pedido. Tente novamente.");
-      return;
+      return cancelarEnvio();
     }
     const parsed = schema.safeParse({
       // Na retirada os inputs de endereço nem existem no DOM (form.get = null):
@@ -894,38 +956,38 @@ function Checkout() {
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Confira os dados.");
-      return;
+      return cancelarEnvio();
     }
     const digitosTel = String(parsed.data.telefone).replace(/\D/g, "");
     if (digitosTel.length < 10 || digitosTel.length > 13) {
       toast.error("Informe um WhatsApp válido com DDD.");
-      return;
+      return cancelarEnvio();
     }
     if (tipoEntrega === "entrega") {
       if (erroConfigEntrega || carregandoConfigEntrega) {
         toast.error("Não foi possível confirmar as regras de entrega. Aguarde e tente novamente.");
-        return;
+        return cancelarEnvio();
       }
       if (cfgEntrega && !cfgEntrega.aceitar_entregas) {
         toast.error("A entrega está temporariamente desativada. Escolha retirada na loja.");
-        return;
+        return cancelarEnvio();
       }
       if ((parsed.data.endereco ?? "").length < 6) {
         toast.error("Informe rua e número.");
-        return;
+        return cancelarEnvio();
       }
       if ((parsed.data.bairro ?? "").length < 2) {
         toast.error("Informe o bairro.");
-        return;
+        return cancelarEnvio();
       }
       if ((parsed.data.cidade ?? "").length < 2) {
         toast.error("Informe a cidade.");
-        return;
+        return cancelarEnvio();
       }
       // Número obrigatório, com opção explícita "Sem número" (0103).
       if (!semNumero && !/\d/.test(parsed.data.endereco ?? "")) {
         toast.error("Informe o número da casa ou marque “Meu endereço não tem número”.");
-        return;
+        return cancelarEnvio();
       }
       // Precisão obrigatória: no regime por km a coordenada final confirmada
       // (mapa/pin ou GPS) é exigida — nunca só CEP, nunca coordenada inventada.
@@ -933,7 +995,7 @@ function Checkout() {
         toast.error(
           "Confirme o local da entrega: busque o endereço e ajuste o ponto no mapa.",
         );
-        return;
+        return cancelarEnvio();
       }
       if (porKm && !taxaPrevValida) {
         toast.error(
@@ -941,7 +1003,7 @@ function Checkout() {
             ? "Este endereço está fora da nossa área de entrega."
             : "Não foi possível confirmar a taxa e a área de entrega. Tente novamente antes de finalizar.",
         );
-        return;
+        return cancelarEnvio();
       }
     }
     let agendadoPara: string | null = null;
@@ -958,7 +1020,7 @@ function Checkout() {
       const v = validarAgendamento(dtRaw, new Date(), 30);
       if (!v.ok) {
         toast.error(v.motivo);
-        return;
+        return cancelarEnvio();
       }
       // Capacidade da janela por UNIDADES (não por nº de pedidos): soma itens ±30min vs teto
       try {
@@ -992,7 +1054,7 @@ function Checkout() {
         );
         if (janelaLotada(un, teto)) {
           toast.error(mensagemLotado());
-          return;
+          return cancelarEnvio();
         }
       } catch {
         /* sem dados — segue */
@@ -1164,7 +1226,7 @@ function Checkout() {
         cliente_nome: parsed.data.cliente_nome,
         telefone: parsed.data.telefone,
         endereco: isRetirada
-          ? enderecoLojaTexto || "Retirada na loja"
+          ? retiradaOficial.texto
           : `${parsed.data.endereco} — ${parsed.data.cidade}`,
         bairro: isRetirada ? "-" : parsed.data.bairro,
         cidade: isRetirada ? "-" : parsed.data.cidade,
@@ -1237,7 +1299,7 @@ function Checkout() {
         });
         if (decisao.modo === "erro") {
           toast.error(decisao.mensagem);
-          return;
+          return cancelarEnvio();
         }
         if (decisao.modo === "atomico") {
           pedido = {
@@ -1426,7 +1488,9 @@ function Checkout() {
           const { data: creditados } = await supabase.rpc("creditar_pontos_pedido", {
             p_pedido_id: (pedido as any).id,
           });
-          pts = Number(creditados ?? 0);
+          // Autoridade e o RPC (que calcula no servidor); se ele nao responder,
+          // usa a mesma regra da previa em vez de exibir um numero arbitrario.
+          pts = creditados == null ? pontosGanhos : Number(creditados);
         } catch {
           /* pedido segue mesmo sem pontos */
         }
@@ -1489,6 +1553,7 @@ function Checkout() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível finalizar o pedido.");
     } finally {
+      enviandoRef.current = false;
       setEnviando(false);
     }
   }
@@ -1985,21 +2050,18 @@ function Checkout() {
               <p className="font-semibold text-[#500B08]">
                 Retirada na loja selecionada — <span className="text-[#B9000B]">Retirada gratuita</span>.
               </p>
-              {ehModoDemo() ? (
+              {!retiradaOficial.validada ? (
                 <p className="mt-1 text-muted-foreground">
-                  Endereço demonstrativo: {enderecoLojaTexto || "não configurado"}. Nesta prévia não abrimos rota nem usamos coordenadas fictícias.
+                  {retiradaOficial.motivoPendencia}
+                  {ehModoDemo() ? " Nesta prévia não abrimos rota nem usamos coordenadas fictícias." : ""}
                 </p>
-              ) : enderecoLojaTexto ? (
+              ) : (
                 <>
-                  <p className="mt-1 text-muted-foreground">Endereço da loja: {enderecoLojaTexto}</p>
+                  <p className="mt-1 text-muted-foreground">Endereço da loja: {retiradaOficial.texto}</p>
                   {loja.referencia ? (
                     <p className="text-muted-foreground">Referência: {loja.referencia}</p>
                   ) : null}
                 </>
-              ) : (
-                <p className="mt-1 text-muted-foreground">
-                  O endereço oficial da loja ainda não foi configurado.
-                </p>
               )}
               {!ehModoDemo() && loja.instrucoes_retirada ? (
                 <p className="mt-1 whitespace-pre-line text-muted-foreground">
@@ -2012,11 +2074,11 @@ function Checkout() {
                   className="h-48 w-full rounded-xl border border-[#F0D9A8]"
                 />
               ) : null}
-              {!ehModoDemo() && !/demonstra|fictíci/i.test(enderecoLojaTexto) && (enderecoLojaTexto || pontoLoja) ? (
+              {retiradaOficial.validada ? (
                 <Button asChild type="button" size="sm" variant="outline">
                   <a
                     href={rotaGoogleMaps(
-                      enderecoLojaTexto ||
+                      retiradaOficial.texto ||
                         `${pontoLoja!.lat},${pontoLoja!.lng}`,
                     )}
                     target="_blank"
@@ -2338,7 +2400,7 @@ function Checkout() {
               <span className="text-[#60524C]">{tipoEntrega === "retirada" ? "Retirada:" : "Endereço:"}</span>{" "}
               <strong className="text-[#500B08]">
                 {tipoEntrega === "retirada"
-                  ? enderecoLojaTexto || "Retirada na loja"
+                  ? retiradaOficial.texto
                   : [valorCampo("endereco"), valorCampo("bairro"), valorCampo("cidade")]
                       .filter(Boolean)
                       .join(" — ") || "—"}
