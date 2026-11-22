@@ -5,9 +5,13 @@ import { readFileSync } from "node:fs";
 test("o modo de corte elimina a interface legada por seleção de componente", () => {
   const origem = readFileSync(new URL("../src/routes/motoboy.tsx",import.meta.url),"utf8");
   assert.match(origem,/component: PainelMotoboy,/);
-  assert.match(origem,/VITE_NEIA_MOTOBOY_RPC === "1" \? <PainelMotoboyRpc \/> : <Motoboy \/>/);
+  assert.match(origem,/if \(modoDemo\)\s*\{[\s\S]*?return <MotoboysPremium \/>/);
+  assert.match(origem,/return <PainelMotoboyRpc \/>/);
+  assert.doesNotMatch(origem,/<Motoboy \/>/);
   const novo = readFileSync(new URL("../src/components/admin/painel-motoboy-rpc.tsx",import.meta.url),"utf8");
   assert.doesNotMatch(novo,/\.from\(|notificarPedido|functions\.invoke/);
+  assert.match(novo,/const emVoo = useRef\(false\)/);
+  assert.match(novo,/if \(emVoo\.current\) return/);
   for (const rpc of ["iniciar_rota","confirmar_retirada","confirmar_entrega","informar_retorno_loja","confirmar_chegada_loja","registrar_atraso_entrega"]) {
     assert.ok(novo.includes(`operar("${rpc}"`));
   }

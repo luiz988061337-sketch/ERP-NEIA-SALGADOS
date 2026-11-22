@@ -34,7 +34,6 @@ export const Route = createFileRoute("/motoboy")({
 
 function PainelMotoboy() {
   const modoDemo = ehModoDemo();
-  const usarRpc = modoDemo || import.meta.env.VITE_NEIA_MOTOBOY_RPC === "1";
   if (modoDemo) {
     // Lote 02/03: painel de motoboys em demonstração usa o kit premium com
     // dados fictícios; o fluxo operacional real permanece no caminho não-demo.

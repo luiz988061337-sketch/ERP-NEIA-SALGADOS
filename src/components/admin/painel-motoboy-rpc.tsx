@@ -102,8 +102,11 @@ export function PainelMotoboyRpc() {
                 <form className="flex flex-wrap items-end gap-2" onSubmit={(e) => {
                   e.preventDefault();
                   const dados = new FormData(e.currentTarget);
-                  void operar("registrar_atraso_entrega",{p_pedido:p.id,p_motivo:dados.get("motivo"),
-                    p_descricao:dados.get("descricao")},"Atraso registrado.");
+                  void operar("registrar_atraso_entrega",{
+                    p_pedido:p.id,
+                    p_motivo:String(dados.get("motivo") ?? ""),
+                    p_descricao:String(dados.get("descricao") ?? ""),
+                  },"Atraso registrado.");
                 }}>
                   <label>Motivo do atraso<select name="motivo" className="block rounded border bg-background px-2 py-1">
                     {MOTIVO_ATRASO.map((m) => <option key={m} value={m}>{MOTIVO_ATRASO_LABEL[m]}</option>)}

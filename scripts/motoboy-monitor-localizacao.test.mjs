@@ -8,7 +8,7 @@ const MSG = {
   indisponivel: "Localização indisponível neste dispositivo.",
   aguardando: "Aguardando sinal de localização.",
   negado: "Permissão de localização negada.",
-  semConexao: "Sem conexão. A próxima posição será enviada ao reconectar.",
+  semConexao: "Sem conexão. Aguarde a próxima posição com conexão.",
   atualizada: "Localização atualizada.",
   recusada: "A Central recusou esta atualização.",
   naoConfirmada: "A localização não foi confirmada pela Central.",

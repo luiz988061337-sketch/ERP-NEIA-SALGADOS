@@ -25,8 +25,13 @@ const R = (p) => readFileSync(p, "utf8");
   ok(/E4_ATRIBUICAO_ATIVA/.test(ce) && /atribuirPedidoMotoboy\(supabase/.test(ce), "E9.1.1 central usa RPC E4 com flag");
   ok(/atribuindoEmVoo/.test(ce), "E9.1.2 trava de clique na central");
   ok(/data\.length === 0/.test(ce) && /conflito/.test(ce), "E9.1.3 0 linhas = conflito visível");
-  const mo = R("src/routes/motoboy.tsx");
-  ok(/aceitandoEmVoo/.test(mo) && /conflito/.test(mo), "E9.1.4 trava + conflito no aceite");
+  const painel = R("src/components/admin/painel-motoboy-rpc.tsx");
+  ok(
+    /const emVoo = useRef\(false\)/.test(painel) &&
+      /if \(emVoo\.current\) return/.test(painel) &&
+      /A Central recusou esta etapa/.test(painel),
+    "E9.1.4 trava + conflito no painel RPC do motoboy",
+  );
   ok(!F4.E4_ATRIBUICAO_ATIVA, "E9.1.5 flag E4 desligada (legado preservado)");
 }
 // P0-2: duas rotas — trigger + saneamento.
