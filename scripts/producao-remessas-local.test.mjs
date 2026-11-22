@@ -488,6 +488,7 @@ function prontoParaDespacho(pedidoBase) {
   const exigidos = [
     "pedidosComAceiteMemoria(",
     "modoSimuladoLocal",
+    "Prévia visual: ficha não enviada",
     "preview && !ehModoDemo()",
     "iniciarProducaoMemoria(",
     "finalizarRemessaMemoria(",

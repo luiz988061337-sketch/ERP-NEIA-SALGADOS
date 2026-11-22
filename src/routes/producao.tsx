@@ -1297,6 +1297,10 @@ export function Producao({
   }
 
   async function imprimirFicha() {
+    if (modoSimuladoLocal) {
+      toast.info("Prévia visual: ficha não enviada (nada é enviado à impressora).");
+      return;
+    }
     try {
       await fichaDireta(
         supabase,

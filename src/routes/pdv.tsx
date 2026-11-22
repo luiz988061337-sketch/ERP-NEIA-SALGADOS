@@ -165,7 +165,7 @@ export function PDV({
   const hojeISO = new Date().toISOString().slice(0, 10);
   const { data: vendasHoje } = useQuery({
     queryKey: ["pdv-vendas-hoje", hojeISO],
-    enabled: (preview || !!permitido) && (painel === "vendas" || painel === "pedidos"),
+    enabled: !preview && !!permitido && (painel === "vendas" || painel === "pedidos"),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pedidos")

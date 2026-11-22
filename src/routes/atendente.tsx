@@ -324,7 +324,7 @@ function Atendente() {
   }
 
   async function finalizar() {
-    if (!user) return;
+    if (!user || !permitido) return;
     const telDig = telefone.replace(/\D/g, "");
     if (nome.trim().length < 2) {
       toast.error("Informe o nome do cliente.");

@@ -2,10 +2,11 @@
 
 ## Estado atual
 
-- Etapa: FASE A concluída; FASE B validada localmente; FASE C implementada localmente e aguardando teste integrado; FASE D (Cliente e Checkout) revisada e validada localmente; início da FASE E (Atendente e PDV).
+- Etapa: FASE A concluída; FASE B validada localmente; FASE C implementada localmente e aguardando teste integrado; FASE D revisada e validada localmente; FASE E (Atendente e PDV) corrigida e validada localmente; início da FASE F (Produção e Estoque).
 - Branch: `homologacao-finalizacao`.
-- Checkpoint desta etapa: `checkpoint: FASE D cliente e checkout validados`.
-- Commit anterior: `6df1dbf` — `checkpoint: FASE C redirect de auth seguro`.
+- Checkpoint desta etapa: `checkpoint: FASE E atendente e pdv isolados`.
+- Commit anterior: `2424ab1` — `checkpoint: FASE D cliente e checkout validados`.
+- Commit FASE C: `6df1dbf` — `checkpoint: FASE C redirect de auth seguro`.
 - Commit FASE B: `10e48e1` — `checkpoint: FASE B build rotas e navegacao`.
 - Commit M24: `0044673bbe403a800547163e5dec9db567bb8512` — `checkpoint: M24 ACL segura para homologacao`.
 - Checkpoint anterior: `1dc0e0d0c0ddd7c008628f473d33799136d689e2`.
@@ -31,7 +32,7 @@
 | FASE B — build, rotas e navegação | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | 89 rotas inventariadas; 0 links literais quebrados; `/historia` restaurada; hashes `/financeiro#caixa` e `/financeiro#relatorios` com alvos reais; CSS `?url` em rotas preview; `typecheck` e `build` passaram |
 | FASE C — autenticação e autorização | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | `destinoInternoSeguro` bloqueia `//`, `/\`, esquemas externos e controles; `/auth` usa o helper; suíte `homologar-auth-staging.test.mjs` passou com 10 testes offline; Auth/RLS remoto segue sem validação integrada |
 | FASE D — Cliente e Checkout | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | HOMO-13B/HOMO-CLIENTE-15 preservados; wizard, frete pós-endereço, criação atômica, PIX local, pedido/conta e reembolsos revisados; suítes locais de carrinho, taxa, pagamentos, PIX e reembolsos passaram |
-| FASE E — Atendente e PDV | PENDENTE | — |
+| FASE E — Atendente e PDV | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | PDV em preview não consulta `pedidos`; ficha da produção bloqueada em prévia; Central não grava alertas compartilhados em preview e propaga reconhecimento; `finalizar()` exige papel; aceite local e suítes de Central/Produção passaram |
 | FASE F — Produção e Estoque | PENDENTE | — |
 | FASE G — Central de Entregas | PENDENTE | — |
 | FASE H — App Motoboy | PENDENTE | — |
@@ -55,6 +56,7 @@
 - `npm.cmd run typecheck`: passou novamente após FASE C.
 - `npm.cmd run build`: passou novamente após FASE C.
 - FASE D: `npm.cmd run teste:homo-cliente-02` (15), `scripts/checkout-taxa.test.mjs` (8), `scripts/e7-pagamentos.test.mjs` (14), `scripts/pix-reader.test.mjs` (8), `scripts/reembolsos-estornos.test.mjs` (27) e `scripts/reembolsos-estornos-origens.test.mjs` (14) passaram.
+- FASE E: `npm.cmd run teste:aceite-local`, `npm.cmd run teste:central`, `npm.cmd run teste:producao-remessas` e `npm.cmd run teste:isolamento` passaram; `typecheck` e `build` passaram novamente.
 - O loop completo de testes locais teve saída truncada; FASE K não foi declarada concluída.
 
 ## Bloqueios reais
@@ -67,7 +69,7 @@
 
 ## Próxima ação concreta
 
-1. Criar checkpoint local da FASE D com o relatório de auditoria e testes locais.
-2. FASE E: revisar Atendente e PDV, preservando o aceite local e o layout aprovado.
-3. Retomar FASE F em diante, mantendo checkpoints curtos por módulo.
+1. Criar checkpoint local da FASE E com as correções de isolamento e testes.
+2. FASE F: revisar Produção e Estoque, preservando remessas, conferência e reservas locais.
+3. Retomar FASE G em diante, mantendo checkpoints curtos por módulo.
 4. Antes da entrega final, gerar `ERP-NEIA-SALGADOS-PRONTO-PARA-HOMOLOGACAO.md` com status honesto de cada fase.

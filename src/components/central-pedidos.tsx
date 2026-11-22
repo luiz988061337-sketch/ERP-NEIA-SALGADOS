@@ -225,6 +225,13 @@ export function CentralPedidos({
 
   // Config e reconhecimento persistidos (recarregar a página não duplica alerta).
   useEffect(() => {
+    if (preview) {
+      setConfig(configInicial ? normalizarConfig(configInicial) : CONFIG_ALERTA_PADRAO);
+      reconhecidosRef.current = new Set();
+      conhecidosRef.current = new Set();
+      setReconhecidosVersao((v) => v + 1);
+      return;
+    }
     if (configInicial) {
       const aprovada = normalizarConfig(configInicial);
       setConfig(aprovada);
@@ -235,7 +242,7 @@ export function CentralPedidos({
     reconhecidosRef.current = lerReconhecidos();
     conhecidosRef.current = lerConhecidos();
     setReconhecidosVersao((v) => v + 1);
-  }, [configInicial]);
+  }, [configInicial, preview]);
 
   const bip = useCallback(
     (volume: number, imediato = false) => {
@@ -286,12 +293,13 @@ export function CentralPedidos({
   const salvarConfig = useCallback((nova: ConfigAlerta) => {
     const normalizada = normalizarConfig(nova);
     setConfig(normalizada);
+    if (preview) return;
     try {
       localStorage.setItem(CHAVE_CONFIG_ALERTA, JSON.stringify(normalizada));
     } catch {
       /* segue */
     }
-  }, []);
+  }, [preview]);
 
   // Um único timer: reavalia os pedidos e repete o som enquanto houver
   // pedido não reconhecido. Sem loops aninhados nem sons simultâneos.
@@ -320,10 +328,10 @@ export function CentralPedidos({
   // Reconhecimento individual: o som deixa de ser pedido por aquele pedido.
   const reconhecer = useCallback((id: string) => {
     reconhecidosRef.current.add(id);
-    gravarReconhecidos(reconhecidosRef.current);
+    if (!preview) gravarReconhecidos(reconhecidosRef.current);
     setReconhecidosVersao((v) => v + 1);
     toast.success("Alerta reconhecido.");
-  }, []);
+  }, [preview]);
 
   // Pedido realmente novo (ID real). Na primeira leitura (reconexão/reload)
   // os pedidos existentes são registrados SEM tocar o som — só IDs que
@@ -334,13 +342,13 @@ export function CentralPedidos({
     const novos = pedidos.filter((p) => !conhecidosRef.current.has(p.id));
     const primeira = primeiraLeituraRef.current;
     for (const p of novos) conhecidosRef.current.add(p.id);
-    if (novos.length > 0) gravarConhecidos(conhecidosRef.current);
+    if (!preview && novos.length > 0) gravarConhecidos(conhecidosRef.current);
     if (primeira) {
       primeiraLeituraRef.current = false;
       return;
     }
     if (novos.length > 0 && config.ativo) bip(config.volume);
-  }, [pedidos, config.ativo, config.volume, bip]);
+  }, [pedidos, config.ativo, config.volume, bip, preview]);
 
   // Reconexão/reload: pedidos já reconhecidos não voltam a tocar.
   const naoReconhecidos = useMemo(
@@ -728,6 +736,7 @@ function CardPedido({
   onAceitar,
   aceitando = false,
   onDetalhes,
+  onAvisoLido,
 }: {
   pedido: PedidoCentral;
   coluna: "analise" | "producao" | "pronto";
@@ -868,7 +877,10 @@ function CardPedido({
           <Button
             size="sm"
             variant="outline"
-            onClick={onReconhecer}
+            onClick={() => {
+              onReconhecer();
+              onAvisoLido?.();
+            }}
             className="h-10 border-[#F5B301]/60 bg-transparent text-xs font-bold text-[#F5B301] hover:bg-[#F5B301]/12"
           >
             <BellRing className="mr-1.5 size-4" /> Reconhecer alerta
