@@ -13,6 +13,7 @@ import { homologar, papeis, validarConfiguracao } from "./homologar-auth-staging
 register(pathToFileURL(resolve("scripts/alias-loader.mjs")).href);
 const { destinoPreview } = await import("../vite.staging.config.ts");
 const { runtimePreviewIsolado } = await import("../src/lib/staging-runtime.ts");
+const { destinoInternoSeguro } = await import("../src/lib/redirect-seguro.ts");
 
 const ref = "abcdefghijklmnopqrst";
 const url = `https://${ref}.supabase.co`;
@@ -221,4 +222,20 @@ test("Preview recusa configuração divergente na execução do servidor", () =>
   assert.equal(runtimePreviewIsolado(url,env.SUPABASE_PUBLISHABLE_KEY,{...env,SUPABASE_PUBLISHABLE_KEY:"sb_publishable_outro"}),false);
   assert.equal(runtimePreviewIsolado(url,env.SUPABASE_PUBLISHABLE_KEY,{...env,VERCEL_ENV:"production"}),false);
   assert.equal(runtimePreviewIsolado(undefined,undefined,{}),true);
+});
+
+test("redirect de Auth aceita somente destinos internos", () => {
+  assert.equal(destinoInternoSeguro(undefined),"/");
+  assert.equal(destinoInternoSeguro("/admin"),"/admin");
+  assert.equal(destinoInternoSeguro("/financeiro?aba=caixa#caixa"),"/financeiro?aba=caixa#caixa");
+  for (const destino of [
+    "https://externo.invalid",
+    "//externo.invalid",
+    "/\\externo.invalid",
+    "\\externo.invalid",
+    "javascript:alert(1)",
+    "/admin\nLocation: https://externo.invalid",
+  ]) {
+    assert.equal(destinoInternoSeguro(destino),"/",destino);
+  }
 });

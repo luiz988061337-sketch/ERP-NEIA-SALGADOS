@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, useRoles } from "@/lib/session";
 import { ehModoDemo } from "@/lib/demo-preview";
+import { destinoInternoSeguro } from "@/lib/redirect-seguro";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -35,7 +36,7 @@ function AuthPage() {
   const [mostrarRecuperar, setMostrarRecuperar] = useState(false);
   const [modo, setModo] = useState<'admin' | 'funcionario'>('admin');
 
-  const destino = search.redirect && search.redirect.startsWith("/") ? search.redirect : "/";
+  const destino = destinoInternoSeguro(search.redirect);
 
   // Painel por role (não inventar roles novas):
   // admin → /admin; produção → /producao; atendente → /atendente;

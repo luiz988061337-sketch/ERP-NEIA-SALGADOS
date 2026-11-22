@@ -2,9 +2,11 @@
 
 ## Estado atual
 
-- Etapa: FASE A concluída; FASE B (build, rotas e navegação) implementada e validada localmente; início da FASE C (autenticação e autorização).
+- Etapa: FASE A concluída; FASE B validada localmente; FASE C (autenticação e autorização) implementada localmente e aguardando teste integrado; início da FASE D (Cliente e Checkout).
 - Branch: `homologacao-finalizacao`.
-- Último commit validado: `0044673bbe403a800547163e5dec9db567bb8512` — `checkpoint: M24 ACL segura para homologacao`.
+- Checkpoint desta etapa: `checkpoint: FASE C redirect de auth seguro`.
+- Commit anterior: `10e48e1` — `checkpoint: FASE B build rotas e navegacao`.
+- Commit M24: `0044673bbe403a800547163e5dec9db567bb8512` — `checkpoint: M24 ACL segura para homologacao`.
 - Checkpoint anterior: `1dc0e0d0c0ddd7c008628f473d33799136d689e2`.
 - Diretório: `C:\Users\luiz9\Projetos\ERP-NEIA-SALGADOS`.
 
@@ -26,7 +28,7 @@
 | M24 — migration `0124`, teste e documentação | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | commit `0044673`; verificação estática de assinaturas, ACL, owner, `SECURITY DEFINER`, pré/pós-condições e atomicidade pelo runner |
 | M24 — aplicação em banco | BLOQUEADO POR DEPENDÊNCIA EXTERNA | exige autorização e laboratório isolado; não executar no Supabase existente |
 | FASE B — build, rotas e navegação | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | 89 rotas inventariadas; 0 links literais quebrados; `/historia` restaurada; hashes `/financeiro#caixa` e `/financeiro#relatorios` com alvos reais; CSS `?url` em rotas preview; `typecheck` e `build` passaram |
-| FASE C — autenticação e autorização | PENDENTE | — |
+| FASE C — autenticação e autorização | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | `destinoInternoSeguro` bloqueia `//`, `/\`, esquemas externos e controles; `/auth` usa o helper; suíte `homologar-auth-staging.test.mjs` passou com 10 testes offline; Auth/RLS remoto segue sem validação integrada |
 | FASE D — Cliente e Checkout | PENDENTE | — |
 | FASE E — Atendente e PDV | PENDENTE | — |
 | FASE F — Produção e Estoque | PENDENTE | — |
@@ -48,6 +50,9 @@
 - `npm.cmd run teste:isolamento`: passou — 46 cenários.
 - `npm.cmd run teste:homo-cliente-02`: passou.
 - `npm.cmd run teste:aceite-local`: passou após configurar ambiente fictício no próprio teste — 7 cenários e verificações estáticas.
+- `node --experimental-transform-types --test scripts/homologar-auth-staging.test.mjs`: passou — 10 testes, incluindo Destinos internos de redirect; nenhuma rede, nenhuma escrita.
+- `npm.cmd run typecheck`: passou novamente após FASE C.
+- `npm.cmd run build`: passou novamente após FASE C.
 - O loop completo de testes locais teve saída truncada; FASE K não foi declarada concluída.
 
 ## Bloqueios reais
@@ -60,7 +65,7 @@
 
 ## Próxima ação concreta
 
-1. Criar checkpoint local da FASE B com o documento de progresso e as correções validadas.
-2. FASE C: revisar autenticação/autorização e isolamento de ambiente sem tocar em produção.
-3. Retomar FASE D em diante, mantendo checkpoints curtos por módulo.
+1. Criar checkpoint local da FASE C com o helper de redirect, testes offline e documento de progresso.
+2. FASE D: revisar Cliente e Checkout, preservando o fluxo aprovado e o isolamento local.
+3. Retomar FASE E em diante, mantendo checkpoints curtos por módulo.
 4. Antes da entrega final, gerar `ERP-NEIA-SALGADOS-PRONTO-PARA-HOMOLOGACAO.md` com status honesto de cada fase.
