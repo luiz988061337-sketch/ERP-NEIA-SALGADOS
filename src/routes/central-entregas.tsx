@@ -145,7 +145,9 @@ function CentralEntregas() {
           query = query.eq("status", "em_rota");
           break;
         case "aguardando":
-          query = query.eq("status", "aguardando_motoboy");
+          query = query
+            .in("status", ["pronto", "aguardando_motoboy"])
+            .is("motoboy_id", null);
           break;
         case "entregues":
           query = query.eq("status", "entregue");
@@ -468,6 +470,24 @@ function CentralEntregas() {
     };
   }, [autorizado, filtro, queryClient]);
 
+  function aguardandoAtribuicaoCentral(p: any): boolean {
+    return (
+      p.tipo_entrega === "entrega" &&
+      !p.motoboy_id &&
+      !p.rota_id &&
+      (p.status === "pronto" || p.status === "aguardando_motoboy")
+    );
+  }
+
+  function atribuidoCentral(p: any): boolean {
+    return Boolean(
+      p.motoboy_id &&
+        p.status !== "entregue" &&
+        p.status !== "em_rota" &&
+        (p.status === "aguardando_motoboy" || p.status === "pronto" || p.status === "atribuido"),
+    );
+  }
+
   // ---------- DERIVADOS ----------
   const pedidosFiltrados = useMemo(() => {
     if (filtro === "todos") return pedidos ?? [];
@@ -480,7 +500,7 @@ function CentralEntregas() {
         case "em_rota":
           return p.status === "em_rota";
         case "aguardando":
-          return p.status === "aguardando_motoboy";
+          return aguardandoAtribuicaoCentral(p);
         case "entregues":
           return p.status === "entregue";
         default:
@@ -495,14 +515,8 @@ function CentralEntregas() {
       return { aguardando: 0, atribuidos: 0, em_rota: 0, entregue: 0, total: 0 };
     const total = pedidos.length;
     return {
-      aguardando: pedidos.filter((p: any) => p.status === "aguardando_motoboy").length,
-      atribuidos: pedidos.filter(
-        (p: any) =>
-          p.motoboy_id &&
-          p.status !== "aguardando_motoboy" &&
-          p.status !== "entregue" &&
-          p.status !== "em_rota",
-      ).length,
+      aguardando: pedidos.filter(aguardandoAtribuicaoCentral).length,
+      atribuidos: pedidos.filter(atribuidoCentral).length,
       em_rota: pedidos.filter((p: any) => p.status === "em_rota").length,
       entregue: pedidos.filter((p: any) => p.status === "entregue").length,
       total,
@@ -520,7 +534,7 @@ function CentralEntregas() {
     const lista = pedidos ?? [];
     const hoje = new Date().toDateString();
     const emRota = lista.filter((p: any) => p.status === "em_rota");
-    const aguardando = lista.filter((p: any) => p.status === "aguardando_motoboy");
+    const aguardando = lista.filter(aguardandoAtribuicaoCentral);
     const entreguesHoje = lista.filter(
       (p: any) => p.status === "entregue" && new Date(p.created_at).toDateString() === hoje,
     );
@@ -684,7 +698,7 @@ function CentralEntregas() {
   // Alternar filtro
   const handleFiltroChange = (novoFiltro: string) => {
     setFiltro(novoFiltro as "todos" | "hoje" | "em_rota" | "aguardando" | "entregues" | "retirada");
-    queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
+    queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", novoFiltro] });
   };
 
   // ---------- COMPONENTS ----------
@@ -1222,11 +1236,11 @@ function CentralEntregas() {
             <p className="text-xs text-muted-foreground">Pedidos prontos aguardando atribuição</p>
             <div className="h-64 overflow-y-auto space-y-2">
               {(pedidosVisiveis ?? [])
-                .filter((p: any) => p.status === "aguardando_motoboy")
+                .filter(aguardandoAtribuicaoCentral)
                 .map((p: any) => (
                   <PedidoCard key={p.id} pedido={p} />
                 ))}
-              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "aguardando_motoboy")
+              {(pedidosVisiveis ?? []).filter(aguardandoAtribuicaoCentral)
                 .length === 0 && (
                 <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
                   Nenhum pedido aguardando
@@ -1243,23 +1257,11 @@ function CentralEntregas() {
             <p className="text-xs text-muted-foreground">Pedidos com motoboy atribuído</p>
             <div className="h-64 overflow-y-auto space-y-2">
               {(pedidosVisiveis ?? [])
-                .filter(
-                  (p: any) =>
-                    p.motoboy_id &&
-                    p.status !== "aguardando_motoboy" &&
-                    p.status !== "entregue" &&
-                    p.status !== "em_rota",
-                )
+                .filter(atribuidoCentral)
                 .map((p: any) => (
                   <PedidoCard key={p.id} pedido={p} />
                 ))}
-              {(pedidosVisiveis ?? []).filter(
-                (p: any) =>
-                  p.motoboy_id &&
-                  p.status !== "aguardando_motoboy" &&
-                  p.status !== "entregue" &&
-                  p.status !== "em_rota",
-              ).length === 0 && (
+              {(pedidosVisiveis ?? []).filter(atribuidoCentral).length === 0 && (
                 <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
                   Nenhum pedido atribuído
                 </p>
@@ -1305,7 +1307,7 @@ function CentralEntregas() {
         </div>
 
         {/* ========== ATRIBUIÇÃO DE MOTOBOY ========== */}
-        {(pedidosFiltrados ?? []).filter((p: any) => p.status === "aguardando_motoboy").length >
+        {(pedidosFiltrados ?? []).filter(aguardandoAtribuicaoCentral).length >
           0 && (
           <div className="mt-4 rounded-xl border border-border bg-card p-6">
             <h2 id="secao-atribuicao" className="font-display text-lg mb-4">
@@ -1345,7 +1347,7 @@ function CentralEntregas() {
                 >
                   <option value="">Nenhum pedido</option>
                   {(pedidosFiltrados ?? [])
-                    .filter((p: any) => p.status === "aguardando_motoboy")
+                    .filter(aguardandoAtribuicaoCentral)
                     .slice(0, 10)
                     .map((p: any) => (
                       <option key={p.id} value={p.id}>
@@ -1424,7 +1426,7 @@ function CentralEntregas() {
               >
                 <option value="">Nenhum pedido</option>
                 {(pedidosFiltrados ?? [])
-                  .filter((p: any) => p.status === "aguardando_motoboy")
+                  .filter(aguardandoAtribuicaoCentral)
                   .slice(0, 15)
                   .map((p: any) => (
                     <option key={p.id} value={p.id}>

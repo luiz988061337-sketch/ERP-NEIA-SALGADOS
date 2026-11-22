@@ -63,6 +63,11 @@ ok(/SELECT count\(\*\) INTO v_rotas_ativas[\s\S]*IF v_rotas_ativas <> 1/.test(sq
 ok(/count\(\*\) FILTER \(WHERE rp\.pedido_id = ANY\(p_pedido_ids\)\)[\s\S]*v_total_paradas <> v_total OR v_paradas_selecionadas <> v_total/.test(sqlAtomica), "E4.43 exige exatamente as paradas selecionadas, sem extras ou faltas");
 ok(/rota_preexistente:/.test(criarRota), "E4.44 UI explica o bloqueio de rota ativa preexistente");
 ok(/p\.status !== "pronto" \|\| p\.motoboy_id \|\| p\.rota_id/.test(criarRota), "E4.52 UI aceita somente pedido pronto ainda sem atribuição, conforme 0084");
+ok(/function aguardandoAtribuicaoCentral[\s\S]*p\.status === "pronto"[\s\S]*p\.status === "aguardando_motoboy"/.test(rotaRoute), "E4.53 Central usa prontos e legados sem dono como aguardando");
+ok((rotaRoute.match(/\.filter\(aguardandoAtribuicaoCentral\)/g) || []).length >= 5, "E4.54 Kanban e seletores usam o mesmo critério de aguardando");
+ok(!/case "aguardando":\s*query = query\.eq\("status", "aguardando_motoboy"\)/.test(rotaRoute), "E4.55 filtro do servidor não exclui pedidos prontos");
+ok(/\.in\("status", \["pronto", "aguardando_motoboy"\]\)\s*\.is\("motoboy_id", null\)/.test(rotaRoute), "E4.56 consulta aguardando inclui prontos sem dono");
+ok(/queryKey: \["central-j2-pedidos", novoFiltro\]/.test(rotaRoute), "E4.57 troca de filtro invalida a chave nova");
 
 // Modelo local do contrato do lote: útil para os limites e rollback lógico,
 // mas não comprova o comportamento transacional do PostgreSQL.
