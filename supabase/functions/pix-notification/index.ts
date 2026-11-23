@@ -10,6 +10,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { autorizarPorSegredo, respostaJson } from "../_shared/webhook-auth.ts";
 
 interface PixNotificationEvent {
   event_hash: string;
@@ -27,9 +28,12 @@ interface PixNotificationEvent {
 
 // O Edge Function usa o SUPABASE_SERVICE_ROLE_KEY internamente para inserir no banco
 // O APK NÃO deve ter esta chave (requirement #12)
-// A autenticação é feita pela validacao de entrada e rate limiting
+// A autenticação exige o segredo PIX_WEBHOOK_SECRET; validação de entrada não substitui chamador.
 
 serve(async (req) => {
+  if (!(await autorizarPorSegredo(req, ["PIX_WEBHOOK_SECRET"]))) {
+    return respostaJson({ success: false, error: "unauthorized" }, 401);
+  }
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (!url || !serviceKey) {
@@ -99,7 +103,7 @@ serve(async (req) => {
       detected_at: body.detected_at,
       device_id: body.device_id,
       environment: body.environment || "TEST",
-      status: "PENDING",
+      status: "PENDENTE",
     }).select().single();
 
     if (error) {

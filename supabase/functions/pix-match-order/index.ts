@@ -3,12 +3,16 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { autorizarPorSegredo, respostaJson } from "../_shared/webhook-auth.ts";
 
 interface MatchOrderRequest {
   event_id: string;
 }
 
 serve(async (req) => {
+  if (!(await autorizarPorSegredo(req, ["PIX_WEBHOOK_SECRET"]))) {
+    return respostaJson({ success: false, error: "unauthorized" }, 401);
+  }
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (!url || !serviceKey) {
@@ -54,7 +58,7 @@ serve(async (req) => {
       // Atualizar evento com matching (modo teste)
       await sb.from("pix_notification_events").update({
         matched_order_id: matchedOrderId,
-        status: matchedOrderId ? "PROCESSED" : "INVALID",
+        status: matchedOrderId ? "PROCESSADO" : "INVALIDO",
         processed_at: new Date().toISOString(),
       }).eq("id", body.event_id);
 
@@ -85,7 +89,8 @@ serve(async (req) => {
           // Atualizar evento com status de divergência
           await sb.from("pix_notification_events").update({
             matched_order_id: pedido.id,
-            status: "DIVERGENCE",
+            status: "CONFERIR",
+            conferencia_motivo: "divergencia_valor",
             processed_at: new Date().toISOString(),
           }).eq("id", body.event_id);
 
@@ -154,7 +159,8 @@ serve(async (req) => {
         // Múltiplos pedidos com mesmo valor - classificar como AMBIGUOUS
         await sb.from("pix_notification_events").update({
           matched_order_id: null,
-          status: "AMBIGUOUS",
+          status: "CONFERIR",
+          conferencia_motivo: "multiplos_pedidos_mesmo_valor",
           processed_at: new Date().toISOString(),
         }).eq("id", body.event_id);
 

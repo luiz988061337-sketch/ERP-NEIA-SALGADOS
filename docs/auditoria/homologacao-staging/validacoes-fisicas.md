@@ -6,10 +6,11 @@ reais somente onde indicado. Interromper qualquer item em caso de dúvida.
 
 ## 0. Estado atual no código (base do checklist)
 
-- **PSP: ausente.** Zero ocorrências de gateway/webhook/PSP no `src/`.
-  Pagamento é manual: checkout grava `pagamento_status='pendente'`
-  (`checkout.tsx:357`); só a loja confirma (`admin.tsx:645`). Não existe
-  confirmação automática por valor.
+- **PSP: ausente.** Não há gateway/PSP contratado. Checkout grava
+  `pagamento_status='pendente'` e gera BR Code PIX real em `src/lib/pix.ts`.
+  Existe webhook interno protegido em `/api/public/pix/event`: exige aparelho
+  cadastrado e token SHA-256; confirma automaticamente apenas quando há um
+  único pedido PIX pendente com o mesmo valor; caso contrário registra `CONFERIR`.
 - **Impressão:** `fila_impressao` (`0025`: `trabalho_uuid` UNIQUE, `tipo`,
   `payload`, `impressora` default `'Tanca TP-550'`, status
   pendente/enviando/impresso/erro/cancelado, `tentativa`, `ultimo_erro`,

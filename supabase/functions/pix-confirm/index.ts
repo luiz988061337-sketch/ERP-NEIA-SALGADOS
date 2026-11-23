@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { autorizarPorSegredo, respostaJson } from "../_shared/webhook-auth.ts";
 
 interface PixConfirmRequest {
   event_id: string;
@@ -10,6 +11,9 @@ interface PixConfirmRequest {
 }
 
 serve(async (req) => {
+  if (!(await autorizarPorSegredo(req, ["PIX_WEBHOOK_SECRET"]))) {
+    return respostaJson({ success: false, error: "unauthorized" }, 401);
+  }
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (!url || !serviceKey) {
@@ -39,7 +43,7 @@ serve(async (req) => {
     }
 
     // 3. Verificar se evento já está confirmado ou pago
-    if (event.status === "CONFIRMED" || event.status === "pago") {
+    if (event.status === "CONFIRMADO" || event.status === "CONFIRMED" || event.status === "pago") {
       return new Response(
         JSON.stringify({ success: false, error: "Already confirmed" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -87,7 +91,8 @@ serve(async (req) => {
     if (event.amount !== null && pedido.total !== event.amount) {
       // Atualizar evento com status de divergência instead of confirming
       await sb.from("pix_notification_events").update({
-        status: "DIVERGENCE",
+        status: "CONFERIR",
+        conferencia_motivo: "divergencia_valor",
         processed_at: new Date().toISOString(),
       }).eq("id", body.event_id);
 
@@ -102,19 +107,19 @@ serve(async (req) => {
     }
 
     // 9. Confirmar pagamento no pedido - usando UPDATE condicional para idempotência
-    const { error: pedidoError } = await sb.from("pedidos").update({
+    const { data: pedidoAtualizado, error: pedidoError } = await sb.from("pedidos").update({
       pagamento_status: "pago",
       pagamento_em: new Date().toISOString(),
-    }).eq("id", safeOrderId).eq("pagamento_status", "pending"); // Apenas se ainda não estava pago
+    }).eq("id", safeOrderId).eq("pagamento_status", "pendente").select("id"); // Apenas se ainda não estava pago
 
-    if (pedidoError) {
+    if (pedidoError || !Array.isArray(pedidoAtualizado) || pedidoAtualizado.length === 0) {
       // Se o update falhou, pode já estar pago ou bloqueado
       // Verificar status atual
       const { data: checkPedido } = await sb.from("pedidos").select("pagamento_status").eq("id", safeOrderId).single();
       if (checkPedido?.pagamento_status === 'pago') {
         // Já estava pago - evento considerado já confirmado
         await sb.from("pix_notification_events").update({
-          status: "CONFIRMED",
+          status: "CONFIRMADO",
           processed_at: new Date().toISOString(),
         }).eq("id", body.event_id);
 
@@ -123,15 +128,20 @@ serve(async (req) => {
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
       }
+      await sb.from("pix_notification_events").update({
+        status: "CONFERIR",
+        conferencia_motivo: "pedido_mudou_antes_da_baixa",
+        processed_at: new Date().toISOString(),
+      }).eq("id", body.event_id);
       return new Response(
-        JSON.stringify({ success: false, error: "Error updating pedido" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Conflito ao atualizar pedido" }),
+        { status: 409, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Atualizar evento para CONFIRMED
+    // Atualizar evento para CONFIRMADO
     await sb.from("pix_notification_events").update({
-      status: "CONFIRMED",
+      status: "CONFIRMADO",
       processed_at: new Date().toISOString(),
     }).eq("id", body.event_id);
 

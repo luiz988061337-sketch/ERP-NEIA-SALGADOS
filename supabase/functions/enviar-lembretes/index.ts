@@ -2,17 +2,18 @@
 // Deploy: supabase functions deploy enviar-lembretes
 // Cron sugerido (Database → pg_cron, 1x/dia 09:00 America/Sao_Paulo):
 //   select net.http_post('https://SEU-PROJETO.supabase.co/functions/v1/enviar-lembretes',
-//     '{"":""}', headers := '{"Authorization":"Bearer SEU-SERVICE-ROLE"}');
+//     '{"":""}', headers := '{"Authorization":"Bearer SEU-LOVABLE-CRON-SECRET"}');
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { autorizarPorSegredo } from "../_shared/webhook-auth.ts";
 
 serve(async (req) => {
   const url = Deno.env.get("SUPABASE_URL") ?? "";
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const cron = Deno.env.get("LOVABLE_CRON_SECRET") ?? "";
-  if (!url || !key || !cron) return new Response("sem env", { status: 500 });
-  const auth = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (auth !== cron) return new Response("unauthorized", { status: 401 });
+  if (!url || !key) return new Response("sem env", { status: 500 });
+  if (!(await autorizarPorSegredo(req, ["LOVABLE_CRON_SECRET", "LOVABLE_CRON_SECRET_PREVIOUS"]))) {
+    return new Response("unauthorized", { status: 401 });
+  }
   const sb = createClient(url, key);
   const agora = Date.now();
   const { data: pedidos } = await sb.from("pedidos")

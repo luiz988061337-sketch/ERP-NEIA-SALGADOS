@@ -10,7 +10,7 @@ Stack: TanStack Start (file-routes em `src/routes`), Tailwind 4 + shadcn, Supaba
 Rotas existentes:
 - `/` cardápio (`src/routes/index.tsx`) — busca, filtro categoria, `ProductCard`, barra fixa de carrinho só na home
 - `/combo` (`src/routes/combo.tsx` + `src/lib/combo.ts`) — já valida múltiplos de 50 (`PASSO_COMBO=50`, `MINIMO_COMBO=50`)
-- `/carrinho` (`src/routes/carrinho.tsx`), `/checkout` (`src/routes/checkout.tsx` com `PIX_CHAVE="neiasalgados@pix.com.br"`, QR via qrserver — payload FAKE)
+- `/carrinho` (`src/routes/carrinho.tsx`), `/checkout` (`src/routes/checkout.tsx` com BR Code PIX real gerado em `src/lib/pix.ts`; chave atual em `PIX_CHAVE`)
 - `/pedido/$id` rastreio realtime + mapa, `/conta`, `/auth` (email/senha + OTP WhatsApp com fallback), `/producao`, `/motoboy`, `/admin` (~31KB)
 - Libs: `src/lib/cart.tsx` (localStorage `neia-carrinho`, sem validação backend), `src/lib/format.ts` (`TAXA_ENTREGA=6`, `mensagemStatus`, `whatsappLink`), `src/lib/session.ts` (roles `admin|producao|motoboy|cliente`, `useStaffOnly`), `src/lib/catalog.ts`, `src/components/product-card.tsx`, `site-header.tsx`, `map-view.tsx`, `status-steps.tsx`
 - BD atual (`drizzle/migrations/0000_neia_salgados_schema.sql`): `profiles`, `user_roles (+trigger handle_new_user → role cliente)`, `enderecos (rua,numero,bairro,complemento,referencia)`, `categorias`, `produtos (sem tipo_venda/destaque/promo-datas/cidade)`, `cupons`, `pedidos (numero seq a partir de 1001, status order_status, producao_status, taxa_entrega, desconto, total)`, `pedido_itens`, `avaliacoes`, `favoritos`. Realtime só em `pedidos`.

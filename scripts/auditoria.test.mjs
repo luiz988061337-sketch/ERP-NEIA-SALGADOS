@@ -3,6 +3,7 @@
 import { register } from "node:module";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 
 register(pathToFileURL(path.resolve("scripts/alias-loader.mjs")).href);
 
@@ -350,6 +351,28 @@ t("comanda totais com R$", cupom.includes("Subtotal:") && cupom.includes("R$ 195
 t("comanda sem acentos (driver térmico)", /^[\x20-\x7E\n]*$/.test(cupom));
 t("comanda linhas curtas p/ 80mm", cupom.split("\n").every((l) => l.length <= 42));
 t("moeda com vírgula", imp.moedaCupom(177.5) === "R$ 177,50");
+
+const lerArquivo = (arquivo) => readFileSync(path.resolve(arquivo), "utf8");
+const pixApi = lerArquivo("src/routes/api/public/pix/event.ts");
+const pixNotificationFn = lerArquivo("supabase/functions/pix-notification/index.ts");
+const pixMatchFn = lerArquivo("supabase/functions/pix-match-order/index.ts");
+const pixConfirmFn = lerArquivo("supabase/functions/pix-confirm/index.ts");
+const lembretesFn = lerArquivo("supabase/functions/enviar-lembretes/index.ts");
+const webhookAuth = lerArquivo("supabase/functions/_shared/webhook-auth.ts");
+
+t("helper de integrações usa SHA-256", webhookAuth.includes("crypto.subtle.digest"));
+t("helper de integrações compara em tempo constante", webhookAuth.includes("diferenca |="));
+t("API PIX protege por aparelho", pixApi.includes("timingSafeEqual") && pixApi.includes("token_hash"));
+t("API PIX grava evento PENDENTE", pixApi.includes('status: "PENDENTE"'));
+t("PIX notification exige segredo", pixNotificationFn.includes('autorizarPorSegredo(req, ["PIX_WEBHOOK_SECRET"])') && pixNotificationFn.includes('error: "unauthorized"'));
+t("PIX notification usa vocabulário atual", pixNotificationFn.includes('status: "PENDENTE"') && !pixNotificationFn.includes('"PENDING"'));
+t("PIX match exige segredo", pixMatchFn.includes('autorizarPorSegredo(req, ["PIX_WEBHOOK_SECRET"])') && pixMatchFn.includes('error: "unauthorized"'));
+t("PIX match usa vocabulário atual", pixMatchFn.includes('status: matchedOrderId ? "PROCESSADO" : "INVALIDO"') && !pixMatchFn.includes('status: "AMBIGUOUS"') && !pixMatchFn.includes('status: "DIVERGENCE"'));
+t("PIX confirm exige segredo", pixConfirmFn.includes('autorizarPorSegredo(req, ["PIX_WEBHOOK_SECRET"])') && pixConfirmFn.includes('error: "unauthorized"'));
+t("PIX confirm usa status pendente", pixConfirmFn.includes('.eq("pagamento_status", "pendente")') && !pixConfirmFn.includes('"pending"'));
+t("PIX confirm prova linha afetada", pixConfirmFn.includes('.select("id")') && pixConfirmFn.includes("pedidoAtualizado.length === 0"));
+t("PIX confirm não marca sucesso cego", pixConfirmFn.includes('conferencia_motivo: "pedido_mudou_antes_da_baixa"') && pixConfirmFn.includes('status: "CONFIRMADO"'));
+t("lembretes usam helper com rotação", lembretesFn.includes('autorizarPorSegredo(req, ["LOVABLE_CRON_SECRET", "LOVABLE_CRON_SECRET_PREVIOUS"])') && !lembretesFn.includes("auth !== cron"));
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);
