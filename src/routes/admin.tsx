@@ -854,22 +854,29 @@ function Admin() {
               setClienteFoco={setClienteFoco}
             />
           ) : (
-            <DashboardAdmin
-              pedidos={pedidos ?? []}
-              produtos={produtos ?? []}
-              profiles={profiles ?? []}
-              clientesStats={clientesStats ?? []}
-              periodo={periodo}
-              setPeriodo={setPeriodo}
-              setAba={setAba}
-              notLidas={notLidas}
-              marcarLida={marcarLida}
-              busca={buscaGlobal}
-              setBusca={setBuscaGlobal}
-              setPedidoFoco={setPedidoFoco}
-              setProdutoFoco={setProdutoFoco}
-              setClienteFoco={setClienteFoco}
-            />
+            // Na operação real, manter exatamente o mesmo enquadramento da
+            // prévia L2 aprovada; só a fonte dos dados muda para o staging.
+            // Nenhum fixture e nenhuma métrica fictícia são usados aqui.
+            <div className="l1-dashboard-preview min-h-screen bg-background p-3 sm:p-4">
+              <div className="mx-auto max-w-[1400px]">
+                <DashboardAdmin
+                  pedidos={pedidos ?? []}
+                  produtos={produtos ?? []}
+                  profiles={profiles ?? []}
+                  clientesStats={clientesStats ?? []}
+                  periodo={periodo}
+                  setPeriodo={setPeriodo}
+                  setAba={setAba}
+                  notLidas={notLidas}
+                  marcarLida={marcarLida}
+                  busca={buscaGlobal}
+                  setBusca={setBuscaGlobal}
+                  setPedidoFoco={setPedidoFoco}
+                  setProdutoFoco={setProdutoFoco}
+                  setClienteFoco={setClienteFoco}
+                />
+              </div>
+            </div>
           )}
         </TabsContent>
 
