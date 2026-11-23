@@ -905,27 +905,63 @@ function Financeiro() {
 
   return (
     <>
-      <AdminTopbar
-        usuario={user?.email ?? null}
-        acesso="Equipe"
-        onSair={async () => {
-          await supabase.auth.signOut();
-          navigate({ to: "/auth", replace: true });
-        }}
-      />
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-        <PageHeader
-          titulo="Financeiro"
-          acoes={
+      {/* Shell real compartilhado com os módulos H01–H07.
+          Exibir os números do Supabase, sem carregar a demo financeira. */}
+      <div className="financeiro-operacional-premium mx-auto max-w-[1600px] space-y-5 px-3 py-4 sm:px-5">
+        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 shadow-card">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 place-items-center rounded-xl border border-[#D4A94A] bg-[#201B11] text-[#F2CE6B]">
+              <Wallet className="size-7" aria-hidden />
+            </span>
+            <div>
+              <h1 className="font-display text-2xl font-extrabold uppercase tracking-wide text-[#F2CE6B]">
+                Financeiro — Gestão Completa
+              </h1>
+              <p className="text-sm text-[#C9C2B8]">
+                Caixa, contas, conciliação e resultados reais da Néia Salgados
+              </p>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-medium text-[#F2CE6B]">
+            Competência
             <Input
               type="month"
               value={mes}
               onChange={(e) => setMes(e.target.value)}
-              className="w-44"
+              className="min-h-11 w-44 border-[#D4A94A]/60 bg-[#17150F] text-base text-foreground"
               aria-label="Mês"
             />
-          }
-        />
+          </label>
+        </header>
+
+        <section aria-label="Indicadores financeiros reais" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <MetricCard icone={ArrowUpCircle} label="Recebimentos do mês"
+            valor={fluxoDisponivel ? brl(conc.recebido) : "—"}
+            detalhe={fluxoDisponivel ? "entradas confirmadas" : "aguardando dados confiáveis"}
+            cor={ERP_COLORS.green} />
+          <MetricCard icone={ArrowDownCircle} label="Contas a pagar"
+            valor={contas === undefined ? "—" : brl(aPagar)}
+            detalhe="saldo ainda pendente" cor={ERP_COLORS.red} />
+          <MetricCard icone={Wallet} label="Contas a receber"
+            valor={contas === undefined ? "—" : brl(aReceber)}
+            detalhe="saldo ainda pendente" cor={ERP_COLORS.blue} />
+          <MetricCard icone={ArrowUpCircle} label="Receita bruta"
+            valor={pedidosDisponiveis ? brl(dre.bruta) : "—"}
+            detalhe="pedidos não cancelados" cor={ERP_COLORS.gold} />
+          <MetricCard icone={ArrowDownCircle} label="Despesas contabilizadas"
+            valor={pedidosDisponiveis && contas !== undefined ? brl(dre.despesas) : "—"}
+            detalhe="despesas operacionais" cor={ERP_COLORS.orange} />
+          <MetricCard icone={Wallet} label="Resultado estimado"
+            valor={pedidosDisponiveis && contas !== undefined ? brl(dre.resultado) : "—"}
+            detalhe="DRE baseada em registros disponíveis" cor={ERP_COLORS.gold} />
+        </section>
+
+        <nav aria-label="Seções do financeiro" className="flex flex-wrap gap-2 rounded-xl border border-[#D4A94A]/50 bg-[#141310] p-2">
+          <a href="#caixa" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Caixa</a>
+          <a href="#contas-financeiro" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Contas a pagar e receber</a>
+          <a href="#relatorios" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Relatórios e gráficos</a>
+          <a href="#conciliacao-financeiro" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Conciliação</a>
+        </nav>
 
         {autorizado && user && (
           <AcertosMotoboyFinanceiro usuario={user.id} admin={roles?.includes("admin") ?? false}
@@ -1020,7 +1056,7 @@ function Financeiro() {
           </p>
         )}
 
-        <section className="rounded-xl border border-border bg-card p-4">
+        <section id="conciliacao-financeiro" className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-xl">Conciliação — {mes}</h2>
             <Button
@@ -1397,7 +1433,7 @@ function Financeiro() {
           ) : null}
         </section>
 
-        <section className="rounded-xl border border-border bg-card p-4">
+        <section id="contas-financeiro" className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-xl">Contas a pagar e receber</h2>
             <Button
