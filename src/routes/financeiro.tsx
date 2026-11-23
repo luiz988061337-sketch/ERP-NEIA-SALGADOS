@@ -997,29 +997,29 @@ function Financeiro() {
         <ChartCard titulo="Fluxo de Caixa (últimos 6 meses)" altura="h-64">
           {fluxoDisponivel ? <ResponsiveContainer width="100%" height="100%">
             <BarChart data={fluxoMensal} margin={{ left: -8, right: 8, top: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(212,169,74,0.25)" />
               <XAxis
                 dataKey="rotulo"
-                tick={{ fontSize: 11, fill: "#64748B" }}
+                tick={{ fontSize: 11, fill: "#A09A8E" }}
                 axisLine={{ stroke: "#E5E7EB" }}
                 tickLine={false}
               />
               <YAxis
                 tickFormatter={(v) => `R$ ${(Number(v) / 1000).toFixed(0)}k`}
-                tick={{ fontSize: 10, fill: "#64748B" }}
+                tick={{ fontSize: 10, fill: "#A09A8E" }}
                 axisLine={false}
                 tickLine={false}
                 width={56}
               />
               <Tooltip
                 contentStyle={{
-                  background: "#FFFFFF",
-                  border: "1px solid #E5E7EB",
+                  background: "#151412",
+                  border: "1px solid #D4A94A",
                   borderRadius: 8,
                   fontSize: 12,
-                  color: "#202B3A",
+                  color: "#F4F1EA",
                 }}
-                labelStyle={{ color: "#64748B" }}
+                labelStyle={{ color: "#A09A8E" }}
                 formatter={(v: number, name: string) => [brl(v), name]}
               />
               <Legend
