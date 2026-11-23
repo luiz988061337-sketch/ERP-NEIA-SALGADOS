@@ -19,8 +19,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "@/lib/cart";
 import { CartDock } from "@/components/cart-dock";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { ADMIN_NAV } from "@/components/admin/admin-nav";
-import { useSession } from "@/lib/session";
+import { menuAdmin } from "@/components/admin/admin-nav";
+import { useRoles, useSession } from "@/lib/session";
 import { SiteHeader } from "@/components/site-header";
 import { GuardaVersao } from "@/components/guarda-versao";
 import { supabase } from "@/integrations/supabase/client";
@@ -165,7 +165,7 @@ const ABA_ESPECIAL: Record<string, string> = {
 
 function abaPorRota(pathname: string): string {
   if (ABA_ESPECIAL[pathname]) return ABA_ESPECIAL[pathname]!;
-  const todos = ADMIN_NAV.flatMap((grupo) => grupo.items);
+  const todos = menuAdmin(false).flatMap((grupo) => grupo.items);
   const item = todos.find(
     (i) => i.href && (pathname === i.href || pathname.startsWith(`${i.href}/`)),
   );
@@ -175,12 +175,14 @@ function abaPorRota(pathname: string): string {
 /** Aplica o menu unificado nas rotas staff que ainda não tinham sidebar. */
 function MenuAdministrativoGlobal({ children }: { children: ReactNode }) {
   const { user } = useSession();
+  const { data: papeis } = useRoles(user?.id);
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const { pathname } = useLocation();
   return (
     <AdminShell
       aba={abaPorRota(pathname)}
+      menuPedidosAtendente={papeis?.includes("atendente") === true && !papeis.includes("admin")}
       onAba={() => {}}
       onRefresh={() => void queryClient.invalidateQueries()}
       usuario={user?.email ?? null}

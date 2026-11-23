@@ -233,11 +233,11 @@ export function MetricCard({
         <Icone className="size-4" style={{ color: cor }} aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="truncate text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="text-xs font-medium uppercase leading-snug tracking-wide text-muted-foreground">
           {label}
         </p>
         <p className="truncate font-display text-xl font-bold leading-tight">{valor}</p>
-        {detalhe ? <p className="truncate text-[9px] text-muted-foreground">{detalhe}</p> : null}
+          {detalhe ? <p className="text-xs text-muted-foreground">{detalhe}</p> : null}
       </div>
     </>
   );

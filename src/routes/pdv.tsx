@@ -98,10 +98,10 @@ export function PDV({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
   const permitido = preview ? true : roles?.includes("admin") || roles?.includes("atendente");
-  const { data: produtosHook } = useProdutos();
-  const { data: categoriasHook } = useCategorias();
+  const { data: produtosHook, isPending: carregandoProdutos, isError: erroProdutos } = useProdutos(!preview && !!permitido);
+  const { data: categoriasHook, isPending: carregandoCategorias, isError: erroCategorias } = useCategorias(!preview && !!permitido);
   const produtos = produtosInjetados ?? produtosHook;
   const categorias = categoriasInjetadas ?? categoriasHook;
 
@@ -483,7 +483,12 @@ export function PDV({
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
   }
 
-  if (!preview && !loading && user && roles && !permitido) {    return (
+  if (!preview && erroAcesso)
+    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso ao PDV.</p>;
+  if (!preview && (loading || !user || !roles))
+    return <p role="status" className="p-6 text-muted-foreground">Verificando acesso ao PDV…</p>;
+  if (!preview && !permitido) {
+    return (
       <main className="mx-auto max-w-md p-10 text-center text-muted-foreground">
         PDV restrito a atendente/admin.
       </main>
@@ -493,6 +498,8 @@ export function PDV({
   return (
     <AdminShell
       aba="pdv"
+      menuDemonstrativo={preview}
+      menuPedidosAtendente={roles?.includes("atendente") === true && !roles.includes("admin")}
       onAba={() => {}}
       onRefresh={() => queryClient.invalidateQueries()}
       usuario={user?.email ?? null}
@@ -509,10 +516,10 @@ export function PDV({
                 <ReceiptText className="size-4 text-[#F2CE6B]" aria-hidden />
               </span>
               <div className="min-w-0">
-                <h1 className="truncate font-display text-lg font-bold uppercase leading-tight tracking-wide text-foreground">
+                <h1 className="font-display text-lg font-bold uppercase leading-tight tracking-wide text-foreground sm:text-xl">
                   PDV — Atendimento e Caixa
                 </h1>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Registro de pedidos, pagamentos e impressão de comandas
                 </p>
               </div>
@@ -618,8 +625,8 @@ export function PDV({
                       />
                       <div className="flex items-center justify-between gap-1 p-2.5">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-semibold text-foreground">{p.nome}</p>
-                          <p className="text-xs font-bold text-[#F2CE6B]">{brl(precoFinal(p))}</p>
+                          <p className="break-words text-sm font-semibold text-foreground">{p.nome}</p>
+                          <p className="text-sm font-bold text-[#F2CE6B]">{brl(precoFinal(p))}</p>
                         </div>
                         <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-[#14120C] transition-transform group-hover:scale-105">
                           <Plus className="size-4" />
@@ -629,11 +636,17 @@ export function PDV({
                   );
                 })}
               </div>
-              {grade.length === 0 && (
+              {!preview && (erroProdutos || erroCategorias) ? (
+                <p role="alert" className="rounded-xl border border-destructive/60 p-3 text-sm text-destructive">
+                  Não foi possível carregar o catálogo. Use “Atualizar dados” para tentar novamente.
+                </p>
+              ) : !preview && (carregandoProdutos || carregandoCategorias) ? (
+                <p role="status" className="p-3 text-sm text-muted-foreground">Carregando catálogo…</p>
+              ) : grade.length === 0 ? (
                 <p className="mt-6 rounded-2xl border border-[#D4A94A]/45 bg-[#121110] py-6 text-center text-sm text-[#A09A8E]">
                   Nenhum produto nesta categoria.
                 </p>
-              )}
+              ) : null}
             </>
           )}
 

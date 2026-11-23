@@ -6,6 +6,7 @@
  * nenhuma rota é enviada, nenhum GPS ou notificação externa é acionado e
  * nenhuma gravação é feita no Supabase.
  */
+import { EntregasResumo } from "./entregas-resumo";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -287,22 +288,14 @@ export function CentralEntregasPremium({
             </p>
           ) : null}
 
-          <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="grid size-12 place-items-center rounded-2xl border border-[#D4A94A]/40 bg-[#D4A94A]/10 text-[#F2CE6B]">
-                <Bike className="size-7" />
-              </div>
-              <div>
-                <h1 className="font-display text-[28px] font-extrabold tracking-tight text-[#F2CE6B]">
-                  CENTRAL DE ENTREGAS — ROTAS
-                </h1>
-                <p className="text-xs text-muted-foreground">Agrupamento inteligente de pedidos por rota</p>
-              </div>
-            </div>
-            <div className="rounded-full border border-[#D4A94A]/40 bg-[#141310] px-4 py-2 text-xs">
-              Hoje, {hoje} • Dados demonstrativos
-            </div>
-          </header>
+          <EntregasResumo
+            aguardando={aguardando.length}
+            atribuidos={rotas.filter((r) => r.status !== "Em rota" && r.status !== "Finalizada").reduce((total, rota) => total + rota.pedidos.length, 0)}
+            emRota={rotas.filter((r) => r.status === "Em rota").reduce((total, rota) => total + rota.pedidos.length, 0)}
+            entregues={12}
+            disponiveis={motoboys.filter((m) => m.status === "disponível").length}
+            acoes={<span className="rounded-full border border-[#D4A94A]/40 bg-[#141310] px-4 py-2 text-sm">Hoje, {hoje} · Dados demonstrativos</span>}
+          />
 
           {destaque ? (
             <div className="mt-3 rounded-xl border border-[#D4A94A] bg-[#F2CE6B]/10 px-4 py-3 text-sm">
@@ -310,23 +303,6 @@ export function CentralEntregasPremium({
               <span className="text-[#C9C2B8]"> — veio da Central da Atendente. {destaque.cliente} • cliente até {destaque.prazo}. Seleção demonstrativa, sem persistência.</span>
             </div>
           ) : null}
-
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
-            {[
-              { label: "Pedidos aguardando", valor: aguardando.length, icone: Package },
-              { label: "Atribuídos", valor: rotas.reduce((s, r) => s + r.pedidos.length, 0), icone: User },
-              { label: "Em rota", valor: rotas.filter((r) => r.status === "Em rota").reduce((s, r) => s + r.pedidos.length, 0), icone: Navigation },
-              { label: "Entregues", valor: 12, icone: CheckCircle2 },
-              { label: "Motoboys disponíveis", valor: motoboys.filter((m) => m.status === "disponível").length, icone: Bike },
-            ].map((m) => (
-              <div key={m.label} className="rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)]">
-                <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-[#F2CE6B]/80">
-                  <m.icone className="size-4" /> {m.label}
-                </div>
-                <div className="mt-2 text-3xl font-extrabold tracking-tight">{m.valor}</div>
-              </div>
-            ))}
-          </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-5">
             <section className="rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)] xl:col-span-3">

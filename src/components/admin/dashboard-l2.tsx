@@ -1,4 +1,4 @@
-import { DashboardAdmin } from "@/components/admin/dashboard-admin";
+import { DashboardGestao } from "@/components/admin/dashboard-admin";
 import { CLIENTES_STATS, PEDIDOS, PRODUTOS } from "@/routes/preview-l2-gestao-data";
 import type { PeriodoKey } from "@/lib/operacao";
 
@@ -38,14 +38,13 @@ export function PainelDashboardL2({
   mostrarSelo?: boolean;
 }) {
   return (
-    <div className="l1-dashboard-preview min-h-screen bg-background p-3 sm:p-4">
-      <div className="mx-auto max-w-[1400px]">
+    <>
         {mostrarSelo ? (
-          <p className="mb-3 rounded-lg border border-[#D4A94A] bg-[#17150F] px-3 py-2 text-xs text-[#F2CE6B]">
+          <p className="mx-3 mt-3 rounded-lg border border-[#D4A94A] bg-[#17150F] px-3 py-2 text-xs text-[#F2CE6B]">
             PRÉVIA L2 — Painel de Gestão. Dados fictícios locais, nada é gravado.
           </p>
         ) : null}
-        <DashboardAdmin
+        <DashboardGestao
           pedidos={PEDIDOS}
           produtos={PRODUTOS}
           profiles={[]}
@@ -61,7 +60,6 @@ export function PainelDashboardL2({
           setProdutoFoco={setProdutoFoco}
           setClienteFoco={setClienteFoco}
         />
-      </div>
-    </div>
+    </>
   );
 }

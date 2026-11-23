@@ -19,16 +19,14 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ADMIN_NAV, type AdminNavItem } from "./admin-nav";
+import { ADMIN_NAV, menuAdmin } from "./admin-nav";
 
 /**
  * Shell do Admin — aparência da referência preto/dourado:
  * sidebar compacta com moldura dourada, marca (coroa + NÉIA SALGADOS),
  * item ativo em pílula dourada, ícones claros e usuário no rodapé.
  *
- * O menu vem sempre de ADMIN_NAV. Não existe mais substituição de lista por
- * rota/preview: todos os grupos e itens permanecem acessíveis em qualquer
- * página administrativa ou de preview.
+ * O menu usa os grupos de ADMIN_NAV e os destinos operacionais do ambiente.
  */
 export function AdminShell({
   aba,
@@ -39,6 +37,8 @@ export function AdminShell({
   children,
   modoPreview = false,
   grupoAtivo,
+  menuDemonstrativo = modoPreview,
+  menuPedidosAtendente = false,
 }: {
   aba: string;
   onAba: (v: string) => void;
@@ -47,6 +47,8 @@ export function AdminShell({
   onSair?: () => void;
   children: ReactNode;
   modoPreview?: boolean;
+  menuDemonstrativo?: boolean;
+  menuPedidosAtendente?: boolean;
   /** Mantém o destaque dourado restrito ao grupo da suíte aberta. */
   grupoAtivo?: string | undefined;
 }) {
@@ -69,10 +71,10 @@ export function AdminShell({
               <Crown className="size-[18px] text-[#F2CE6B]" aria-hidden />
             </span>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="truncate font-display text-[13px] font-bold uppercase leading-tight tracking-wide text-[#F2CE6B]">
+              <p className="truncate font-display text-sm font-bold uppercase leading-tight tracking-wide text-[#F2CE6B]">
                 Néia Salgados
               </p>
-              <p className="truncate text-[10px] uppercase tracking-wider text-muted-foreground">
+              <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
                 Painel de Gestão
               </p>
               {modoPreview ? (
@@ -84,7 +86,8 @@ export function AdminShell({
           </div>
         </SidebarHeader>
 
-        <MenuLateral aba={aba} onAba={onAba} grupoAtivo={grupoAtivo} />
+        <MenuLateral aba={aba} onAba={onAba} grupoAtivo={grupoAtivo}
+          demonstrativo={menuDemonstrativo} pedidosAtendente={menuPedidosAtendente} />
 
         <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -95,7 +98,7 @@ export function AdminShell({
               <p className="truncate text-xs font-semibold text-foreground">
                 {usuario?.split("@")[0] ?? "Equipe"}
               </p>
-              <p className="truncate text-[10px] text-muted-foreground">Administradora</p>
+              <p className="truncate text-xs text-muted-foreground">Administradora</p>
             </div>
             <span
               className="size-2 shrink-0 rounded-full bg-[#35C97C] group-data-[collapsible=icon]:hidden"
@@ -132,11 +135,12 @@ export function AdminShell({
       </Sidebar>
       <SidebarInset>
         {!modoPreview ? (
-          <div className="pointer-events-none absolute left-3 top-3 z-30 md:hidden">
+          <div className="flex border-b border-border bg-sidebar px-3 py-2 md:hidden">
             <SidebarTrigger
               aria-label="Abrir menu administrativo"
-              className="pointer-events-auto size-9 border border-[#D4A94A]/60 bg-[#141310] text-[#F2CE6B] hover:bg-[#D4A94A]/15 hover:text-[#F2CE6B]"
+              className="size-11 border border-[#D4A94A]/60 bg-[#141310] text-[#F2CE6B] hover:bg-[#D4A94A]/15 hover:text-[#F2CE6B]"
             />
+            <span className="self-center pl-3 text-sm font-semibold text-foreground">Menu administrativo</span>
           </div>
         ) : null}
         {children}
@@ -173,10 +177,14 @@ function MenuLateral({
   aba,
   onAba,
   grupoAtivo,
+  demonstrativo,
+  pedidosAtendente,
 }: {
   aba: string;
   onAba: (v: string) => void;
   grupoAtivo?: string | undefined;
+  demonstrativo: boolean;
+  pedidosAtendente: boolean;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const { pathname, hash } = useLocation();
@@ -215,14 +223,14 @@ function MenuLateral({
     <SidebarContent
       className="bg-[#0F0E0C] [scrollbar-color:rgba(212,169,74,0.55)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D4A94A]/60 [&::-webkit-scrollbar-track]:bg-transparent"
     >
-      {ADMIN_NAV.map((grupo) => {
+      {menuAdmin(demonstrativo, pedidosAtendente).map((grupo) => {
         const aberto = gruposAbertos[grupo.label] !== false;
         const ehComercial = grupo.label === "Comercial";
         return (
           <SidebarGroup key={grupo.label} data-grupo={grupo.label} className="py-1">
             <SidebarGroupLabel
               asChild
-              className="px-3 font-display text-[9px] uppercase tracking-[0.14em] text-[#8A7A52] group-data-[collapsible=icon]:hidden"
+              className="px-3 font-display text-xs uppercase tracking-wide text-[#C7B78E] group-data-[collapsible=icon]:hidden"
             >
               <button
                 type="button"
@@ -277,7 +285,7 @@ function MenuLateral({
                       ? item.linhas
                         ? "h-[58px] min-h-[58px] py-0"
                         : "h-11 min-h-11 py-0"
-                      : "h-9 min-h-9";
+                      : "h-10 min-h-10";
                     const classeTexto = ehComercial
                       ? "min-w-0 flex-1 leading-[17px]"
                       : "truncate";
@@ -310,9 +318,11 @@ function MenuLateral({
                             tooltip={item.label}
                             data-value={item.value}
                             className={classes}
+                            isActive={ativo}
                           >
                             <Link
                               to={item.href}
+                              aria-current={ativo ? "page" : undefined}
                               {...(item.hash ? { hash: item.hash } : {})}
                               onClick={() => {
                                 if (isMobile) setOpenMobile(false);

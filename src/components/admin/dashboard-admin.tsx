@@ -64,6 +64,16 @@ import hero from "@/assets/hero.jpg";
  * "vs. ontem" só aparece com base calculada; sem base, mostra "—".
  * Blocos funcionais (busca, operação, aside) preservados.
  */
+export function DashboardGestao(props: Parameters<typeof DashboardAdmin>[0]) {
+  return (
+    <div className="l1-dashboard-preview min-h-screen bg-background p-3 sm:p-4">
+      <div className="mx-auto max-w-[1400px]">
+        <DashboardAdmin {...props} />
+      </div>
+    </div>
+  );
+}
+
 export function DashboardAdmin({
   pedidos,
   produtos,

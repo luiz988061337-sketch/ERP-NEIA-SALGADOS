@@ -57,14 +57,14 @@ export function AdminTopbar({
   const endLoja = loja ? enderecoLoja(loja) : "";
 
   return (
-    <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 border-b border-[#E5E7EB] bg-white px-4 py-2 text-[#202B3A]">
+    <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 border-b border-border bg-sidebar px-4 py-2 text-foreground">
       {menuButton}
       {onVoltar ? (
         <Button
           variant="outline"
           size="sm"
           onClick={onVoltar}
-          className="min-h-[44px] shrink-0 border-[#E5E7EB] bg-transparent text-[#202B3A] hover:bg-[#F1F5F9] hover:text-[#202B3A]"
+          className="min-h-[44px] shrink-0 border-border bg-transparent text-foreground hover:bg-accent hover:text-foreground"
           aria-label="Voltar"
         >
           ← Voltar
@@ -74,30 +74,30 @@ export function AdminTopbar({
         <button
           type="button"
           onClick={onLojaClick}
-          className="flex min-h-[44px] items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-left"
+          className="flex min-h-[44px] items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-left"
           aria-label="Loja — ir para Configurações"
         >
           <Store className="size-5 text-[#C49A43]" aria-hidden />
           <span className="leading-tight">
-            <span className="block text-xs font-bold">{nomeLoja}</span>
-            <span className="block max-w-44 truncate text-[11px] text-[#64748B]">
+            <span className="block text-sm font-bold">{nomeLoja}</span>
+            <span className="block max-w-44 truncate text-xs text-muted-foreground">
               {endLoja || "Endereço a definir"}
             </span>
           </span>
         </button>
       ) : (
-        <span className="flex min-h-[44px] items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-1.5">
+        <span className="flex min-h-[44px] items-center gap-2 rounded-lg border border-border px-3 py-1.5">
           <Store className="size-5 text-[#C49A43]" aria-hidden />
           <span className="leading-tight">
-            <span className="block text-xs font-bold">{nomeLoja}</span>
-            <span className="block max-w-44 truncate text-[11px] text-[#64748B]">
+            <span className="block text-sm font-bold">{nomeLoja}</span>
+            <span className="block max-w-44 truncate text-xs text-muted-foreground">
               {endLoja || "Endereço a definir"}
             </span>
           </span>
         </span>
       )}
       <span
-        className="flex min-h-[44px] items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-1.5"
+        className="flex min-h-[44px] items-center gap-2 rounded-lg border border-border px-3 py-1.5"
         role="status"
       >
         <span
@@ -105,36 +105,36 @@ export function AdminTopbar({
           aria-hidden
         />
         <span className="leading-tight">
-          <span className="block text-xs font-bold">
+          <span className="block text-sm font-bold">
             {online ? "Sistema online" : conectando ? "Conectando…" : "Sem conexão"}
           </span>
-          <span className="block text-[11px] text-[#64748B]">
-            {online ? "Todos os serviços funcionando" : "verifique a internet"}
+          <span className="block text-xs text-muted-foreground">
+            {online ? "Conexão com a loja" : "verifique a internet"}
           </span>
         </span>
       </span>
       <span
-        className="hidden min-h-[44px] items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-center sm:flex"
+        className="hidden min-h-[44px] items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-center sm:flex"
         aria-label="Data e hora atuais"
       >
         <span className="leading-tight">
-          <span className="block text-xs font-bold">{agora.toLocaleDateString("pt-BR")}</span>
+          <span className="block text-sm font-bold">{agora.toLocaleDateString("pt-BR")}</span>
           <span className="block text-sm font-bold">
             {agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
           </span>
-          <span className="block text-[11px] capitalize text-[#64748B]">
+          <span className="block text-xs capitalize text-muted-foreground">
             {agora.toLocaleDateString("pt-BR", { weekday: "long" })}
           </span>
         </span>
       </span>
       <span className="ml-auto flex items-center gap-2">
-        <span className="hidden min-h-[44px] items-center gap-2 rounded-lg border border-[#E5E7EB] px-3 py-1.5 md:flex">
-          <UserRound className="size-5 text-[#94A3B8]" aria-hidden />
+        <span className="hidden min-h-[44px] items-center gap-2 rounded-lg border border-border px-3 py-1.5 md:flex">
+          <UserRound className="size-5 text-[#D4A94A]" aria-hidden />
           <span className="leading-tight">
-            <span className="block max-w-40 truncate text-xs font-bold">
+            <span className="block max-w-40 truncate text-sm font-bold">
               {usuario?.split("@")[0] ?? "Equipe"}
             </span>
-            <span className="block text-[11px] text-[#64748B]">{acesso}</span>
+            <span className="block text-xs text-muted-foreground">{acesso}</span>
           </span>
         </span>
         {onSair ? (
@@ -142,7 +142,7 @@ export function AdminTopbar({
             variant="outline"
             size="sm"
             onClick={onSair}
-            className="min-h-[44px] border-[#E5E7EB] bg-transparent text-[#202B3A] hover:bg-[#F1F5F9] hover:text-[#202B3A]"
+            className="min-h-[44px] border-border bg-transparent text-foreground hover:bg-accent hover:text-foreground"
           >
             <LogOut className="mr-1.5 size-4" />
             Sair

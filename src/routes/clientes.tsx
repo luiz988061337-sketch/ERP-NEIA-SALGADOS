@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRoles, useSession } from "@/lib/session";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
-import { AdminTopbar } from "@/components/admin/admin-topbar";
-import { PageHeader } from "@/components/admin/ui-admin";
+import { CrmResumo, PaginacaoClientes } from "@/components/admin/crm-resumo";
+import "@/components/comercial-preview/comercial.css";
 import { DarkTable, DarkTableRow, SectionCard } from "@/components/admin/erp-ui";
 import { brl, dataHora } from "@/lib/format";
 import {
@@ -52,9 +52,9 @@ type FiltroAniv = "0" | "7" | "15" | "30";
 function Clientes() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
   const isAdmin = roles?.includes("admin");
-  const { data: clientes, isLoading, refetch } = useClientesStats();
+  const { data: clientes, isPending: carregandoClientes, isError: erroClientes, refetch } = useClientesStats(!!isAdmin);
   const { data: settings } = useCrmSettings();
 
   const [busca, setBusca] = useState("");
@@ -64,10 +64,12 @@ function Clientes() {
   const [fAniv, setFAniv] = useState<FiltroAniv>("0");
   const [fEmp, setFEmp] = useState<"todas" | "pj">("todas");
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [pagina, setPagina] = useState(1);
   const [detalhe, setDetalhe] = useState<CustomerStats | null>(null);
 
   const { data: nascMap } = useQuery({
     queryKey: ["crm-aniversarios"],
+    enabled: !!isAdmin,
     queryFn: async (): Promise<Map<string, string>> => {
       try {
         const { data, error } = await supabase
@@ -104,7 +106,7 @@ function Clientes() {
         if (d == null || d > Number(fAniv)) return false;
       }
       if (fEmp === "pj" && c.tipo_cliente !== "PJ") return false;
-      if (termo && !(c.nome.toLowerCase().includes(termo) || c.telefone_display.includes(termo)))
+      if (termo && ![c.nome, c.nome_fantasia, c.telefone_display, c.email].some((valor) => valor.toLowerCase().includes(termo)))
         return false;
       return true;
     });
@@ -115,9 +117,22 @@ function Clientes() {
     [clientes],
   );
 
-  if (roles && !isAdmin)
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, fSeg, fDias, fRecompra, fAniv, fEmp]);
+
+  if (erroAcesso)
+    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso ao CRM.</p>;
+  if (loading || !user || !roles)
+    return <p role="status" className="p-6 text-muted-foreground">Verificando acesso ao CRM…</p>;
+  if (!isAdmin)
     return <p className="p-10 text-center">Acesso restrito ao administrador.</p>;
 
+  const porPagina = 10;
+  const paginaAtual = Math.min(pagina, Math.max(1, Math.ceil(filtrados.length / porPagina)));
+  const visiveis = filtrados.slice((paginaAtual - 1) * porPagina, paginaAtual * porPagina);
+  const vip = settings && clientes?.filter((c) => isVipCfg(c.total_gasto, c.total_pedidos, settings)).length;
+  const novos = clientes?.filter((c) => c.segmento === "novo").length;
   const inativos30 = (clientes ?? []).filter((c) => (c.dias_sem_comprar ?? 0) >= 30).length;
 
   function toggleTodos() {
@@ -145,21 +160,19 @@ function Clientes() {
 
   return (
     <>
-      <AdminTopbar
-        usuario={user?.email ?? null}
-        onSair={async () => {
-          await supabase.auth.signOut();
-          navigate({ to: "/auth", replace: true });
-        }}
-      />
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <PageHeader
-          titulo="👥 Clientes"
-          descricao={`${filtrados.length} na lista`}
+      <div className="comercial-preview">
+      <div className="com-content">
+        <CrmResumo
+          descricao="Acompanhe o histórico de compras e organize a reativação."
+          total={clientes?.length ?? "—"}
+          inativos={clientes ? inativos30 : "—"}
+          vip={vip ?? "—"}
+          novos={novos ?? "—"}
           acoes={
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
+                disabled={filtrados.length === 0}
                 onClick={() =>
                   downloadCSV(
                     `clientes-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -182,7 +195,7 @@ function Clientes() {
                 CSV
               </Button>
               <Button asChild variant="outline">
-                <Link to="/admin">Pedidos/Admin</Link>
+                <Link to="/admin" hash="pedidos">Pedidos</Link>
               </Button>
               <Button asChild>
                 <Link to="/campanhas">📣 Campanhas</Link>
@@ -192,7 +205,7 @@ function Clientes() {
         />
 
         {inativos30 > 0 ? (
-          <p className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm">
+          <p className="mt-3 rounded-xl border border-amber-300 bg-amber-950/30 p-3 text-sm text-amber-200">
             ⚠️ <strong>{inativos30} clientes estão há mais de 30 dias sem comprar.</strong>{" "}
             <button
               className="underline"
@@ -206,18 +219,20 @@ function Clientes() {
           </p>
         ) : null}
 
-        <div className="mt-4 grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
+        <SectionCard titulo="Lista de clientes e segmentação" bodyClassName="p-0">
+        <div className="com-filtros grid gap-3 p-4 md:grid-cols-3 xl:grid-cols-6">
           <div className="space-y-1.5">
-            <Label>Buscar (nome/telefone)</Label>
+            <Label htmlFor="crm-busca">Buscar cliente</Label>
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Ex: Maria ou 119..."
+              id="crm-busca"
+              placeholder="Nome, telefone ou e-mail…"
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Segmento</Label>
-            <select
+            <Label htmlFor="crm-segmento">Segmento</Label>
+            <select id="crm-segmento"
               value={fSeg}
               onChange={(e) => setFSeg(e.target.value as FiltroSeg)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -231,8 +246,8 @@ function Clientes() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>Sem comprar há</Label>
-            <select
+            <Label htmlFor="crm-inatividade">Sem comprar há</Label>
+            <select id="crm-inatividade"
               value={fDias}
               onChange={(e) => setFDias(e.target.value as FiltroDias)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -246,8 +261,8 @@ function Clientes() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>Recompra próxima (estimativa)</Label>
-            <select
+            <Label htmlFor="crm-recompra">Recompra próxima (estimativa)</Label>
+            <select id="crm-recompra"
               value={fRecompra}
               onChange={(e) => setFRecompra(e.target.value as FiltroRecompra)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -259,8 +274,8 @@ function Clientes() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>Aniversários próximos</Label>
-            <select
+            <Label htmlFor="crm-aniversario">Aniversários próximos</Label>
+            <select id="crm-aniversario"
               value={fAniv}
               onChange={(e) => setFAniv(e.target.value as FiltroAniv)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -272,8 +287,8 @@ function Clientes() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>Tipo</Label>
-            <select
+            <Label htmlFor="crm-tipo">Tipo</Label>
+            <select id="crm-tipo"
               value={fEmp}
               onChange={(e) => setFEmp(e.target.value as "todas" | "pj")}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -302,30 +317,25 @@ function Clientes() {
           </div>
         </div>
 
-        {isLoading ? (
-          <p className="p-8 text-center text-muted-foreground">Carregando clientes reais…</p>
+        {erroClientes ? (
+          <p role="alert" className="p-4 text-sm text-destructive">Não foi possível carregar os clientes. Use “Atualizar dados” para tentar novamente.</p>
+        ) : carregandoClientes ? (
+          <p role="status" className="p-4 text-sm text-muted-foreground">Carregando clientes…</p>
         ) : null}
 
-        <RankingClientes nomes={nomesMap} />
-
-        <SectionCard
-          titulo="Lista de Clientes"
-          acoes={<span className="text-[10px] uppercase text-muted-foreground">{filtrados.length} registro(s)</span>}
-          className="mt-4"
-          bodyClassName="p-0"
-        >
         <DarkTable
           colunas={[
-            "",
+            "Seleção",
             "Cliente",
-            "WhatsApp",
+            "Último pedido",
+            "Segmento",
+            "Produtos favoritos",
             "Pedidos",
             "Total",
-            "Últ. pedido",
             "Detalhes",
           ]}
         >
-          {filtrados.map((c) => {
+          {visiveis.map((c) => {
             const vip = settings ? isVipCfg(c.total_gasto, c.total_pedidos, settings) : false;
             const freq = settings ? isFrequenteCfg(c.total_pedidos, settings) : false;
             const dRec = settings?.recompra_ativa === false ? null : diasParaRecompra(c);
@@ -349,10 +359,17 @@ function Clientes() {
                   />
                 </td>
                 <td className={cn("px-2.5 py-2", c.opt_out && "opacity-70")}>
-                  <p className="font-semibold">
-                    {c.nome_fantasia || c.nome}
-                  </p>
-                  <p className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                  <div className="com-cliente">
+                    <span className="com-iniciais" aria-hidden>{(c.nome_fantasia || c.nome).trim().split(/\s+/).slice(0, 2).map((parte) => parte[0]).join("").toUpperCase()}</span>
+                    <span><b>{c.nome_fantasia || c.nome}</b><small>{c.telefone_display}</small></span>
+                  </div>
+                </td>
+                <td className="px-2.5 py-2 text-sm text-muted-foreground">
+                  {c.ultimo_pedido ? dataHora(c.ultimo_pedido) : "—"}
+                  {c.dias_sem_comprar != null ? <span className="block">Há {c.dias_sem_comprar} dias</span> : null}
+                </td>
+                <td className="px-2.5 py-2">
+                  <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                     {SEGMENTO_LABEL[c.segmento]}
                     {c.tipo_cliente === "PJ" ? <span>• 🏢 Empresa</span> : null}
                     {vip ? <span className="text-[#A9813A]">• ⭐ VIP</span> : null}
@@ -364,15 +381,9 @@ function Clientes() {
                     {dAniv != null && dAniv <= 30 ? <span>• 🎂 em {dAniv}d</span> : null}
                   </p>
                 </td>
-                <td className="px-2.5 py-2 whitespace-nowrap">{c.telefone_display}</td>
+                <td className="px-2.5 py-2 text-sm">{c.produtos_top.length ? c.produtos_top.join(", ") : "—"}</td>
                 <td className="px-2.5 py-2">{c.total_pedidos}</td>
                 <td className="px-2.5 py-2 font-semibold">{brl(c.total_gasto)}</td>
-                <td className="px-2.5 py-2 text-[11px] text-muted-foreground">
-                  {c.ultimo_pedido ? dataHora(c.ultimo_pedido) : "-"}
-                  <span className="block">
-                    há {c.dias_sem_comprar ?? "-"} dias
-                  </span>
-                </td>
                 <td className="px-2.5 py-2">
                   <Button size="sm" variant="outline" onClick={() => setDetalhe(c)}>
                     Detalhes
@@ -382,7 +393,12 @@ function Clientes() {
             );
           })}
         </DarkTable>
+        {!erroClientes && !carregandoClientes && filtrados.length === 0 ? (
+          <p className="com-vazio">Nenhum cliente neste filtro.</p>
+        ) : null}
+        <PaginacaoClientes total={filtrados.length} pagina={paginaAtual} porPagina={porPagina} onPagina={setPagina} />
         </SectionCard>
+        <RankingClientes nomes={nomesMap} />
         {detalhe ? (
           <DetalheCliente
             c={detalhe}
@@ -391,9 +407,7 @@ function Clientes() {
             onOptOut={() => salvarOptOut(detalhe, !detalhe.opt_out)}
           />
         ) : null}
-        {!isLoading && filtrados.length === 0 ? (
-          <p className="p-8 text-center text-muted-foreground">Nenhum cliente neste filtro.</p>
-        ) : null}
+      </div>
       </div>
     </>
   );

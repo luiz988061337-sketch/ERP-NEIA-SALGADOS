@@ -241,11 +241,11 @@ export function useCrmSettings() {
   });
 }
 
-export function useClientesStats() {
+export function useClientesStats(ativo = true) {
   const { data: settings } = useCrmSettings();
   return useQuery({
     queryKey: ["crm-clientes", settings],
-    enabled: !!settings,
+    enabled: ativo && !!settings,
     queryFn: async (): Promise<CustomerStats[]> => {
       const { data: pedidos, error } = await supabase
         .from("pedidos")

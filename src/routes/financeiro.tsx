@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowDownCircle, ArrowUpCircle, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, CalendarDays, ChartNoAxesCombined, FlaskConical, ListChecks, Target, Wallet } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -17,7 +17,8 @@ import {
   YAxis,
 } from "recharts";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
-import { AdminTopbar } from "@/components/admin/admin-topbar";
+import { FinanceiroResumo } from "@/components/financeiro-premium/resumo";
+import { SimuladorFinanceiro } from "@/components/financeiro-premium/simulador";
 import { AcertosMotoboyFinanceiro } from "@/components/admin/acertos-motoboy";
 import { PageHeader } from "@/components/admin/ui-admin";
 import { ERP_COLORS, MetricCard, ChartCard } from "@/components/admin/erp-ui";
@@ -98,7 +99,7 @@ async function lerPaginado<T>(buscar: (inicio: number, fim: number) => Promise<{
 function Financeiro() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const [mes, setMes] = useState(() => competenciaSaoPaulo(new Date().toISOString()) ?? new Date().toISOString().slice(0, 7));
 
@@ -132,9 +133,11 @@ function Financeiro() {
     queryClient.invalidateQueries({ queryKey: ["fin-pedidos-pagos-sem-data"] });
   }
 
-  if (!loading && !user) {
-    navigate({ to: "/auth", search: { redirect: "/financeiro" }, replace: true });
-  }
+  useEffect(() => {
+    if (!loading && !user) {
+      void navigate({ to: "/auth", search: { redirect: "/financeiro" }, replace: true });
+    }
+  }, [loading, user, navigate]);
   const autorizado = roles?.includes("admin") || roles?.includes("financeiro");
   const competenciasFluxo = useMemo(() => ultimasCompetencias(mes), [mes]);
   const faixaFluxo = useMemo(() => ({
@@ -547,9 +550,6 @@ function Financeiro() {
     queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
   }
 
-  if (roles && !autorizado) {
-    return <p className="p-10 text-center">Acesso do admin/financeiro.</p>;
-  }
 
   const hoje = hojeSP();
   const contasComStatus = (contas ?? []).map((c: any) => ({ ...c, efetivo: statusConta(c, hoje) }));
@@ -903,64 +903,50 @@ function Financeiro() {
     }
   }
 
+  if (erroAcesso)
+    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso ao Financeiro.</p>;
+  if (loading || !user || !roles)
+    return <p role="status" className="p-6 text-muted-foreground">Verificando acesso ao Financeiro…</p>;
+  if (!autorizado)
+    return <p className="p-6 text-muted-foreground">Acesso restrito à Administração e ao Financeiro.</p>;
+
   return (
     <>
-      {/* Shell real compartilhado com os módulos H01–H07.
-          Exibir os números do Supabase, sem carregar a demo financeira. */}
       <div className="financeiro-operacional-premium mx-auto max-w-[1600px] space-y-5 px-3 py-4 sm:px-5">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 shadow-card">
-          <div className="flex items-center gap-3">
-            <span className="grid size-12 place-items-center rounded-xl border border-[#D4A94A] bg-[#201B11] text-[#F2CE6B]">
-              <Wallet className="size-7" aria-hidden />
-            </span>
-            <div>
-              <h1 className="font-display text-2xl font-extrabold uppercase tracking-wide text-[#F2CE6B]">
-                Financeiro — Gestão Completa
-              </h1>
-              <p className="text-sm text-[#C9C2B8]">
-                Caixa, contas, conciliação e resultados reais da Néia Salgados
-              </p>
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-sm font-medium text-[#F2CE6B]">
-            Competência
-            <Input
-              type="month"
-              value={mes}
-              onChange={(e) => setMes(e.target.value)}
-              className="min-h-11 w-44 border-[#D4A94A]/60 bg-[#17150F] text-base text-foreground"
-              aria-label="Mês"
-            />
-          </label>
-        </header>
-
-        <section aria-label="Indicadores financeiros reais" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          <MetricCard icone={ArrowUpCircle} label="Recebimentos do mês"
-            valor={fluxoDisponivel ? brl(conc.recebido) : "—"}
-            detalhe={fluxoDisponivel ? "entradas confirmadas" : "aguardando dados confiáveis"}
-            cor={ERP_COLORS.green} />
-          <MetricCard icone={ArrowDownCircle} label="Contas a pagar"
-            valor={contas === undefined ? "—" : brl(aPagar)}
-            detalhe="saldo ainda pendente" cor={ERP_COLORS.red} />
-          <MetricCard icone={Wallet} label="Contas a receber"
-            valor={contas === undefined ? "—" : brl(aReceber)}
-            detalhe="saldo ainda pendente" cor={ERP_COLORS.blue} />
-          <MetricCard icone={ArrowUpCircle} label="Receita bruta"
-            valor={pedidosDisponiveis ? brl(dre.bruta) : "—"}
-            detalhe="pedidos não cancelados" cor={ERP_COLORS.gold} />
-          <MetricCard icone={ArrowDownCircle} label="Despesas contabilizadas"
-            valor={pedidosDisponiveis && contas !== undefined ? brl(dre.despesas) : "—"}
-            detalhe="despesas operacionais" cor={ERP_COLORS.orange} />
-          <MetricCard icone={Wallet} label="Resultado estimado"
-            valor={pedidosDisponiveis && contas !== undefined ? brl(dre.resultado) : "—"}
-            detalhe="DRE baseada em registros disponíveis" cor={ERP_COLORS.gold} />
-        </section>
-
-        <nav aria-label="Seções do financeiro" className="flex flex-wrap gap-2 rounded-xl border border-[#D4A94A]/50 bg-[#141310] p-2">
-          <a href="#caixa" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Caixa</a>
-          <a href="#contas-financeiro" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Contas a pagar e receber</a>
-          <a href="#relatorios" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Relatórios e gráficos</a>
-          <a href="#conciliacao-financeiro" className="rounded-lg border border-[#D4A94A]/60 px-4 py-2.5 text-sm font-bold text-[#F2CE6B] hover:bg-[#D4A94A]/15">Conciliação</a>
+        <div className="fp-app fp-resumo-operacional">
+          <FinanceiroResumo
+            subtitulo="Caixa, contas, conciliação e resultados"
+            acoes={
+              <label className="fp-period">
+                <CalendarDays size={18} aria-hidden />
+                <span className="sr-only">Competência</span>
+                <Input type="month" value={mes} onChange={(event) => setMes(event.target.value)}
+                  className="min-h-11 w-44 text-foreground" />
+              </label>
+            }
+            indicadores={[
+              { icon: ArrowUpCircle, label: "Recebimentos do mês", valor: fluxoDisponivel ? brl(conc.recebido) : "—" },
+              { icon: ArrowDownCircle, label: "Contas a pagar", valor: valorContas(aPagar) },
+              { icon: Wallet, label: "Contas a receber", valor: valorContas(aReceber) },
+              { icon: ArrowUpCircle, label: "Receita bruta", valor: valorPedidos(dre.bruta) },
+              { icon: ArrowDownCircle, label: "Despesas contabilizadas", valor: pedidosDisponiveis && contasDisponiveis ? brl(dre.despesas) : "—" },
+              { icon: Target, label: "Ponto de equilíbrio", valor: pedidosDisponiveis && contasDisponiveis && pe != null ? brl(pe) : "—" },
+            ]}
+          />
+        </div>
+        <nav aria-label="Seções do financeiro" className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-2 sm:flex sm:flex-wrap">
+          {([
+            ["caixa", "Caixa", Wallet],
+            ["contas-financeiro", "Contas a pagar e receber", ListChecks],
+            ["conciliacao-financeiro", "Conciliação", ArrowUpCircle],
+            ["relatorios", "Relatórios e gráficos", ChartNoAxesCombined],
+            ["simulacoes-financeiro", "Simulações", FlaskConical],
+          ] as const).map(([id, label, Icone]) => (
+            <a key={id} href={`#${id}`}
+              className="flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-[#F2CE6B] hover:bg-accent">
+              <Icone className="size-4 shrink-0" aria-hidden />{label}
+            </a>
+          ))}
         </nav>
 
         {autorizado && user && (
@@ -1141,17 +1127,19 @@ function Financeiro() {
             <p className="flex justify-between rounded-lg border border-primary/40 bg-primary/5 p-2.5">
               <span>= Resultado</span>
               <strong>
-                {pedidosDisponiveis ? `${brl(dre.resultado)} (${dre.margemPct.toFixed(1)}%)` : "—"}
+                {pedidosDisponiveis && contasDisponiveis ? `${brl(dre.resultado)} (${dre.margemPct.toFixed(1)}%)` : "—"}
               </strong>
             </p>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             Ponto de equilíbrio:{" "}
             <strong className="text-foreground">
-              {!pedidosDisponiveis ? "—" : pe != null ? brl(pe) + "/mês" : "sem base (margem zerada)"}
+              {!pedidosDisponiveis || !contasDisponiveis ? "—" : pe != null ? brl(pe) + "/mês" : "sem base (margem zerada)"}
             </strong>
           </p>
         </section>
+
+        <SimuladorFinanceiro />
 
         <section className="rounded-xl border border-border bg-card p-4">
           <h2 className="font-display text-xl">Fluxo projetado (90 dias)</h2>

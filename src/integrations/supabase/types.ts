@@ -2631,6 +2631,32 @@ export type Database = {
         }
         Relationships: []
       }
+      producao_remessas: {
+        Row: {
+          pedido_id: string
+          indice: number
+          quantidade: number
+          itens: Json
+          concluida_em: string | null
+          concluida_por: string | null
+        }
+        Insert: {
+          pedido_id: string
+          indice: number
+          quantidade: number
+          itens: Json
+          concluida_em?: string | null
+          concluida_por?: string | null
+        }
+        Update: Partial<Database["public"]["Tables"]["producao_remessas"]["Insert"]>
+        Relationships: [{
+          foreignKeyName: "producao_remessas_pedido_id_fkey"
+          columns: ["pedido_id"]
+          isOneToOne: false
+          referencedRelation: "pedidos"
+          referencedColumns: ["id"]
+        }]
+      }
       pedido_itens: {
         Row: {
           id: string
@@ -4046,6 +4072,9 @@ export type Database = {
         Args: { p_produto_id: string; p_quantidade: number }
         Returns: number
       }
+      preparar_remessas_producao: { Args: { p_pedido_id: string }; Returns: boolean }
+      concluir_remessa_producao: { Args: { p_pedido_id: string; p_indice: number }; Returns: boolean }
+      conferir_remessas_producao: { Args: { p_pedido_id: string; p_confirmado: boolean }; Returns: boolean }
       conferir_pedido_cozinha: {
         Args: { p_confirmado?: boolean; p_obs?: string; p_pedido_id: string }
         Returns: {
