@@ -228,12 +228,25 @@ function RootComponent() {
     pathname === "/preview/financeiro-premium" ||
     pathname.startsWith("/preview/reembolsos-estornos");
 
-  // Acesso direto do cliente: primeira visita cria sessão anônima nos
-  // bastidores (sem tela de login). Sessões existentes são preservadas.
+  // A sessão anônima serve SOMENTE para o cliente no site público.
+  // Nunca iniciar Auth anônimo em /auth ou nas rotas da equipe, pois uma
+  // autenticação simultânea poderia substituir a sessão do administrador.
+  const rotaRestritaOuLogin =
+    pathname === "/auth" ||
+    /^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp|equipe|contador|gestao)(\/|$)/.test(pathname) ||
+    pathname.startsWith("/preview");
+
   useEffect(() => {
-    if (modoDemo || rotaDemonstrativaSemBanco) return;
-    void garantirSessaoAnonima();
-  }, [modoDemo, rotaDemonstrativaSemBanco]);
+    if (modoDemo || rotaDemonstrativaSemBanco || rotaRestritaOuLogin) return;
+    // O usuário pode navegar do cardápio para /auth enquanto getSession
+    // está em andamento. Revalidar a rota antes de iniciar signInAnonymously.
+    void garantirSessaoAnonima(() =>
+      window.location.pathname !== "/auth" &&
+      !/^\/(admin|pdv|producao|central-entregas|motoboy|financeiro|fiscal|clientes|atendente|impressao|orcamentos|recorrentes|campanhas|crm-config|operacao|mcp|equipe|contador|gestao)(\/|$)/.test(window.location.pathname)
+    ).catch(() => {
+      // Sessão anônima opcional: falhas não devem afetar o login da equipe.
+    });
+  }, [modoDemo, rotaDemonstrativaSemBanco, rotaRestritaOuLogin]);
 
   useEffect(() => {
     if (modoDemo || rotaDemonstrativaSemBanco) return;
