@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
  * - sem sessão → `signInAnonymously()` (Supabase gera `is_anonymous=true`).
  * Segura para chamar em qualquer tela; no-op quando já existir sessão.
  */
-export async function garantirSessaoAnonima(): Promise<void> {
+export async function garantirSessaoAnonima(podeIniciar?: () => boolean): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
 
   // Se já há sessão (staff ou anon), não criar nova session anônima.
@@ -17,6 +17,10 @@ export async function garantirSessaoAnonima(): Promise<void> {
   if (session) {
     return;
   }
+
+  // Uma navegação para /auth ou área staff durante getSession cancela o início.
+  // Evita trocar a autenticação do funcionário por uma sessão anônima.
+  if (podeIniciar && !podeIniciar()) return;
 
   // Só cria session anônima se realmente não houver sessão.
   const { error } = await supabase.auth.signInAnonymously();
