@@ -1492,7 +1492,7 @@ export function Producao({
               contador={filaFazer.length}
               cor={ERP_COLORS.orange}
               icone={AlarmClock}
-              className="min-h-[480px]"
+              className="min-h-36 lg:min-h-[480px]"
             >
               {filaFazer.length === 0 ? (
                 <p className="py-8 text-center text-xs text-muted-foreground">
@@ -1511,7 +1511,7 @@ export function Producao({
               contador={preparoLista.length}
               cor={ERP_COLORS.blue}
               icone={UtensilsCrossed}
-              className="min-h-[480px]"
+              className="min-h-36 lg:min-h-[480px]"
             >
               {preparoLista.length === 0 ? (
                 <p className="py-8 text-center text-xs text-muted-foreground">
@@ -1530,7 +1530,7 @@ export function Producao({
               contador={prontosEntrega.length + prontosRetirada.length}
               cor={ERP_COLORS.green}
               icone={CircleCheck}
-              className="min-h-[480px]"
+              className="min-h-36 lg:min-h-[480px]"
             >
               {[...prontosEntrega, ...prontosRetirada].length === 0 ? (
                 <p className="py-8 text-center text-xs text-muted-foreground">

@@ -6,6 +6,7 @@
  * nenhuma rota é enviada, nenhum GPS ou notificação externa é acionado e
  * nenhuma gravação é feita no Supabase.
  */
+import { EntregasLayout } from "./entregas-layout";
 import { EntregasResumo } from "./entregas-resumo";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -304,8 +305,9 @@ export function CentralEntregasPremium({
             </div>
           ) : null}
 
-          <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-5">
-            <section className="rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)] xl:col-span-3">
+          <div className="mt-4">
+            <EntregasLayout
+              mapa={<section className="rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)]">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="rounded-full border border-[#D4A94A] px-4 py-1.5 text-sm font-extrabold tracking-wide">
                   {rotaAtiva?.codigo ?? "ROTA 04 — CENTRO"}
@@ -332,9 +334,8 @@ export function CentralEntregasPremium({
                   </div>
                 ))}
               </div>
-            </section>
-
-            <section className="flex flex-col rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)] xl:col-span-2">
+            </section>}
+              rota={<section className="flex flex-col rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-[inset_0_1px_0_0_rgba(212,169,74,0.15)]">
               <div className="flex items-center justify-between">
                 <div className="text-xl font-extrabold tracking-tight">{rotaAtiva?.codigo ?? "Rota 04"}</div>
                 <div className="rounded-full border border-[#D4A94A] px-3 py-1 text-[11px] font-bold">
@@ -406,7 +407,8 @@ export function CentralEntregasPremium({
                   <Send className="size-4" /> Enviar rota
                 </button>
               </div>
-            </section>
+            </section>}
+            />
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">

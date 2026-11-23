@@ -29,6 +29,7 @@ import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { ehModoDemo } from "@/lib/demo-preview";
 import { CentralEntregasPremium } from "@/components/entregas/central-entregas-premium";
+import { EntregasLayout } from "@/components/entregas/entregas-layout";
 import { EntregasResumo } from "@/components/entregas/entregas-resumo";
 import { comLocalizacaoSegura, lerLocalizacoesEntrega, MOTOBOY_RPC_ATIVO } from "@/lib/localizacao-entrega";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
@@ -901,9 +902,8 @@ function CentralEntregas() {
           <p role="status" className="text-sm text-muted-foreground">Carregando pedidos de entrega…</p>
         ) : null}
 
-        {/* ========== MAPA DOMINANTE + PAINEL MOTOBOYS (reforma estrutural) ========== */}
-        <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          <section
+        <EntregasLayout
+          mapa={<section
             id="secao-mapa"
             className="overflow-hidden rounded-xl border border-border bg-card shadow-card"
             aria-label="Mapa de entregas em tempo real"
@@ -925,7 +925,149 @@ function CentralEntregas() {
                 </p>
               )}
             </div>
-          </section>
+          </section>}
+          rota={<section className="rounded-2xl border border-border bg-card p-4">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h2 id="secao-rotas" className="font-display text-lg">
+              {MOTOBOY_RPC_ATIVO ? "Rotas atribuídas e em andamento" : "Rotas em andamento"}
+            </h2>
+            <label className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              Motoboy
+              <select value={filtroMotoboyRotas} onChange={(event) => setFiltroMotoboyRotas(event.target.value)}
+                className="min-h-10 rounded-md border border-input bg-background px-3 text-foreground">
+                <option value="">Todos os motoboys</option>
+                {(motoboys ?? []).map((motoboy: any) => <option key={motoboy.id} value={motoboy.id}>{motoboy.nome}</option>)}
+              </select>
+            </label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] })}
+            >
+              Atualizar
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {MOTOBOY_RPC_ATIVO ? "A Central libera a saída das rotas atribuídas. " : "Somente rotas em_rota. "}
+            Encerrar exige todos os pedidos entregues ou cancelados.
+          </p>
+          {rotasCarregando && !(rotasAtivas ?? []).length ? (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando rotas…
+            </p>
+          ) : rotasErro ? (
+            <p className="text-sm text-destructive">
+              Não foi possível carregar as rotas: {(rotasErro as Error).message}
+            </p>
+          ) : rotasVisiveis.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma rota para o filtro atual.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {rotasVisiveis.map((r: any) => {
+                const vinculados = (r.rota_pedidos ?? [])
+                  .map((rp: any) => rp.pedidos)
+                  .filter(Boolean);
+                const pendentes = vinculados.filter(
+                  (p: any) => p.status !== "entregue" && p.status !== "cancelado",
+                );
+                const concluidos = vinculados.length - pendentes.length;
+                const mb = (motoboys ?? []).find((x: any) => x.id === r.motoboy_id);
+                const podeEncerrar = vinculados.length > 0 && pendentes.length === 0;
+                const confirmando = rotaConfirmId === r.id;
+                const processando = rotaEncerrandoId === r.id;
+                return (
+                  <div key={r.id} className="rounded-xl border border-[#D4A94A]/55 bg-background p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-display text-base font-bold text-[#F2CE6B]">Rota {String(r.id).slice(0, 8)}</h3>
+                      <span className="rounded-full border border-border px-2 py-1 text-xs font-semibold">
+                        {r.status === "em_rota" ? "Em rota" : r.liberada_central_em ? "Saída liberada" : "Aguardando liberação"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Motoboy: {mb?.nome ?? "—"}
+                      {r.saiu_em ? ` • saiu às ${hora(r.saiu_em)}` : ""}
+                    </p>
+                    <p className="text-sm mt-1">
+                      {vinculados.length === 0
+                        ? "Sem pedidos vinculados."
+                        : `${concluidos} de ${vinculados.length} pedido(s) finalizados`}
+                      {pendentes.length > 0 && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          • pendentes: {pendentes.map((p: any) => `Nº ${p.numero}`).join(", ")}
+                        </span>
+                      )}
+                    </p>
+                    {vinculados.length > 0 ? (
+                      <ol className="mt-3 space-y-2">
+                        {vinculados.map((pedido: any) => (
+                          <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                            <span><strong>#{pedido.numero}</strong> · {pedido.cliente_nome}</span>
+                            <StatusBadge status={pedido.status} />
+                          </li>
+                        ))}
+                      </ol>
+                    ) : null}
+                    {MOTOBOY_RPC_ATIVO && r.status === "preparando" && (
+                      <div className="mt-3"><p className="text-sm">{r.liberada_central_em ? `Liberação registrada às ${hora(r.liberada_central_em)}. O servidor revalida a composição antes da saída.` : "Atribuída pela Central. Confirme a liberação para permitir a saída após as retiradas."}</p>
+                        <Button size="sm" className="mt-2" disabled={rotaLiberando !== null}
+                          onClick={() => void liberarRota(r.id)}>Liberar saída</Button>
+                      </div>
+                    )}
+                    {!confirmando ? (
+                      <div className="mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!podeEncerrar || processando}
+                          onClick={() => setRotaConfirmId(r.id)}
+                        >
+                          Encerrar rota
+                        </Button>
+                        {!podeEncerrar && vinculados.length > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Aguarde todos os pedidos serem entregues ou cancelados.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-3 rounded-lg border border-border p-3">
+                        <p className="text-sm">
+                          <strong>Encerrar esta rota?</strong> Todos os pedidos foram entregues ou
+                          cancelados?
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={processando}
+                            onClick={() => setRotaConfirmId(null)}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={processando}
+                            onClick={() => encerrarRota(r.id)}
+                          >
+                            {processando ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Encerrando…
+                              </>
+                            ) : (
+                              "Encerrar rota"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>}
+        />
 
           <div className="space-y-3">
             <section
@@ -1006,7 +1148,6 @@ function CentralEntregas() {
               </ul>
             </section>
           </div>
-        </div>
 
         {/* ========== PEDIDOS EM ROTA ========== */}
         <section
@@ -1424,149 +1565,6 @@ function CentralEntregas() {
             {criandoRota ? "Criando rota…" : "Criar Rota"}
           </Button>
         </div>
-
-        {/* ========== ROTAS EM ANDAMENTO (J3-H H1) ========== */}
-        <section className="rounded-2xl border border-border bg-card p-4">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h2 id="secao-rotas" className="font-display text-lg">
-              {MOTOBOY_RPC_ATIVO ? "Rotas atribuídas e em andamento" : "Rotas em andamento"}
-            </h2>
-            <label className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              Motoboy
-              <select value={filtroMotoboyRotas} onChange={(event) => setFiltroMotoboyRotas(event.target.value)}
-                className="min-h-10 rounded-md border border-input bg-background px-3 text-foreground">
-                <option value="">Todos os motoboys</option>
-                {(motoboys ?? []).map((motoboy: any) => <option key={motoboy.id} value={motoboy.id}>{motoboy.nome}</option>)}
-              </select>
-            </label>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] })}
-            >
-              Atualizar
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            {MOTOBOY_RPC_ATIVO ? "A Central libera a saída das rotas atribuídas. " : "Somente rotas em_rota. "}
-            Encerrar exige todos os pedidos entregues ou cancelados.
-          </p>
-          {rotasCarregando && !(rotasAtivas ?? []).length ? (
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando rotas…
-            </p>
-          ) : rotasErro ? (
-            <p className="text-sm text-destructive">
-              Não foi possível carregar as rotas: {(rotasErro as Error).message}
-            </p>
-          ) : rotasVisiveis.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma rota para o filtro atual.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {rotasVisiveis.map((r: any) => {
-                const vinculados = (r.rota_pedidos ?? [])
-                  .map((rp: any) => rp.pedidos)
-                  .filter(Boolean);
-                const pendentes = vinculados.filter(
-                  (p: any) => p.status !== "entregue" && p.status !== "cancelado",
-                );
-                const concluidos = vinculados.length - pendentes.length;
-                const mb = (motoboys ?? []).find((x: any) => x.id === r.motoboy_id);
-                const podeEncerrar = vinculados.length > 0 && pendentes.length === 0;
-                const confirmando = rotaConfirmId === r.id;
-                const processando = rotaEncerrandoId === r.id;
-                return (
-                  <div key={r.id} className="rounded-xl border border-[#D4A94A]/55 bg-background p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="font-display text-base font-bold text-[#F2CE6B]">Rota {String(r.id).slice(0, 8)}</h3>
-                      <span className="rounded-full border border-border px-2 py-1 text-xs font-semibold">
-                        {r.status === "em_rota" ? "Em rota" : r.liberada_central_em ? "Saída liberada" : "Aguardando liberação"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Motoboy: {mb?.nome ?? "—"}
-                      {r.saiu_em ? ` • saiu às ${hora(r.saiu_em)}` : ""}
-                    </p>
-                    <p className="text-sm mt-1">
-                      {vinculados.length === 0
-                        ? "Sem pedidos vinculados."
-                        : `${concluidos} de ${vinculados.length} pedido(s) finalizados`}
-                      {pendentes.length > 0 && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          • pendentes: {pendentes.map((p: any) => `Nº ${p.numero}`).join(", ")}
-                        </span>
-                      )}
-                    </p>
-                    {vinculados.length > 0 ? (
-                      <ol className="mt-3 space-y-2">
-                        {vinculados.map((pedido: any) => (
-                          <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                            <span><strong>#{pedido.numero}</strong> · {pedido.cliente_nome}</span>
-                            <StatusBadge status={pedido.status} />
-                          </li>
-                        ))}
-                      </ol>
-                    ) : null}
-                    {MOTOBOY_RPC_ATIVO && r.status === "preparando" && (
-                      <div className="mt-3"><p className="text-sm">{r.liberada_central_em ? `Liberação registrada às ${hora(r.liberada_central_em)}. O servidor revalida a composição antes da saída.` : "Atribuída pela Central. Confirme a liberação para permitir a saída após as retiradas."}</p>
-                        <Button size="sm" className="mt-2" disabled={rotaLiberando !== null}
-                          onClick={() => void liberarRota(r.id)}>Liberar saída</Button>
-                      </div>
-                    )}
-                    {!confirmando ? (
-                      <div className="mt-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={!podeEncerrar || processando}
-                          onClick={() => setRotaConfirmId(r.id)}
-                        >
-                          Encerrar rota
-                        </Button>
-                        {!podeEncerrar && vinculados.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Aguarde todos os pedidos serem entregues ou cancelados.
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mt-3 rounded-lg border border-border p-3">
-                        <p className="text-sm">
-                          <strong>Encerrar esta rota?</strong> Todos os pedidos foram entregues ou
-                          cancelados?
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={processando}
-                            onClick={() => setRotaConfirmId(null)}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={processando}
-                            onClick={() => encerrarRota(r.id)}
-                          >
-                            {processando ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Encerrando…
-                              </>
-                            ) : (
-                              "Encerrar rota"
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
 
         {/* ========== MAPA — movido para o topo (elemento dominante) ========== */}
 

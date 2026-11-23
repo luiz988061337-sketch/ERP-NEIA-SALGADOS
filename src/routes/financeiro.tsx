@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowDownCircle, ArrowUpCircle, CalendarDays, ChartNoAxesCombined, FlaskConical, ListChecks, Target, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, CalendarDays, Shield, Target, Wallet } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -17,6 +17,10 @@ import {
   YAxis,
 } from "recharts";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { FinanceiroAbas, type AbaFinanceiroPremium } from "@/components/financeiro-premium/abas";
+import { CustosOperacionais } from "@/components/financeiro-premium/custos-operacionais";
+import { Panel } from "@/components/financeiro-premium/layout";
 import { FinanceiroResumo } from "@/components/financeiro-premium/resumo";
 import { SimuladorFinanceiro } from "@/components/financeiro-premium/simulador";
 import { AcertosMotoboyFinanceiro } from "@/components/admin/acertos-motoboy";
@@ -96,6 +100,14 @@ async function lerPaginado<T>(buscar: (inicio: number, fim: number) => Promise<{
   return { rows: [], errorCode: "LIMITE_PAGINACAO" };
 }
 
+const ABAS_OPERACIONAIS = ["lancamentos", "custos", "contas-financeiro", "caixa", "equilibrio", "simulacoes", "relatorios"] as const;
+
+function abaFinanceiro(hash: string): AbaFinanceiroPremium {
+  const id = hash.replace(/^#/, "");
+  if (id === "simulacoes-financeiro") return "simulacoes";
+  return ABAS_OPERACIONAIS.find((aba) => aba === id) ?? "lancamentos";
+}
+
 function Financeiro() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
@@ -103,18 +115,21 @@ function Financeiro() {
   const queryClient = useQueryClient();
   const [mes, setMes] = useState(() => competenciaSaoPaulo(new Date().toISOString()) ?? new Date().toISOString().slice(0, 7));
 
+  const [aba, setAba] = useState<AbaFinanceiroPremium>("lancamentos");
+
   useEffect(() => {
-    const irParaHash = () => {
-      const alvo = window.location.hash.replace(/^#/, "");
-      if (alvo !== "caixa" && alvo !== "relatorios") return;
-      window.requestAnimationFrame(() => {
-        document.getElementById(alvo)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    };
-    irParaHash();
-    window.addEventListener("hashchange", irParaHash);
-    return () => window.removeEventListener("hashchange", irParaHash);
+    const aplicarHash = () => setAba(abaFinanceiro(window.location.hash));
+    aplicarHash();
+    window.addEventListener("hashchange", aplicarHash);
+    return () => window.removeEventListener("hashchange", aplicarHash);
   }, []);
+
+  function selecionarAba(valor: string) {
+    const selecionada = abaFinanceiro(valor);
+    setAba(selecionada);
+    void navigate({ to: "/financeiro", hash: selecionada, hashScrollIntoView: false });
+  }
+
   const chavesOperacao = useRef(new Map<string, string>());
 
   function chaveOperacao(identidade: string): string {
@@ -910,9 +925,27 @@ function Financeiro() {
   if (!autorizado)
     return <p className="p-6 text-muted-foreground">Acesso restrito à Administração e ao Financeiro.</p>;
 
+  const custos = { fixos: [], variaveis: [], semClassificacao: [] } as Record<
+    "fixos" | "variaveis" | "semClassificacao", { id: string; descricao: string; valor: number }[]
+  >;
+  for (const conta of contasComStatus) {
+    if (conta.tipo !== "pagar" || conta.efetivo === "cancelada" ||
+        conta.categoria === "sangria" || conta.categoria === "suprimento" ||
+        !String(conta.vencimento ?? "").startsWith(`${mes}-`)) continue;
+    const categoria = String(conta.categoria ?? "").trim().toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+    const grupo = ["fixo", "fixos", "custo fixo", "custos fixos"].includes(categoria)
+      ? "fixos" : ["variavel", "variaveis", "custo variavel", "custos variaveis"].includes(categoria)
+        ? "variaveis" : "semClassificacao";
+    custos[grupo].push({ id: conta.id, descricao: conta.descricao, valor: Number(conta.valor) });
+  }
+  const pendentes = contasComStatus.filter((conta) =>
+    conta.tipo === "pagar" && conta.efetivo !== "paga" && conta.efetivo !== "cancelada" &&
+    typeof conta.vencimento === "string" && conta.vencimento >= hoje,
+  ).slice(0, 4);
+
   return (
     <>
-      <div className="financeiro-operacional-premium mx-auto max-w-[1600px] space-y-5 px-3 py-4 sm:px-5">
+      <div className="financeiro-operacional-premium fp-app mx-auto max-w-[1600px] space-y-5 px-3 py-4 sm:px-5">
         <div className="fp-app fp-resumo-operacional">
           <FinanceiroResumo
             subtitulo="Caixa, contas, conciliação e resultados"
@@ -934,51 +967,9 @@ function Financeiro() {
             ]}
           />
         </div>
-        <nav aria-label="Seções do financeiro" className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-card p-2 sm:flex sm:flex-wrap">
-          {([
-            ["caixa", "Caixa", Wallet],
-            ["contas-financeiro", "Contas a pagar e receber", ListChecks],
-            ["conciliacao-financeiro", "Conciliação", ArrowUpCircle],
-            ["relatorios", "Relatórios e gráficos", ChartNoAxesCombined],
-            ["simulacoes-financeiro", "Simulações", FlaskConical],
-          ] as const).map(([id, label, Icone]) => (
-            <a key={id} href={`#${id}`}
-              className="flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-[#F2CE6B] hover:bg-accent">
-              <Icone className="size-4 shrink-0" aria-hidden />{label}
-            </a>
-          ))}
-        </nav>
-
-        {autorizado && user && (
-          <AcertosMotoboyFinanceiro usuario={user.id} admin={roles?.includes("admin") ?? false}
-            financeiro={roles?.includes("financeiro") ?? false} />
-        )}
-
-        {/* Linha 1 — 3 métricas do caixa (dados reais da sessão aberta) */}
-        <div className="grid gap-3 sm:grid-cols-3">
-          <MetricCard
-            icone={ArrowUpCircle}
-            label="Entradas"
-            valor={caixaAberto && fechamentoDisponivel ? brl(entPedidos + entContas) : "—"}
-            detalhe="dinheiro recebido no período"
-            cor={ERP_COLORS.green}
-          />
-          <MetricCard
-            icone={ArrowDownCircle}
-            label="Saídas"
-            valor={caixaAberto && fechamentoDisponivel ? brl(saiContas) : "—"}
-            detalhe="dinheiro pago no período"
-            cor={ERP_COLORS.red}
-          />
-          <MetricCard
-            icone={Wallet}
-            label="Saldo"
-            valor={caixaAberto && fechamentoDisponivel ? brl(esperado) : "—"}
-            detalhe={erroCaixaAberto ? "estado do caixa indisponível" : caixaAberto ? "caixa aberto (esperado)" : "caixa fechado"}
-            cor={ERP_COLORS.gold}
-          />
-        </div>
-
+        <div className="fp-main">
+          <div className="fp-top-row">
+            <div className="min-w-0">
         {/* Linha 2 — gráfico de fluxo de caixa mensal */}
         <ChartCard titulo="Fluxo de Caixa (últimos 6 meses)" altura="h-64">
           {fluxoDisponivel ? <ResponsiveContainer width="100%" height="100%">
@@ -1042,6 +1033,31 @@ function Financeiro() {
           </p>
         )}
 
+
+            </div>
+            <Panel title="Ponto de equilíbrio" icon={Target}>
+              <dl className="fp-metric-list">
+                <div><dt>Mensal</dt><dd>{pedidosDisponiveis && contasDisponiveis && pe != null ? brl(pe) : "—"}</dd></div>
+                <div><dt>Receita líquida</dt><dd>{valorPedidos(dre.liquida)}</dd></div>
+              </dl>
+            </Panel>
+            <Panel title="Riscos e compromissos" icon={Shield}>
+              {contasDisponiveis ? (
+                <>
+                  <p className={`text-sm ${vencidas.length ? "text-destructive" : "text-muted-foreground"}`}>
+                    {vencidas.length ? `${vencidas.length} conta(s) vencida(s) · ${brl(vencidasSaldo)}` : "Nenhuma conta vencida."}
+                  </p>
+                  <ul className="mt-2 space-y-2 text-sm">
+                    {pendentes.map((conta) => <li key={conta.id}>{conta.vencimento} · {conta.descricao}</li>)}
+                  </ul>
+                </>
+              ) : <p className="text-sm text-muted-foreground">Contas indisponíveis no momento.</p>}
+            </Panel>
+          </div>
+        </div>
+        <Tabs value={aba} onValueChange={selecionarAba}>
+          <FinanceiroAbas abas={ABAS_OPERACIONAIS} ativa={aba} />
+          <TabsContent forceMount hidden={aba !== "lancamentos"} className="fp-painel-op space-y-4" value="lancamentos">
         <section id="conciliacao-financeiro" className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-xl">Conciliação — {mes}</h2>
@@ -1078,84 +1094,6 @@ function Financeiro() {
               <strong>{fluxoDisponivel ? brl(conc.porMeio[m] ?? 0) : "—"}</strong>
               </p>
             ))}
-          </div>
-        </section>
-
-        <section id="relatorios" className="rounded-xl border border-border bg-card p-4">
-          <h2 className="font-display text-xl">DRE do mês — {mes}</h2>
-          <p className="text-xs text-muted-foreground">
-            Receita de pedidos não cancelados; CMV = insumos pagos; despesas = demais contas pagas.
-          </p>
-          <div className="mt-3 space-y-1 text-sm">
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>Receita bruta</span>
-              <strong>{valorPedidos(dre.bruta)}</strong>
-            </p>
-            {/* 0103: split Produtos × Entrega (a taxa já está dentro da bruta). */}
-            {(() => {
-              const sp = splitProdutosEntrega(pedidos ?? []);
-              return sp.total > 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  Produtos {brl(sp.produtos)} • Entrega {brl(sp.entrega)} • Total {brl(sp.total)}
-                </p>
-              ) : null;
-            })()}
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>(−) Cancelamentos</span>
-              <strong>{valorPedidos(dre.cancelamentos)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>(−) Descontos</span>
-              <strong>{valorPedidos(dre.descontos)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>= Receita líquida</span>
-              <strong>{valorPedidos(dre.liquida)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>(−) CMV (insumos)</span>
-              <strong>{valorPedidos(dre.cmv)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>= Lucro bruto</span>
-              <strong>{valorPedidos(dre.lucroBruto)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>(−) Despesas operacionais</span>
-              <strong>{valorPedidos(dre.despesas)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg border border-primary/40 bg-primary/5 p-2.5">
-              <span>= Resultado</span>
-              <strong>
-                {pedidosDisponiveis && contasDisponiveis ? `${brl(dre.resultado)} (${dre.margemPct.toFixed(1)}%)` : "—"}
-              </strong>
-            </p>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Ponto de equilíbrio:{" "}
-            <strong className="text-foreground">
-              {!pedidosDisponiveis || !contasDisponiveis ? "—" : pe != null ? brl(pe) + "/mês" : "sem base (margem zerada)"}
-            </strong>
-          </p>
-        </section>
-
-        <SimuladorFinanceiro />
-
-        <section className="rounded-xl border border-border bg-card p-4">
-          <h2 className="font-display text-xl">Fluxo projetado (90 dias)</h2>
-          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>A receber</span>
-              <strong>{valorContas(fluxo90.rec)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>A pagar</span>
-              <strong>{valorContas(fluxo90.pag)}</strong>
-            </p>
-            <p className="flex justify-between rounded-lg bg-muted p-2.5">
-              <span>Saldo projetado</span>
-              <strong>{valorContas(fluxo90.saldo)}</strong>
-            </p>
           </div>
         </section>
 
@@ -1303,125 +1241,12 @@ function Financeiro() {
           </form>
         </section>
 
-        <section id="caixa" className="rounded-xl border border-border bg-card p-4">
-          <h2 className="font-display text-xl">Caixa</h2>
-          {erroCaixaAberto ? (
-            <p className="mt-3 text-sm text-muted-foreground">
-              Estado do caixa indisponível. Atualize a lista antes de abrir ou fechar uma sessão.
-            </p>
-          ) : caixaAberto ? (
-            <form onSubmit={fecharCaixa} className="mt-3 space-y-2 text-sm">
-              <p>
-                Aberto em {caixaAberto.aberta_em} • Inicial{" "}
-                <strong>{brl(caixaAberto.saldo_inicial)}</strong>
-              </p>
-              <p>
-                {fechamentoDisponivel ? <>
-                  Entradas (dinheiro) <strong>{brl(entPedidos + entContas)}</strong> • Saídas
-                  (dinheiro) <strong>{brl(saiContas)}</strong> • Esperado <strong>{brl(esperado)}</strong>
-                </> : pagamentosSemDataConfiavel > 0
-                  ? "Fechamento indisponível: existem pagamentos sem data confiável; revise o histórico antes de fechar."
-                  : eventosContaSemMeioCaixa > 0
-                    ? "Fechamento indisponível: o meio efetivo de baixas de contas não foi registrado."
-                    : "Valores do caixa indisponíveis até a leitura completa dos eventos da sessão."}
-              </p>
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="space-y-1">
-                  <Label>Saldo contado no fechamento</Label>
-                  <Input
-                    name="saldo_informado"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    required
-                    className="w-44"
-                  />
-                </div>
-                <Button type="submit" size="sm">
-                  Fechar caixa
-                </Button>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={abrirCaixa} className="mt-3 flex flex-wrap items-end gap-2 text-sm">
-              <div className="space-y-1">
-                <Label>Saldo inicial</Label>
-                <Input
-                  name="saldo_inicial"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  defaultValue={0}
-                  className="w-44"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Observação</Label>
-                <Input name="observacao" maxLength={200} className="w-64" />
-              </div>
-              <Button type="submit" size="sm">
-                Abrir caixa
-              </Button>
-            </form>
-          )}
-          {caixaAberto ? (
-            <div className="mt-3 flex flex-wrap gap-2 text-sm">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  movimentoCaixa(
-                    "sangria",
-                    Number(new FormData(e.currentTarget).get("valor") ?? 0),
-                  );
-                  (e.target as HTMLFormElement).reset();
-                }}
-                className="flex items-end gap-2 rounded-lg border border-border p-2"
-              >
-                <div className="space-y-1">
-                  <Label>Sangria (retirada)</Label>
-                  <Input name="valor" type="number" min={0} step="0.01" required className="w-32" />
-                </div>
-                <Button type="submit" size="sm" variant="outline">
-                  Registrar
-                </Button>
-              </form>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  movimentoCaixa(
-                    "suprimento",
-                    Number(new FormData(e.currentTarget).get("valor") ?? 0),
-                  );
-                  (e.target as HTMLFormElement).reset();
-                }}
-                className="flex items-end gap-2 rounded-lg border border-border p-2"
-              >
-                <div className="space-y-1">
-                  <Label>Suprimento (reforço)</Label>
-                  <Input name="valor" type="number" min={0} step="0.01" required className="w-32" />
-                </div>
-                <Button type="submit" size="sm" variant="outline">
-                  Registrar
-                </Button>
-              </form>
-            </div>
-          ) : null}
-          {(caixas ?? []).length > 0 ? (
-            <ul className="mt-3 space-y-1 text-sm">
-              {(caixas ?? []).map((s: any) => (
-                <li key={s.id} className="flex justify-between gap-2">
-                  <span>{String(s.fechada_em ?? "").slice(0, 10)}</span>
-                  <span>
-                    Inicial {brl(s.saldo_inicial)} • Informado {brl(s.saldo_informado)} • Diferença{" "}
-                    {brl(s.diferenca)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
-
-        <section id="contas-financeiro" className="rounded-xl border border-border bg-card p-4">
+          </TabsContent>
+          <TabsContent forceMount hidden={aba !== "custos"} className="fp-painel-op space-y-4" value="custos">
+            <CustosOperacionais {...custos} estado={erroContas ? "erro" : contasDisponiveis ? "disponivel" : "carregando"} />
+          </TabsContent>
+          <TabsContent forceMount hidden={aba !== "contas-financeiro"} className="fp-painel-op space-y-4" value="contas-financeiro">
+        <section className="rounded-xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-xl">Contas a pagar e receber</h2>
             <Button
@@ -1587,6 +1412,250 @@ function Financeiro() {
             ) : null}
           </ul>
         </section>
+          </TabsContent>
+          <TabsContent forceMount hidden={aba !== "caixa"} className="fp-painel-op space-y-4" value="caixa">
+        {/* Linha 1 — 3 métricas do caixa (dados reais da sessão aberta) */}
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MetricCard
+            icone={ArrowUpCircle}
+            label="Entradas"
+            valor={caixaAberto && fechamentoDisponivel ? brl(entPedidos + entContas) : "—"}
+            detalhe="dinheiro recebido no período"
+            cor={ERP_COLORS.green}
+          />
+          <MetricCard
+            icone={ArrowDownCircle}
+            label="Saídas"
+            valor={caixaAberto && fechamentoDisponivel ? brl(saiContas) : "—"}
+            detalhe="dinheiro pago no período"
+            cor={ERP_COLORS.red}
+          />
+          <MetricCard
+            icone={Wallet}
+            label="Saldo"
+            valor={caixaAberto && fechamentoDisponivel ? brl(esperado) : "—"}
+            detalhe={erroCaixaAberto ? "estado do caixa indisponível" : caixaAberto ? "caixa aberto (esperado)" : "caixa fechado"}
+            cor={ERP_COLORS.gold}
+          />
+        </div>
+
+        <section className="rounded-xl border border-border bg-card p-4">
+          <h2 className="font-display text-xl">Caixa</h2>
+          {erroCaixaAberto ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Estado do caixa indisponível. Atualize a lista antes de abrir ou fechar uma sessão.
+            </p>
+          ) : caixaAberto ? (
+            <form onSubmit={fecharCaixa} className="mt-3 space-y-2 text-sm">
+              <p>
+                Aberto em {caixaAberto.aberta_em} • Inicial{" "}
+                <strong>{brl(caixaAberto.saldo_inicial)}</strong>
+              </p>
+              <p>
+                {fechamentoDisponivel ? <>
+                  Entradas (dinheiro) <strong>{brl(entPedidos + entContas)}</strong> • Saídas
+                  (dinheiro) <strong>{brl(saiContas)}</strong> • Esperado <strong>{brl(esperado)}</strong>
+                </> : pagamentosSemDataConfiavel > 0
+                  ? "Fechamento indisponível: existem pagamentos sem data confiável; revise o histórico antes de fechar."
+                  : eventosContaSemMeioCaixa > 0
+                    ? "Fechamento indisponível: o meio efetivo de baixas de contas não foi registrado."
+                    : "Valores do caixa indisponíveis até a leitura completa dos eventos da sessão."}
+              </p>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="space-y-1">
+                  <Label>Saldo contado no fechamento</Label>
+                  <Input
+                    name="saldo_informado"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    required
+                    className="w-44"
+                  />
+                </div>
+                <Button type="submit" size="sm">
+                  Fechar caixa
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={abrirCaixa} className="mt-3 flex flex-wrap items-end gap-2 text-sm">
+              <div className="space-y-1">
+                <Label>Saldo inicial</Label>
+                <Input
+                  name="saldo_inicial"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  defaultValue={0}
+                  className="w-44"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Observação</Label>
+                <Input name="observacao" maxLength={200} className="w-64" />
+              </div>
+              <Button type="submit" size="sm">
+                Abrir caixa
+              </Button>
+            </form>
+          )}
+          {caixaAberto ? (
+            <div className="mt-3 flex flex-wrap gap-2 text-sm">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  movimentoCaixa(
+                    "sangria",
+                    Number(new FormData(e.currentTarget).get("valor") ?? 0),
+                  );
+                  (e.target as HTMLFormElement).reset();
+                }}
+                className="flex items-end gap-2 rounded-lg border border-border p-2"
+              >
+                <div className="space-y-1">
+                  <Label>Sangria (retirada)</Label>
+                  <Input name="valor" type="number" min={0} step="0.01" required className="w-32" />
+                </div>
+                <Button type="submit" size="sm" variant="outline">
+                  Registrar
+                </Button>
+              </form>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  movimentoCaixa(
+                    "suprimento",
+                    Number(new FormData(e.currentTarget).get("valor") ?? 0),
+                  );
+                  (e.target as HTMLFormElement).reset();
+                }}
+                className="flex items-end gap-2 rounded-lg border border-border p-2"
+              >
+                <div className="space-y-1">
+                  <Label>Suprimento (reforço)</Label>
+                  <Input name="valor" type="number" min={0} step="0.01" required className="w-32" />
+                </div>
+                <Button type="submit" size="sm" variant="outline">
+                  Registrar
+                </Button>
+              </form>
+            </div>
+          ) : null}
+          {(caixas ?? []).length > 0 ? (
+            <ul className="mt-3 space-y-1 text-sm">
+              {(caixas ?? []).map((s: any) => (
+                <li key={s.id} className="flex justify-between gap-2">
+                  <span>{String(s.fechada_em ?? "").slice(0, 10)}</span>
+                  <span>
+                    Inicial {brl(s.saldo_inicial)} • Informado {brl(s.saldo_informado)} • Diferença{" "}
+                    {brl(s.diferenca)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+
+        {autorizado && user && (
+          <AcertosMotoboyFinanceiro usuario={user.id} admin={roles?.includes("admin") ?? false}
+            financeiro={roles?.includes("financeiro") ?? false} />
+        )}
+
+          </TabsContent>
+          <TabsContent forceMount hidden={aba !== "equilibrio"} className="fp-painel-op space-y-4" value="equilibrio">
+            <Panel title="Ponto de equilíbrio — detalhes" icon={Target}>
+              <dl className="fp-metric-list">
+                <div><dt>Despesas operacionais</dt><dd>{valorContas(dre.despesas)}</dd></div>
+                <div><dt>Custo de mercadorias vendidas</dt><dd>{valorContas(dre.cmv)}</dd></div>
+                <div><dt>Margem de contribuição</dt><dd>{pedidosDisponiveis && contasDisponiveis && dre.liquida > 0 ? `${(mc * 100).toFixed(1)}%` : "—"}</dd></div>
+                <div><dt>Ponto de equilíbrio mensal</dt><dd>{pedidosDisponiveis && contasDisponiveis && pe != null ? brl(pe) : "—"}</dd></div>
+              </dl>
+            </Panel>
+          </TabsContent>
+          <TabsContent forceMount hidden={aba !== "simulacoes"} className="fp-painel-op space-y-4" value="simulacoes">
+        <SimuladorFinanceiro />
+
+          </TabsContent>
+          <TabsContent forceMount hidden={aba !== "relatorios"} className="fp-painel-op space-y-4" value="relatorios">
+        <section className="rounded-xl border border-border bg-card p-4">
+          <h2 className="font-display text-xl">DRE do mês — {mes}</h2>
+          <p className="text-xs text-muted-foreground">
+            Receita de pedidos não cancelados; CMV = insumos pagos; despesas = demais contas pagas.
+          </p>
+          <div className="mt-3 space-y-1 text-sm">
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>Receita bruta</span>
+              <strong>{valorPedidos(dre.bruta)}</strong>
+            </p>
+            {/* 0103: split Produtos × Entrega (a taxa já está dentro da bruta). */}
+            {(() => {
+              const sp = splitProdutosEntrega(pedidos ?? []);
+              return sp.total > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Produtos {brl(sp.produtos)} • Entrega {brl(sp.entrega)} • Total {brl(sp.total)}
+                </p>
+              ) : null;
+            })()}
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>(−) Cancelamentos</span>
+              <strong>{valorPedidos(dre.cancelamentos)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>(−) Descontos</span>
+              <strong>{valorPedidos(dre.descontos)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>= Receita líquida</span>
+              <strong>{valorPedidos(dre.liquida)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>(−) CMV (insumos)</span>
+              <strong>{valorPedidos(dre.cmv)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>= Lucro bruto</span>
+              <strong>{valorPedidos(dre.lucroBruto)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>(−) Despesas operacionais</span>
+              <strong>{valorPedidos(dre.despesas)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg border border-primary/40 bg-primary/5 p-2.5">
+              <span>= Resultado</span>
+              <strong>
+                {pedidosDisponiveis && contasDisponiveis ? `${brl(dre.resultado)} (${dre.margemPct.toFixed(1)}%)` : "—"}
+              </strong>
+            </p>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Ponto de equilíbrio:{" "}
+            <strong className="text-foreground">
+              {!pedidosDisponiveis || !contasDisponiveis ? "—" : pe != null ? brl(pe) + "/mês" : "sem base (margem zerada)"}
+            </strong>
+          </p>
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-4">
+          <h2 className="font-display text-xl">Fluxo projetado (90 dias)</h2>
+          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>A receber</span>
+              <strong>{valorContas(fluxo90.rec)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>A pagar</span>
+              <strong>{valorContas(fluxo90.pag)}</strong>
+            </p>
+            <p className="flex justify-between rounded-lg bg-muted p-2.5">
+              <span>Saldo projetado</span>
+              <strong>{valorContas(fluxo90.saldo)}</strong>
+            </p>
+          </div>
+        </section>
+
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { TrendingUp, Target, Shield, Wallet, CheckCircle2, Plus, Search, ChartNoAxesCombined, CalendarDays, Layers, ReceiptText, ListChecks, ClipboardPen, Trash2, Info, Check, FlaskConical } from "lucide-react";
+import { Tabs } from "@/components/ui/tabs";
+import { FinanceiroAbas, type AbaFinanceiroPremium } from "@/components/financeiro-premium/abas";
 import { FinanceiroResumo } from "@/components/financeiro-premium/resumo";
 import { Moedas as Coins } from "@/components/financeiro-premium/icones";
 import { FinanceiroPreviewLayout, Panel, Status } from "@/components/financeiro-premium/layout";
@@ -271,12 +273,9 @@ export function FinanceiroPremium() {
 
           <Atalhos navegar={navegar} novo={novoLancamento} conferirCaixa={() => { abrirCaixa(); navegar("caixa"); }} />
 
-          <nav className="fp-tabs fp-frame" id="gestao-financeira" aria-label="Gestão financeira">
-            {([
-              ["lancamentos", "Lançamentos", ListChecks], ["custos", "Custos (Fixos e Variáveis)", Layers], ["caixa", "Caixa", Wallet],
-              ["fiscal", "Fiscal / Obrigações", ReceiptText], ["equilibrio", "Ponto de Equilíbrio", Target], ["simulacoes", "Simulações", FlaskConical], ["relatorios", "Relatórios", ChartNoAxesCombined],
-            ] as const).map(([key,label,Icon]) => <button key={key} className={aba === key ? "is-active" : ""} onClick={() => setAba(key)} aria-current={aba === key ? "page" : undefined}><Icon />{label}</button>)}
-          </nav>
+          <Tabs value={aba} onValueChange={(valor) => setAba(valor as AbaFinanceiro)}>
+            <FinanceiroAbas abas={ABAS_FINANCEIRO as AbaFinanceiroPremium[]} ativa={aba} />
+          </Tabs>
           <div className="fp-management">
 
             {aba==="lancamentos" && (

@@ -7,19 +7,19 @@ import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
 // Os arquivos de rota já gerados ([.]lovable.oauth.consent, [.well-known]) continuam valendo.
 const mcpPlugins = process.platform === "win32" ? [] : [mcpPlugin()];
 
-if (process.env.VERCEL_GIT_COMMIT_REF === "resgate-visual-h01-h07-codex") {
+if (process.env["VERCEL_GIT_COMMIT_REF"] === "resgate-visual-h01-h07-codex") {
   const projeto = "lflzlcqinarrcgncafol";
   const url = `https://${projeto}.supabase.co`;
   if (
-    process.env.VERCEL_ENV !== "preview" ||
-    process.env.NEIA_AMBIENTE !== "homologacao" ||
-    process.env.VITE_DEMO_PREVIEW !== "0" ||
-    process.env.VITE_SUPABASE_PROJECT_ID !== projeto ||
-    process.env.SUPABASE_PROJECT_ID !== projeto ||
-    process.env.VITE_SUPABASE_URL !== url ||
-    process.env.SUPABASE_URL !== url ||
-    !process.env.VITE_SUPABASE_PUBLISHABLE_KEY?.startsWith("sb_publishable_") ||
-    process.env.SUPABASE_PUBLISHABLE_KEY !== process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+    process.env["VERCEL_ENV"] !== "preview" ||
+    process.env["NEIA_AMBIENTE"] !== "homologacao" ||
+    process.env["VITE_DEMO_PREVIEW"] !== "0" ||
+    process.env["VITE_SUPABASE_PROJECT_ID"] !== projeto ||
+    process.env["SUPABASE_PROJECT_ID"] !== projeto ||
+    process.env["VITE_SUPABASE_URL"] !== url ||
+    process.env["SUPABASE_URL"] !== url ||
+    !process.env["VITE_SUPABASE_PUBLISHABLE_KEY"]?.startsWith("sb_publishable_") ||
+    process.env["SUPABASE_PUBLISHABLE_KEY"] !== process.env["VITE_SUPABASE_PUBLISHABLE_KEY"]
   ) {
     throw new Error("Resgate H01–H07 exige Preview com o Supabase de homologação e dados operacionais.");
   }
