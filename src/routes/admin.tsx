@@ -138,7 +138,7 @@ function Admin() {
   const navigate = useNavigate();
   const modoDemo = ehModoDemo();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroConsultaRoles } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const [aba, setAba] = useState("dashboard");
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoje");
@@ -710,7 +710,29 @@ function Admin() {
       .sort((a, b) => b.entregas - a.entregas);
   }, [pedidos]);
 
-  if (roles && !isAdmin) {
+  // O Dashboard nunca deve aparecer antes da verificação de acesso.
+  if (loading || !user || (!erroConsultaRoles && roles === undefined)) {
+    return (
+      <div className="flex min-h-[65vh] items-center justify-center px-6" role="status" aria-live="polite">
+        <p className="text-base font-medium text-foreground">
+          {loading ? "Verificando sessão…" : !user ? "Sessão não encontrada. Abrindo login…" : "Verificando permissão de administrador…"}
+        </p>
+      </div>
+    );
+  }
+
+  if (erroConsultaRoles) {
+    return (
+      <div className="mx-auto max-w-lg px-6 py-12 text-center">
+        <h1 className="text-lg font-semibold">Não foi possível verificar a permissão</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Há uma sessão, mas não foi possível consultar as permissões. Recarregue a página; se persistir, informe este erro na homologação.
+        </p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
     return (
       <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
     );
