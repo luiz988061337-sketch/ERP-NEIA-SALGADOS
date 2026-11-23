@@ -867,61 +867,53 @@ function CentralEntregas() {
 
   return (
     <>
-      <AdminTopbar
-        usuario={user?.email ?? null}
-        acesso="Equipe"
-        onSair={async () => {
-          await supabase.auth.signOut();
-          navigate({ to: "/auth", replace: true });
-        }}
-      />
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="relative mb-4 min-h-36 overflow-hidden rounded-xl shadow-[var(--shadow-card)]">
-          <img
-            src={fritos}
-            alt="Central de Entregas"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
-          <div className="relative flex items-center gap-3 p-5">
-            <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
+      <div className="central-entregas-operacional-premium mx-auto max-w-[1600px] space-y-4 px-3 py-4 sm:px-5">
+        {/* H04: cabeçalho grafite/dourado da referência, sem banner de salgados.
+            Informações e ações abaixo continuam ligadas às consultas reais. */}
+        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 shadow-card">
+          <div className="flex items-center gap-3">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl border border-[#D4A94A] bg-[#201B11] text-[#F2CE6B]">
               <Truck className="size-7" aria-hidden />
             </span>
             <div>
-              <h1 className="font-display text-2xl font-bold text-white">
-                Central de Entregas
+              <h1 className="font-display text-2xl font-bold uppercase tracking-wide text-[#F2CE6B]">
+                Central de Entregas — Rotas
               </h1>
-              <p className="text-sm text-white/80">
-                Acompanhe os motoboys e o status das entregas.
+              <p className="text-sm text-[#C9C2B8]">
+                Distribuição de pedidos, rotas e acompanhamento em tempo real
               </p>
             </div>
           </div>
-        </div>
+          <button type="button" onClick={() => document.getElementById("secao-rotas")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="min-h-11 rounded-xl border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-4 py-2 text-sm font-bold text-[#14120C] hover:brightness-105">
+            Ver rotas
+          </button>
+        </header>
 
         <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatusCard
-            className="bg-yellow-100 text-yellow-900"
+            className="border border-[#D4A94A]/50 bg-[#151412] text-[#F2CE6B]"
             icone={Truck}
             titulo="Em Rota"
             valor={resumoCentral.emRota.length}
             detalhe="pedidos"
           />
           <StatusCard
-            className="bg-blue-600 text-white"
+            className="border border-[#5B93F5]/50 bg-[#151412] text-[#F2CE6B]"
             icone={Clock}
             titulo="Aguardando Motoboy"
             valor={resumoCentral.aguardando.length}
             detalhe="pedidos"
           />
           <StatusCard
-            className="bg-green-500 text-white"
+            className="border border-[#35C97C]/50 bg-[#151412] text-[#F2CE6B]"
             icone={CheckCircle}
             titulo="Entregues Hoje"
             valor={resumoCentral.entreguesHoje.length}
             detalhe="pedidos"
           />
           <StatusCard
-            className="bg-purple-500 text-white"
+            className="border border-[#D4A94A]/50 bg-[#151412] text-[#F2CE6B]"
             icone={Navigation}
             titulo="Motoboys em Rota"
             valor={resumoCentral.motosEmRota}

@@ -8,15 +8,30 @@ export function useSession() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
+    let ativo = true;
+    let geracao = 0;
+    // O Supabase emite INITIAL_SESSION e eventos posteriores. Se um
+    // getSession iniciado antes do login concluir depois de SIGNED_IN,
+    // sua resposta antiga não pode apagar a nova sessão.
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, atual) => {
+      if (!ativo) return;
+      geracao += 1;
+      setSession(atual);
       setLoading(false);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    const geracaoInicial = geracao;
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!ativo || geracao !== geracaoInicial) return;
+      setSession(error ? null : data.session);
+      setLoading(false);
+    }).catch(() => {
+      if (!ativo || geracao !== geracaoInicial) return;
       setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      ativo = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   return { session, user: (session?.user ?? null) as User | null, loading };

@@ -498,7 +498,7 @@ export function PDV({
       usuario={user?.email ?? null}
       onSair={sair}
     >
-      <div className="admin-pdv-l1 flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="admin-pdv-l1 l1-pdv-preview flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="grid flex-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Catálogo */}
         <main className="min-w-0 space-y-3">

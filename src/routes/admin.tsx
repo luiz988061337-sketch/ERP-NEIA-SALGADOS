@@ -107,6 +107,7 @@ import { ContadorPremium } from "@/components/admin/contador-premium";
 import { DashboardAdmin } from "@/components/admin/dashboard-admin";
 import { PainelDashboardL2 } from "@/components/admin/dashboard-l2";
 import { CentralAtendenteL2 } from "@/components/admin/central-atendente-l2";
+import { CentralPedidos } from "@/components/central-pedidos";
 import { ehModoDemo } from "@/lib/demo-preview";
 import { EmptyState, PageHeader, StatusCard } from "@/components/admin/ui-admin";
 import fritos from "@/assets/cat-fritos.jpg";
@@ -138,7 +139,7 @@ function Admin() {
   const navigate = useNavigate();
   const modoDemo = ehModoDemo();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroConsultaRoles } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const [aba, setAba] = useState("dashboard");
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoje");
@@ -710,7 +711,29 @@ function Admin() {
       .sort((a, b) => b.entregas - a.entregas);
   }, [pedidos]);
 
-  if (roles && !isAdmin) {
+  // O Dashboard nunca deve aparecer antes da verificação de acesso.
+  if (loading || !user || (!erroConsultaRoles && roles === undefined)) {
+    return (
+      <div className="flex min-h-[65vh] items-center justify-center px-6" role="status" aria-live="polite">
+        <p className="text-base font-medium text-foreground">
+          {loading ? "Verificando sessão…" : !user ? "Sessão não encontrada. Abrindo login…" : "Verificando permissão de administrador…"}
+        </p>
+      </div>
+    );
+  }
+
+  if (erroConsultaRoles) {
+    return (
+      <div className="mx-auto max-w-lg px-6 py-12 text-center">
+        <h1 className="text-lg font-semibold">Não foi possível verificar a permissão</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Há uma sessão, mas não foi possível consultar as permissões. Recarregue a página; se persistir, informe este erro na homologação.
+        </p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
     return (
       <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
     );
@@ -832,22 +855,29 @@ function Admin() {
               setClienteFoco={setClienteFoco}
             />
           ) : (
-            <DashboardAdmin
-              pedidos={pedidos ?? []}
-              produtos={produtos ?? []}
-              profiles={profiles ?? []}
-              clientesStats={clientesStats ?? []}
-              periodo={periodo}
-              setPeriodo={setPeriodo}
-              setAba={setAba}
-              notLidas={notLidas}
-              marcarLida={marcarLida}
-              busca={buscaGlobal}
-              setBusca={setBuscaGlobal}
-              setPedidoFoco={setPedidoFoco}
-              setProdutoFoco={setProdutoFoco}
-              setClienteFoco={setClienteFoco}
-            />
+            // Na operação real, manter exatamente o mesmo enquadramento da
+            // prévia L2 aprovada; só a fonte dos dados muda para o staging.
+            // Nenhum fixture e nenhuma métrica fictícia são usados aqui.
+            <div className="l1-dashboard-preview min-h-screen bg-background p-3 sm:p-4">
+              <div className="mx-auto max-w-[1400px]">
+                <DashboardAdmin
+                  pedidos={pedidos ?? []}
+                  produtos={produtos ?? []}
+                  profiles={profiles ?? []}
+                  clientesStats={clientesStats ?? []}
+                  periodo={periodo}
+                  setPeriodo={setPeriodo}
+                  setAba={setAba}
+                  notLidas={notLidas}
+                  marcarLida={marcarLida}
+                  busca={buscaGlobal}
+                  setBusca={setBuscaGlobal}
+                  setPedidoFoco={setPedidoFoco}
+                  setProdutoFoco={setProdutoFoco}
+                  setClienteFoco={setClienteFoco}
+                />
+              </div>
+            </div>
           )}
         </TabsContent>
 
@@ -855,13 +885,26 @@ function Admin() {
           {modoDemo ? (
             <CentralAtendenteL2 usuario={user?.email ?? null} />
           ) : (
-            <PedidosAdmin
-              pedidos={pedidos ?? []}
-              onStatus={mudarStatusPedido}
-              onPagamento={mudarPagamento}
-              foco={pedidoFoco}
-              onLimparFoco={() => setPedidoFoco("")}
-            />
+            // Mesma Central de Pedidos de três colunas aprovada para Atendente,
+            // agora ligada ao Supabase de testes (sem fixtures locais).
+            // As funções avançadas do Admin seguem acessíveis sob demanda.
+            <div className="mx-auto max-w-[1700px] space-y-4">
+              <CentralPedidos usuarioId={user?.id} papeis={roles ?? []} />
+              <details className="rounded-xl border border-[#D4A94A]/35 bg-[#151412] p-3">
+                <summary className="cursor-pointer font-semibold text-[#F2CE6B]">
+                  Gestão avançada de pedidos — status e pagamentos
+                </summary>
+                <div className="mt-3">
+                  <PedidosAdmin
+                    pedidos={pedidos ?? []}
+                    onStatus={mudarStatusPedido}
+                    onPagamento={mudarPagamento}
+                    foco={pedidoFoco}
+                    onLimparFoco={() => setPedidoFoco("")}
+                  />
+                </div>
+              </details>
+            </div>
           )}
         </TabsContent>
 

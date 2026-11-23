@@ -30,9 +30,10 @@ function AuthPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
   const { user } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroRoles } = useRoles(user?.id);
   const rolesPronto = roles !== undefined;
   const [carregando, setCarregando] = useState(false);
+  const [erroLogin, setErroLogin] = useState<string | null>(null);
   const [mostrarRecuperar, setMostrarRecuperar] = useState(false);
   const [modo, setModo] = useState<'admin' | 'funcionario'>('admin');
 
@@ -42,7 +43,6 @@ function AuthPage() {
   // admin → /admin; produção → /producao; atendente → /atendente;
   // financeiro → /financeiro; motoboy → /motoboy.
   const isAdmin = roles?.includes("admin");
-  const painelAdmin = isAdmin ? "/admin" : null;
   const painelFuncionario = roles
     ? roles.includes("producao") ? "/producao"
       : roles.includes("atendente") ? "/atendente"
@@ -52,35 +52,49 @@ function AuthPage() {
     : null;
 
   useEffect(() => {
-    if (!user || !rolesPronto) return;
-    // Se já há role definida e veio via redirect/URL, obedece o destino
-    if (destino !== "/") {
-      if (destino.includes("?")) window.location.replace(destino);
-      else navigate({ to: destino, replace: true });
+    if (!user) return;
+    if (erroRoles) {
+      setErroLogin("Sessão encontrada, mas não foi possível consultar as permissões. Verifique a conexão e tente novamente.");
       return;
     }
-    // Se mudou de anon para autenticado, redireciona conforme role
-    if (modo === 'admin') {
-      if (isAdmin) navigate({ to: "/admin", replace: true });
-      else toast.error("Acesso de administrador não liberado — seu e-mail não tem role admin.");
-    } else {
-      if (painelFuncionario) navigate({ to: painelFuncionario, replace: true });
-      else toast.error("Nenhum painel de funcionário disponível para seu perfil.");
+    if (!rolesPronto) return;
+    if (modo === "admin") {
+      if (!isAdmin) {
+        setErroLogin("Esta conta está autenticada, mas não possui permissão de administrador neste ambiente de testes.");
+        return;
+      }
+      void navigate({ to: destino === "/" ? "/admin" : destino, replace: true });
+      return;
     }
-  }, [user, rolesPronto, modo, isAdmin]);
+    if (!painelFuncionario) {
+      setErroLogin("Esta conta não possui um painel de funcionário habilitado no ambiente de testes.");
+      return;
+    }
+    void navigate({ to: painelFuncionario, replace: true });
+  }, [user, rolesPronto, erroRoles, modo, isAdmin, painelFuncionario, destino, navigate]);
 
   async function entrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     setCarregando(true);
+    setErroLogin(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: String(form.get("email")).trim(),
         password: String(form.get("senha")),
       });
       if (error) {
-        toast.error("Não foi possível entrar. Confira e-mail e senha.");
-        setCarregando(false);
+        const codigo = "code" in error ? String(error.code) : "";
+        const mensagem = codigo === "invalid_credentials"
+          ? "E-mail ou senha inválidos neste Supabase de testes. A senha do ERP antigo não é necessariamente a mesma."
+          : codigo === "email_not_confirmed"
+            ? "O e-mail ainda não foi confirmado no Supabase de testes."
+            : "Falha de autenticação. Verifique a conexão e os dados da conta de testes.";
+        setErroLogin(mensagem);
+        return;
+      }
+      if (!data.session && !ehModoDemo()) {
+        setErroLogin("O servidor não devolveu uma sessão válida. O acesso não será liberado.");
         return;
       }
       // No Preview de homologação a sessão é fictícia: navegar explicitamente
@@ -94,7 +108,7 @@ function AuthPage() {
       toast.success("Bem-vindo de volta!");
       // Após login, o useEffect mudará o redirect automaticamente
     } catch {
-      toast.error("Não foi possível entrar. Confira e-mail e senha ou tente novamente em alguns instantes.");
+      setErroLogin("Não foi possível conectar ao serviço de autenticação. Tente novamente.");
     } finally {
       setCarregando(false);
     }
@@ -174,8 +188,14 @@ function AuthPage() {
         >
           Esqueci minha senha
         </button>
-        {mostrarRecuperar ? (
-          <form onSubmit={recuperar} className="space-y-2 rounded-lg bg-muted p-3">
+        {erroLogin ? (
+          <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            {erroLogin}
+          </p>
+        ) : null}
+      </form>
+      {mostrarRecuperar ? (
+          <form onSubmit={recuperar} className="mt-3 space-y-2 rounded-lg bg-muted p-3">
             <Label htmlFor="email-rec">E-mail da conta</Label>
             <div className="flex gap-2">
               <Input id="email-rec" name="email-rec" type="email" required placeholder="voce@email.com" className="bg-background" />
@@ -185,7 +205,6 @@ function AuthPage() {
             </div>
           </form>
         ) : null}
-      </form>
     </div>
   );
 }
