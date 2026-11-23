@@ -2,10 +2,11 @@
 
 ## Estado atual
 
-- Etapa: FASE A concluída; FASE B validada localmente; FASE C implementada localmente e aguardando teste integrado; FASE D revisada e validada localmente; FASE E corrigida e validada localmente; FASE F corrigida e validada localmente; FASE G (Central de Entregas) corrigida e validada localmente; FASE H (App Motoboy) revisada e validada localmente.
+- Etapa: FASE A concluída; FASE B validada localmente; FASE C implementada localmente e aguardando teste integrado; FASE D revisada e validada localmente; FASE E corrigida e validada localmente; FASE F corrigida e validada localmente; FASE G (Central de Entregas) corrigida e validada localmente; FASE H (App Motoboy) revisada e validada localmente; FASE I (Financeiro Premium) revisada e validada localmente.
 - Branch: `homologacao-finalizacao`.
-- Checkpoint desta etapa: `checkpoint: FASE H app motoboy validado`.
-- Commit anterior: `ef45f5d` — `checkpoint: FASE G central de entregas validada`.
+- Checkpoint desta etapa: `checkpoint: FASE I financeiro premium validado`.
+- Commit FASE H: `ffc4ad4` — `checkpoint: FASE H app motoboy validado`.
+- Commit FASE G: `ef45f5d` — `checkpoint: FASE G central de entregas validada`.
 - Commit FASE F: `ec7138d` — `checkpoint: FASE F producao e estoque validados`.
 - Commit FASE E: `ba40cc5` — `checkpoint: FASE E atendente e pdv isolados`.
 - Commit FASE D: `2424ab1` — `checkpoint: FASE D cliente e checkout validados`.
@@ -39,7 +40,7 @@
 | FASE F — Produção e Estoque | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | remessas agregam itens duplicados e separam produtos com mesmo nome; reservas consomem por `produtoId`; ações da fila de impressão não falseiam sucesso; perda/inventário usam estoque esperado e verificam erro do movimento; filtros `not` da demo aplicados; `typecheck` e `build` passaram |
 | FASE G — Central de Entregas | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | Kanban e seletores passaram a usar `pronto`/legado sem dono como aguardando; atribuídos incluem `aguardando_motoboy` com dono; filtro do servidor inclui prontos sem motoboy; troca de filtro invalida a chave nova; suítes E4, E8 e preview central passaram |
 | FASE H — App Motoboy | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | `/motoboy` usa o painel RPC fora da demo; atribuição/aceite pela Central e trava de duplo clique preservados; transições RPC e GPS com consentimento revisados; mensagem de sem conexão não promete reenvio; testes de corte, monitor, E5 e E9 passaram; `typecheck` e `build` passaram |
-| FASE I — Financeiro Premium | PENDENTE | — |
+| FASE I — Financeiro Premium | IMPLEMENTADO, AGUARDANDO TESTE INTEGRADO | `/financeiro` mantém o layout aprovado e usa a RPC real fora da demo; conciliação, caixa, contas e movimentações invalidam todo o fluxo financeiro; leituras com falha não exibem zero fictício; vencidas usam saldo restante por tipo; data corrente em fuso de São Paulo; suítes financeiras e build passaram |
 | FASE J — integrações externas | PENDENTE | — |
 | FASE K — testes completos e segurança | PENDENTE | — |
 | FASE L — homologação visual e funcional | PENDENTE | — |
@@ -63,6 +64,7 @@
 - FASE F: `scripts/e6-impressao.test.mjs`, `npm.cmd run teste:insumos`, `scripts/estoque-operacao-atomica.test.mjs`, `npm.cmd run teste:producao`, `npm.cmd run teste:producao-remessas`, `npm.cmd run teste:integracao`, `npm.cmd run teste:criacao-wrapper` e `npm.cmd run teste:isolamento` passaram; `typecheck` e `build` passaram novamente.
 - FASE G: `node --experimental-transform-types scripts/e4-atribuicao.test.mjs`, `node scripts/e8-sincronizacao.test.mjs` e `node scripts/preview-central-v2.test.mjs` passaram; `typecheck` e `build` passaram novamente.
 - FASE H: `node --test scripts/motoboy-corte-ui.test.mjs`, `node --test scripts/motoboy-monitor-localizacao.test.mjs`, `node scripts/e5-finalizacao.test.mjs` e `node scripts/e9_1-bloqueios-p0.test.mjs` passaram; `tsc --noEmit` e `npm.cmd run build` passaram novamente.
+- FASE I: `node --experimental-transform-types scripts/financeiro-operacoes-atomicas.test.mjs`, `scripts/financeiro-premium.test.mjs`, `scripts/financeiro-m.test.mjs`, `scripts/financeiro-conciliacao.test.mjs`, `scripts/financeiro-parciais-modelo.test.mjs` (26), `scripts/ofx.test.mjs` e `scripts/auditoria.test.mjs` passaram; `tsc --noEmit` em background terminou sem saída e `npm.cmd run build` passou novamente.
 - O loop completo de testes locais teve saída truncada; FASE K não foi declarada concluída.
 
 ## Bloqueios reais
@@ -73,10 +75,11 @@
 - `lint` com dívida pré-existente: não bloqueia build, mas impede status verde; correção em massa não foi feita para preservar diffs e layouts aprovados.
 - Testes de navegação em navegador/homologação integrada: ainda pendentes; build e testes estáticos não substituem homologação.
 - FASE H: concorrência RPC em PG isolado e homologação integrada do app Motoboy pendentes; não há fila offline persistida de GPS — a mensagem foi corrigida para não prometer reenvio.
+- FASE I: conciliação bancária/OFX reais, atomicidade, RLS e concorrência em PostgreSQL isolado pendentes; premissa de negócio do ponto de equilíbrio com margem de contribuição segue fora de escopo.
 
 ## Próxima ação concreta
 
-1. Criar checkpoint local da FASE H com alinhamento dos testes de corte e GPS.
-2. FASE I: revisar Financeiro Premium, preservando layout, cálculos e trilhas de auditoria.
-3. Retomar FASE I em diante, mantendo checkpoints curtos por módulo.
+1. Criar checkpoint local da FASE I com invalidação do fluxo financeiro, falhas de leitura explícitas e data em fuso de São Paulo.
+2. FASE J: inventariar integrações externas e manter credenciais reais como dependência externa.
+3. Retomar FASE J em diante, mantendo checkpoints curtos por módulo.
 4. Antes da entrega final, gerar `ERP-NEIA-SALGADOS-PRONTO-PARA-HOMOLOGACAO.md` com status honesto de cada fase.

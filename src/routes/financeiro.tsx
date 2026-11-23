@@ -22,7 +22,7 @@ import { AcertosMotoboyFinanceiro } from "@/components/admin/acertos-motoboy";
 import { PageHeader } from "@/components/admin/ui-admin";
 import { ERP_COLORS, MetricCard, ChartCard } from "@/components/admin/erp-ui";
 import { brl } from "@/lib/format";
-import { faixaCompetencia } from "@/lib/competencia";
+import { faixaCompetencia, hojeSP } from "@/lib/competencia";
 import { downloadCSV } from "@/lib/export";
 import {
   competenciaSaoPaulo,
@@ -69,10 +69,6 @@ function rpcAtomicaAusente(error: unknown): boolean {
 }
 
 const avisoRpcFinanceira = "Operação pausada: a migration financeira ainda não está instalada. Nenhuma alteração foi confirmada.";
-
-function hojeISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function ultimasCompetencias(mes: string, quantidade = 6): string[] {
   const [ano, numeroMes] = mes.split("-").map(Number);
@@ -129,6 +125,13 @@ function Financeiro() {
     return chave;
   }
 
+  function invalidarFluxoFinanceiro() {
+    queryClient.invalidateQueries({ queryKey: ["fin-eventos-pagamento-caixa"] });
+    queryClient.invalidateQueries({ queryKey: ["fin-eventos-pedido-caixa"] });
+    queryClient.invalidateQueries({ queryKey: ["fin-pedidos-recebidos-caixa"] });
+    queryClient.invalidateQueries({ queryKey: ["fin-pedidos-pagos-sem-data"] });
+  }
+
   if (!loading && !user) {
     navigate({ to: "/auth", search: { redirect: "/financeiro" }, replace: true });
   }
@@ -139,7 +142,7 @@ function Financeiro() {
     fim: faixaCompetencia(competenciasFluxo[competenciasFluxo.length - 1] ?? mes).fim,
   }), [competenciasFluxo, mes]);
 
-  const { data: pedidos } = useQuery({
+  const { data: pedidos, isError: erroPedidos } = useQuery({
     queryKey: ["fin-pedidos", mes],
     enabled: !!autorizado,
     refetchInterval: 30000,
@@ -242,7 +245,7 @@ function Financeiro() {
     },
   });
 
-  const { data: caixaAberto } = useQuery({
+  const { data: caixaAberto, isError: erroCaixaAberto } = useQuery({
     queryKey: ["fin-caixa-aberto"],
     enabled: !!autorizado,
     queryFn: async () => {
@@ -281,7 +284,7 @@ function Financeiro() {
     },
   });
 
-  const { data: bancos } = useQuery({
+  const { data: bancos, isError: erroBancos } = useQuery({
     queryKey: ["fin-bancos"],
     enabled: !!autorizado,
     queryFn: async () => {
@@ -304,7 +307,7 @@ function Financeiro() {
   const [conteudoArq, setConteudoArq] = useState("");
   const [gravandoExtrato, setGravandoExtrato] = useState(false);
 
-  const { data: extratos } = useQuery({
+  const { data: extratos, isError: erroExtratos } = useQuery({
     queryKey: ["fin-extratos"],
     enabled: !!autorizado,
     queryFn: async () => {
@@ -322,6 +325,13 @@ function Financeiro() {
       }
     },
   });
+
+  const pedidosDisponiveis = !erroPedidos && pedidos !== undefined;
+  const contasDisponiveis = !erroContas && contas !== undefined;
+  const extratosDisponiveis = !erroExtratos && extratos !== undefined;
+  const bancosDisponiveis = !erroBancos && bancos !== undefined;
+  const valorPedidos = (valor: number) => pedidosDisponiveis ? brl(valor) : "—";
+  const valorContas = (valor: number) => contasDisponiveis ? brl(valor) : "—";
 
   async function lerArquivo(e: React.ChangeEvent<HTMLInputElement>) {
     const arq = e.target.files?.[0];
@@ -509,6 +519,7 @@ function Financeiro() {
     queryClient.invalidateQueries({ queryKey: ["fin-extratos"] });
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
     queryClient.invalidateQueries({ queryKey: ["fin-pedidos", mes] });
+    invalidarFluxoFinanceiro();
   }
 
   async function ignorarExtrato(id: string) {
@@ -540,7 +551,7 @@ function Financeiro() {
     return <p className="p-10 text-center">Acesso do admin/financeiro.</p>;
   }
 
-  const hoje = hojeISO();
+  const hoje = hojeSP();
   const contasComStatus = (contas ?? []).map((c: any) => ({ ...c, efetivo: statusConta(c, hoje) }));
   const argumentosFluxo = {
     competencias: competenciasFluxo,
@@ -575,6 +586,8 @@ function Financeiro() {
     "receber",
   );
   const vencidas = contasComStatus.filter((c: any) => c.efetivo === "vencida");
+  const vencidasSaldo = totalContas(vencidas.filter((c: any) => c.tipo === "pagar"), "pagar")
+    + totalContas(vencidas.filter((c: any) => c.tipo === "receber"), "receber");
 
   // Caixa da sessão: usa pagamento_em e eventos do ledger após o instante de abertura.
   const fluxoSessao = montarFluxoCaixaMensal({
@@ -649,6 +662,7 @@ function Financeiro() {
     }
     toast.success("Caixa aberto.");
     queryClient.invalidateQueries({ queryKey: ["fin-caixa-aberto"] });
+    invalidarFluxoFinanceiro();
   }
 
   async function fecharCaixa(e: React.FormEvent<HTMLFormElement>) {
@@ -682,6 +696,7 @@ function Financeiro() {
     toast.success(dif === 0 ? "Caixa fechado exato." : `Fechado com diferença de ${brl(dif)}.`);
     queryClient.invalidateQueries({ queryKey: ["fin-caixa-aberto"] });
     queryClient.invalidateQueries({ queryKey: ["fin-caixas"] });
+    invalidarFluxoFinanceiro();
   }
 
   async function salvarConta(e: React.FormEvent<HTMLFormElement>) {
@@ -710,6 +725,7 @@ function Financeiro() {
     toast.success("Conta registrada.");
     (e.target as HTMLFormElement).reset();
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
+    invalidarFluxoFinanceiro();
   }
 
   async function mudarConta(c: any, status: string) {
@@ -749,6 +765,7 @@ function Financeiro() {
     }
     toast.success(status === "paga" ? "Conta quitada." : `Conta ${status}.`);
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
+    invalidarFluxoFinanceiro();
   }
 
   /** Baixa parcial: acumula valor_pago; quita ao atingir o valor. */
@@ -794,6 +811,7 @@ function Financeiro() {
       : `Baixa de ${brl(valorCentavos / 100)} registrada (falta ${brl((Number.isFinite(saldo) ? saldo : 0) / 100)}).`);
     (e.target as HTMLFormElement).reset();
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
+    invalidarFluxoFinanceiro();
   }
 
   /** Sangria/suprimento: movimento de caixa via conta em dinheiro paga na hora. */
@@ -830,6 +848,7 @@ function Financeiro() {
     }
     toast.success(`${kind === "sangria" ? "Sangria" : "Suprimento"} de ${brl(valor)} registrado.`);
     queryClient.invalidateQueries({ queryKey: ["fin-contas"] });
+    invalidarFluxoFinanceiro();
   }
 
   async function salvarBanco(e: React.FormEvent<HTMLFormElement>) {
@@ -933,7 +952,7 @@ function Financeiro() {
             icone={Wallet}
             label="Saldo"
             valor={caixaAberto && fechamentoDisponivel ? brl(esperado) : "—"}
-            detalhe={caixaAberto ? "caixa aberto (esperado)" : "caixa fechado"}
+            detalhe={erroCaixaAberto ? "estado do caixa indisponível" : caixaAberto ? "caixa aberto (esperado)" : "caixa fechado"}
             cor={ERP_COLORS.gold}
           />
         </div>
@@ -1023,11 +1042,11 @@ function Financeiro() {
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>A receber ({conc.qtdPendente})</span>
-              <strong>{brl(conc.pendente)}</strong>
+              <strong>{valorPedidos(conc.pendente)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>Cancelados</span>
-              <strong>{brl(conc.cancelado)}</strong>
+              <strong>{valorPedidos(conc.cancelado)}</strong>
             </p>
           </div>
           <div className="mt-2 grid gap-2 text-sm sm:grid-cols-4">
@@ -1048,7 +1067,7 @@ function Financeiro() {
           <div className="mt-3 space-y-1 text-sm">
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>Receita bruta</span>
-              <strong>{brl(dre.bruta)}</strong>
+              <strong>{valorPedidos(dre.bruta)}</strong>
             </p>
             {/* 0103: split Produtos × Entrega (a taxa já está dentro da bruta). */}
             {(() => {
@@ -1061,39 +1080,39 @@ function Financeiro() {
             })()}
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>(−) Cancelamentos</span>
-              <strong>{brl(dre.cancelamentos)}</strong>
+              <strong>{valorPedidos(dre.cancelamentos)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>(−) Descontos</span>
-              <strong>{brl(dre.descontos)}</strong>
+              <strong>{valorPedidos(dre.descontos)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>= Receita líquida</span>
-              <strong>{brl(dre.liquida)}</strong>
+              <strong>{valorPedidos(dre.liquida)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>(−) CMV (insumos)</span>
-              <strong>{brl(dre.cmv)}</strong>
+              <strong>{valorPedidos(dre.cmv)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>= Lucro bruto</span>
-              <strong>{brl(dre.lucroBruto)}</strong>
+              <strong>{valorPedidos(dre.lucroBruto)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>(−) Despesas operacionais</span>
-              <strong>{brl(dre.despesas)}</strong>
+              <strong>{valorPedidos(dre.despesas)}</strong>
             </p>
             <p className="flex justify-between rounded-lg border border-primary/40 bg-primary/5 p-2.5">
               <span>= Resultado</span>
               <strong>
-                {brl(dre.resultado)} ({dre.margemPct.toFixed(1)}%)
+                {pedidosDisponiveis ? `${brl(dre.resultado)} (${dre.margemPct.toFixed(1)}%)` : "—"}
               </strong>
             </p>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             Ponto de equilíbrio:{" "}
             <strong className="text-foreground">
-              {pe != null ? brl(pe) + "/mês" : "sem base (margem zerada)"}
+              {!pedidosDisponiveis ? "—" : pe != null ? brl(pe) + "/mês" : "sem base (margem zerada)"}
             </strong>
           </p>
         </section>
@@ -1103,15 +1122,15 @@ function Financeiro() {
           <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>A receber</span>
-              <strong>{brl(fluxo90.rec)}</strong>
+              <strong>{valorContas(fluxo90.rec)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>A pagar</span>
-              <strong>{brl(fluxo90.pag)}</strong>
+              <strong>{valorContas(fluxo90.pag)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>Saldo projetado</span>
-              <strong>{brl(fluxo90.saldo)}</strong>
+              <strong>{valorContas(fluxo90.saldo)}</strong>
             </p>
           </div>
         </section>
@@ -1202,7 +1221,9 @@ function Financeiro() {
               );
             })}
             {(extratos ?? []).length === 0 && !previa ? (
-              <li className="text-muted-foreground">Nenhum lançamento pendente.</li>
+              <li className="text-muted-foreground">
+                {extratosDisponiveis ? "Nenhum lançamento pendente." : "Não foi possível ler os lançamentos pendentes."}
+              </li>
             ) : null}
           </ul>
         </section>
@@ -1222,7 +1243,9 @@ function Financeiro() {
               </li>
             ))}
             {(bancos ?? []).length === 0 ? (
-              <li className="text-muted-foreground">Nenhuma conta cadastrada.</li>
+              <li className="text-muted-foreground">
+                {bancosDisponiveis ? "Nenhuma conta cadastrada." : "Não foi possível ler as contas cadastradas."}
+              </li>
             ) : null}
           </ul>
           <form onSubmit={salvarBanco} className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
@@ -1258,7 +1281,11 @@ function Financeiro() {
 
         <section id="caixa" className="rounded-xl border border-border bg-card p-4">
           <h2 className="font-display text-xl">Caixa</h2>
-          {caixaAberto ? (
+          {erroCaixaAberto ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Estado do caixa indisponível. Atualize a lista antes de abrir ou fechar uma sessão.
+            </p>
+          ) : caixaAberto ? (
             <form onSubmit={fecharCaixa} className="mt-3 space-y-2 text-sm">
               <p>
                 Aberto em {caixaAberto.aberta_em} • Inicial{" "}
@@ -1385,17 +1412,15 @@ function Financeiro() {
           <div className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>A pagar</span>
-              <strong>{brl(aPagar)}</strong>
+              <strong>{valorContas(aPagar)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>A receber</span>
-              <strong>{brl(aReceber)}</strong>
+              <strong>{valorContas(aReceber)}</strong>
             </p>
             <p className="flex justify-between rounded-lg bg-muted p-2.5">
               <span>Vencidas ({vencidas.length})</span>
-              <strong>
-                {brl(vencidas.reduce((s: number, c: any) => s + (Number(c.valor ?? 0) || 0), 0))}
-              </strong>
+              <strong>{valorContas(vencidasSaldo)}</strong>
             </p>
           </div>
           <form onSubmit={salvarConta} className="mt-3 grid gap-2 text-sm sm:grid-cols-4">

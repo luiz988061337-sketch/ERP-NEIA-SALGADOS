@@ -127,6 +127,26 @@ assert.match(route, /const fechamentoDisponivel[\s\S]*pagamentosSemDataConfiavel
   "fechamento de caixa é bloqueado quando há pagamentos legados sem data confiável");
 assert.match(route, /const fechamentoDisponivel[\s\S]*eventosContaSemMeioCaixa === 0/,
   "fechamento não presume o meio efetivo de baixa das contas pelo valor padrão da conta");
+assert.match(route, /function invalidarFluxoFinanceiro\(\)[\s\S]*fin-eventos-pagamento-caixa[\s\S]*fin-eventos-pedido-caixa[\s\S]*fin-pedidos-recebidos-caixa[\s\S]*fin-pedidos-pagos-sem-data/,
+  "invalidação cobre as quatro chaves do fluxo financeiro");
+assert.match(reconcileUi, /invalidarFluxoFinanceiro\(\)/,
+  "conciliação atualiza o fluxo após sucesso");
+assert.match(settleUi, /invalidarFluxoFinanceiro\(\)/,
+  "baixa, cancelamento e movimento de caixa atualizam o fluxo");
+assert.match(route, /async function abrirCaixa[\s\S]*invalidarFluxoFinanceiro\(\)/,
+  "abertura de caixa atualiza o fluxo da sessão");
+assert.match(route, /async function fecharCaixa[\s\S]*invalidarFluxoFinanceiro\(\)/,
+  "fechamento de caixa atualiza o fluxo da sessão");
+assert.match(route, /isError: erroPedidos/, "falha de leitura de pedidos é observada");
+assert.match(route, /valorPedidos\(conc\.pendente\)/, "conciliação não exibe zero fictício quando pedidos falham");
+assert.match(route, /isError: erroCaixaAberto/, "falha de leitura do caixa é observada");
+assert.match(route, /Estado do caixa indisponível/, "caixa com leitura falha não é tratado como fechado");
+assert.match(route, /import \{ faixaCompetencia, hojeSP \}/, "data corrente usa fuso de São Paulo");
+assert.match(route, /const hoje = hojeSP\(\)/, "vencimentos usam hoje de São Paulo");
+assert.doesNotMatch(route, /hojeISO/, "data UTC antiga foi removida");
+assert.match(route, /const vencidasSaldo = totalContas\(vencidas\.filter/, "vencidas usa saldo restante por tipo");
+assert.match(route, /valorContas\(vencidasSaldo\)/, "vencidas exibe saldo restante");
+assert.doesNotMatch(route, /vencidas\.reduce/, "soma bruta de vencidas foi removida");
 
 console.log("Financeiro: contrato SQL e integração do frontend validados estaticamente.");
 console.log("Atomicidade, RLS e concorrência reais ainda exigem execução em PostgreSQL isolado/staging.");
