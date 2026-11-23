@@ -2,9 +2,8 @@
 logs
 *.log
 npm-debug.log*
-# .env é versionado de propósito: o build da Lovable lê as variáveis daqui.
-# Só podem entrar chaves PUBLICÁVEIS (SUPABASE_PUBLISHABLE_KEY, browser key do Maps).
-# NUNCA colocar aqui: service_role key, senhas, tokens privados.
+# .env permanece fora do versionamento; o build lê variáveis do ambiente.
+# NUNCA versionar service_role key, senhas ou tokens privados.
 .env
 .env.local
 !.env.example
