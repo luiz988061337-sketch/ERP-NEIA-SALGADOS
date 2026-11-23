@@ -29,7 +29,7 @@ import { MapView, rotaGoogleMaps } from "@/components/map-view";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { ehModoDemo } from "@/lib/demo-preview";
 import { CentralEntregasPremium } from "@/components/entregas/central-entregas-premium";
-import { AdminTopbar } from "@/components/admin/admin-topbar";
+import { EntregasResumo } from "@/components/entregas/entregas-resumo";
 import { comLocalizacaoSegura, lerLocalizacoesEntrega, MOTOBOY_RPC_ATIVO } from "@/lib/localizacao-entrega";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
@@ -81,7 +81,7 @@ const HIST_EVENTO_META: Record<string, { titulo: string; Icon: any }> = {
 function CentralEntregas() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const [filtro, setFiltro] = useState<
     "todos" | "hoje" | "em_rota" | "aguardando" | "entregues" | "retirada"
@@ -99,6 +99,7 @@ function CentralEntregas() {
   const [histMotoboyId, setHistMotoboyId] = useState("");
   // ---------- J3-H: busca + encerramento de rotas (somente leitura/escrita autorizada) ----------
   const [buscaPedido, setBuscaPedido] = useState("");
+  const [filtroMotoboyRotas, setFiltroMotoboyRotas] = useState("");
   const [rotaConfirmId, setRotaConfirmId] = useState<string | null>(null);
   const [rotaEncerrandoId, setRotaEncerrandoId] = useState<string | null>(null);
   // ---------- OCORRÊNCIAS (J3-D): somente leitura/escrita em entrega_atrasos ----------
@@ -118,7 +119,7 @@ function CentralEntregas() {
   const autorizado = roles?.includes("admin") || roles?.includes("producao");
 
   // ---------- QUERIES ----------
-  const { data: pedidos } = useQuery({
+  const { data: pedidos, isError: erroPedidos, isPending: carregandoPedidos } = useQuery({
     queryKey: ["central-j2-pedidos", filtro],
     enabled: !!autorizado && !loading,
     refetchInterval: MOTOBOY_RPC_ATIVO ? 15000 : false,
@@ -169,7 +170,7 @@ function CentralEntregas() {
     },
   });
 
-  const { data: motoboys } = useQuery({
+  const { data: motoboys, isError: erroMotoboys } = useQuery({
     queryKey: ["central-j2-motoboys"],
     enabled: !!autorizado && !loading,
     queryFn: async () => {
@@ -859,84 +860,63 @@ function CentralEntregas() {
     return pts;
   }, [pedidosFiltrados, motoboys, pedidos]);
 
+  if (erroAcesso)
+    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso à Central de Entregas.</p>;
+  if (loading || !user || !roles)
+    return <p role="status" className="p-6 text-muted-foreground">Verificando acesso à Central de Entregas…</p>;
   if (!autorizado) {
     return (
       <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
     );
   }
 
+  const rotasVisiveis = (rotasAtivas ?? []).filter((rota: any) =>
+    !filtroMotoboyRotas || rota.motoboy_id === filtroMotoboyRotas,
+  );
+  const atribuicoes = !erroPedidos && pedidos
+    ? pedidos.filter((pedido: any) => pedido.tipo_entrega === "entrega" && pedido.motoboy_id &&
+        ["pronto", "aguardando_motoboy"].includes(pedido.status)).length
+    : "—";
+
   return (
     <>
       <div className="central-entregas-operacional-premium mx-auto max-w-[1600px] space-y-4 px-3 py-4 sm:px-5">
-        {/* H04: cabeçalho grafite/dourado da referência, sem banner de salgados.
-            Informações e ações abaixo continuam ligadas às consultas reais. */}
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 shadow-card">
-          <div className="flex items-center gap-3">
-            <span className="grid size-12 shrink-0 place-items-center rounded-2xl border border-[#D4A94A] bg-[#201B11] text-[#F2CE6B]">
-              <Truck className="size-7" aria-hidden />
-            </span>
-            <div>
-              <h1 className="font-display text-2xl font-bold uppercase tracking-wide text-[#F2CE6B]">
-                Central de Entregas — Rotas
-              </h1>
-              <p className="text-sm text-[#C9C2B8]">
-                Distribuição de pedidos, rotas e acompanhamento em tempo real
-              </p>
-            </div>
-          </div>
-          <button type="button" onClick={() => document.getElementById("secao-rotas")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="min-h-11 rounded-xl border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-4 py-2 text-sm font-bold text-[#14120C] hover:brightness-105">
-            Ver rotas
-          </button>
-        </header>
-
-        <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatusCard
-            className="border border-[#D4A94A]/50 bg-[#151412] text-[#F2CE6B]"
-            icone={Truck}
-            titulo="Em Rota"
-            valor={resumoCentral.emRota.length}
-            detalhe="pedidos"
-          />
-          <StatusCard
-            className="border border-[#5B93F5]/50 bg-[#151412] text-[#F2CE6B]"
-            icone={Clock}
-            titulo="Aguardando Motoboy"
-            valor={resumoCentral.aguardando.length}
-            detalhe="pedidos"
-          />
-          <StatusCard
-            className="border border-[#35C97C]/50 bg-[#151412] text-[#F2CE6B]"
-            icone={CheckCircle}
-            titulo="Entregues Hoje"
-            valor={resumoCentral.entreguesHoje.length}
-            detalhe="pedidos"
-          />
-          <StatusCard
-            className="border border-[#D4A94A]/50 bg-[#151412] text-[#F2CE6B]"
-            icone={Navigation}
-            titulo="Motoboys em Rota"
-            valor={resumoCentral.motosEmRota}
-            detalhe="motoboys"
-          />
-        </div>
+        <EntregasResumo
+          aguardando={!erroPedidos && pedidos ? resumoCentral.aguardando.length : "—"}
+          atribuidos={atribuicoes}
+          emRota={!erroPedidos && pedidos ? resumoCentral.emRota.length : "—"}
+          entregues={!erroPedidos && pedidos ? resumoCentral.entreguesHoje.length : "—"}
+          disponiveis={!erroMotoboys && motoboys ? motoboysElegiveis.length : "—"}
+          acoes={
+            <a href="#secao-rotas" className="erp-btn-gold inline-flex min-h-11 items-center rounded-xl px-4 py-2 font-semibold">
+              Ver rotas
+            </a>
+          }
+        />
+        {erroPedidos || erroMotoboys ? (
+          <p role="alert" className="rounded-lg border border-destructive/60 p-3 text-sm text-destructive">
+            Não foi possível carregar todos os dados da Central. Use “Atualizar dados” para tentar novamente.
+          </p>
+        ) : carregandoPedidos ? (
+          <p role="status" className="text-sm text-muted-foreground">Carregando pedidos de entrega…</p>
+        ) : null}
 
         {/* ========== MAPA DOMINANTE + PAINEL MOTOBOYS (reforma estrutural) ========== */}
-        <div className="mb-4 grid gap-3 lg:grid-cols-[2fr_1fr]">
+        <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <section
             id="secao-mapa"
-            className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-card"
+            className="overflow-hidden rounded-xl border border-border bg-card shadow-card"
             aria-label="Mapa de entregas em tempo real"
           >
-            <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
-              <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
+            <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+              <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                 Mapa de Entregas
               </h2>
-              <span className="text-[10px] uppercase text-muted-foreground">
+              <span className="text-xs uppercase text-muted-foreground">
                 Pedidos e motoboys em tempo real
               </span>
             </header>
-            <div className="h-[420px] p-2 lg:h-[560px]">
+            <div className="h-72 p-2 lg:h-[440px]">
               {pontosMapa.length > 0 ? (
                 <MapView pontos={pontosMapa as any} />
               ) : (
@@ -949,14 +929,14 @@ function CentralEntregas() {
 
           <div className="space-y-3">
             <section
-              className="rounded-xl border border-[#E5E7EB] bg-white shadow-card"
+              className="rounded-xl border border-border bg-card shadow-card"
               aria-label="Motoboys"
             >
-              <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
+              <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-border px-3 py-2">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   Motoboys
                 </h2>
-                <span className="rounded-full bg-[rgba(15,23,42,.06)] px-2 py-0.5 text-[10px] font-bold text-[#64748B]">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
                   {(resumoCentral.motos ?? []).length}
                 </span>
               </header>
@@ -972,10 +952,10 @@ function CentralEntregas() {
                   return (
                     <li
                       key={m.nome}
-                      className="flex items-center gap-2.5 rounded-lg bg-[#F8F9FA] px-2.5 py-2"
+                      className="flex items-center gap-2.5 rounded-lg bg-muted px-2.5 py-2"
                     >
                       <span
-                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-[#202B3A]"
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-foreground"
                         style={{ backgroundColor: corDot }}
                         aria-hidden
                       >
@@ -983,7 +963,7 @@ function CentralEntregas() {
                       </span>
                       <div className="min-w-0 flex-1 leading-tight">
                         <p className="truncate text-sm font-semibold">{m.nome}</p>
-                        <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
                           <span
                             className="inline-block size-1.5 rounded-full"
                             style={{ backgroundColor: corDot }}
@@ -1002,24 +982,24 @@ function CentralEntregas() {
             </section>
 
             <section
-              className="rounded-xl border border-[#E5E7EB] bg-white shadow-card"
+              className="rounded-xl border border-border bg-card shadow-card"
               aria-label="Resumo do dia"
             >
-              <header className="flex min-h-[42px] items-center border-b border-[#E5E7EB] px-3 py-2">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
+              <header className="flex min-h-[42px] items-center border-b border-border px-3 py-2">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                   Resumo do Dia
                 </h2>
               </header>
               <ul className="space-y-1 p-3 text-xs">
-                <li className="flex justify-between rounded bg-[#F8F9FA] px-2.5 py-1.5">
+                <li className="flex justify-between rounded bg-muted px-2.5 py-1.5">
                   <span className="text-muted-foreground">Entregas realizadas</span>
                   <b className="text-[#21835D]">{resumoCentral.entreguesHoje.length}</b>
                 </li>
-                <li className="flex justify-between rounded bg-[#F8F9FA] px-2.5 py-1.5">
+                <li className="flex justify-between rounded bg-muted px-2.5 py-1.5">
                   <span className="text-muted-foreground">Em rota</span>
                   <b className="text-[#2563EB]">{resumoCentral.emRota.length}</b>
                 </li>
-                <li className="flex justify-between rounded bg-[#F8F9FA] px-2.5 py-1.5">
+                <li className="flex justify-between rounded bg-muted px-2.5 py-1.5">
                   <span className="text-muted-foreground">Aguardando</span>
                   <b className="text-[#B45309]">{resumoCentral.aguardando.length}</b>
                 </li>
@@ -1030,21 +1010,21 @@ function CentralEntregas() {
 
         {/* ========== PEDIDOS EM ROTA ========== */}
         <section
-          className="mb-4 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-card"
+          className="mb-4 overflow-hidden rounded-xl border border-border bg-card shadow-card"
           aria-label="Pedidos em rota"
         >
-          <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-[#E5E7EB] px-3 py-2">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-[#64748B]">
+          <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-border px-3 py-2">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
               Pedidos em Rota
             </h2>
-            <span className="text-[10px] uppercase text-muted-foreground">
+            <span className="text-xs uppercase text-muted-foreground">
               Clique para ver histórico/rastreio
             </span>
           </header>
           <div className="p-2">
             {resumoCentral.emAndamento.length > 0 ? (
               <ul className="divide-y divide-[#EEF1F5]">
-                <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px]">
+                <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-1 text-xs text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px]">
                   <span>Nº</span>
                   <span>Cliente</span>
                   <span className="hidden sm:block">Endereço</span>
@@ -1059,7 +1039,7 @@ function CentralEntregas() {
                     <button
                       type="button"
                       onClick={() => verHistoricoPedido(p.id)}
-                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-[#F8F9FA] sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px] sm:text-[13px]"
+                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px] sm:text-[13px]"
                     >
                       <span className="font-bold text-[#A9813A]">#{p.numero}</span>
                       <span className="truncate">{p.cliente_nome}</span>
@@ -1072,7 +1052,7 @@ function CentralEntregas() {
                       <span>
                         <StatusBadge status={p.status} />
                       </span>
-                      <span className="hidden text-[11px] font-semibold sm:block">
+                      <span className="hidden text-xs font-semibold sm:block">
                         {p.distancia_km != null
                           ? `${Number(p.distancia_km).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`
                           : "—"}
@@ -1446,11 +1426,19 @@ function CentralEntregas() {
         </div>
 
         {/* ========== ROTAS EM ANDAMENTO (J3-H H1) ========== */}
-        <div className="mt-6">
+        <section className="rounded-2xl border border-border bg-card p-4">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h2 id="secao-rotas" className="font-display text-lg">
               {MOTOBOY_RPC_ATIVO ? "Rotas atribuídas e em andamento" : "Rotas em andamento"}
             </h2>
+            <label className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              Motoboy
+              <select value={filtroMotoboyRotas} onChange={(event) => setFiltroMotoboyRotas(event.target.value)}
+                className="min-h-10 rounded-md border border-input bg-background px-3 text-foreground">
+                <option value="">Todos os motoboys</option>
+                {(motoboys ?? []).map((motoboy: any) => <option key={motoboy.id} value={motoboy.id}>{motoboy.nome}</option>)}
+              </select>
+            </label>
             <Button
               size="sm"
               variant="outline"
@@ -1471,11 +1459,11 @@ function CentralEntregas() {
             <p className="text-sm text-destructive">
               Não foi possível carregar as rotas: {(rotasErro as Error).message}
             </p>
-          ) : (rotasAtivas ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma rota em andamento.</p>
+          ) : rotasVisiveis.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma rota para o filtro atual.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(rotasAtivas ?? []).map((r: any) => {
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {rotasVisiveis.map((r: any) => {
                 const vinculados = (r.rota_pedidos ?? [])
                   .map((rp: any) => rp.pedidos)
                   .filter(Boolean);
@@ -1488,8 +1476,13 @@ function CentralEntregas() {
                 const confirmando = rotaConfirmId === r.id;
                 const processando = rotaEncerrandoId === r.id;
                 return (
-                  <div key={r.id} className="rounded-xl border border-border bg-card p-4">
-                    <p className="font-display text-base">Rota {String(r.id).slice(0, 8)}</p>
+                  <div key={r.id} className="rounded-xl border border-[#D4A94A]/55 bg-background p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-display text-base font-bold text-[#F2CE6B]">Rota {String(r.id).slice(0, 8)}</h3>
+                      <span className="rounded-full border border-border px-2 py-1 text-xs font-semibold">
+                        {r.status === "em_rota" ? "Em rota" : r.liberada_central_em ? "Saída liberada" : "Aguardando liberação"}
+                      </span>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       Motoboy: {mb?.nome ?? "—"}
                       {r.saiu_em ? ` • saiu às ${hora(r.saiu_em)}` : ""}
@@ -1505,6 +1498,16 @@ function CentralEntregas() {
                         </span>
                       )}
                     </p>
+                    {vinculados.length > 0 ? (
+                      <ol className="mt-3 space-y-2">
+                        {vinculados.map((pedido: any) => (
+                          <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+                            <span><strong>#{pedido.numero}</strong> · {pedido.cliente_nome}</span>
+                            <StatusBadge status={pedido.status} />
+                          </li>
+                        ))}
+                      </ol>
+                    ) : null}
                     {MOTOBOY_RPC_ATIVO && r.status === "preparando" && (
                       <div className="mt-3"><p className="text-sm">{r.liberada_central_em ? `Liberação registrada às ${hora(r.liberada_central_em)}. O servidor revalida a composição antes da saída.` : "Atribuída pela Central. Confirme a liberação para permitir a saída após as retiradas."}</p>
                         <Button size="sm" className="mt-2" disabled={rotaLiberando !== null}
@@ -1563,7 +1566,7 @@ function CentralEntregas() {
               })}
             </div>
           )}
-        </div>
+        </section>
 
         {/* ========== MAPA — movido para o topo (elemento dominante) ========== */}
 

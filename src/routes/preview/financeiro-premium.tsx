@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { TrendingUp, Target, Shield, Wallet, CheckCircle2, Plus, Search, ChartNoAxesCombined, CalendarDays, Layers, ReceiptText, ListChecks, ClipboardPen, Trash2, Info, Check, FlaskConical } from "lucide-react";
+import { FinanceiroResumo } from "@/components/financeiro-premium/resumo";
 import { Moedas as Coins } from "@/components/financeiro-premium/icones";
 import { FinanceiroPreviewLayout, Panel, Status } from "@/components/financeiro-premium/layout";
 import { VisaoGeral, Atalhos, Analises } from "@/components/financeiro-premium/paineis";
@@ -255,13 +256,17 @@ export function FinanceiroPremium() {
 
   return (
     <FinanceiroPreviewLayout onRelatorios={() => navegar("relatorios")}>
-          <section className="fp-overview fp-frame">
-            <header className="fp-page-heading">
-              <Coins aria-hidden /><div><h1>FINANCEIRO — GESTÃO COMPLETA</h1><p>Controle de receitas, despesas, custos, ponto de equilíbrio e segurança da empresa</p></div>
-              <div className="fp-heading-tools"><span className="fp-preview-badge">PRÉVIA • DADOS DEMONSTRATIVOS</span><label className="fp-period"><CalendarDays /><select aria-label="Período demonstrativo" value={periodo} onChange={e=>setPeriodo(e.target.value)}><option value="Abril/2025">Período: Abril/2025</option></select></label></div>
-            </header>
-            <div className="fp-kpis">{indicadores.map(i => <article key={i.label} className="fp-kpi" data-kpi={i.label}><i.icon aria-hidden /><div className="fp-kpi-content"><div className="fp-kpi-label">{i.label}</div><strong>{i.valor}</strong>{i.badge ? <Status tone={i.tone as "good" | "danger" | "warning"}>{i.badge}</Status> : <small>{i.sub}</small>}</div></article>)}</div>
-          </section>
+          <FinanceiroResumo
+            subtitulo="Controle de receitas, despesas, custos, ponto de equilíbrio e segurança da empresa"
+            acoes={<>
+              <span className="fp-preview-badge">PRÉVIA • DADOS DEMONSTRATIVOS</span>
+              <label className="fp-period"><CalendarDays /><select aria-label="Período demonstrativo" value={periodo} onChange={e => setPeriodo(e.target.value)}><option value="Abril/2025">Período: Abril/2025</option></select></label>
+            </>}
+            indicadores={indicadores.map((item) => ({
+              ...item,
+              complemento: item.badge ? <Status tone={item.tone as "good" | "danger" | "warning"}>{item.badge}</Status> : <small>{item.sub}</small>,
+            }))}
+          />
           <VisaoGeral calc={calc} chart={chartEvolucao} categorias={chartDistribuicao} riscos={riscos} obrigacoes={obrigacoes} contas={[...contasPagar, ...contasReceber]} saude={saude} />
 
           <Atalhos navegar={navegar} novo={novoLancamento} conferirCaixa={() => { abrirCaixa(); navegar("caixa"); }} />

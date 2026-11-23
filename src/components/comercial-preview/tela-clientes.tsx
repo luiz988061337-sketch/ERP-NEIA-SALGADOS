@@ -3,8 +3,9 @@
  * Reusa a segmentação oficial (`classificar` em @/lib/crm) sobre dados fictícios.
  */
 import { useMemo, useState } from "react";
-import { CalendarDays, Eye, Search, Users } from "lucide-react";
-import { MetricCard, SectionCard, StatusBadge } from "@/components/admin/erp-ui";
+import { Eye, Search, Users } from "lucide-react";
+import { SectionCard, StatusBadge } from "@/components/admin/erp-ui";
+import { CrmResumo, PaginacaoClientes } from "@/components/admin/crm-resumo";
 import { useComercial } from "./contexto";
 import {
   DiasBadge,
@@ -40,25 +41,14 @@ export function ClientesSegmentacao() {
 
   return (
     <div data-testid="clientes-segmentacao">
-      <div className="com-cabecalho">
-        <span className="com-cabecalho-icone">
-          <Users size={22} />
-        </span>
-        <div>
-          <h1>Clientes — Segmentação e Reativação</h1>
-          <p>
-            Base de demonstração com {clientes.length} clientes fictícios, classificados pelas mesmas
-            regras de CRM já aprovadas
-          </p>
-        </div>
-      </div>
-
-      <div className="com-kpis com-kpis-quatro">
-        <MetricCard icone={Users} label="Clientes na base" valor={clientes.length} detalhe="demonstração" />
-        <MetricCard icone={CalendarDays} label="Inativos (30+ dias)" valor={inativos} detalhe="faixas exclusivas" />
-        <MetricCard icone={Users} label="Ticket alto (demo)" valor={vip} detalhe="R$ 150 ou mais" />
-        <MetricCard icone={Users} label="Novos clientes (demo)" valor={novos} detalhe="primeiro pedido" />
-      </div>
+      <CrmResumo
+        descricao={`Base de demonstração com ${clientes.length} clientes fictícios`}
+        total={clientes.length}
+        inativos={inativos}
+        vip={vip}
+        novos={novos}
+        rotuloVip="Ticket alto (demo)"
+      />
 
       <SectionCard
         className="com-tabela-card"
@@ -220,34 +210,7 @@ export function ClientesSegmentacao() {
           ) : null}
         </div>
 
-        <div className="com-paginacao">
-          <span>
-            Exibindo {pag.primeiro}-{pag.ultimo} de {pag.total} clientes
-          </span>
-          <span className="com-paginacao-botoes">
-            <button
-              type="button"
-              className="com-icone"
-              aria-label="Página anterior"
-              disabled={pag.pagina <= 1}
-              onClick={() => setPagina(pag.pagina - 1)}
-            >
-              ‹
-            </button>
-            <span>
-              {pag.pagina} / {pag.paginas}
-            </span>
-            <button
-              type="button"
-              className="com-icone"
-              aria-label="Próxima página"
-              disabled={pag.pagina >= pag.paginas}
-              onClick={() => setPagina(pag.pagina + 1)}
-            >
-              ›
-            </button>
-          </span>
-        </div>
+        <PaginacaoClientes total={pag.total} pagina={pag.pagina} porPagina={POR_PAGINA} onPagina={setPagina} />
       </SectionCard>
 
       <p className="com-nota">
