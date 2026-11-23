@@ -56,10 +56,7 @@ export type AdminNavGroup = {
 /**
  * FONTE ÚNICA da navegação administrativa.
  *
- * Importante: não existe mais `const demo = ehModoDemo()` aqui. O conjunto de
- * grupos, itens, rótulos, ícones, rotas e ordem é idêntico em qualquer build
- * (local, preview ou operacional). Isso elimina a variação intermitente em que
- * parte das opções aparecia em um ambiente e desaparecia em outro.
+ * Grupos, rótulos e ícones compartilhados pelo ERP e pelas referências visuais.
  */
 export const ADMIN_NAV: AdminNavGroup[] = [
   {
@@ -208,6 +205,36 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     ],
   },
 ];
+
+/**
+ * A navegação de conferência mantém o catálogo de prévias. Na operação,
+ * os mesmos grupos apontam para as telas com persistência disponível.
+ */
+const DESTINOS_OPERACIONAIS: Record<string, Pick<AdminNavItem, "href" | "hash">> = {
+  produtos: { href: "/admin", hash: "produtos" },
+  "insumos-demo": { href: "/admin", hash: "insumos" },
+  "clientes-crm": { href: "/clientes" },
+  "campanhas-comercial": { href: "/campanhas" },
+  comercial: { href: "/admin", hash: "comercial" },
+};
+
+export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): AdminNavGroup[] {
+  if (demonstrativo) return ADMIN_NAV;
+  return ADMIN_NAV.map((grupo) => ({
+    ...grupo,
+    items: grupo.items.flatMap<AdminNavItem>((item) => {
+      const destino = DESTINOS_OPERACIONAIS[item.value];
+      if (item.value === "clientes" || item.value === "insumos") return [];
+      if (item.value === "pedidos" && pedidosAtendente) {
+        const { hash: _hash, ...itemAtendente } = item;
+        return [{ ...itemAtendente, href: "/atendente" }];
+      }
+      if (destino) return [{ ...item, ...destino }];
+      if (item.href?.startsWith("/preview/")) return [];
+      return [item];
+    }),
+  })).filter((grupo) => grupo.items.length > 0);
+}
 
 /** Título e descrição de cada aba, exibidos no cabeçalho da página. */
 export const ADMIN_ABA_TITULO: Record<string, string> = {

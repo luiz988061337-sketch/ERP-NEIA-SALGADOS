@@ -87,6 +87,7 @@ import type { TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
+import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { ADMIN_ABA_TITULO } from "@/components/admin/admin-nav";
 import { LojaPanel } from "@/components/admin/loja-panel";
@@ -104,7 +105,7 @@ import { PremiumDemoBadge, PremiumPageHeader, PremiumSection } from "@/component
 import { DonoPremium } from "@/components/admin/dono-premium";
 import { MetasPremium } from "@/components/admin/metas-premium";
 import { ContadorPremium } from "@/components/admin/contador-premium";
-import { DashboardAdmin } from "@/components/admin/dashboard-admin";
+import { DashboardGestao } from "@/components/admin/dashboard-admin";
 import { PainelDashboardL2 } from "@/components/admin/dashboard-l2";
 import { CentralAtendenteL2 } from "@/components/admin/central-atendente-l2";
 import { CentralPedidos } from "@/components/central-pedidos";
@@ -178,7 +179,8 @@ function Admin() {
   useEffect(() => {
     const aplicarHash = () => {
       const valor = window.location.hash.replace(/^#/, "");
-      if (valor && valor in ADMIN_ABA_TITULO) setAba(valor);
+      if (!valor) setAba("dashboard");
+      else if (valor === "clientes" || Object.hasOwn(ADMIN_ABA_TITULO, valor)) setAba(valor);
     };
     aplicarHash();
     window.addEventListener("hashchange", aplicarHash);
@@ -187,7 +189,7 @@ function Admin() {
 
   const isAdmin = roles?.includes("admin");
 
-  const { data: pedidos } = useQuery({
+  const { data: pedidos, isPending: pedidosPendentes, isError: pedidosComErro } = useQuery({
     queryKey: ["admin-pedidos"],
     enabled: !!isAdmin,
     refetchInterval: 15000,
@@ -202,7 +204,7 @@ function Admin() {
     },
   });
 
-  const { data: produtos } = useQuery({
+  const { data: produtos, isPending: produtosPendentes, isError: produtosComErro } = useQuery({
     queryKey: ["admin-produtos"],
     enabled: !!isAdmin,
     queryFn: async () => {
@@ -658,9 +660,32 @@ function Admin() {
     }
   }
 
+  function navegarDashboard(destino: string) {
+    switch (destino) {
+      case "financeiro":
+        void navigate({ to: "/financeiro" });
+        break;
+      case "impressao":
+        void navigate({ to: "/impressao" });
+        break;
+      case "pedidos":
+      case "produtos":
+      case "clientes":
+      case "insumos":
+      case "loja":
+        void navigate({ to: "/admin", hash: destino });
+        setAba(destino);
+        break;
+      default:
+        setAba(destino);
+    }
+  }
+
   function refreshAll() {
     for (const k of [
       "admin-pedidos",
+      "central-pedidos",
+      "central-pedidos-avisos",
       "admin-produtos",
       "admin-categorias",
       "admin-cupons",
@@ -831,6 +856,7 @@ function Admin() {
   return (
     <AdminShell
       aba={aba}
+      menuDemonstrativo={modoDemo}
       onAba={setAba}
       onRefresh={refreshAll}
       usuario={user?.email ?? null}
@@ -840,7 +866,7 @@ function Admin() {
       }}
     >
       <Tabs value={aba} onValueChange={setAba}>
-        <TabsContent value="dashboard" className="mt-4">
+        <TabsContent value="dashboard" className="mt-0">
           {modoDemo ? (
             <PainelDashboardL2
               periodo={periodo}
@@ -855,19 +881,23 @@ function Admin() {
               setClienteFoco={setClienteFoco}
             />
           ) : (
-            // Na operação real, manter exatamente o mesmo enquadramento da
-            // prévia L2 aprovada; só a fonte dos dados muda para o staging.
-            // Nenhum fixture e nenhuma métrica fictícia são usados aqui.
-            <div className="l1-dashboard-preview min-h-screen bg-background p-3 sm:p-4">
-              <div className="mx-auto max-w-[1400px]">
-                <DashboardAdmin
-                  pedidos={pedidos ?? []}
-                  produtos={produtos ?? []}
+            <>
+              {pedidosComErro || produtosComErro ? (
+                <p role="alert" className="mx-4 mt-4 rounded-lg border border-destructive/60 p-3 text-sm text-destructive">
+                  Não foi possível carregar todos os dados do painel. Use “Atualizar dados” para tentar novamente.
+                </p>
+              ) : pedidosPendentes || produtosPendentes ? (
+                <p role="status" className="mx-4 mt-4 text-sm text-muted-foreground">Carregando indicadores…</p>
+              ) : null}
+              {!pedidosPendentes && !produtosPendentes && !pedidosComErro && !produtosComErro ? (
+                <DashboardGestao
+                  pedidos={pedidos}
+                  produtos={produtos}
                   profiles={profiles ?? []}
                   clientesStats={clientesStats ?? []}
                   periodo={periodo}
                   setPeriodo={setPeriodo}
-                  setAba={setAba}
+                  setAba={navegarDashboard}
                   notLidas={notLidas}
                   marcarLida={marcarLida}
                   busca={buscaGlobal}
@@ -876,12 +906,12 @@ function Admin() {
                   setProdutoFoco={setProdutoFoco}
                   setClienteFoco={setClienteFoco}
                 />
-              </div>
-            </div>
+              ) : null}
+            </>
           )}
         </TabsContent>
 
-        <TabsContent value="pedidos" className="mt-4">
+        <TabsContent value="pedidos" className="mt-0">
           {modoDemo ? (
             <CentralAtendenteL2 usuario={user?.email ?? null} />
           ) : (
@@ -889,8 +919,9 @@ function Admin() {
             // agora ligada ao Supabase de testes (sem fixtures locais).
             // As funções avançadas do Admin seguem acessíveis sob demanda.
             <div className="mx-auto max-w-[1700px] space-y-4">
+              <AdminTopbar usuario={user?.email ?? null} acesso="Administração" />
               <CentralPedidos usuarioId={user?.id} papeis={roles ?? []} />
-              <details className="rounded-xl border border-[#D4A94A]/35 bg-[#151412] p-3">
+              <details open={pedidoFoco ? true : undefined} className="mx-3 rounded-xl border border-[#D4A94A]/35 bg-[#151412] p-3">
                 <summary className="cursor-pointer font-semibold text-[#F2CE6B]">
                   Gestão avançada de pedidos — status e pagamentos
                 </summary>

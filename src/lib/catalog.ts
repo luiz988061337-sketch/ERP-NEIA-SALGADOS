@@ -94,9 +94,10 @@ export function precoFinal(p: Produto): number {
   return Number(p.preco_promocional ?? p.preco);
 }
 
-export function useCategorias() {
+export function useCategorias(ativo = true) {
   return useQuery({
     queryKey: ["categorias"],
+    enabled: ativo,
     queryFn: async (): Promise<Categoria[]> => {
       const { data, error } = await supabase
         .from("categorias")
@@ -109,9 +110,10 @@ export function useCategorias() {
   });
 }
 
-export function useProdutos() {
+export function useProdutos(ativo = true) {
   return useQuery({
     queryKey: ["produtos"],
+    enabled: ativo,
     queryFn: async (): Promise<Produto[]> => {
       const { data, error } = await supabase.from("produtos").select("*").order("nome");
       if (error) throw error;

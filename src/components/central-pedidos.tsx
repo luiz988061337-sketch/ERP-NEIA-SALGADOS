@@ -123,7 +123,7 @@ export function CentralPedidos({
   /* Dados reais                                                      */
   /* ---------------------------------------------------------------- */
   const hojeISO = new Date().toISOString().slice(0, 10);
-  const { data: pedidosHook } = useQuery({
+  const { data: pedidosHook, isError: pedidosErro, isPending: pedidosPendentes } = useQuery({
     queryKey: ["central-pedidos", hojeISO],
     enabled: !preview,
     refetchInterval: CANAIS.atendente.pollingMs,
@@ -142,7 +142,7 @@ export function CentralPedidos({
     },
   });
 
-  const { data: avisosHook } = useQuery({
+  const { data: avisosHook, isError: avisosErro } = useQuery({
     queryKey: ["central-pedidos-avisos"],
     enabled: !preview,
     refetchInterval: 15000,
@@ -375,6 +375,13 @@ export function CentralPedidos({
   return (
     <div className="flex flex-col gap-3 p-3 sm:p-4">
       {/* ---------------- Cabeçalho da Central ---------------- */}
+      {!preview && (pedidosErro || avisosErro) ? (
+        <p role="alert" className="rounded-lg border border-destructive/60 p-3 text-sm text-destructive">
+          {pedidosErro ? "Não foi possível carregar a fila de pedidos." : "Não foi possível carregar os avisos da cozinha."}
+        </p>
+      ) : !preview && pedidosPendentes ? (
+        <p role="status" className="text-sm text-muted-foreground">Carregando pedidos…</p>
+      ) : null}
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D4A94A] bg-[#121110] px-4 py-3 shadow-card">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-[#D4A94A] bg-[#1A1712]">
