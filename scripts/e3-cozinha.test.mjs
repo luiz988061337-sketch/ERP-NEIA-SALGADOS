@@ -51,7 +51,12 @@ ok(!/entregue/.test(conf.replace(/COMMENT[\s\S]*$/, "")), "E3.15 nunca entrega")
 ok(/GRANT EXECUTE ON FUNCTION public\.(liberar_pedido_cozinha|conferir_pedido_cozinha)/.test(code), "E3.16 grants mínimos");
 
 // Runtime da Cozinha: transição condicional e confirmação antes dos efeitos laterais.
-ok(/\.eq\("id", pedido\.id\)\s*\.eq\("status", pedido\.status\)\s*\.select\("id"\)\s*\.maybeSingle\(\)/.test(mudarStatus), "E3.31 atualização compara o status atual e confirma a linha alterada");
+ok(
+  mudarStatus.includes('rpc("preparar_remessas_producao"') &&
+  mudarStatus.includes('rpc("conferir_remessas_producao"') &&
+  !/\.from\("pedidos"\)\s*\.update\(/.test(mudarStatus),
+  "E3.31 início e conferência passam pelas RPCs com trava no pedido",
+);
 const iSemAtualizacao = mudarStatus.indexOf("if (!atualizado)");
 const iNotificar = mudarStatus.indexOf("void notificarPedido");
 const iHistorico = mudarStatus.indexOf("pedido_status_historico");

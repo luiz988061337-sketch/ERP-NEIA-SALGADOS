@@ -30,6 +30,7 @@ import {
   TIPO_AVISO_RETIRADA,
 } from "@/lib/producao-liberacao";
 import { imagemProduto } from "@/lib/catalog";
+import { itensDaRemessa, progressoProducao } from "@/lib/producao-remessas";
 import { ehModoDemo, USUARIO_DEMO } from "@/lib/demo-preview";
 import { pedidosComAceiteMemoria } from "@/lib/aceite-atendente-memoria";
 import { PEDIDOS_DEMO_PRODUCAO } from "@/lib/producao-demo-fixtures";
@@ -54,7 +55,6 @@ import {
   hora,
   mensagemStatus,
   type OrderStatus,
-  type ProdStatus,
 } from "@/lib/format";
 import { mediaPorDiaSemana } from "@/lib/inteligencia";
 import { tempoFrituraPedido, filtrarNovos, type AlertaSonoro } from "@/lib/cozinha";
@@ -235,6 +235,8 @@ export function Producao({
   // B3: versão local força a rerenderização do card após cada remessa,
   // conferência ou despacho no adaptador simulado. Nenhum dado sai da memória.
   const [versaoSimulacao, setVersaoSimulacao] = useState(0);
+  const remessasEmAndamento = useRef(new Set<string>());
+  const [pedidosOcupados, setPedidosOcupados] = useState<Set<string>>(new Set());
   const [sonsAtivos, setSonsAtivos] = useState(false);
   const [tocados, setTocados] = useState<Set<string>>(new Set());
   // Snapshot de status p/ detectar TRANSIÇÃO real para pronto (1 bip por pedido).
@@ -254,7 +256,8 @@ export function Producao({
 
   const autorizado = preview ? true : roles?.includes("producao") || roles?.includes("admin");
 
-  const { data: pedidosHook, isLoading } = useQuery({
+  const modoSimuladoLocal = preview || ehModoDemo();
+  const { data: pedidosHook, isLoading, isError: filaIndisponivel } = useQuery({
     queryKey: ["fila-producao"],
     enabled: preview || !!autorizado,
     refetchInterval: 15000,
@@ -262,7 +265,9 @@ export function Producao({
       try {
         const { data, error } = await supabase
           .from("pedidos")
-          .select("*, pedido_itens(*, produtos(tempo_fritura_s, categoria_id))")
+          .select(modoSimuladoLocal
+            ? "*, pedido_itens(*, produtos(tempo_fritura_s, categoria_id))"
+            : "*, pedido_itens(*, produtos(tempo_fritura_s, categoria_id)), producao_remessas(*)")
           .in("status", ["recebido", "em_producao", "pronto"])
           .order("created_at");
         if (error) throw error;
@@ -270,7 +275,7 @@ export function Producao({
       } catch {
         const { data, error } = await supabase
           .from("pedidos")
-          .select("*, pedido_itens(*)")
+          .select(modoSimuladoLocal ? "*, pedido_itens(*)" : "*, pedido_itens(*), producao_remessas(*)")
           .in("status", ["recebido", "em_producao", "pronto"])
           .order("created_at");
         if (error) throw error;
@@ -282,7 +287,6 @@ export function Producao({
   // No modo demonstração isolado (VITE_DEMO_PREVIEW=1) a rota real usa os
   // mesmos pedidos fictícios da prévia, acrescidos dos aceites confirmados no
   // adaptador em memória. Nada é gravado fora da memória local.
-  const modoSimuladoLocal = preview || ehModoDemo();
   const pedidosBase = useMemo(() => {
     if (pedidosInjetados) return pedidosInjetados;
     if (ehModoDemo()) return pedidosComAceiteMemoria([...PEDIDOS_DEMO_PRODUCAO] as any[]) as any[];
@@ -708,6 +712,9 @@ export function Producao({
       0,
     );
     const pronto = p.status === "pronto";
+    const progresso = modoSimuladoLocal ? null : progressoProducao(p.producao_remessas ?? []);
+    const carregandoRemessa = pedidosOcupados.has(p.id);
+    const proxima = progresso?.proxima;
     // Canto superior direito: "até HH:MM" na fila, "Finalizado HH:MM" quando pronto.
     const prazo = p.agendado_para
       ? hora(p.agendado_para)
@@ -885,10 +892,21 @@ export function Producao({
 
         {/* Acoes de preparo/finalizacao (destaque total, como na referencia) */}
         <div className="mt-2.5 flex flex-col gap-1.5">
+          {progresso && progresso.total > 0 ? (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              Remessas concluídas: {progresso.concluidas}/{progresso.total}
+            </p>
+          ) : null}
+          {p.status === "em_producao" && proxima ? (
+            <p className="text-xs text-muted-foreground">
+              {itensDaRemessa(proxima).map((item) => `${item.quantidade} × ${item.nome}`).join(" · ")}
+            </p>
+          ) : null}
           {p.status === "recebido" ? (
             <Button
               size="sm"
-              onClick={() => mudarStatus(p, "em_producao", "produzindo")}
+              disabled={!modoSimuladoLocal && (filaIndisponivel || carregandoRemessa || !p.aceito_em_atendente)}
+              onClick={() => mudarStatus(p, "em_producao")}
               className="erp-btn-gold h-11 w-full border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] text-sm font-bold text-[#14120C] hover:brightness-105"
             >
               ▶ Iniciar preparo
@@ -897,10 +915,18 @@ export function Producao({
           {p.status === "em_producao" ? (
             <Button
               size="sm"
-              onClick={() => mudarStatus(p, "pronto", "finalizado", { conferir: true })}
+              disabled={!modoSimuladoLocal && (filaIndisponivel || carregandoRemessa)}
+              onClick={() => {
+                if (modoSimuladoLocal) return mudarStatus(p, "pronto", { conferir: true });
+                if (!progresso?.total) return prepararPedidoEmAndamento(p.id);
+                if (proxima) return finalizarRemessaReal(p.id, proxima.indice);
+                return mudarStatus(p, "pronto", { conferir: true });
+              }}
               className="h-11 w-full border border-[#5B93F5] bg-gradient-to-b from-[#5B93F5] to-[#2F62C8] text-sm font-bold text-white hover:brightness-105"
             >
-              Finalizar combo
+              {modoSimuladoLocal || proxima
+                ? "Finalizar combo"
+                : progresso?.total ? "Confirmar conferência" : "Planejar remessas"}
             </Button>
           ) : null}
           {pronto && !retirada ? (
@@ -1108,7 +1134,6 @@ export function Producao({
   async function mudarStatus(
     pedido: any,
     status: OrderStatus,
-    producao_status: ProdStatus,
     opts?: { conferir?: boolean },
   ) {
     // B3 — simulação local: o clique continua no MESMO botão do layout aprovado,
@@ -1181,37 +1206,10 @@ export function Producao({
       toast.info("Simulação local: transição não disponível neste botão.");
       return;
     }
-    // "Iniciar preparo" NÃO registra retirada física. Um clique no inicio do
-    // preparo nao prova que o pedido inteiro saiu do freezer. A retirada
-    // parcial tem uma acao explicita propria (detalhes "Retirada fisica do
-    // freezer", acima), que chama a 0091 com quantidade. O layout K7.2
-    // permanece intacto; a reserva continua ativa ate a retirada real.
-    // "Finalizar" = conferencia final da cozinha + pedido pronto.
-    // O marcador canônico do projeto é pedidos.conferido_em ("conferencia
-    // final da cozinha", migration 0084) e nao altera status por si so.
-    const campos: Record<string, unknown> = { status, producao_status };
-    if (opts?.conferir) {
-      campos["conferido_em"] = new Date().toISOString();
-      campos["conferido_por"] = user?.id ?? null;
-      if (status === "pronto") campos["pronto_em"] = new Date().toISOString();
-    }
-    const { data: atualizado, error } = await supabase
-      .from("pedidos")
-      .update(campos)
-      .eq("id", pedido.id)
-      .eq("status", pedido.status)
-      .select("id")
-      .maybeSingle();
-    if (error) {
-      console.error("Erro ao atualizar status do pedido:", error);
-      toast.error(error.message || "Não foi possível atualizar o pedido.");
-      return;
-    }
-    if (!atualizado) {
-      toast.error("O pedido mudou em outro setor. Atualize a fila antes de tentar novamente.");
-      void queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
-      return;
-    }
+    const atualizado = await executarRemessas(pedido.id, () => status === "em_producao"
+      ? supabase.rpc("preparar_remessas_producao", { p_pedido_id: pedido.id })
+      : supabase.rpc("conferir_remessas_producao", { p_pedido_id: pedido.id, p_confirmado: opts?.conferir === true }));
+    if (!atualizado) return;
     void notificarPedido({
       client: supabase,
       pedidoId: pedido.id,
@@ -1281,6 +1279,44 @@ export function Producao({
       }
     }
     queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
+  }
+
+  async function executarRemessas(
+    pedidoId: string,
+    operacao: () => PromiseLike<{ data: boolean | null; error: { message: string } | null }>,
+  ) {
+    if (modoSimuladoLocal || filaIndisponivel || remessasEmAndamento.current.has(pedidoId)) return undefined;
+    const ocupados = remessasEmAndamento.current;
+    ocupados.add(pedidoId);
+    setPedidosOcupados(new Set(ocupados));
+    try {
+      const { data, error } = await operacao();
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      const mensagem = error && typeof error === "object" && "message" in error
+        ? String(error.message) : "Não foi possível atualizar as remessas.";
+      toast.error(mensagem);
+      return undefined;
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
+      ocupados.delete(pedidoId);
+      setPedidosOcupados(new Set(ocupados));
+    }
+  }
+
+  async function prepararPedidoEmAndamento(pedidoId: string) {
+    await executarRemessas(pedidoId, () =>
+      supabase.rpc("preparar_remessas_producao", { p_pedido_id: pedidoId }),
+    );
+  }
+
+  async function finalizarRemessaReal(pedidoId: string, indice: number) {
+    const concluida = await executarRemessas(pedidoId, () =>
+      supabase.rpc("concluir_remessa_producao", { p_pedido_id: pedidoId, p_indice: indice }),
+    );
+    if (concluida === true) toast.success(`Remessa ${indice} concluída.`);
+    else if (concluida === false) toast.info(`A remessa ${indice} já estava concluída.`);
   }
 
   async function imprimirDireto(pedido: any) {
@@ -1855,7 +1891,12 @@ export function Producao({
               </div>
             ) : null}
 
-            {pedidosValidos.length === 0 ? (
+            {!modoSimuladoLocal && filaIndisponivel ? (
+              <p role="alert" className="text-sm text-destructive">
+                Não foi possível carregar a fila de produção e o progresso das remessas.
+              </p>
+            ) : null}
+            {!filaIndisponivel && pedidosValidos.length === 0 ? (
               <EmptyState titulo="Nenhum pedido na fila para este filtro" />
             ) : null}
           </div>
