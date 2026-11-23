@@ -17,6 +17,7 @@
 - Commit M24: `0044673bbe403a800547163e5dec9db567bb8512` — `checkpoint: M24 ACL segura para homologacao`.
 - Checkpoint anterior: `1dc0e0d0c0ddd7c008628f473d33799136d689e2`.
 - Diretório: `C:\Users\luiz9\Projetos\ERP-NEIA-SALGADOS`.
+- Relatório final: `ERP-NEIA-SALGADOS-PRONTO-PARA-HOMOLOGACAO.md`.
 
 ## Regras de execução
 
@@ -88,4 +89,4 @@
 1. Criar checkpoint local da FASE K com suíte npm completa e auditoria de segredos.
 2. FASE L: executar homologação visual e funcional em staging autorizado, sem produção.
 3. Retomar FASE L em diante, mantendo checkpoints curtos por módulo.
-4. Antes da entrega final, gerar `ERP-NEIA-SALGADOS-PRONTO-PARA-HOMOLOGACAO.md` com status honesto de cada fase.
+4. Usar `ERP-NEIA-SALGADOS-PRONTO-PARA-HOMOLOGACAO.md` como base de entrega e registrar as evidências de FASE L/M após homologação autorizada.
