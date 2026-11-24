@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -102,7 +102,7 @@ import { ComprasPremium } from "@/components/admin/compras-premium";
 import { PrecificacaoAdmin } from "@/components/admin/precificacao-admin";
 import { CuponsPremium } from "@/components/admin/cupons-premium";
 import { CalculadoraPremium } from "@/components/admin/calculadora-premium";
-import { PremiumDemoBadge, PremiumPageHeader, PremiumSection } from "@/components/admin/erp-ui";
+import { MetricCard, PremiumDemoBadge, PremiumPageHeader, PremiumSection } from "@/components/admin/erp-ui";
 import { DonoPremium } from "@/components/admin/dono-premium";
 import { MetasPremium } from "@/components/admin/metas-premium";
 import { ContadorPremium } from "@/components/admin/contador-premium";
@@ -939,6 +939,8 @@ function Admin() {
             produtos={produtos ?? []}
             categorias={categorias ?? []}
             onChange={refreshAll}
+            carregando={produtosPendentes}
+            erro={produtosComErro}
             foco={produtoFoco}
             onLimparFoco={() => setProdutoFoco("")}
           />
@@ -1119,6 +1121,10 @@ function Admin() {
 
         <TabsContent value="insumos" className="mt-4">
           <InsumosAdmin />
+        </TabsContent>
+
+        <TabsContent value="embalagens" className="mt-4">
+          <InsumosAdmin embalagens />
         </TabsContent>
 
         <TabsContent value="fichas" className="mt-4">
@@ -2034,12 +2040,16 @@ function ProdutosAdmin({
   produtos,
   categorias,
   onChange,
+  carregando,
+  erro,
   foco,
   onLimparFoco,
 }: {
   produtos: any[];
   categorias: any[];
   onChange: () => void;
+  carregando: boolean;
+  erro: boolean;
   foco?: string;
   onLimparFoco?: () => void;
 }) {
@@ -2047,9 +2057,23 @@ function ProdutosAdmin({
   const [novo, setNovo] = useState(false);
   const [movDe, setMovDe] = useState<string | null>(null);
   const chavesAjusteEstoque = useRef(new Map<string, string>());
-  const visiveis = foco
-    ? produtos.filter((p: any) => (p.nome ?? "").toLowerCase().includes(foco.toLowerCase()))
-    : produtos;
+  const [busca, setBusca] = useState("");
+  const [situacao, setSituacao] = useState("todas");
+  const [categoria, setCategoria] = useState("todas");
+  const termo = (foco || busca).trim().toLowerCase();
+  const visiveis = produtos.filter((p) =>
+    String(p.nome ?? "").toLowerCase().includes(termo) &&
+    (situacao === "todas" || !!p.disponivel === (situacao === "ativo")) &&
+    (categoria === "todas" || p.categoria_id === categoria),
+  );
+  const ativos = produtos.filter((p) => p.disponivel).length;
+  const metricas = [
+    { icone: Package, label: "Produtos cadastrados", valor: produtos.length },
+    { icone: CheckCircle2, label: "Ativos", valor: ativos },
+    { icone: TriangleAlert, label: "Inativos", valor: produtos.length - ativos },
+    { icone: ChefHat, label: "Fritos", valor: produtos.filter((p) => /^frit/i.test(p.categorias?.nome ?? "")).length },
+    { icone: ChefHat, label: "Assados", valor: produtos.filter((p) => /^assad/i.test(p.categorias?.nome ?? "")).length },
+  ];
 
   async function salvar(e: React.FormEvent<HTMLFormElement>, id?: string) {
     e.preventDefault();
@@ -2184,9 +2208,22 @@ function ProdutosAdmin({
   }
 
   return (
-    <section className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center gap-2">
-        <h2 className="font-display text-xl">Produtos ({produtos.length})</h2>
+    <div className="min-w-0 space-y-5">
+      <PremiumPageHeader icone={Package} titulo="Cadastro de Produtos" subtitulo="Catálogo, sabores, preços e situação de venda."
+        acoes={<Button type="button" className="erp-btn-gold" onClick={() => { setNovo(true); setEditando(null); }}><Plus size={16} aria-hidden />Cadastrar produto</Button>} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {metricas.map((m) => <MetricCard key={m.label} {...m} valor={carregando || erro ? "—" : m.valor} />)}
+      </div>
+      <PremiumSection icone={ClipboardList} titulo={"Produtos (" + visiveis.length + ")"}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input placeholder="Buscar produto" aria-label="Pesquisar produtos" value={busca} onChange={(e) => { onLimparFoco?.(); setBusca(e.target.value); }} className="sm:w-52" />
+        <select aria-label="Categoria dos produtos" value={categoria} onChange={(e) => setCategoria(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+          <option value="todas">Todas as categorias</option>
+          {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+        </select>
+        <select aria-label="Situação dos produtos" value={situacao} onChange={(e) => setSituacao(e.target.value)} className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+          <option value="todas">Todas as situações</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option>
+        </select>
         {foco ? (
           <Button size="sm" variant="outline" onClick={onLimparFoco}>
             Foco: “{foco}” ✕
@@ -2213,20 +2250,11 @@ function ProdutosAdmin({
         >
           CSV
         </Button>
-        <Button
-          size="sm"
-          className="ml-auto"
-          onClick={() => {
-            setNovo(true);
-            setEditando(null);
-          }}
-        >
-          <Plus className="mr-1 size-4" /> Novo
-        </Button>
       </div>
 
       {(novo || editando) && (
         <form
+          key={editando?.id ?? "novo"}
           onSubmit={(e) => salvar(e, editando?.id)}
           className="mt-4 grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2"
         >
@@ -2438,74 +2466,41 @@ function ProdutosAdmin({
         </form>
       )}
 
-      <div className="mt-4 space-y-2">
-        {visiveis.map((p) => {
-          const baixo =
-            Number(p.estoque_minimo ?? 0) > 0 && Number(p.estoque ?? 0) < Number(p.estoque_minimo);
-          return (
-            <div key={p.id}>
-              <div
-                className={cn(
-                  "flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 text-sm",
-                  !p.disponivel && "opacity-60",
-                )}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold">
-                    {p.nome}{" "}
-                    <span className="text-xs text-muted-foreground">
-                      • {p.categorias?.nome} • {p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}
-                      {p.destaque ? " • ⭐" : ""}
-                      {p.ncm ? "" : " • ⚠️ sem NCM"}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {brl(p.preco_promocional ?? p.preco)} • Estoque: {p.estoque}
-                    {baixo ? " ⚠️ abaixo do mínimo" : ""} {p.preco_promocional ? "• PROMO" : ""}
-                  </p>
-                </div>
-                <Switch
-                  checked={p.disponivel}
-                  onCheckedChange={async (v) => {
-                    await supabase.from("produtos").update({ disponivel: v }).eq("id", p.id);
-                    onChange();
-                  }}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setMovDe(movDe === p.id ? null : p.id)}
-                >
-                  Estoque
-                </Button>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => {
-                    setEditando(p);
-                    setNovo(false);
-                  }}
-                >
-                  <Pencil className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => excluir(p.id, p.nome)}>
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-              {movDe === p.id ? (
-                <MovEstoque
-                  produto={p}
-                  onChange={() => {
-                    setMovDe(null);
-                    onChange();
-                  }}
-                />
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </section>
+      {erro ? <p role="alert" className="mt-4">Falha ao consultar os produtos. <Button type="button" size="sm" variant="outline" onClick={onChange}>Tentar novamente</Button></p>
+        : carregando ? <p role="status" className="mt-4">Carregando produtos…</p>
+        : <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[740px] border-collapse text-sm">
+            <thead><tr className="border-b border-[#D4A94A] bg-[#1B1811] text-left text-xs uppercase tracking-wide text-[#C9C2B8]">
+              {["Produto", "Categoria", "Venda", "Preço", "Estoque", "Situação", "Ações"].map((h) => <th key={h} scope="col" className="px-3 py-2.5">{h}</th>)}
+            </tr></thead>
+            <tbody className="divide-y divide-[#2A2721]">{visiveis.map((p) => {
+              const baixo = Number(p.estoque_minimo ?? 0) > 0 && Number(p.estoque ?? 0) < Number(p.estoque_minimo);
+              return <Fragment key={p.id}>
+                <tr className="hover:bg-[#211F18]">
+                  <td className="px-3 py-3"><strong className="text-[#F2CE6B]">{p.nome}</strong>{!p.ncm && <small className="block text-muted-foreground">Sem NCM</small>}</td>
+                  <td className="px-3 py-3">{p.categorias?.nome ?? "—"}</td>
+                  <td className="px-3 py-3">{p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}</td>
+                  <td className="px-3 py-3">{brl(p.preco_promocional ?? p.preco)}{p.preco_promocional && <small className="block text-muted-foreground">Promoção</small>}</td>
+                  <td className="px-3 py-3">{p.estoque}{baixo && <small className="block text-amber-300">Abaixo do mínimo</small>}</td>
+                  <td className="px-3 py-3"><Switch aria-label={p.nome + " disponível"} checked={p.disponivel} onCheckedChange={async (v) => {
+                    const { error } = await supabase.from("produtos").update({ disponivel: v }).eq("id", p.id);
+                    if (error) toast.error("Não foi possível atualizar a disponibilidade.");
+                    else onChange();
+                  }} /></td>
+                  <td className="px-3 py-3"><div className="flex items-center gap-2">
+                    <Button type="button" size="sm" variant="outline" aria-expanded={movDe === p.id} onClick={() => setMovDe(movDe === p.id ? null : p.id)}>Estoque</Button>
+                    <Button type="button" size="icon" variant="outline" aria-label={"Editar " + p.nome} onClick={() => { setEditando(p); setNovo(false); }}><Pencil size={16} aria-hidden /></Button>
+                    <Button type="button" size="icon" variant="ghost" aria-label={"Excluir " + p.nome} onClick={() => excluir(p.id, p.nome)}><Trash2 size={16} aria-hidden /></Button>
+                  </div></td>
+                </tr>
+                {movDe === p.id && <tr><td colSpan={7} className="px-3"><MovEstoque produto={p} onChange={() => { setMovDe(null); onChange(); }} /></td></tr>}
+              </Fragment>;
+            })}</tbody>
+          </table>
+          {visiveis.length === 0 && <p className="p-4 text-center text-muted-foreground">Nenhum produto encontrado.</p>}
+        </div>}
+      </PremiumSection>
+    </div>
   );
 }
 

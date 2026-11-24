@@ -1,6 +1,6 @@
 const abasAdmin = new Set([
   "dashboard", "pedidos", "central-atendente", "produtos", "clientes", "motoboys",
-  "cupons", "dono", "metas", "financeiro", "impressao", "comercial", "insumos",
+  "cupons", "dono", "metas", "financeiro", "impressao", "comercial", "insumos", "embalagens",
   "fichas", "fornecedores", "compras", "precificacao", "usuarios", "logs",
   "hero", "calculadora", "loja", "entregas", "avaliacoes",
 ]);

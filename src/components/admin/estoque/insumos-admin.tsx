@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Layers, Package, Plus, ShoppingCart } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
-import { DarkTable, DarkTableRow, SectionCard, StatusBadge, type BadgeTom } from "@/components/admin/erp-ui";
+import { DarkTable, DarkTableRow, MetricCard, PremiumPageHeader, PremiumSection, StatusBadge, type BadgeTom } from "@/components/admin/erp-ui";
 import { alertaEstoque } from "@/lib/lotes";
 import { converterUnidade, sugestaoCompra } from "@/lib/insumos";
 
@@ -22,13 +23,13 @@ const STATUS_TOM: Record<string, BadgeTom> = {
 };
 
 /** Aba Insumos: cadastro, lotes FEFO, perda/ajuste, inventário, movimentações, sugestão de compra. */
-export function InsumosAdmin() {
+export function InsumosAdmin({ embalagens = false }: { embalagens?: boolean } = {}) {
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
   const [foco, setFoco] = useState<any | null>(null);
   const [editando, setEditando] = useState<any | null>(null);
 
-  const { data: insumos } = useQuery({
+  const { data: insumos, isPending, isError, refetch } = useQuery({
     queryKey: ["estoque-insumos"],
     queryFn: async () => {
       const { data, error } = await supabase.from("insumos").select("*").order("nome");
@@ -66,10 +67,17 @@ export function InsumosAdmin() {
     },
   });
 
-  const lista = useMemo(() => {
-    const t = busca.trim().toLowerCase();
-    return (insumos ?? []).filter((i) => !t || String(i.nome ?? "").toLowerCase().includes(t));
-  }, [insumos, busca]);
+  const itensVisiveis = (insumos ?? []).filter((i) => !embalagens || ["embalagem", "embalagens"].includes(String(i.categoria ?? "").trim().toLowerCase()));
+  const termo = busca.trim().toLowerCase();
+  const lista = itensVisiveis.filter((i) => !termo || String(i.nome ?? "").toLowerCase().includes(termo));
+  const abaixoMinimo = itensVisiveis.filter((i) => i.ativo && Number(i.estoque_atual) < Number(i.estoque_minimo)).length;
+  const nomeItem = embalagens ? "embalagem" : "insumo";
+  const metricas = [
+    { icone: Package, label: "Itens cadastrados", valor: itensVisiveis.length },
+    { icone: CheckCircle2, label: "Ativos", valor: itensVisiveis.filter((i) => i.ativo).length },
+    { icone: AlertTriangle, label: "Abaixo do mínimo", valor: abaixoMinimo },
+    { icone: ShoppingCart, label: "Sem saldo", valor: itensVisiveis.filter((i) => i.ativo && Number(i.estoque_atual) <= 0).length },
+  ];
 
   // Consumo médio diário (30d) p/ sugestão de compra — só do insumo em foco.
   const cmd30 = useMemo(() => {
@@ -88,11 +96,12 @@ export function InsumosAdmin() {
 
   async function salvar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const body = {
       nome: String(f.get("nome") ?? "").trim(),
-      categoria: String(f.get("categoria") ?? "").trim(),
-      unidade_base: String(f.get("unidade_base") ?? "g"),
+      categoria: embalagens ? (editando?.categoria ?? "embalagem") : String(f.get("categoria") ?? "").trim(),
+      unidade_base: editando?.unidade_base ?? String(f.get("unidade_base") ?? (embalagens ? "un" : "g")),
       estoque_minimo: Number(f.get("estoque_minimo") ?? 0) || 0,
       ativo: f.get("ativo") === "on",
     };
@@ -109,7 +118,7 @@ export function InsumosAdmin() {
     }
     void logAdmin(editando?.id ? "insumo_alterado" : "insumo_criado", body.nome);
     setEditando(null);
-    (e.target as HTMLFormElement).reset();
+    form.reset();
     toast.success("Insumo salvo.");
     refresh();
   }
@@ -220,12 +229,20 @@ export function InsumosAdmin() {
   }
 
   return (
-    <div className="space-y-4">
-      <SectionCard
-        titulo="Insumos"
+    <div className="min-w-0 space-y-5 pb-24">
+      <PremiumPageHeader icone={embalagens ? Package : Layers} titulo={embalagens ? "Estoque de Embalagens" : "Estoque de Insumos"}
+        subtitulo="Cadastro, saldos, entradas por compra, lotes e movimentações."
+        acoes={<Button type="button" className="erp-btn-gold" onClick={() => { setEditando(null); requestAnimationFrame(() => document.getElementById("cadastro-insumo-nome")?.focus()); }}><Plus size={16} aria-hidden />Cadastrar {nomeItem}</Button>} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metricas.map((m) => <MetricCard key={m.label} {...m} valor={insumos && !isError ? m.valor : "—"} />)}
+      </div>
+      <PremiumSection
+        titulo={embalagens ? "Embalagens cadastradas" : "Insumos cadastrados"}
         acoes={<span className="text-[10px] uppercase text-muted-foreground">{lista.length} item(ns)</span>}
         bodyClassName="p-0"
       >
+        {isError && <p role="alert" className="p-3">Falha ao consultar o estoque. <Button size="sm" variant="outline" onClick={() => void refetch()}>Tentar novamente</Button></p>}
+        {isPending && <p role="status" className="p-3">Carregando estoque…</p>}
         <div className="p-3 pb-0">
           <Input placeholder="Buscar insumo…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
@@ -240,7 +257,7 @@ export function InsumosAdmin() {
             "Status",
             "Ações",
           ]}
-          vazio={lista.length === 0 ? "Nenhum insumo. Cadastre abaixo." : undefined}
+          vazio={!isPending && !isError && lista.length === 0 ? "Nenhum insumo. Cadastre abaixo." : undefined}
         >
           {lista.map((i: any) => {
             const st = alertaEstoque(Number(i.estoque_atual ?? 0), Number(i.estoque_minimo ?? 0));
@@ -277,17 +294,16 @@ export function InsumosAdmin() {
             );
           })}
         </DarkTable>
-      </SectionCard>
+      </PremiumSection>
 
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="font-display text-xl">{editando?.id ? "Editar insumo" : "Novo insumo"}</h2>
+      <PremiumSection icone={Plus} titulo={(editando?.id ? "Editar " : "Cadastrar ") + nomeItem}>
         <form onSubmit={salvar} className="mt-3 grid gap-3 sm:grid-cols-2" key={editando?.id ?? "novo"}>
-          <div className="space-y-1"><Label>Nome *</Label><Input name="nome" required defaultValue={editando?.nome ?? ""} /></div>
-          <div className="space-y-1"><Label>Categoria</Label><Input name="categoria" defaultValue={editando?.categoria ?? ""} placeholder="farinha, frango, óleo, embalagem…" /></div>
+          <div className="space-y-1"><Label htmlFor="cadastro-insumo-nome">Nome *</Label><Input id="cadastro-insumo-nome" name="nome" required defaultValue={editando?.nome ?? ""} /></div>
+          {!embalagens && <div className="space-y-1"><Label>Categoria</Label><Input name="categoria" defaultValue={editando?.categoria ?? ""} placeholder="farinha, frango, óleo, embalagem…" /></div>}
           <div className="space-y-1">
             <Label>Unidade base *</Label>
-            <select name="unidade_base" defaultValue={editando?.unidade_base ?? "g"} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" disabled={!!editando?.id}>
-              {UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}
+            <select name="unidade_base" defaultValue={editando?.unidade_base ?? (embalagens ? "un" : "g")} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" disabled={!!editando?.id}>
+              {(embalagens && !editando ? ["un"] : UNIDADES).map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
           <div className="space-y-1"><Label>Estoque mínimo (na unidade base)</Label><Input name="estoque_minimo" type="number" step="any" min="0" defaultValue={editando?.estoque_minimo ?? 0} /></div>
@@ -297,7 +313,7 @@ export function InsumosAdmin() {
             {editando && <Button type="button" variant="outline" onClick={() => setEditando(null)}>Cancelar</Button>}
           </div>
         </form>
-      </section>
+      </PremiumSection>
 
       {foco && (
         <>

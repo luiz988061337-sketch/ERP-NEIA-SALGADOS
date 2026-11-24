@@ -214,7 +214,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
 const DESTINOS_OPERACIONAIS: Record<string, Pick<AdminNavItem, "href" | "hash">> = {
   produtos: { href: "/admin", hash: "produtos" },
   "insumos-demo": { href: "/admin", hash: "insumos" },
-  "campanhas-comercial": { href: "/campanhas" },
+  embalagens: { href: "/admin", hash: "embalagens" },
+  "painel-comercial": { href: "/campanhas" },
+  "campanhas-comercial": { href: "/campanhas", hash: "campanhas" },
+  resultados: { href: "/campanhas", hash: "resultados" },
   comercial: { href: "/admin", hash: "comercial" },
 };
 
