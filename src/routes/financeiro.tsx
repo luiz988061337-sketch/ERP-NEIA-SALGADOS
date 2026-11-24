@@ -5,12 +5,15 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowDownCircle, ArrowUpCircle, CalendarDays, Shield, Target, Wallet } from "lucide-react";
+import { ArrowDownCircle, ArrowUpCircle, CalendarDays, HeartPulse, PieChart as PieChartIcon, Shield, Target, Wallet } from "lucide-react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -935,10 +938,21 @@ function Financeiro() {
         ? "variaveis" : "semClassificacao";
     custos[grupo].push({ id: conta.id, descricao: conta.descricao, valor: Number(conta.valor) });
   }
+  const despesasPorCategoria = [
+    { nome: "Custos fixos", contas: custos.fixos, cor: ERP_COLORS.gold },
+    { nome: "Custos variáveis", contas: custos.variaveis, cor: ERP_COLORS.blue },
+    { nome: "Sem classificação", contas: custos.semClassificacao, cor: ERP_COLORS.orange },
+  ].map(({ nome, contas, cor }) => ({
+    nome,
+    cor,
+    valor: contas.reduce((total, conta) => total + conta.valor, 0),
+  }));
+  const totalDespesasCategoria = despesasPorCategoria.reduce((total, item) => total + item.valor, 0);
+
   const pendentes = contasComStatus.filter((conta) =>
     conta.tipo === "pagar" && conta.efetivo !== "paga" && conta.efetivo !== "cancelada" &&
     typeof conta.vencimento === "string" && conta.vencimento >= hoje,
-  ).slice(0, 4);
+  ).sort((a, b) => a.vencimento.localeCompare(b.vencimento)).slice(0, 4);
 
   return (
     <>
@@ -1032,23 +1046,71 @@ function Financeiro() {
 
 
             </div>
-            <Panel title="Ponto de equilíbrio" icon={Target}>
+            <Panel title="Ponto de equilíbrio (resumo)" icon={Target}>
               <dl className="fp-metric-list">
                 <div><dt>Mensal</dt><dd>{pedidosDisponiveis && contasDisponiveis && pe != null ? brl(pe) : "—"}</dd></div>
                 <div><dt>Receita líquida</dt><dd>{valorPedidos(dre.liquida)}</dd></div>
               </dl>
             </Panel>
-            <Panel title="Riscos e compromissos" icon={Shield}>
+            <Panel title="Central de riscos e conformidade" icon={Shield} className="fp-risks">
               {contasDisponiveis ? (
                 <>
                   <p className={`text-sm ${vencidas.length ? "text-destructive" : "text-muted-foreground"}`}>
                     {vencidas.length ? `${vencidas.length} conta(s) vencida(s) · ${brl(vencidasSaldo)}` : "Nenhuma conta vencida."}
                   </p>
-                  <ul className="mt-2 space-y-2 text-sm">
-                    {pendentes.map((conta) => <li key={conta.id}>{conta.vencimento} · {conta.descricao}</li>)}
-                  </ul>
+                  <dl className="fp-metric-list">
+                    <div><dt>Pagamentos sem data confiável</dt><dd>{fluxoDisponivel ? fluxoMes?.eventosSemData ?? 0 : "—"}</dd></div>
+                    <div><dt>Baixas sem meio registrado</dt><dd>{fluxoDisponivel ? fluxoMes?.eventosContaMeioDesconhecido ?? 0 : "—"}</dd></div>
+                  </dl>
                 </>
               ) : <p className="text-sm text-muted-foreground">Contas indisponíveis no momento.</p>}
+            </Panel>
+          </div>
+          <div className="fp-second-row">
+            <Panel title="Despesas por categoria" icon={PieChartIcon}>
+              <p className="mb-2 text-xs text-muted-foreground">Contas a pagar por vencimento na competência.</p>
+              {contasDisponiveis && totalDespesasCategoria > 0 ? (
+                <div className="fp-distribution">
+                  <div className="fp-donut" aria-hidden="true">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={despesasPorCategoria} dataKey="valor" nameKey="nome" innerRadius="63%" outerRadius="92%" stroke="none">
+                          {despesasPorCategoria.map(({ nome, cor }) => <Cell key={nome} fill={cor} />)}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <ul className="min-w-0 flex-1 space-y-1 text-sm">
+                    {despesasPorCategoria.map(({ nome, valor, cor }) => (
+                      <li key={nome} className="flex flex-wrap items-center gap-2">
+                        <span className="size-2 shrink-0 rounded-full" style={{ background: cor }} aria-hidden />
+                        <span>{nome}</span>
+                        <strong className="ml-auto">{brl(valor)}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : <p className="text-sm text-muted-foreground">{contasDisponiveis ? "Nenhuma despesa na competência." : "Despesas indisponíveis."}</p>}
+            </Panel>
+            <Panel title="Saúde financeira" icon={HeartPulse}>
+              <dl className="fp-metric-list">
+                <div><dt>Resultado do mês</dt><dd>{pedidosDisponiveis && contasDisponiveis ? brl(dre.resultado) : "—"}</dd></div>
+                <div><dt>Contas a pagar</dt><dd>{valorContas(aPagar)}</dd></div>
+                <div><dt>Contas a receber</dt><dd>{valorContas(aReceber)}</dd></div>
+              </dl>
+            </Panel>
+            <Panel title="Próximos compromissos" icon={CalendarDays} className="fp-next">
+              {contasDisponiveis && pendentes.length > 0 ? (
+                <ul className="space-y-1 text-sm">
+                  {pendentes.map((conta) => (
+                    <li key={conta.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border py-1">
+                      <time dateTime={conta.vencimento} className="text-muted-foreground">{conta.vencimento.slice(8, 10)}/{conta.vencimento.slice(5, 7)}</time>
+                      <span className="min-w-0 flex-1 break-words">{conta.descricao}</span>
+                      <strong>{brl(totalContas([conta], "pagar"))}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : <p className="text-sm text-muted-foreground">{contasDisponiveis ? "Nenhum pagamento com vencimento próximo." : "Compromissos indisponíveis."}</p>}
             </Panel>
           </div>
         </div>
