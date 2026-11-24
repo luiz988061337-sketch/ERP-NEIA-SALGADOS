@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useRoles, useSession } from "@/lib/session";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
-import { AdminTopbar } from "@/components/admin/admin-topbar";
-import { PageHeader } from "@/components/admin/ui-admin";
+import { Megaphone } from "lucide-react";
+import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
+import { PainelCampanhas } from "@/components/admin/campanhas-painel";
+import { PremiumPageHeader, PremiumSection } from "@/components/admin/erp-ui";
+import comercialCss from "@/components/comercial-preview/comercial.css?url";
+import padraoCss from "@/components/comercial-preview/comercial-padrao-h06b.css?url";
 import { brl } from "@/lib/format";
 import { whatsappLink } from "@/lib/format";
 import { DEFAULT_CRM_SETTINGS, renderMensagem, useClientesStats, useCrmSettings } from "@/lib/crm";
@@ -32,11 +36,17 @@ export const Route = createFileRoute("/campanhas")({
 
 function Campanhas() {
   const search = Route.useSearch();
+  const { pathname, href, hash } = useLocation();
+  const queryClient = useQueryClient();
+  const aba = hash === "resultados" ? "resultados" : hash === "campanhas" || (!hash && (search.segmento || search.dias)) ? "campanhas" : "painel";
+  function abrir(valor: "painel" | "campanhas" | "resultados") {
+    void navigate({ to: "/campanhas", search, hash: valor, hashScrollIntoView: false });
+  }
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso, isFetching: verificandoAcesso, refetch: refetchAcesso } = useRoles(user?.id);
   const isAdmin = roles?.includes("admin");
-  const { data: clientes } = useClientesStats();
+  const { data: clientes } = useClientesStats(!!isAdmin);
   const { data: settings } = useCrmSettings();
 
   const [nome, setNome] = useState("Reativação 30+ dias");
@@ -48,29 +58,21 @@ function Campanhas() {
 
   const cfg = settings ?? DEFAULT_CRM_SETTINGS;
 
-  const { data: recentes } = useQuery({
+  const { data: recentes, isError: erroRecentes, isPending: consultandoRecentes, refetch: refetchRecentes } = useQuery({
+    enabled: !!isAdmin,
     queryKey: ["crm-recentes", cfg.intervalo_min_campanhas_dias],
     queryFn: async (): Promise<Set<string>> => {
-      try {
-        const corte = new Date(
-          Date.now() - cfg.intervalo_min_campanhas_dias * 86400000,
-        ).toISOString();
-        const { data, error } = await supabase
-          .from("crm_recipients")
-          .select("telefone_norm")
-          .gte("sent_at", corte);
-        if (error) return new Set();
-        return new Set((data ?? []).map((r: any) => r.telefone_norm));
-      } catch {
-        return new Set();
-      }
+      const corte = new Date(Date.now() - cfg.intervalo_min_campanhas_dias * 86400000).toISOString();
+      const { data, error } = await supabase.from("crm_recipients").select("telefone_norm").gte("sent_at", corte);
+      if (error) throw error;
+      return new Set((data ?? []).map((r: { telefone_norm: string }) => r.telefone_norm));
     },
   });
 
   useEffect(() => {
-    if (!loading && !user)
-      navigate({ to: "/auth", search: { redirect: "/campanhas" }, replace: true });
-  }, [loading, user, navigate]);
+    if (pathname === "/campanhas" && !loading && !user)
+      void navigate({ to: "/auth", search: { redirect: href }, hash: "", replace: true });
+  }, [loading, user, navigate, pathname, href]);
   useEffect(() => {
     if (settings?.mensagem_padrao) setMensagem(settings.mensagem_padrao);
   }, [settings?.mensagem_padrao]);
@@ -91,24 +93,30 @@ function Campanhas() {
 
   const { aptos, bloqueadosRecentes, bloqueadosOptOut } = useMemo(() => {
     const rec = recentes ?? new Set<string>();
-    const apt = base.filter((c) => !rec.has(c.telefone_norm));
+    const apt = recentes && !erroRecentes ? base.filter((c) => !rec.has(c.telefone_norm)) : [];
     const bloqRec = base.filter((c) => rec.has(c.telefone_norm)).length;
     const bloqOpt = (clientes ?? []).filter(
       (c) => c.opt_out && (c.dias_sem_comprar ?? 0) >= diasMin,
     ).length;
     return { aptos: apt, bloqueadosRecentes: bloqRec, bloqueadosOptOut: bloqOpt };
-  }, [base, recentes, clientes, diasMin]);
+  }, [base, recentes, erroRecentes, clientes, diasMin]);
 
   const exemplo = aptos[0];
   const previa = exemplo ? renderMensagem(mensagem, exemplo) : "Sem clientes aptos para prévia.";
 
-  if (roles && !isAdmin)
+  if (erroAcesso) return <ErroAcessoPainel nome="Campanhas" tentando={verificandoAcesso} onTentar={() => void refetchAcesso()} />;
+  if (loading || !user || !roles) return <p role="status" className="p-6 text-muted-foreground">Verificando acesso a Campanhas…</p>;
+  if (!isAdmin)
     return <p className="p-10 text-center">Acesso restrito ao administrador.</p>;
 
   /** A campanha NUNCA é enviada automaticamente por ser criada. O envio real
    *  é sempre manual (WhatsApp individual) e exige status "pronta" — o botão
    *  de aprovação explícito registra essa decisão do administrador. */
   async function salvarCampanha(status: "rascunho" | "pronta") {
+    if (!recentes || erroRecentes) {
+      toast.error("Aguarde a verificação do intervalo entre campanhas.");
+      return;
+    }
     if (status === "pronta" && !cfg.campanhas_habilitadas) {
       toast.error("Campanhas desabilitadas em Configurações → CRM.");
       return;
@@ -164,6 +172,8 @@ function Campanhas() {
       } else {
         toast.success("Rascunho salvo. Nenhum destinatário registrado ainda.");
       }
+      void queryClient.invalidateQueries({ queryKey: ["crm-campanhas-painel"] });
+      void queryClient.invalidateQueries({ queryKey: ["crm-campanhas-lista"] });
     } catch (e) {
       console.error(e);
       toast.error("Não foi possível salvar. Rode a migração 0001 (tabelas crm_*) no Supabase.");
@@ -174,25 +184,26 @@ function Campanhas() {
 
   return (
     <>
-      <AdminTopbar
-        usuario={user?.email ?? null}
-        onSair={async () => {
-          await supabase.auth.signOut();
-          navigate({ to: "/auth", replace: true });
-        }}
-      />
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <PageHeader
-          titulo="📣 Campanhas"
-          descricao="Reative inativos via WhatsApp usando a estrutura existente (abrir conversa — sem disparo automático inventado)."
-          acoes={
-            <Button asChild variant="outline">
-              <Link to="/clientes">👥 Clientes</Link>
-            </Button>
-          }
-        />
-
-        <div className="mt-4 space-y-4 rounded-xl border border-border bg-card p-5">
+      <link rel="stylesheet" href={comercialCss} />
+      <link rel="stylesheet" href={padraoCss} />
+      <div className="comercial-preview min-w-0">
+        <div className="com-content">
+          <nav aria-label="Comercial" className="mb-4 flex flex-wrap gap-1 border-b border-border pb-2">
+            <Button type="button" size="sm" variant={aba === "painel" ? "outline" : "ghost"} aria-current={aba === "painel" ? "page" : undefined} onClick={() => abrir("painel")}>Painel</Button>
+            <Button asChild size="sm" variant="ghost"><Link to="/clientes">Clientes</Link></Button>
+            <Button type="button" size="sm" variant={aba === "campanhas" ? "outline" : "ghost"} aria-current={aba === "campanhas" ? "page" : undefined} onClick={() => abrir("campanhas")}>Campanhas</Button>
+            <Button type="button" size="sm" variant="ghost" disabled title="Módulo operacional indisponível">Pesquisas e Reclamações</Button>
+            <Button type="button" size="sm" variant="ghost" disabled title="Módulo operacional indisponível">Sugestões</Button>
+            <Button type="button" size="sm" variant={aba === "resultados" ? "outline" : "ghost"} aria-current={aba === "resultados" ? "page" : undefined} onClick={() => abrir("resultados")}>Resultados</Button>
+          </nav>
+          {aba === "painel" && <PainelCampanhas clientes={clientes} aptos={clientes && recentes && !erroRecentes ? aptos.length : null} abrirCampanhas={() => abrir("campanhas")} />}
+          {aba === "resultados" && <DesempenhoCampanhas />}
+          {aba === "campanhas" && <div className="space-y-4">
+            <PremiumPageHeader icone={Megaphone} titulo="Campanhas e aprovação" subtitulo="Público, mensagens e autorização de envio manual" />
+            <PremiumSection titulo="Preparar campanha">
+            <div className="space-y-4">
+              {erroRecentes ? <p role="alert">Falha ao verificar o intervalo entre campanhas. <Button type="button" size="sm" variant="outline" onClick={() => void refetchRecentes()}>Tentar novamente</Button></p>
+                : consultandoRecentes ? <p role="status">Verificando o intervalo entre campanhas…</p> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Nome da campanha</Label>
@@ -294,19 +305,16 @@ function Campanhas() {
             em Configurações → CRM). Clientes 📵 opt-out são sempre excluídos.
           </p>
         </div>
-
-        <DesempenhoCampanhas />
-
-        <CupomReativacao aptos={aptos.length} />
-
-        <RecuperacaoCarrinho />
-
-        <SimuladorBox />
+            </PremiumSection>
+            <CupomReativacao aptos={aptos.length} />
+            <RecuperacaoCarrinho />
+            <SimuladorBox />
+          </div>}
+        </div>
       </div>
     </>
   );
 }
-
 /** Gera cupom exclusivo vinculado à campanha (uso limitado aos aptos). */
 function CupomReativacao({ aptos }: { aptos: number }) {
   const [tipo, setTipo] = useState("percentual");
