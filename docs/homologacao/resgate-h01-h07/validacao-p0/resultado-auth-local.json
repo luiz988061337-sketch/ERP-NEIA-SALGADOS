@@ -1,0 +1,12 @@
+[
+  {
+    "modo": "desktop",
+    "caso": "sem sessao, login e retorno /admin#pedidos",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "sem sessao, login e retorno /financeiro#caixa",
+    "status": "ok"
+  }
+]

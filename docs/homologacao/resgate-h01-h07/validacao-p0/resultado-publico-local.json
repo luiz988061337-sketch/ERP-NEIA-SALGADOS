@@ -1,0 +1,110 @@
+[
+  {
+    "modo": "desktop",
+    "path": "/combo",
+    "visivel": true,
+    "url": "/combo",
+    "cabecalhos": [
+      "Monte seu combo"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/ajuda",
+    "visivel": true,
+    "url": "/ajuda",
+    "cabecalhos": [
+      "Ajuda"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/calculadora",
+    "visivel": true,
+    "url": "/calculadora",
+    "cabecalhos": [
+      "Orçamentos"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/parceiros",
+    "visivel": true,
+    "url": "/parceiros",
+    "cabecalhos": [
+      "Seja um parceiro"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/checkout",
+    "visivel": true,
+    "url": "/carrinho",
+    "cabecalhos": [
+      "Meu Carrinho"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/pedido/70000000-0000-4000-8000-000000000010",
+    "visivel": true,
+    "url": "/pedido/70000000-0000-4000-8000-000000000010",
+    "cabecalhos": [
+      "Acompanhe seu pedido"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/combo",
+    "visivel": true,
+    "url": "/combo",
+    "cabecalhos": [
+      "Monte seu combo"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/ajuda",
+    "visivel": true,
+    "url": "/ajuda",
+    "cabecalhos": [
+      "Ajuda"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/calculadora",
+    "visivel": true,
+    "url": "/calculadora",
+    "cabecalhos": [
+      "Orçamentos"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/parceiros",
+    "visivel": true,
+    "url": "/parceiros",
+    "cabecalhos": [
+      "Seja um parceiro"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/checkout",
+    "visivel": true,
+    "url": "/carrinho",
+    "cabecalhos": [
+      "Finalizar pedido"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/pedido/70000000-0000-4000-8000-000000000010",
+    "visivel": true,
+    "url": "/pedido/70000000-0000-4000-8000-000000000010",
+    "cabecalhos": [
+      "Acompanhe seu pedido"
+    ]
+  }
+]

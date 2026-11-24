@@ -1,0 +1,18 @@
+[
+  {
+    "modo": "desktop",
+    "status": "falhou",
+    "url": "http://p0-isolado.invalid/admin#pedidos",
+    "erro": "Waiting failed: 7000ms exceeded",
+    "tela": "NÉIA SALGADOS\n\nPAINEL DE GESTÃO\n\nPRINCIPAL\nDashboard\nPedidos\nProdução\nCentral de Entregas\nPDV / Balcão\nFinanceiro Premium\nConfigurações\nCATÁLOGO\nCadastro de Produtos\nPrecificação\nFichas Técnicas\nCupons\nCalculadora\nHero / Vitrine\nAvaliações\nESTOQUE & COMPRAS\nEstoque de Insumos\nFornecedores\nCompras\nCOMERCIAL\nClientes / CRM\nCampanhas\nGESTÃO\nRelatório do Dono\nMetas\nComercial C1–C5\nCaixa\nRelatórios\nRH / Funcionários\nContador\nMotoboys\nFiscal\nImpressão\n",
+    "problemas": []
+  },
+  {
+    "modo": "mobile",
+    "status": "falhou",
+    "url": "http://p0-isolado.invalid/admin#pedidos",
+    "erro": "Waiting failed: 7000ms exceeded",
+    "tela": "Toggle Sidebar\nMenu administrativo\nPAINEL DE GESTÃO\n\nVisão completa do seu negócio em tempo real\n\nHoje, 24 de novembro de 2026\nHoje\nOntem\nÚltimos 7 dias\nÚltimos 30 dias\nEste mês\nMês anterior\nTudo\n\nVENDAS DO DIA\n\nR$ 480,00\n\nPEDIDOS\n\n8\n\nTICKET MÉDIO\n\nR$ 60,00\n\nCLIENTES ATIVOS\n\n1\n\nVENDAS POR HORA\n06h\n07h\n08h\nR$ 0.0k\nR$ 0.1k\nR$ 0.3k\nR$ 0.5k\nR$ 0.6k\nPEDIDOS POR CANAL\n\n8\n\nPEDIDOS\n\nDelivery\n100%\nPRODUTOS MAIS VENDIDOS\n\nSalgado de teste\n\n400 un\n\nR$ 0,00\n",
+    "problemas": []
+  }
+]
