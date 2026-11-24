@@ -80,7 +80,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
     numero.format(produtos?.reduce((soma, p) => soma + somar(p), 0) ?? 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-3 sm:px-5 [&>div:first-child>div:first-child]:min-w-0 [&>div:first-child_p]:whitespace-normal">
       <ModuleHeader
         icone={Snowflake}
         titulo="Estoque de Salgados"
@@ -102,7 +102,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
         </span>
       </div>
 
-      <div className="grid gap-3 min-[420px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 [&>div]:min-h-24">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-5 sm:gap-3 [&>div]:min-h-24 [&>div:last-child]:col-span-2 xl:[&>div:last-child]:col-span-1">
         <MetricCard icone={Package} label="Saldo em lotes" valor={<span className="text-[#F2CE6B]">{visivel?.some((p) => p.lotes.length > 0) ? `${total((p) => p.saldoLotes)} un.` : "—"}</span>} detalhe="Saldo registrado nos lotes" />
         <MetricCard icone={Layers} label="Total reservado" valor={<span className="text-[#79ACFF]">{visivel ? `${total((p) => p.reservado)} un.` : "—"}</span>} detalhe="Aguardando retirada" cor={ERP_COLORS.blue} />
         <MetricCard icone={CheckCircle2} label="Total disponível" valor={<span className="text-[#79DA8D]">{visivel ? `${total((p) => p.estoque)} un.` : "—"}</span>} detalhe="Saldo do cadastro de produtos" cor={ERP_COLORS.green} />
@@ -120,7 +120,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
 
       {visivel && (
         <>
-          <div className="flex flex-wrap items-end gap-3">
+          <div className="grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
             <label className="grid w-full gap-1 text-sm sm:w-auto">
               Categoria
               <select className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
@@ -147,7 +147,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
               {lista.map((p) => (
                 <DarkTableRow key={p.id}>
                   <td>
-                    <button type="button" aria-pressed={sabor?.id === p.id} onClick={() => setFoco(p.id)} className="flex items-center gap-2 text-left font-semibold aria-pressed:text-accent">
+                    <button type="button" aria-pressed={sabor?.id === p.id} onClick={() => setFoco(p.id)} className="flex items-center gap-2 text-left font-semibold aria-pressed:text-[#F2CE6B]">
                       {p.imagem_url && <img className="size-9 rounded-md object-cover" src={p.imagem_url} alt="" loading="lazy" />}
                       <span>
                         {p.nome}
