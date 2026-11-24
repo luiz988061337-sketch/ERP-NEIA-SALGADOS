@@ -213,6 +213,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
  */
 const DESTINOS_OPERACIONAIS: Record<string, Pick<AdminNavItem, "href" | "hash">> = {
   produtos: { href: "/admin", hash: "produtos" },
+  insumos: { href: "/admin", hash: "estoque-salgados" },
   "insumos-demo": { href: "/admin", hash: "insumos" },
   embalagens: { href: "/admin", hash: "embalagens" },
   "painel-comercial": { href: "/campanhas" },
@@ -227,7 +228,7 @@ export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): Adm
     ...grupo,
     items: grupo.items.flatMap<AdminNavItem>((item) => {
       const destino = DESTINOS_OPERACIONAIS[item.value];
-      if (item.value === "clientes-crm" || item.value === "insumos") return [];
+      if (item.value === "clientes-crm") return [];
       if (item.value === "clientes") return [{ ...item, value: "clientes-crm" }];
       if (item.value === "pedidos" && pedidosAtendente) return [];
       if (item.value === "central-atendente" && pedidosAtendente) {
@@ -274,6 +275,7 @@ export const ADMIN_ABA_TITULO: Record<string, string> = {
   hero: "Hero / Vitrine",
   avaliacoes: "Avaliações",
   insumos: "Estoque de Salgados",
+  "estoque-salgados": "Estoque de Salgados",
   "insumos-demo": "Estoque de Insumos",
   fornecedores: "Fornecedores",
   compras: "Compras",
@@ -317,6 +319,7 @@ export const ADMIN_ABA_DESCRICAO: Record<string, string> = {
   hero: "Banner e destaques da vitrine.",
   avaliacoes: "Notas de produto, prazo e atendimento.",
   insumos: "Salgados prontos: lotes, validade e saldos.",
+  "estoque-salgados": "Salgados congelados: lotes, validade, reservas e saldos.",
   "insumos-demo": "Matéria-prima: estoque, lotes FEFO, perdas e inventário.",
   fornecedores: "Cadastro de fornecedores e prazos de entrega.",
   compras: "Pedidos de compra e recebimentos com custo médio.",

@@ -94,6 +94,7 @@ import { abaAdministrativa, ehAbaAdministrativa } from "@/lib/paineis-staff";
 import { LojaPanel } from "@/components/admin/loja-panel";
 import { EntregasConfigPanel } from "@/components/admin/entregas-config-panel";
 import { InsumosAdmin } from "@/components/admin/estoque/insumos-admin";
+import { SalgadosAdmin } from "@/components/admin/estoque/salgados-admin";
 import { FichasAdmin } from "@/components/admin/estoque/fichas-admin";
 import { FornecedoresAdmin } from "@/components/admin/estoque/fornecedores-admin";
 import { ComprasAdmin } from "@/components/admin/estoque/compras-admin";
@@ -1117,6 +1118,13 @@ function Admin() {
 
         <TabsContent value="comercial" className="mt-4">
           <ComercialAdmin pedidos={pedidos ?? []} clientes={clientesStats ?? []} />
+        </TabsContent>
+
+        <TabsContent value="estoque-salgados" className="mt-4">
+          <SalgadosAdmin onProdutos={(nome) => {
+            setProdutoFoco(nome ?? "");
+            navegarAba("produtos");
+          }} />
         </TabsContent>
 
         <TabsContent value="insumos" className="mt-4">
