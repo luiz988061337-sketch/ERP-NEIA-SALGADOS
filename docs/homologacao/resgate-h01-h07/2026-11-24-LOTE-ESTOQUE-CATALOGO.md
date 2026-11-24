@@ -74,12 +74,17 @@ local idêntico ao DEPOIS (mesmo modo demo e mesma resolução), para que a dife
 - Correção de código: `7bbc0b5` — `fix: alinha Cadastro de Produtos e Estoque de Salgados ao aprovado`.
 - Evidências e relatório: `67793d7` — `docs: registra evidencias do lote Estoque e Catálogo`.
 - Preview manual da branch `resgate-visual-h01-h07-codex` (deploy Git desativado no `vercel.json`):
-  deployment `dpl_AXvBP7yTaTRNyibZ6H6Pv3Pygcbv`, estado `READY`, target `preview`.
-- URL: <https://erp-neia-salgados-oyt0740jn-luiz988061337-3147s-projects.vercel.app>.
-- Confirmação: `/admin` respondeu HTTP 200 e o bundle `admin-CoiSoxo1.js` do deployment contém
-  `Cadastro de Produtos`, `PRODUTO / IDENTIFICADOR`, `MODALIDADE COMERCIAL`, `Total reservado`,
-  `Físico (un.)`, `Reservas (total único do sabor)` e `Apenas abaixo do mínimo`.
-- Production, aliases e banco real não foram alterados; nenhuma variável de ambiente foi impressa.
+  deployment `dpl_DgiskzVmdc5Q2gxXpwPCnycet942`, estado `READY`, target `preview`,
+  gerado com `VITE_DEMO_PREVIEW=0` e `NEIA_AMBIENTE=homologacao` em build e runtime.
+- URL solicitada, agora apontando para esse deployment:
+  <https://erp-neia-salgados-git-resga-dcaca5-luiz988061337-3147s-projects.vercel.app>.
+- URL própria do deployment: <https://erp-neia-salgados-k904piyio-luiz988061337-3147s-projects.vercel.app>.
+- Confirmação via `vercel curl` no alias: `/admin` não contém `MODO DEMONSTRAÇÃO`, `dados fictícios`
+  nem `nenhuma operação real`; o bundle `admin-CpRmHf-G.js` contém `Cadastro de Produtos`,
+  `PRODUTO / IDENTIFICADOR`, `MODALIDADE COMERCIAL`, `Total reservado`, `Físico (un.)`,
+  `Reservas (total único do sabor)` e `Apenas abaixo do mínimo`.
+- Somente o alias de Preview informado foi reposicionado. Production, banco real, migrations e RLS
+  não foram alterados; nenhuma variável de ambiente foi impressa.
 
 ## Situação
 
