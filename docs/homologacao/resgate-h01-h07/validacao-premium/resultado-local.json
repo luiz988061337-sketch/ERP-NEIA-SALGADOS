@@ -1,0 +1,154 @@
+[
+  {
+    "modo": "desktop",
+    "caso": "/admin#pedidos",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#central-atendente",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#produtos",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#insumos",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#precificacao",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/financeiro",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/financeiro#caixa",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/financeiro#relatorios",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/pdv",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/producao",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/central-entregas",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/clientes",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#dashboard",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#pedidos",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "voltar/avançar, repetição e recarga de #pedidos",
+    "status": "ok",
+    "problemas": []
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#pedidos",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#central-atendente",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#produtos",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#insumos",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#precificacao",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/financeiro",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/financeiro#caixa",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/financeiro#relatorios",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/pdv",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/producao",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/central-entregas",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/clientes",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#dashboard",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#pedidos",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "voltar/avançar, repetição e recarga de #pedidos",
+    "status": "ok",
+    "problemas": []
+  }
+]

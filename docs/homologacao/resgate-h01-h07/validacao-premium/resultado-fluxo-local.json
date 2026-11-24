@@ -1,0 +1,94 @@
+[
+  {
+    "modo": "desktop",
+    "caso": "/admin#compras",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#fornecedores",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/campanhas",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/campanhas#campanhas",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/campanhas#resultados",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#produtos",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#embalagens",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "/admin#insumos",
+    "status": "ok"
+  },
+  {
+    "modo": "desktop",
+    "caso": "tabelas, ações de consulta, filtros por módulo e histórico do navegador",
+    "status": "ok",
+    "documentos": 1
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#compras",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#fornecedores",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/campanhas",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/campanhas#campanhas",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/campanhas#resultados",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#produtos",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#embalagens",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "/admin#insumos",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "tabelas, ações de consulta, filtros por módulo e histórico do navegador",
+    "status": "ok",
+    "documentos": 1
+  }
+]
