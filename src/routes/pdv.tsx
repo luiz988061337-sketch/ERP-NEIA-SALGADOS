@@ -1,3 +1,4 @@
+import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -98,7 +99,7 @@ export function PDV({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading } = useSession();
-  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso, refetch: refetchAcesso, isFetching: verificandoAcesso } = useRoles(user?.id);
   const permitido = preview ? true : roles?.includes("admin") || roles?.includes("atendente");
   const { data: produtosHook, isPending: carregandoProdutos, isError: erroProdutos } = useProdutos(!preview && !!permitido);
   const { data: categoriasHook, isPending: carregandoCategorias, isError: erroCategorias } = useCategorias(!preview && !!permitido);
@@ -483,8 +484,7 @@ export function PDV({
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
   }
 
-  if (!preview && erroAcesso)
-    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso ao PDV.</p>;
+  if (!preview && erroAcesso) return <ErroAcessoPainel nome="PDV" tentando={verificandoAcesso} onTentar={() => void refetchAcesso()} />;
   if (!preview && (loading || !user || !roles))
     return <p role="status" className="p-6 text-muted-foreground">Verificando acesso ao PDV…</p>;
   if (!preview && !permitido) {

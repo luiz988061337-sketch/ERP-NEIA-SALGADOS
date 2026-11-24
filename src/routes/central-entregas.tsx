@@ -1,3 +1,4 @@
+import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -82,7 +83,7 @@ const HIST_EVENTO_META: Record<string, { titulo: string; Icon: any }> = {
 function CentralEntregas() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso, refetch: refetchAcesso, isFetching: verificandoAcesso } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const [filtro, setFiltro] = useState<
     "todos" | "hoje" | "em_rota" | "aguardando" | "entregues" | "retirada"
@@ -861,8 +862,7 @@ function CentralEntregas() {
     return pts;
   }, [pedidosFiltrados, motoboys, pedidos]);
 
-  if (erroAcesso)
-    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso à Central de Entregas.</p>;
+  if (erroAcesso) return <ErroAcessoPainel nome="Central de Entregas" tentando={verificandoAcesso} onTentar={() => void refetchAcesso()} />;
   if (loading || !user || !roles)
     return <p role="status" className="p-6 text-muted-foreground">Verificando acesso à Central de Entregas…</p>;
   if (!autorizado) {

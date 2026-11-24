@@ -214,7 +214,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
 const DESTINOS_OPERACIONAIS: Record<string, Pick<AdminNavItem, "href" | "hash">> = {
   produtos: { href: "/admin", hash: "produtos" },
   "insumos-demo": { href: "/admin", hash: "insumos" },
-  "clientes-crm": { href: "/clientes" },
   "campanhas-comercial": { href: "/campanhas" },
   comercial: { href: "/admin", hash: "comercial" },
 };
@@ -225,7 +224,8 @@ export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): Adm
     ...grupo,
     items: grupo.items.flatMap<AdminNavItem>((item) => {
       const destino = DESTINOS_OPERACIONAIS[item.value];
-      if (item.value === "clientes" || item.value === "insumos") return [];
+      if (item.value === "clientes-crm" || item.value === "insumos") return [];
+      if (item.value === "clientes") return [{ ...item, value: "clientes-crm" }];
       if (item.value === "pedidos" && pedidosAtendente) return [];
       if (item.value === "central-atendente" && pedidosAtendente) {
         const { hash: _hash, ...itemAtendente } = item;

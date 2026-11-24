@@ -1,3 +1,4 @@
+import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -230,7 +231,7 @@ export function Producao({
 } = {}) {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso, refetch: refetchAcesso, isFetching: verificandoAcesso } = useRoles(user?.id);
   const queryClient = useQueryClient();
   // B3: versão local força a rerenderização do card após cada remessa,
   // conferência ou despacho no adaptador simulado. Nenhum dado sai da memória.
@@ -1437,7 +1438,9 @@ export function Producao({
     Math.floor(agora.getTime() / 30000),
   ]);
 
-  if (roles && !autorizado) {
+  if (!preview && erroAcesso) return <ErroAcessoPainel nome="Produção" tentando={verificandoAcesso} onTentar={() => void refetchAcesso()} />;
+  if (!preview && (loading || !user || !roles)) return <p role="status" className="p-6 text-muted-foreground">Verificando acesso à Produção…</p>;
+  if (!preview && !autorizado) {
     return (
       <p className="p-10 text-center text-muted-foreground">
         Você não tem acesso ao painel de Preparo.

@@ -1,3 +1,4 @@
+import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -68,7 +69,7 @@ type Linha = {
 function Atendente() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso, refetch: refetchAcesso, isFetching: verificandoAcesso } = useRoles(user?.id);
   const permitido = roles?.includes("admin") || roles?.includes("atendente");
   const { data: produtos } = useProdutos();
   const { data: categorias } = useCategorias();
@@ -588,7 +589,8 @@ function Atendente() {
     }
   }
 
-  if (loading) return <p className="p-10 text-center text-muted-foreground">Carregando…</p>;
+  if (erroAcesso) return <ErroAcessoPainel nome="Central da Atendente" tentando={verificandoAcesso} onTentar={() => void refetchAcesso()} />;
+  if (loading || !user || !roles) return <p role="status" className="p-6 text-muted-foreground">Verificando acesso à Central da Atendente…</p>;
   if (roles && !permitido)
     return <p className="p-10 text-center">Acesso restrito a atendentes e administradores.</p>;
 

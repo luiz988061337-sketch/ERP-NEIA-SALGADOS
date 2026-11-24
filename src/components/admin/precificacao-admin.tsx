@@ -12,6 +12,7 @@ import {
   Target,
   Wallet,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
@@ -195,7 +196,7 @@ export function PrecificacaoAdmin() {
   /** Simulação local do volume: nunca grava no Financeiro nem nos parâmetros. */
   const [volumeSim, setVolumeSim] = useState("");
 
-  const { data: config } = useQuery({
+  const configQuery = useQuery({
     queryKey: ["precificacao-config"],
     queryFn: async () => {
       const { data, error } = await supabase.from("precificacao_config").select("*").eq("id", true).maybeSingle();
@@ -204,7 +205,7 @@ export function PrecificacaoAdmin() {
     },
   });
 
-  const { data: produtos } = useQuery({
+  const produtosQuery = useQuery({
     queryKey: ["precificacao-produtos"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -216,7 +217,7 @@ export function PrecificacaoAdmin() {
     },
   });
 
-  const { data: fichas } = useQuery({
+  const fichasQuery = useQuery({
     queryKey: ["precificacao-fichas"],
     queryFn: async () => {
       const { data, error } = await supabase.from("fichas_tecnicas").select("*, ficha_itens(*, insumos(custo_medio, unidade_base))");
@@ -224,6 +225,10 @@ export function PrecificacaoAdmin() {
       return (data ?? []) as any[];
     },
   });
+
+  const { data: config } = configQuery;
+  const { data: produtos } = produtosQuery;
+  const { data: fichas } = fichasQuery;
 
   const taxaCanal = useMemo(() => {
     if (!config) return 0;
@@ -358,7 +363,29 @@ export function PrecificacaoAdmin() {
     refresh();
   }
 
-  if (!config) return <p className="text-[15px] text-muted-foreground">Carregando… (rode a migration 0076)</p>;
+  const consultas = [configQuery, produtosQuery, fichasQuery];
+  const erroDados = consultas.some((consulta) => consulta.isError);
+  const carregandoDados = consultas.some((consulta) => consulta.isPending);
+  if (erroDados || carregandoDados || !config) {
+    return (
+      <section className="space-y-3 p-4">
+        <h1 className="font-display text-xl font-bold">Precificação Inteligente</h1>
+        {carregandoDados && !erroDados ? (
+          <p role="status" className="text-muted-foreground">Carregando dados de precificação…</p>
+        ) : (
+          <>
+            <p role="alert" className="text-muted-foreground">
+              {erroDados ? "Não foi possível carregar os dados de precificação." : "Configuração de precificação não cadastrada neste ambiente."}
+            </p>
+            <Button disabled={consultas.some((consulta) => consulta.isFetching)}
+              onClick={() => void Promise.all(consultas.map((consulta) => consulta.refetch()))}>
+              Tentar novamente
+            </Button>
+          </>
+        )}
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-5 pb-28 [&_h1]:!text-[26px] [&_h1+p]:!text-[14px] [&_h1+p]:whitespace-normal">

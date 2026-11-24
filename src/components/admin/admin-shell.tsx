@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronDown, Crown, LogOut, RefreshCw, UserRound } from "lucide-react";
 
@@ -189,13 +189,16 @@ function MenuLateral({
   const { isMobile, setOpenMobile } = useSidebar();
   const { pathname, hash } = useLocation();
   const grupos = menuAdmin(demonstrativo, pedidosAtendente);
-  const candidatos = grupos.flatMap((grupo) => grupo.items).filter((item) =>
+  const itens = grupos.flatMap((grupo) => grupo.items);
+  const candidatos = itens.filter((item) =>
     item.href === pathname || (item.href && pathname.startsWith(`${item.href}/`)),
   );
   const linkAtivo =
     candidatos.find((item) => item.hash && item.hash === hash) ??
-    candidatos.find((item) => !item.hash || (pathname === "/admin" && item.value === aba));
-  const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>(gruposIniciais);
+    candidatos.find((item) => !item.hash || (pathname === "/admin" && item.value === aba)) ??
+    itens.find((item) => item.value === aba);
+  const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
+  useEffect(() => { setGruposAbertos(gruposIniciais()); }, []);
 
   function alternarGrupo(label: string) {
     setGruposAbertos((prev) => {

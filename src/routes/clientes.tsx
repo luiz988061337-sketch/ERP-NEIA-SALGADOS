@@ -1,3 +1,4 @@
+import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -52,7 +53,7 @@ type FiltroAniv = "0" | "7" | "15" | "30";
 function Clientes() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso, refetch: refetchAcesso, isFetching: verificandoAcesso } = useRoles(user?.id);
   const isAdmin = roles?.includes("admin");
   const { data: clientes, isPending: carregandoClientes, isError: erroClientes, refetch } = useClientesStats(!!isAdmin);
   const { data: settings } = useCrmSettings();
@@ -121,8 +122,7 @@ function Clientes() {
     setPagina(1);
   }, [busca, fSeg, fDias, fRecompra, fAniv, fEmp]);
 
-  if (erroAcesso)
-    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso ao CRM.</p>;
+  if (erroAcesso) return <ErroAcessoPainel nome="CRM" tentando={verificandoAcesso} onTentar={() => void refetchAcesso()} />;
   if (loading || !user || !roles)
     return <p role="status" className="p-6 text-muted-foreground">Verificando acesso ao CRM…</p>;
   if (!isAdmin)
