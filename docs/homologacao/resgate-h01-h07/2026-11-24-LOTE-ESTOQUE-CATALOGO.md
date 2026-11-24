@@ -71,10 +71,18 @@ local idêntico ao DEPOIS (mesmo modo demo e mesma resolução), para que a dife
 
 ## Commits e publicação
 
-- Correção de código: (preenchido após o commit)
-- Evidências e relatório: (preenchido após o commit)
-- Preview da branch: (preenchido após a publicação)
+- Correção de código: `7bbc0b5` — `fix: alinha Cadastro de Produtos e Estoque de Salgados ao aprovado`.
+- Evidências e relatório: `67793d7` — `docs: registra evidencias do lote Estoque e Catálogo`.
+- Preview manual da branch `resgate-visual-h01-h07-codex` (deploy Git desativado no `vercel.json`):
+  deployment `dpl_AXvBP7yTaTRNyibZ6H6Pv3Pygcbv`, estado `READY`, target `preview`.
+- URL: <https://erp-neia-salgados-oyt0740jn-luiz988061337-3147s-projects.vercel.app>.
+- Confirmação: `/admin` respondeu HTTP 200 e o bundle `admin-CoiSoxo1.js` do deployment contém
+  `Cadastro de Produtos`, `PRODUTO / IDENTIFICADOR`, `MODALIDADE COMERCIAL`, `Total reservado`,
+  `Físico (un.)`, `Reservas (total único do sabor)` e `Apenas abaixo do mínimo`.
+- Production, aliases e banco real não foram alterados; nenhuma variável de ambiente foi impressa.
 
 ## Situação
 
 **Aguardando conferência do proprietário.** Este documento registra a execução do lote, não uma aprovação final.
+A validação autenticada no Preview (com sessão de homologação) também segue pendente; as capturas e os fluxos
+acima foram executados em build local de demonstração, sem gravar dados.
