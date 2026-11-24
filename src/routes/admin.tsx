@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -138,6 +138,7 @@ export const Route = createFileRoute("/admin")({
 
 function Admin() {
   const navigate = useNavigate();
+  const { hash: hashDaRota } = useLocation();
   const modoDemo = ehModoDemo();
   const { user, loading } = useSession();
   const { data: roles, isError: erroConsultaRoles } = useRoles(user?.id);
@@ -174,18 +175,14 @@ function Admin() {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/admin" }, replace: true });
   }, [loading, user, navigate]);
 
-  // Deep-link do menu unificado: /admin#pedidos, /admin#relatorio etc.
-  // A aba é aplicada na montagem e também acompanha voltar/avançar.
+  // O TanStack Router navega pelo History API; pushState não dispara
+  // necessariamente o evento nativo "hashchange". O hash do router é
+  // a fonte reativa para alternar painéis imediatamente, sem F5.
   useEffect(() => {
-    const aplicarHash = () => {
-      const valor = window.location.hash.replace(/^#/, "");
-      if (!valor) setAba("dashboard");
-      else if (valor === "clientes" || Object.hasOwn(ADMIN_ABA_TITULO, valor)) setAba(valor);
-    };
-    aplicarHash();
-    window.addEventListener("hashchange", aplicarHash);
-    return () => window.removeEventListener("hashchange", aplicarHash);
-  }, []);
+    const valor = (hashDaRota || window.location.hash).replace(/^#/, "");
+    if (!valor) setAba("dashboard");
+    else if (valor === "clientes" || Object.hasOwn(ADMIN_ABA_TITULO, valor)) setAba(valor);
+  }, [hashDaRota]);
 
   const isAdmin = roles?.includes("admin");
 
@@ -660,6 +657,11 @@ function Admin() {
     }
   }
 
+  function navegarAbaInterna(destino: string) {
+    setAba(destino);
+    void navigate({ to: "/admin", hash: destino, hashScrollIntoView: false });
+  }
+
   function navegarDashboard(destino: string) {
     switch (destino) {
       case "financeiro":
@@ -673,11 +675,10 @@ function Admin() {
       case "clientes":
       case "insumos":
       case "loja":
-        void navigate({ to: "/admin", hash: destino });
-        setAba(destino);
+        navegarAbaInterna(destino);
         break;
       default:
-        setAba(destino);
+        navegarAbaInterna(destino);
     }
   }
 
@@ -857,7 +858,7 @@ function Admin() {
     <AdminShell
       aba={aba}
       menuDemonstrativo={modoDemo}
-      onAba={setAba}
+      onAba={navegarAbaInterna}
       onRefresh={refreshAll}
       usuario={user?.email ?? null}
       onSair={async () => {
@@ -865,13 +866,13 @@ function Admin() {
         navigate({ to: "/auth", replace: true });
       }}
     >
-      <Tabs value={aba} onValueChange={setAba}>
+      <Tabs value={aba} onValueChange={navegarAbaInterna}>
         <TabsContent value="dashboard" className="mt-0">
           {modoDemo ? (
             <PainelDashboardL2
               periodo={periodo}
               setPeriodo={setPeriodo}
-              setAba={setAba}
+              setAba={navegarAbaInterna}
               notLidas={notLidas}
               marcarLida={marcarLida}
               busca={buscaGlobal}
