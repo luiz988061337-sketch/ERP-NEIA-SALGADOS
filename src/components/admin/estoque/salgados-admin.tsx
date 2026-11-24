@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, ClipboardList, Layers, Package, Search, Snowflake } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, CheckCircle2, ClipboardList, Eye, Layers, Package, Pencil, Search, Snowflake } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ActionButton, DarkTable, DarkTableRow, ERP_COLORS, MetricCard, ModuleHeader, SectionCard, StatusBadge } from "@/components/admin/erp-ui";
 import { Button } from "@/components/ui/button";
@@ -26,11 +26,9 @@ async function consultarSalgados(signal: AbortSignal) {
     .select(`
       id, nome, imagem_url, disponivel, estoque, estoque_minimo, categorias!inner(slug, nome),
       lotes(id, codigo, validade, restante, status),
-      reservas_estoque(pedido_id, quantidade, reserva_consumos(quantidade))
+      reservas_estoque(pedido_id, quantidade, status, reserva_consumos(quantidade))
     `)
     .in("categorias.slug", CATEGORIAS_SALGADOS)
-    .gt("lotes.restante", 0)
-    .eq("reservas_estoque.status", "ativa")
     .order("nome")
     .order("validade", { referencedTable: "lotes", ascending: true, nullsFirst: false })
     .abortSignal(signal);
@@ -38,18 +36,20 @@ async function consultarSalgados(signal: AbortSignal) {
   if (error) throw error;
 
   return data.map((produto) => {
-    const reservas = produto.reservas_estoque.map((reserva) => ({
-      pedidoId: reserva.pedido_id,
-      pendente: Math.max(0, reserva.quantidade - reserva.reserva_consumos.reduce(
-        (consumido, retirada) => consumido + retirada.quantidade, 0,
-      )),
-    }));
-    const lotesFefo = produto.lotes.filter((lote) => lote.status === "ativo");
+    const reservas = produto.reservas_estoque
+      .filter((reserva) => reserva.status === "ativa")
+      .map((reserva) => ({
+        pedidoId: reserva.pedido_id,
+        pendente: Math.max(0, reserva.quantidade - reserva.reserva_consumos.reduce(
+          (consumido, retirada) => consumido + retirada.quantidade, 0,
+        )),
+      }));
+    const lotesFefo = produto.lotes.filter((lote) => lote.status === "ativo" && lote.restante > 0);
     return {
       ...produto,
       estoque: produto.estoque ?? 0,
       minimo: produto.estoque_minimo ?? 0,
-      saldoLotes: produto.lotes.reduce((total, lote) => total + lote.restante, 0),
+      saldoLotes: lotesFefo.reduce((total, lote) => total + lote.restante, 0),
       reservado: reservas.reduce((total, reserva) => total + reserva.pendente, 0),
       pedidos: new Set(reservas.filter((reserva) => reserva.pendente > 0).map((reserva) => reserva.pedidoId)).size,
       lotesFefo,
@@ -103,10 +103,10 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
       </div>
 
       <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-5 sm:gap-3 [&>div]:min-h-24 [&>div:last-child]:col-span-2 xl:[&>div:last-child]:col-span-1">
-        <MetricCard icone={Package} label="Saldo em lotes" valor={<span className="text-[#F2CE6B]">{visivel?.some((p) => p.lotes.length > 0) ? `${total((p) => p.saldoLotes)} un.` : "—"}</span>} detalhe="Saldo registrado nos lotes" />
-        <MetricCard icone={Layers} label="Total reservado" valor={<span className="text-[#79ACFF]">{visivel ? `${total((p) => p.reservado)} un.` : "—"}</span>} detalhe="Aguardando retirada" cor={ERP_COLORS.blue} />
-        <MetricCard icone={CheckCircle2} label="Total disponível" valor={<span className="text-[#79DA8D]">{visivel ? `${total((p) => p.estoque)} un.` : "—"}</span>} detalhe="Saldo do cadastro de produtos" cor={ERP_COLORS.green} />
-        <MetricCard icone={AlertTriangle} label="Abaixo do mínimo" valor={<span className="text-[#F98787]">{visivel ? total((p) => Number(p.estoque < p.minimo)) : "—"}</span>} detalhe="Sabores" cor={ERP_COLORS.red} />
+        <MetricCard icone={Package} label="Total físico" valor={<span className="text-[#F2CE6B]">{visivel?.some((p) => p.lotes.length > 0) ? `${total((p) => p.saldoLotes)} un.` : "—"}</span>} detalhe="Salgados no freezer" />
+        <MetricCard icone={Layers} label="Total reservado" valor={<span className="text-[#79ACFF]">{visivel ? `${total((p) => p.reservado)} un.` : "—"}</span>} detalhe="Pedidos confirmados" cor={ERP_COLORS.blue} />
+        <MetricCard icone={CheckCircle2} label="Total disponível" valor={<span className="text-[#79DA8D]">{visivel ? `${total((p) => p.estoque)} un.` : "—"}</span>} detalhe="Físico − reservado" cor={ERP_COLORS.green} />
+        <MetricCard icone={AlertTriangle} label="Abaixo do mínimo" valor={<span className="text-[#F98787]">{visivel ? total((p) => Number(p.estoque < p.minimo)) : "—"}</span>} detalhe="Sugestão de produção" cor={ERP_COLORS.red} />
         <MetricCard icone={Package} label="Lotes ativos" valor={visivel ? `${total((p) => p.lotesFefo.length)} lotes` : "—"} detalhe="Primeiro que vence, primeiro que sai" />
       </div>
 
@@ -136,12 +136,16 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
                 <option value="baixo">Abaixo do mínimo</option>
               </select>
             </label>
+            <label className="flex items-center gap-2 self-end pb-2 text-sm">
+              <input type="checkbox" checked={status === "baixo"} onChange={(e) => setStatus(e.target.checked ? "baixo" : "todos")} />
+              Apenas abaixo do mínimo
+            </label>
           </div>
           <SectionCard bodyClassName="p-0">
             <p className="px-3 py-2 text-xs text-muted-foreground sm:hidden">Deslize a tabela para ver todos os saldos e ações.</p>
             <DarkTable
               className={estilosTabela}
-              colunas={["Produto / sabor", "Saldo em lotes", "Reservado", "Disponível", "Est. mínimo", "Pedidos com reservas", "Lotes ativos", "Próxima validade", "Ações"]}
+              colunas={["Produto / sabor", "Físico (un.)", "Reservado", "Disponível", "Est. mínimo", "Reservas (total único do sabor)", "Lotes", "Próxima validade", "Ações"]}
               vazio={lista.length === 0 ? "Nenhum sabor neste filtro." : undefined}
             >
               {lista.map((p) => (
@@ -155,30 +159,60 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
                       </span>
                     </button>
                   </td>
-                  <td>{p.lotes.length ? numero.format(p.saldoLotes) : "—"}</td>
+                  <td><b>{p.lotes.length ? numero.format(p.saldoLotes) : "—"}</b></td>
                   <td className="text-[#79ACFF]">{numero.format(p.reservado)}</td>
                   <td className="font-semibold text-[#79DA8D]">{numero.format(p.estoque)}</td>
                   <td>
                     {numero.format(p.minimo)}
                     {p.estoque < p.minimo && <span className="mt-1 block"><StatusBadge tom="atencao">Abaixo do mínimo</StatusBadge></span>}
                   </td>
-                  <td>{numero.format(p.pedidos)}</td>
+                  <td>
+                    <button type="button" className="text-left underline decoration-dotted underline-offset-2" onClick={() => { setFoco(p.id); document.getElementById("est-detalhe-salgado")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}>
+                      {numero.format(p.pedidos)} pedido(s) · {numero.format(p.reservado)} un. reservadas
+                    </button>
+                  </td>
                   <td>{numero.format(p.lotesFefo.length)}</td>
                   <td>{validade(p.lotesFefo[0]?.validade)}</td>
-                  <td><Button variant="outline" size="sm" onClick={() => onProdutos(p.nome)}>Estoque em Produtos</Button></td>
+                  <td>
+                    <div className="flex items-center gap-1">
+                      <Button type="button" size="icon" variant="ghost" aria-label={`Ver lotes de ${p.nome}`} onClick={() => { setFoco(p.id); document.getElementById("est-detalhe-salgado")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}>
+                        <Eye size={16} aria-hidden />
+                      </Button>
+                      <Button type="button" size="icon" variant="ghost" aria-label={`Ajustar ${p.nome}`} onClick={() => onProdutos(p.nome)}>
+                        <Pencil size={16} aria-hidden />
+                      </Button>
+                    </div>
+                  </td>
                 </DarkTableRow>
               ))}
             </DarkTable>
           </SectionCard>
           {sabor && (
-            <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,1fr)]">
-              <SectionCard titulo={sabor.nome}>
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-                  <dt className="text-muted-foreground">Categoria</dt><dd>{sabor.categorias.nome}</dd>
-                  <dt className="text-muted-foreground">Reservado</dt><dd>{numero.format(sabor.reservado)} un.</dd>
-                  <dt className="text-muted-foreground">Disponível</dt><dd>{numero.format(sabor.estoque)} un.</dd>
-                  <dt className="text-muted-foreground">Estoque mínimo</dt><dd>{numero.format(sabor.minimo)} un.</dd>
-                </dl>
+            <div id="est-detalhe-salgado" className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(0,1fr)]">
+              <SectionCard
+                titulo={<span className="inline-flex items-center gap-2"><Snowflake size={17} aria-hidden /> {sabor.nome}</span>}
+                acoes={<StatusBadge tom="neutro">{sabor.categorias.nome}</StatusBadge>}
+              >
+                <div className="mb-3 flex items-center gap-3">
+                  {sabor.imagem_url && <img className="size-12 rounded-md object-cover" src={sabor.imagem_url} alt="" loading="lazy" />}
+                  <div className="min-w-0">
+                    <p className="font-semibold">Produto do cadastro único</p>
+                    <small className="block truncate text-muted-foreground">{sabor.id}</small>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {[
+                    ["Físico", sabor.saldoLotes],
+                    ["Reservado", sabor.reservado],
+                    ["Disponível", sabor.estoque],
+                    ["Mínimo", sabor.minimo],
+                  ].map(([titulo, valor]) => (
+                    <div key={titulo} className="rounded-md border border-border p-2">
+                      <small className="block text-muted-foreground">{titulo}</small>
+                      <b>{numero.format(Number(valor))} un.</b>
+                    </div>
+                  ))}
+                </div>
               </SectionCard>
               <SectionCard titulo={`Lotes de ${sabor.nome} em ordem FEFO`} bodyClassName="p-0">
               <DarkTable

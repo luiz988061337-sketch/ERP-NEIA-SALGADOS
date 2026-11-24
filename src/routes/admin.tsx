@@ -18,6 +18,7 @@ import {
   Plus,
   Printer,
   Settings,
+  Snowflake,
   Star,
   Target,
   Ticket,
@@ -103,7 +104,7 @@ import { ComprasPremium } from "@/components/admin/compras-premium";
 import { PrecificacaoAdmin } from "@/components/admin/precificacao-admin";
 import { CuponsPremium } from "@/components/admin/cupons-premium";
 import { CalculadoraPremium } from "@/components/admin/calculadora-premium";
-import { MetricCard, PremiumDemoBadge, PremiumPageHeader, PremiumSection } from "@/components/admin/erp-ui";
+import { ActionButton, MetricCard, PremiumDemoBadge, PremiumPageHeader, PremiumSection } from "@/components/admin/erp-ui";
 import { DonoPremium } from "@/components/admin/dono-premium";
 import { MetasPremium } from "@/components/admin/metas-premium";
 import { ContadorPremium } from "@/components/admin/contador-premium";
@@ -944,6 +945,7 @@ function Admin() {
             erro={produtosComErro}
             foco={produtoFoco}
             onLimparFoco={() => setProdutoFoco("")}
+            onEstoque={() => navegarAba("estoque-salgados")}
           />
           <CategoriasAdmin categorias={categorias ?? []} onChange={refreshAll} />
         </TabsContent>
@@ -2052,6 +2054,7 @@ function ProdutosAdmin({
   erro,
   foco,
   onLimparFoco,
+  onEstoque,
 }: {
   produtos: any[];
   categorias: any[];
@@ -2060,6 +2063,7 @@ function ProdutosAdmin({
   erro: boolean;
   foco?: string;
   onLimparFoco?: () => void;
+  onEstoque: () => void;
 }) {
   const [editando, setEditando] = useState<any | null>(null);
   const [novo, setNovo] = useState(false);
@@ -2217,6 +2221,14 @@ function ProdutosAdmin({
 
   return (
     <div className="min-w-0 space-y-5">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+        <span aria-current="page" className="inline-flex items-center gap-2 rounded-md bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 py-2 text-sm font-semibold text-[#14120C]">
+          <ClipboardList size={17} aria-hidden /> Cadastro de Produtos
+        </span>
+        <ActionButton variant="ghost" onClick={onEstoque}>
+          <Snowflake size={17} aria-hidden /> Estoque de Salgados
+        </ActionButton>
+      </div>
       <PremiumPageHeader icone={Package} titulo="Cadastro de Produtos" subtitulo="Catálogo, sabores, preços e situação de venda."
         acoes={<Button type="button" className="erp-btn-gold" onClick={() => { setNovo(true); setEditando(null); }}><Plus size={16} aria-hidden />Cadastrar produto</Button>} />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -2479,22 +2491,32 @@ function ProdutosAdmin({
         : <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[740px] border-collapse text-sm">
             <thead><tr className="border-b border-[#D4A94A] bg-[#1B1811] text-left text-xs uppercase tracking-wide text-[#C9C2B8]">
-              {["Produto", "Categoria", "Venda", "Preço", "Estoque", "Situação", "Ações"].map((h) => <th key={h} scope="col" className="px-3 py-2.5">{h}</th>)}
+              {["Produto / identificador", "Categoria", "Preparo", "Modalidade comercial", "Preço", "Situação", "Ações"].map((h) => <th key={h} scope="col" className="px-3 py-2.5">{h}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-[#2A2721]">{visiveis.map((p) => {
               const baixo = Number(p.estoque_minimo ?? 0) > 0 && Number(p.estoque ?? 0) < Number(p.estoque_minimo);
               return <Fragment key={p.id}>
                 <tr className="hover:bg-[#211F18]">
-                  <td className="px-3 py-3"><strong className="text-[#F2CE6B]">{p.nome}</strong>{!p.ncm && <small className="block text-muted-foreground">Sem NCM</small>}</td>
+                  <td className="px-3 py-3">
+                    <strong className="text-[#F2CE6B]">{p.nome}</strong>
+                    <small className="block text-muted-foreground">{baixo ? `Estoque ${p.estoque} · abaixo do mínimo` : `Estoque ${p.estoque}`}</small>
+                    {!p.ncm && <small className="block text-muted-foreground">Sem NCM</small>}
+                  </td>
                   <td className="px-3 py-3">{p.categorias?.nome ?? "—"}</td>
-                  <td className="px-3 py-3">{p.tipo_venda === "unidade" ? "Unidade" : "Combo 50"}</td>
-                  <td className="px-3 py-3">{brl(p.preco_promocional ?? p.preco)}{p.preco_promocional && <small className="block text-muted-foreground">Promoção</small>}</td>
-                  <td className="px-3 py-3">{p.estoque}{baixo && <small className="block text-amber-300">Abaixo do mínimo</small>}</td>
-                  <td className="px-3 py-3"><Switch aria-label={p.nome + " disponível"} checked={p.disponivel} onCheckedChange={async (v) => {
-                    const { error } = await supabase.from("produtos").update({ disponivel: v }).eq("id", p.id);
-                    if (error) toast.error("Não foi possível atualizar a disponibilidade.");
-                    else onChange();
-                  }} /></td>
+                  <td className="px-3 py-3">{/^frit/i.test(p.categorias?.nome ?? "") ? "Frito" : /^assad/i.test(p.categorias?.nome ?? "") ? "Assado" : "Outro"}</td>
+                  <td className="px-3 py-3">{p.tipo_venda === "unidade" ? "Unidade" : "Múltiplos de 50"}</td>
+                  <td className="px-3 py-3">
+                    <b>{brl(p.preco_promocional ?? p.preco)} / un. avulsa</b>
+                    {p.preco_promocional && <small className="block text-muted-foreground">Promoção</small>}
+                  </td>
+                  <td className="px-3 py-3"><div className="flex items-center gap-2">
+                    <Switch aria-label={p.nome + " disponível"} checked={p.disponivel} onCheckedChange={async (v) => {
+                      const { error } = await supabase.from("produtos").update({ disponivel: v }).eq("id", p.id);
+                      if (error) toast.error("Não foi possível atualizar a disponibilidade.");
+                      else onChange();
+                    }} />
+                    <span className="text-xs text-muted-foreground">{p.disponivel ? "Ativo" : "Inativo"}</span>
+                  </div></td>
                   <td className="px-3 py-3"><div className="flex items-center gap-2">
                     <Button type="button" size="sm" variant="outline" aria-expanded={movDe === p.id} onClick={() => setMovDe(movDe === p.id ? null : p.id)}>Estoque</Button>
                     <Button type="button" size="icon" variant="outline" aria-label={"Editar " + p.nome} onClick={() => { setEditando(p); setNovo(false); }}><Pencil size={16} aria-hidden /></Button>
