@@ -382,10 +382,10 @@ function Checkout() {
   }, [loading, user]);
 
   useEffect(() => {
-    if (!loading && user && items.length === 0 && !pedidoConfirmadoRef.current) {
+    if (!loading && user && !carregandoCarrinho && items.length === 0 && !pedidoConfirmadoRef.current) {
       navigate({ to: "/carrinho", replace: true });
     }
-  }, [loading, user, items.length, navigate]);
+  }, [loading, user, carregandoCarrinho, items.length, navigate]);
 
   const desconto = cupom?.desconto ?? 0;
   // Nenhuma taxa é inventada antes da validação do endereço: só existe valor
