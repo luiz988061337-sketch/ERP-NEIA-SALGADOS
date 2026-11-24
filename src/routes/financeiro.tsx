@@ -115,7 +115,7 @@ function Financeiro() {
   const queryClient = useQueryClient();
   const [mes, setMes] = useState(() => competenciaSaoPaulo(new Date().toISOString()) ?? new Date().toISOString().slice(0, 7));
 
-  const { hash, href } = useLocation();
+  const { pathname, hash, href } = useLocation();
   const aba = abaFinanceiro(hash);
 
   function selecionarAba(valor: string) {
@@ -143,10 +143,10 @@ function Financeiro() {
   }
 
   useEffect(() => {
-    if (!loading && !user) {
-      void navigate({ to: "/auth", search: { redirect: href }, replace: true });
+    if (pathname === "/financeiro" && !loading && !user) {
+      void navigate({ to: "/auth", search: { redirect: href }, hash: "", replace: true });
     }
-  }, [loading, user, navigate, href]);
+  }, [loading, user, navigate, pathname, href]);
   const autorizado = roles?.includes("admin") || roles?.includes("financeiro");
   const competenciasFluxo = useMemo(() => ultimasCompetencias(mes), [mes]);
   const faixaFluxo = useMemo(() => ({

@@ -143,7 +143,7 @@ function Admin() {
   const { user, loading } = useSession();
   const { data: roles, isError: erroConsultaRoles, refetch: refetchPermissao, isFetching: verificandoPermissao } = useRoles(user?.id);
   const queryClient = useQueryClient();
-  const { hash, href } = useLocation();
+  const { pathname, hash, href } = useLocation();
   const aba = abaAdministrativa(hash);
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoje");
   const [buscaGlobal, setBuscaGlobal] = useState("");
@@ -173,8 +173,10 @@ function Admin() {
   const { data: clientesStats } = useClientesStats();
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", search: { redirect: href }, replace: true });
-  }, [loading, user, navigate, href]);
+    if (pathname === "/admin" && !loading && !user) {
+      void navigate({ to: "/auth", search: { redirect: href }, hash: "", replace: true });
+    }
+  }, [loading, user, navigate, pathname, href]);
 
   const isAdmin = roles?.includes("admin");
 

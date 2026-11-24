@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const search = useSearch({ from: "/auth" });
   const { user } = useSession();
   const { data: roles, isError: erroRoles } = useRoles(user?.id);
@@ -38,6 +39,7 @@ function AuthPage() {
   const [modo, setModo] = useState<'admin' | 'funcionario'>('admin');
 
   const destino = destinoInternoSeguro(search.redirect);
+  const painelAdmin = /^\/(?:auth\/?)?(?:[?#]|$)/.test(destino) ? "/admin" : destino;
 
   // Painel por role (não inventar roles novas):
   // admin → /admin; produção → /producao; atendente → /atendente;
@@ -52,7 +54,7 @@ function AuthPage() {
     : null;
 
   useEffect(() => {
-    if (!user) return;
+    if (pathname !== "/auth" || !user) return;
     if (erroRoles) {
       setErroLogin("Sessão encontrada, mas não foi possível consultar as permissões. Verifique a conexão e tente novamente.");
       return;
@@ -63,7 +65,7 @@ function AuthPage() {
         setErroLogin("Esta conta está autenticada, mas não possui permissão de administrador neste ambiente de testes.");
         return;
       }
-      void navigate({ to: destino === "/" ? "/admin" : destino, replace: true });
+      void navigate({ href: painelAdmin, replace: true });
       return;
     }
     if (!painelFuncionario) {
@@ -71,7 +73,7 @@ function AuthPage() {
       return;
     }
     void navigate({ to: painelFuncionario, replace: true });
-  }, [user, rolesPronto, erroRoles, modo, isAdmin, painelFuncionario, destino, navigate]);
+  }, [pathname, user, rolesPronto, erroRoles, modo, isAdmin, painelFuncionario, painelAdmin, navigate]);
 
   async function entrar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
