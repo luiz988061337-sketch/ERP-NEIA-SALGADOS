@@ -4,35 +4,58 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, ArrowRight, CircleDollarSign, ClipboardList, PackagePlus, Plus, Search, ShoppingCart, Truck } from "lucide-react";
+import { ERP_COLORS, PremiumKpi, PremiumPageHeader, PremiumSection, StatusBadge } from "@/components/admin/erp-ui";
+import { brl } from "@/lib/format";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { logAdmin } from "@/lib/operacao";
 
 const UNIDADES = ["g", "kg", "ml", "l", "un"] as const;
 
-const STATUS_COR: Record<string, string> = {
-  rascunho: "bg-gray-100 text-gray-800",
-  enviada: "bg-blue-100 text-blue-800",
-  recebida_parcial: "bg-yellow-100 text-yellow-800",
-  recebida_total: "bg-green-100 text-green-800",
-  cancelada: "bg-red-100 text-red-800",
+const STATUS_COMPRA = {
+  rascunho: { nome: "Rascunho", tom: "neutro" },
+  enviada: { nome: "Enviada", tom: "info" },
+  recebida_parcial: { nome: "Recebida parcial", tom: "atencao" },
+  recebida_total: { nome: "Recebida total", tom: "ok" },
+  cancelada: { nome: "Cancelada", tom: "perigo" },
+} as const;
+
+type StatusCompra = keyof typeof STATUS_COMPRA;
+type ItemCompra = { quantidade: number; custo_unitario: number | null };
+type ItemCompraDetalhe = ItemCompra & { id: string; unidade: string; quantidade_recebida: number; insumos: { nome: string } | null };
+type Compra = {
+  id: string;
+  fornecedores: { nome: string } | null;
+  created_at: string;
+  recebida_em: string | null;
+  status: StatusCompra;
+  observacao: string | null;
+  compra_itens: ItemCompra[];
 };
+type InsumoCompra = { id: string; nome: string; unidade_base: string; estoque_atual: number | null; estoque_minimo: number | null };
+
+function totalCompra(compra: Compra) {
+  return (compra.compra_itens ?? []).reduce((total, item) => total + Number(item.quantidade) * Number(item.custo_unitario ?? 0), 0);
+}
+
 
 /** Aba Compras: pedido de compra (rascunho→enviada→recebida) + recebimento parcial/total. */
 export function ComprasAdmin() {
   const queryClient = useQueryClient();
-  const [foco, setFoco] = useState<any | null>(null);
+  const [focoId, setFocoId] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
 
-  const { data: compras } = useQuery({
+  const { data: compras, isPending, isError, refetch } = useQuery({
     queryKey: ["estoque-compras"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compras")
-        .select("*, fornecedores(nome)")
+        .select("id, status, created_at, recebida_em, observacao, fornecedores(nome), compra_itens(quantidade, custo_unitario)")
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as Compra[];
     },
   });
 
@@ -41,29 +64,31 @@ export function ComprasAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase.from("fornecedores").select("id, nome").eq("ativo", true).order("nome");
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as { id: string; nome: string }[];
     },
   });
 
-  const { data: insumos } = useQuery({
+  const { data: insumos, isError: erroInsumos } = useQuery({
     queryKey: ["estoque-insumos-compra"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("insumos").select("id, nome, unidade_base").eq("ativo", true).order("nome");
+      const { data, error } = await supabase.from("insumos").select("id, nome, unidade_base, estoque_atual, estoque_minimo").eq("ativo", true).order("nome");
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as InsumoCompra[];
     },
   });
 
-  const { data: itens } = useQuery({
+  const foco = compras?.find((compra) => compra.id === focoId);
+
+  const { data: itens, isPending: carregandoItens, isError: erroItens } = useQuery({
     queryKey: ["estoque-compra-itens", foco?.id],
     enabled: !!foco?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("compra_itens")
         .select("*, insumos(nome, unidade_base)")
-        .eq("compra_id", foco.id);
+        .eq("compra_id", focoId);
       if (error) throw error;
-      return (data ?? []) as any[];
+      return (data ?? []) as ItemCompraDetalhe[];
     },
   });
 
@@ -77,7 +102,8 @@ export function ComprasAdmin() {
 
   async function novaCompra(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const fornecedor_id = String(f.get("fornecedor_id") ?? "") || null;
     const { data, error } = await supabase
       .from("compras")
@@ -89,8 +115,9 @@ export function ComprasAdmin() {
       return;
     }
     void logAdmin("compra_criada", (data as any).id.slice(0, 8));
-    (e.target as HTMLFormElement).reset();
+    form.reset();
     toast.success("Compra criada em rascunho.");
+    setFocoId(String(data.id));
     refresh();
   }
 
@@ -100,7 +127,8 @@ export function ComprasAdmin() {
       toast.error("Itens só entram no rascunho.");
       return;
     }
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const insumo_id = String(f.get("insumo_id") ?? "");
     const quantidade = Number(f.get("quantidade") ?? 0);
     if (!insumo_id || !(quantidade > 0)) {
@@ -118,7 +146,7 @@ export function ComprasAdmin() {
       toast.error("Falha ao adicionar item.");
       return;
     }
-    (e.target as HTMLFormElement).reset();
+    form.reset();
     refresh();
   }
 
@@ -137,7 +165,8 @@ export function ComprasAdmin() {
 
   async function receber(e: React.FormEvent<HTMLFormElement>, itemId: string) {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     const qtd = Number(f.get("qtd") ?? 0);
     const unidade = String(f.get("unidade") ?? "kg");
     const validade = String(f.get("validade") ?? "") || null;
@@ -156,48 +185,78 @@ export function ComprasAdmin() {
       return;
     }
     toast.success("Recebimento gravado (lote + custo médio + conta a pagar).");
-    (e.target as HTMLFormElement).reset();
+    form.reset();
     refresh();
   }
 
+  const lista = compras ?? [];
+  const termo = busca.trim().toLowerCase();
+  const filtradas = lista.filter((c) => (filtroStatus === "todos" || c.status === filtroStatus) &&
+    [c.id, c.fornecedores?.nome, c.observacao].some((campo) => campo?.toLowerCase().includes(termo)));
+  const abertas = lista.filter((c) => c.status !== "recebida_total" && c.status !== "cancelada");
+  const reposicao = (insumos ?? []).filter((i) => i.estoque_minimo != null && i.estoque_atual != null && i.estoque_atual < i.estoque_minimo);
+  const metricas = [
+    { rotulo: "Pedidos ativos", valor: abertas.length, detalhe: "rascunho, enviada ou parcial", icone: ClipboardList, cor: ERP_COLORS.blue },
+    { rotulo: "Recebimentos parciais", valor: lista.filter((c) => c.status === "recebida_parcial").length, detalhe: "aguardando complemento", icone: Truck, cor: ERP_COLORS.orange },
+    { rotulo: "Valor planejado", valor: brl(abertas.reduce((total, c) => total + totalCompra(c), 0)), detalhe: "valor dos pedidos ativos", icone: CircleDollarSign, cor: ERP_COLORS.goldStrong },
+    { rotulo: "Alertas de reposição", valor: insumos && !erroInsumos ? reposicao.length : "—", detalhe: "itens abaixo do mínimo", icone: AlertTriangle, cor: ERP_COLORS.red },
+  ];
+
   return (
-    <div className="space-y-4">
-      <section className="rounded-xl border border-border bg-card p-5">
-        <h2 className="font-display text-xl">Compras</h2>
-        <ul className="mt-2 divide-y divide-border">
-          {(compras ?? []).map((c: any) => (
-            <li key={c.id} className="flex items-center gap-2 py-2">
-              <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setFoco(foco?.id === c.id ? null : c)}>
-                <span className="block truncate text-sm font-semibold">
-                  #{c.id.slice(0, 8)} — {c.fornecedores?.nome ?? "sem fornecedor"}
-                </span>
-                <span className="block text-xs text-muted-foreground">
-                  {new Date(c.created_at).toLocaleDateString("pt-BR")} {c.observacao ? `• ${c.observacao}` : ""}
-                </span>
-              </button>
-              <Badge className={STATUS_COR[c.status] ?? ""}>{c.status}</Badge>
-            </li>
-          ))}
-          {(compras ?? []).length === 0 && <li className="py-4 text-sm text-muted-foreground">Nenhuma compra.</li>}
-        </ul>
-        <form onSubmit={novaCompra} className="mt-3 grid gap-3 sm:grid-cols-3">
+    <div className="min-w-0 space-y-5 pb-28">
+      <PremiumPageHeader icone={ShoppingCart} titulo="Compras Premium" subtitulo="Pedidos de compra e recebimentos de insumos" />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metricas.map((k) => <PremiumKpi key={k.rotulo} {...k} valor={k.icone === AlertTriangle || (compras && !isError) ? k.valor : "—"} />)}
+      </div>
+      <PremiumSection icone={ClipboardList} titulo="Pedidos de compra" subtitulo={compras && !isError ? filtradas.length + " pedidos na consulta" : undefined}
+        acoes={<div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Input aria-label="Buscar pedido" className="h-9 pl-8" placeholder="Buscar pedido" value={busca} onChange={(e) => setBusca(e.target.value)} />
+          </div>
+          <select aria-label="Status da compra" className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}>
+            <option value="todos">Todos os status</option>
+            {Object.entries(STATUS_COMPRA).map(([id, status]) => <option key={id} value={id}>{status.nome}</option>)}
+          </select>
+        </div>}>
+        {isError ? <p role="alert" className="flex flex-wrap items-center gap-2">Falha ao carregar as compras. <Button variant="outline" size="sm" onClick={() => void refetch()}>Tentar novamente</Button></p>
+          : isPending ? <p role="status">Carregando compras…</p>
+          : <div className="overflow-x-auto">
+            <table className="w-full min-w-[740px] border-collapse text-sm">
+              <thead><tr className="border-b border-[#D4A94A] bg-[#1B1811] text-left text-xs uppercase tracking-wide text-[#C9C2B8]">
+                {["Pedido", "Fornecedor", "Recebimento", "Status", "Total", "Ação"].map((titulo) => <th key={titulo} scope="col" className="px-3 py-2.5">{titulo}</th>)}
+              </tr></thead>
+              <tbody className="divide-y divide-[#2A2721]">{filtradas.map((c) => <tr key={c.id} className={focoId === c.id ? "bg-[#F2CE6B]/10" : "hover:bg-[#211F18]"}>
+                <td className="px-3 py-3"><strong className="text-[#F2CE6B]">#{c.id.slice(0, 8)}</strong><small className="block text-muted-foreground">Criado em {new Date(c.created_at).toLocaleDateString("pt-BR")}</small></td>
+                <td className="px-3 py-3">{c.fornecedores?.nome ?? "—"}</td>
+                <td className="px-3 py-3">{c.recebida_em ? new Date(c.recebida_em).toLocaleDateString("pt-BR") : "—"}</td>
+                <td className="px-3 py-3"><StatusBadge tom={STATUS_COMPRA[c.status]?.tom ?? "neutro"}>{STATUS_COMPRA[c.status]?.nome ?? c.status}</StatusBadge></td>
+                <td className="px-3 py-3 font-semibold">{brl(totalCompra(c))}</td>
+                <td className="px-3 py-3"><Button type="button" variant="outline" size="sm" aria-expanded={focoId === c.id} aria-controls={focoId === c.id ? "compra-detalhes" : undefined} onClick={() => setFocoId(focoId === c.id ? null : c.id)}>Ver <ArrowRight size={15} aria-hidden /></Button></td>
+              </tr>)}</tbody>
+            </table>
+            {!filtradas.length && <p className="p-4 text-center text-muted-foreground">Nenhum pedido de compra encontrado.</p>}
+          </div>}
+      </PremiumSection>
+      <PremiumSection icone={Plus} titulo="Novo pedido" subtitulo="Crie um rascunho para adicionar itens e informar o recebimento.">
+        <form onSubmit={novaCompra} className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1">
-            <Label>Fornecedor</Label>
-            <select name="fornecedor_id" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="">
-              <option value="">—</option>
-              {(fornecedores ?? []).map((f: any) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+            <Label htmlFor="compra-fornecedor">Fornecedor</Label>
+            <select id="compra-fornecedor" name="fornecedor_id" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="">
+              <option value="">Sem fornecedor</option>
+              {(fornecedores ?? []).map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
             </select>
           </div>
-          <div className="space-y-1 sm:col-span-2"><Label>Observação</Label><Input name="observacao" /></div>
-          <div className="sm:col-span-3"><Button type="submit">Nova compra (rascunho)</Button></div>
+          <div className="space-y-1 sm:col-span-2"><Label htmlFor="compra-observacao">Observação</Label><Input id="compra-observacao" name="observacao" /></div>
+          <div className="flex justify-end sm:col-span-3"><Button type="submit" className="erp-btn-gold"><Plus size={16} aria-hidden />Nova compra (rascunho)</Button></div>
         </form>
-      </section>
+      </PremiumSection>
 
       {foco && (
-        <section className="rounded-xl border border-border bg-card p-5">
-          <div className="flex flex-wrap items-center gap-2">
+        <PremiumSection icone={PackagePlus} titulo="Recebimento e acompanhamento">
+          <div id="compra-detalhes" className="flex flex-wrap items-center gap-2">
             <h2 className="font-display text-xl">Compra #{foco.id.slice(0, 8)}</h2>
-            <Badge className={STATUS_COR[foco.status] ?? ""}>{foco.status}</Badge>
+            <StatusBadge tom={STATUS_COMPRA[foco.status]?.tom ?? "neutro"}>{STATUS_COMPRA[foco.status]?.nome ?? foco.status}</StatusBadge>
             <div className="ml-auto flex gap-2">
               {foco.status === "rascunho" && <Button size="sm" onClick={() => mudarStatus("enviada")}>Enviar</Button>}
               {foco.status !== "cancelada" && foco.status !== "recebida_total" && (
@@ -206,8 +265,9 @@ export function ComprasAdmin() {
             </div>
           </div>
 
+          {erroItens ? <p role="alert">Falha ao carregar os itens.</p> : carregandoItens ? <p role="status">Carregando itens…</p> : null}
           <ul className="mt-3 space-y-2">
-            {(itens ?? []).map((it: any) => (
+            {(itens ?? []).map((it) => (
               <li key={it.id} className="rounded border border-border p-2 text-sm">
                 <div className="flex justify-between gap-2">
                   <span><b>{it.insumos?.nome}</b> — {it.quantidade} {it.unidade} a R$ {Number(it.custo_unitario ?? 0).toFixed(2)}</span>
@@ -236,7 +296,7 @@ export function ComprasAdmin() {
                 <Label>Insumo</Label>
                 <select name="insumo_id" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue="">
                   <option value="">Escolha…</option>
-                  {(insumos ?? []).map((i: any) => <option key={i.id} value={i.id}>{i.nome} ({i.unidade_base})</option>)}
+                  {(insumos ?? []).map((i) => <option key={i.id} value={i.id}>{i.nome} ({i.unidade_base})</option>)}
                 </select>
               </div>
               <div className="space-y-1"><Label>Qtd</Label><Input name="quantidade" type="number" step="any" min="0" required /></div>
@@ -250,8 +310,16 @@ export function ComprasAdmin() {
               <div className="sm:col-span-4"><Button type="submit" size="sm">Adicionar item</Button></div>
             </form>
           )}
-        </section>
+        </PremiumSection>
       )}
+      <PremiumSection icone={AlertTriangle} titulo="Sugestões de reposição" subtitulo="Insumos com saldo abaixo do mínimo cadastrado.">
+        {erroInsumos ? <p role="alert">Falha ao carregar os saldos dos insumos.</p> : !insumos ? <p role="status">Carregando saldos…</p>
+          : reposicao.length ? <ul className="divide-y divide-border">
+            {reposicao.map((i) => <li key={i.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
+              <strong>{i.nome}</strong><span className="text-muted-foreground">Saldo {i.estoque_atual} {i.unidade_base} / mínimo {i.estoque_minimo} {i.unidade_base}</span>
+            </li>)}
+          </ul> : <p className="text-sm text-muted-foreground">Nenhum insumo abaixo do mínimo cadastrado.</p>}
+      </PremiumSection>
     </div>
   );
 }
