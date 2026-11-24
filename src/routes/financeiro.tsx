@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -110,6 +110,7 @@ function abaFinanceiro(hash: string): AbaFinanceiroPremium {
 
 function Financeiro() {
   const navigate = useNavigate();
+  const { hash: hashDaRota } = useLocation();
   const { user, loading } = useSession();
   const { data: roles, isError: erroAcesso } = useRoles(user?.id);
   const queryClient = useQueryClient();
@@ -117,12 +118,11 @@ function Financeiro() {
 
   const [aba, setAba] = useState<AbaFinanceiroPremium>("lancamentos");
 
+  // A navegação por Link/navigate usa o History API e pode não emitir
+  // "hashchange". Seguir o hash reativo do router evita abas travadas até F5.
   useEffect(() => {
-    const aplicarHash = () => setAba(abaFinanceiro(window.location.hash));
-    aplicarHash();
-    window.addEventListener("hashchange", aplicarHash);
-    return () => window.removeEventListener("hashchange", aplicarHash);
-  }, []);
+    setAba(abaFinanceiro(hashDaRota || window.location.hash));
+  }, [hashDaRota]);
 
   function selecionarAba(valor: string) {
     const selecionada = abaFinanceiro(valor);
