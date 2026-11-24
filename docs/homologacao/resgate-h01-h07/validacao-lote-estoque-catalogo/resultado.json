@@ -1,0 +1,97 @@
+{
+  "modo": "demo-local-sem-rede",
+  "capturas": [
+    {
+      "nome": "aprovado-produtos-desktop.png",
+      "url": "/admin#produtos",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "aprovado-produtos-celular.png",
+      "url": "/admin#produtos",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "aprovado-cadastro-produtos-desktop.png",
+      "url": "/preview/cadastro-produtos",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "aprovado-cadastro-produtos-celular.png",
+      "url": "/preview/cadastro-produtos",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "aprovado-estoque-salgados-desktop.png",
+      "url": "/preview/estoque-salgados",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "aprovado-estoque-salgados-celular.png",
+      "url": "/preview/estoque-salgados",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "antes-produtos-desktop.png",
+      "url": "/admin#produtos",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "antes-produtos-celular.png",
+      "url": "/admin#produtos",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "antes-estoque-salgados-desktop.png",
+      "url": "/admin#estoque-salgados",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "antes-estoque-salgados-celular.png",
+      "url": "/admin#estoque-salgados",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "antes-preview-estoque-salgados-desktop.png",
+      "url": "/preview/estoque-salgados",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "antes-preview-estoque-salgados-celular.png",
+      "url": "/preview/estoque-salgados",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "depois-produtos-desktop.png",
+      "url": "/admin#produtos",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "depois-produtos-celular.png",
+      "url": "/admin#produtos",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "depois-estoque-salgados-desktop.png",
+      "url": "/admin#estoque-salgados",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "depois-estoque-salgados-celular.png",
+      "url": "/admin#estoque-salgados",
+      "viewport": "390x844"
+    },
+    {
+      "nome": "depois-preview-estoque-salgados-desktop.png",
+      "url": "/preview/estoque-salgados",
+      "viewport": "1440x1000"
+    },
+    {
+      "nome": "depois-preview-estoque-salgados-celular.png",
+      "url": "/preview/estoque-salgados",
+      "viewport": "390x844"
+    }
+  ],
+  "erros": [],
+  "externos": []
+}

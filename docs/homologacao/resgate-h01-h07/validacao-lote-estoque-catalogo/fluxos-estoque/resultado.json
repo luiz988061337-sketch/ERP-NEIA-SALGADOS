@@ -1,0 +1,47 @@
+{
+  "base": "http://127.0.0.1:4183",
+  "out": "C:\\Users\\User\\ERP-NEIA-RESGATE-WT\\docs\\homologacao\\resgate-h01-h07\\validacao-lote-estoque-catalogo\\fluxos-estoque",
+  "testes": [
+    "Seis capturas: AdminShell real, tema administrativo, cinco indicadores e nenhum overflow horizontal de página em 390px",
+    "Menu mobile abre, navega entre estoques e fecha após a navegação",
+    "Salgados: busca, cadastro único, entrada, reserva, retirada FEFO sem baixa dupla, liberação só do saldo, perda, inventário, erro de saldo e combo 50/30/20",
+    "Insumos: compra, retirada fechada, parcial 500g, conferência, ajuste justificado, edição kg→g sem alterar físico, histórico e rascunho de compra",
+    "Embalagens: fardo de 40 configurável, compra, retirada inteira em dois cliques, parcial, tipos separados, conferência, reposição e cadastro com tamanho a definir",
+    "Estados independentes preservados entre navegações no mesmo Preview"
+  ],
+  "medidas": {
+    "salgados-desktop": {
+      "largura": 1672,
+      "documento": 1672,
+      "fundo": "rgb(11, 10, 8)",
+      "sidebar": 223
+    },
+    "salgados-mobile": {
+      "viewport": 390,
+      "documento": 390
+    },
+    "insumos-desktop": {
+      "largura": 1672,
+      "documento": 1672,
+      "fundo": "rgb(11, 10, 8)",
+      "sidebar": 223
+    },
+    "insumos-mobile": {
+      "viewport": 390,
+      "documento": 390
+    },
+    "embalagens-desktop": {
+      "largura": 1672,
+      "documento": 1672,
+      "fundo": "rgb(11, 10, 8)",
+      "sidebar": 223
+    },
+    "embalagens-mobile": {
+      "viewport": 390,
+      "documento": 390
+    }
+  },
+  "erros": [],
+  "bloqueadas": [],
+  "falhasHTTP": []
+}
