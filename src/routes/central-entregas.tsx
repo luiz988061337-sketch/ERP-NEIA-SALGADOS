@@ -355,7 +355,7 @@ function CentralEntregas() {
     const { data, error } = await supabase
       .from("rotas_entrega")
       .select(
-        `id,motoboy_id,status,saiu_em,${MOTOBOY_RPC_ATIVO ? "liberada_central_em,liberada_central_por," : ""}rota_pedidos(pedido_id,pedidos(id,numero,status,cliente_nome))`,
+        `id,motoboy_id,status,saiu_em,${MOTOBOY_RPC_ATIVO ? "liberada_central_em,liberada_central_por," : ""}rota_pedidos(pedido_id,ordem,pedidos(id,numero,status,cliente_nome,agendado_para))`,
       )
       .in("status", MOTOBOY_RPC_ATIVO ? ["preparando", "em_rota"] : ["em_rota"])
       .order("saiu_em", { ascending: true });
@@ -373,6 +373,7 @@ function CentralEntregas() {
   });
 
   const [rotaLiberando, setRotaLiberando] = useState<string | null>(null);
+  const [rotaSelecionada, setRotaSelecionada] = useState<string | null>(null);
   async function liberarRota(rotaId: string) {
     if (rotaLiberando) return;
     setRotaLiberando(rotaId);
@@ -874,6 +875,11 @@ function CentralEntregas() {
   const rotasVisiveis = (rotasAtivas ?? []).filter((rota: any) =>
     !filtroMotoboyRotas || rota.motoboy_id === filtroMotoboyRotas,
   );
+  const rotaNoMapa = rotasVisiveis.find((rota: any) => rota.id === rotaSelecionada) ?? rotasVisiveis[0];
+  const paradas = (rotaNoMapa?.rota_pedidos ?? [])
+    .filter((vinculo: any) => vinculo.pedidos)
+    .sort((a: any, b: any) => a.ordem - b.ordem)
+    .map((vinculo: any) => vinculo.pedidos);
   const atribuicoes = !erroPedidos && pedidos
     ? pedidos.filter((pedido: any) => pedido.tipo_entrega === "entrega" && pedido.motoboy_id &&
         ["pronto", "aguardando_motoboy"].includes(pedido.status)).length
@@ -881,7 +887,7 @@ function CentralEntregas() {
 
   return (
     <>
-      <div className="central-entregas-operacional-premium mx-auto max-w-[1600px] space-y-4 px-3 py-4 sm:px-5">
+      <div className="central-entregas-operacional-premium mx-auto w-full min-w-0 max-w-[1600px] space-y-4 px-3 py-4 sm:px-5">
         <EntregasResumo
           aguardando={!erroPedidos && pedidos ? resumoCentral.aguardando.length : "—"}
           atribuidos={atribuicoes}
@@ -905,36 +911,50 @@ function CentralEntregas() {
         <EntregasLayout
           mapa={<section
             id="secao-mapa"
-            className="overflow-hidden rounded-xl border border-border bg-card shadow-card"
+            className="overflow-hidden rounded-2xl border border-[#D4A94A]/50 bg-card p-3 shadow-card sm:p-4"
             aria-label="Mapa de entregas em tempo real"
           >
-            <header className="flex min-h-[42px] flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
-              <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                Mapa de Entregas
+            <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="rounded-full border border-[#D4A94A]/60 px-3 py-1.5 text-sm font-bold uppercase tracking-wide">
+                {rotaNoMapa ? `Rota ${String(rotaNoMapa.id).slice(0, 8)}` : "Mapa de Entregas"}
               </h2>
-              <span className="text-xs uppercase text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 Pedidos e motoboys em tempo real
               </span>
             </header>
-            <div className="h-72 p-2 lg:h-[440px]">
+            <div className="h-64 overflow-hidden rounded-xl border border-border bg-background lg:h-[340px]">
               {pontosMapa.length > 0 ? (
                 <MapView pontos={pontosMapa as any} />
               ) : (
-                <p className="grid h-full place-items-center text-sm text-muted-foreground">
+                <p className="grid h-full place-content-center px-5 text-center text-sm text-muted-foreground">
                   Nenhum ponto no mapa ainda — aguardando pedidos com localização confirmada.
                 </p>
               )}
             </div>
+            {paradas.length > 0 && (
+              <ol aria-label="Paradas da rota selecionada" className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {paradas.map((pedido: any, indice: number) => (
+                  <li key={pedido.id} className="min-w-0 rounded-xl border border-[#D4A94A]/35 bg-background p-3 text-sm">
+                    <strong className="flex items-center gap-2">
+                      <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[#D4A94A]/40 text-[#F2CE6B]">{indice + 1}</span>
+                      #{pedido.numero}
+                    </strong>
+                    <p className="mt-1 break-words text-muted-foreground">{pedido.cliente_nome}</p>
+                    {pedido.agendado_para && <p className="mt-1 font-semibold text-[#F2CE6B]">Agendado às {hora(pedido.agendado_para)}</p>}
+                  </li>
+                ))}
+              </ol>
+            )}
           </section>}
-          rota={<section className="rounded-2xl border border-border bg-card p-4">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <h2 id="secao-rotas" className="font-display text-lg">
-              {MOTOBOY_RPC_ATIVO ? "Rotas atribuídas e em andamento" : "Rotas em andamento"}
+          rota={<section className="rounded-2xl border border-[#D4A94A]/50 bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <h2 id="secao-rotas" className="basis-full font-display text-lg font-bold uppercase">
+              Cartões de rotas
             </h2>
-            <label className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <label className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground">
               Motoboy
               <select value={filtroMotoboyRotas} onChange={(event) => setFiltroMotoboyRotas(event.target.value)}
-                className="min-h-10 rounded-md border border-input bg-background px-3 text-foreground">
+                className="min-h-10 max-w-full rounded-md border border-input bg-background px-3 text-foreground">
                 <option value="">Todos os motoboys</option>
                 {(motoboys ?? []).map((motoboy: any) => <option key={motoboy.id} value={motoboy.id}>{motoboy.nome}</option>)}
               </select>
@@ -948,7 +968,7 @@ function CentralEntregas() {
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            {MOTOBOY_RPC_ATIVO ? "A Central libera a saída das rotas atribuídas. " : "Somente rotas em_rota. "}
+            {MOTOBOY_RPC_ATIVO ? "A Central libera a saída das rotas atribuídas. " : "Rotas em andamento. "}
             Encerrar exige todos os pedidos entregues ou cancelados.
           </p>
           {rotasCarregando && !(rotasAtivas ?? []).length ? (
@@ -983,7 +1003,7 @@ function CentralEntregas() {
                         {r.status === "em_rota" ? "Em rota" : r.liberada_central_em ? "Saída liberada" : "Aguardando liberação"}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="mt-2 text-sm text-muted-foreground">
                       Motoboy: {mb?.nome ?? "—"}
                       {r.saiu_em ? ` • saiu às ${hora(r.saiu_em)}` : ""}
                     </p>
@@ -1001,13 +1021,28 @@ function CentralEntregas() {
                     {vinculados.length > 0 ? (
                       <ol className="mt-3 space-y-2">
                         {vinculados.map((pedido: any) => (
-                          <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
-                            <span><strong>#{pedido.numero}</strong> · {pedido.cliente_nome}</span>
+                          <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#D4A94A]/35 bg-card px-3 py-2 text-sm">
+                            <span className="min-w-0 break-words"><strong className="block">Pedido #{pedido.numero}</strong>{pedido.cliente_nome}</span>
                             <StatusBadge status={pedido.status} />
                           </li>
                         ))}
                       </ol>
                     ) : null}
+                    {vinculados.length > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="mt-3"
+                        aria-pressed={rotaNoMapa?.id === r.id}
+                        onClick={() => {
+                          setRotaSelecionada(r.id);
+                          document.getElementById("secao-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                      >
+                        <MapPin className="size-4" aria-hidden /> Ver paradas
+                      </Button>
+                    )}
                     {MOTOBOY_RPC_ATIVO && r.status === "preparando" && (
                       <div className="mt-3"><p className="text-sm">{r.liberada_central_em ? `Liberação registrada às ${hora(r.liberada_central_em)}. O servidor revalida a composição antes da saída.` : "Atribuída pela Central. Confirme a liberação para permitir a saída após as retiradas."}</p>
                         <Button size="sm" className="mt-2" disabled={rotaLiberando !== null}

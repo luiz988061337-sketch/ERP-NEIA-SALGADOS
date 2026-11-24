@@ -133,7 +133,7 @@ export function AdminShell({
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         {!modoPreview ? (
           <div className="flex border-b border-border bg-sidebar px-3 py-2 md:hidden">
             <SidebarTrigger
@@ -303,7 +303,7 @@ function MenuLateral({
                               }}
                             >
                               <item.icon className={classeIcone} />
-                              <span className={classeTexto} style={estiloTexto}>
+                              <span className={`${classeTexto}${ativo ? " text-[#14120C]" : ""}`} style={estiloTexto}>
                                 {textoItem}
                               </span>
                             </Link>

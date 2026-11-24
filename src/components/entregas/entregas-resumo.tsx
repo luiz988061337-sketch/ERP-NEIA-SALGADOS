@@ -41,10 +41,10 @@ export function EntregasResumo({
         {acoes}
       </header>
 
-      <section aria-label="Indicadores de entregas" className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <section aria-label="Indicadores de entregas" className="mt-4 grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         {indicadores.map(({ label, valor, icone: Icone }) => (
-          <article key={label} className="rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4 shadow-card">
-            <div className="flex items-start gap-2 text-xs font-semibold uppercase tracking-wide text-[#F2CE6B]">
+          <article key={label} className="min-w-0 rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-3 shadow-card sm:min-h-28 sm:p-4">
+            <div className="flex items-start gap-2 text-[13px] font-medium uppercase leading-snug text-[#F2CE6B]">
               <Icone className="size-4 shrink-0" aria-hidden /> {label}
             </div>
             <div className="mt-2 text-3xl font-extrabold tracking-tight">{valor}</div>
