@@ -5,12 +5,17 @@ import { routeTree } from "./routeTree.gen";
 
 // After a new publish, open tabs may request old JS chunks that no longer exist.
 // Reload once (guarded by sessionStorage) to fetch the fresh version.
-const CHUNK_ERR = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+const CHUNK_ERR = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Failed to preload CSS/i;
 function recarregarUmaVez() {
   const k = "neia-chunk-reload";
-  const last = Number(sessionStorage.getItem(k) ?? 0);
-  if (Date.now() - last < 10000) return;
-  sessionStorage.setItem(k, String(Date.now()));
+  try {
+    const last = Number(sessionStorage.getItem(k) ?? 0);
+    if (Date.now() - last < 10000) return;
+    sessionStorage.setItem(k, String(Date.now()));
+  } catch {
+    // Sem armazenamento de sessão, o limite de recarga não pode ser garantido.
+    return;
+  }
   window.location.reload();
 }
 if (typeof window !== "undefined") {
@@ -34,6 +39,13 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    defaultPendingMs: 250,
+    defaultPendingMinMs: 0,
+    defaultPendingComponent: () => (
+      <p role="status" className="p-6 text-sm font-medium text-muted-foreground">
+        Abrindo painel…
+      </p>
+    ),
     defaultPreloadStaleTime: 0,
   });
 

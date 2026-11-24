@@ -9,7 +9,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
@@ -156,7 +156,7 @@ function jaTemAdminShell(pathname: string, modoDemo: boolean): boolean {
 }
 
 const ABA_ESPECIAL: Record<string, string> = {
-  "/atendente": "pedidos",
+  "/atendente": "central-atendente",
   "/crm-config": "clientes-crm",
   "/operacao": "dashboard",
   "/orcamentos": "dashboard",
@@ -200,18 +200,11 @@ function MenuAdministrativoGlobal({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const modoDemo = ehModoDemo();
   // Lote 02: os módulos premium exibem o selo de demonstração dentro do próprio
   // cabeçalho, então o aviso fixo global é omitido nessas quatro abas.
-  const [hashDemo, setHashDemo] = useState("");
-  useEffect(() => {
-    const atualizarHash = () => setHashDemo(window.location.hash);
-    atualizarHash();
-    window.addEventListener("hashchange", atualizarHash);
-    return () => window.removeEventListener("hashchange", atualizarHash);
-  }, []);
-  const hashLote02 = ["#cupons", "#calculadora", "#fornecedores", "#compras", "#dono", "#metas", "#contador"].includes(hashDemo);
+  const hashLote02 = ["cupons", "calculadora", "fornecedores", "compras", "dono", "metas", "contador"].includes(hash);
   // Lote 03: contas premium renderizam o próprio cabeçalho com selo de
   // demonstração (Contador, Relatório do Dono e Metas), então o aviso fixo
   // global fica oculto nesses pontos de entrada também.

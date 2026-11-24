@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { ChevronDown, Crown, LogOut, RefreshCw, UserRound } from "lucide-react";
 
@@ -188,18 +188,13 @@ function MenuLateral({
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const { pathname, hash } = useLocation();
-  // H12-D: em deep-links o router pode hidratar com `hash` vazio. Sincronizar
-  // a URL do navegador garante o destaque correto após a montagem.
-  const [hashUrl, setHashUrl] = useState("");
-  const [hidratado, setHidratado] = useState(false);
-  useEffect(() => {
-    const sincronizar = () => setHashUrl(window.location.hash.replace(/^#/, ""));
-    sincronizar();
-    window.addEventListener("hashchange", sincronizar);
-    setHidratado(true);
-    return () => window.removeEventListener("hashchange", sincronizar);
-  }, []);
-  const hashAtual = (hash || hashUrl).replace(/^#/, "");
+  const grupos = menuAdmin(demonstrativo, pedidosAtendente);
+  const candidatos = grupos.flatMap((grupo) => grupo.items).filter((item) =>
+    item.href === pathname || (item.href && pathname.startsWith(`${item.href}/`)),
+  );
+  const linkAtivo =
+    candidatos.find((item) => item.hash && item.hash === hash) ??
+    candidatos.find((item) => !item.hash || (pathname === "/admin" && item.value === aba));
   const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>(gruposIniciais);
 
   function alternarGrupo(label: string) {
@@ -223,7 +218,7 @@ function MenuLateral({
     <SidebarContent
       className="bg-[#0F0E0C] [scrollbar-color:rgba(212,169,74,0.55)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D4A94A]/60 [&::-webkit-scrollbar-track]:bg-transparent"
     >
-      {menuAdmin(demonstrativo, pedidosAtendente).map((grupo) => {
+      {grupos.map((grupo) => {
         const aberto = gruposAbertos[grupo.label] !== false;
         const ehComercial = grupo.label === "Comercial";
         return (
@@ -250,36 +245,9 @@ function MenuLateral({
               <SidebarGroupContent>
                 <div role="tablist" aria-orientation="vertical" className="flex flex-col gap-1">
                   {grupo.items.map((item) => {
-                    const naRota =
-                      item.href === pathname ||
-                      (item.href ? pathname.startsWith(`${item.href}/`) : false);
-                    const hashOk =
-                      !item.hash || hashAtual === item.hash || (!hashAtual && aba === item.value);
-                    const podeDestacar = !grupoAtivo || grupo.label === grupoAtivo;
-                    // H12-D: na página de Precificação o item do catálogo é a
-                    // fonte única do destaque, mesmo se outra aba internalmente
-                    // estiver ativa. Regra restrita a /admin#precificacao.
-                    const precificacaoAberta =
-                      !grupoAtivo &&
-                      (hashAtual === "precificacao" || aba === "precificacao");
-                    // Na suíte Comercial a aba é a fonte única do destaque,
-                    // evitando dois itens dourados ao trocar de painel.
-                    const ativoBase = podeDestacar
-                      ? item.href
-                        ? grupoAtivo
-                          ? aba === item.value
-                          : naRota && hashOk
-                        : aba === item.value
-                      : false;
-                    // Evita divergência SSR/cliente: no primeiro desenho de /admin
-                    // o servidor não conhece o hash, então mantemos o padrão
-                    // estável e aplicamos o destaque real após a hidratação.
-                    const ativo =
-                      pathname === "/admin" && !hidratado
-                        ? item.value === "dashboard"
-                        : precificacaoAberta
-                          ? item.value === "precificacao"
-                          : ativoBase;
+                    const ativo = grupoAtivo
+                      ? grupo.label === grupoAtivo && aba === item.value
+                      : item.href ? linkAtivo === item : aba === item.value;
 
                     const alturaItem = ehComercial
                       ? item.linhas
@@ -322,6 +290,9 @@ function MenuLateral({
                           >
                             <Link
                               to={item.href}
+                              preload="intent"
+                              hashScrollIntoView={false}
+                              activeOptions={{ exact: true, includeHash: true }}
                               aria-current={ativo ? "page" : undefined}
                               {...(item.hash ? { hash: item.hash } : {})}
                               onClick={() => {

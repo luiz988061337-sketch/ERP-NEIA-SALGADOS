@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -111,22 +111,16 @@ function abaFinanceiro(hash: string): AbaFinanceiroPremium {
 function Financeiro() {
   const navigate = useNavigate();
   const { user, loading } = useSession();
-  const { data: roles, isError: erroAcesso } = useRoles(user?.id);
+  const { data: roles, isError: erroAcesso, refetch: refetchPermissao, isFetching: verificandoPermissao } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const [mes, setMes] = useState(() => competenciaSaoPaulo(new Date().toISOString()) ?? new Date().toISOString().slice(0, 7));
 
-  const [aba, setAba] = useState<AbaFinanceiroPremium>("lancamentos");
-
-  useEffect(() => {
-    const aplicarHash = () => setAba(abaFinanceiro(window.location.hash));
-    aplicarHash();
-    window.addEventListener("hashchange", aplicarHash);
-    return () => window.removeEventListener("hashchange", aplicarHash);
-  }, []);
+  const { hash, href } = useLocation();
+  const aba = abaFinanceiro(hash);
 
   function selecionarAba(valor: string) {
     const selecionada = abaFinanceiro(valor);
-    setAba(selecionada);
+    if (selecionada === aba) return;
     void navigate({ to: "/financeiro", hash: selecionada, hashScrollIntoView: false });
   }
 
@@ -150,9 +144,9 @@ function Financeiro() {
 
   useEffect(() => {
     if (!loading && !user) {
-      void navigate({ to: "/auth", search: { redirect: "/financeiro" }, replace: true });
+      void navigate({ to: "/auth", search: { redirect: href }, replace: true });
     }
-  }, [loading, user, navigate]);
+  }, [loading, user, navigate, href]);
   const autorizado = roles?.includes("admin") || roles?.includes("financeiro");
   const competenciasFluxo = useMemo(() => ultimasCompetencias(mes), [mes]);
   const faixaFluxo = useMemo(() => ({
@@ -919,7 +913,10 @@ function Financeiro() {
   }
 
   if (erroAcesso)
-    return <p role="alert" className="p-6 text-destructive">Não foi possível verificar o acesso ao Financeiro.</p>;
+    return <div className="space-y-3 p-6">
+      <p role="alert" className="text-destructive">Não foi possível verificar o acesso ao Financeiro.</p>
+      <Button disabled={verificandoPermissao} onClick={() => void refetchPermissao()}>Tentar novamente</Button>
+    </div>;
   if (loading || !user || !roles)
     return <p role="status" className="p-6 text-muted-foreground">Verificando acesso ao Financeiro…</p>;
   if (!autorizado)

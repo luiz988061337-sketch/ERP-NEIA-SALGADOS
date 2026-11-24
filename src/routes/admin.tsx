@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -89,7 +89,8 @@ import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/uploa
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { ADMIN_ABA_TITULO } from "@/components/admin/admin-nav";
+import { COLUNAS_GESTAO, colunaPedido } from "@/lib/pedidos-gestao";
+import { abaAdministrativa, ehAbaAdministrativa } from "@/lib/paineis-staff";
 import { LojaPanel } from "@/components/admin/loja-panel";
 import { EntregasConfigPanel } from "@/components/admin/entregas-config-panel";
 import { InsumosAdmin } from "@/components/admin/estoque/insumos-admin";
@@ -140,9 +141,10 @@ function Admin() {
   const navigate = useNavigate();
   const modoDemo = ehModoDemo();
   const { user, loading } = useSession();
-  const { data: roles, isError: erroConsultaRoles } = useRoles(user?.id);
+  const { data: roles, isError: erroConsultaRoles, refetch: refetchPermissao, isFetching: verificandoPermissao } = useRoles(user?.id);
   const queryClient = useQueryClient();
-  const [aba, setAba] = useState("dashboard");
+  const { hash, href } = useLocation();
+  const aba = abaAdministrativa(hash);
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoje");
   const [buscaGlobal, setBuscaGlobal] = useState("");
   const [pedidoFoco, setPedidoFoco] = useState("");
@@ -171,21 +173,8 @@ function Admin() {
   const { data: clientesStats } = useClientesStats();
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/admin" }, replace: true });
-  }, [loading, user, navigate]);
-
-  // Deep-link do menu unificado: /admin#pedidos, /admin#relatorio etc.
-  // A aba é aplicada na montagem e também acompanha voltar/avançar.
-  useEffect(() => {
-    const aplicarHash = () => {
-      const valor = window.location.hash.replace(/^#/, "");
-      if (!valor) setAba("dashboard");
-      else if (valor === "clientes" || Object.hasOwn(ADMIN_ABA_TITULO, valor)) setAba(valor);
-    };
-    aplicarHash();
-    window.addEventListener("hashchange", aplicarHash);
-    return () => window.removeEventListener("hashchange", aplicarHash);
-  }, []);
+    if (!loading && !user) navigate({ to: "/auth", search: { redirect: href }, replace: true });
+  }, [loading, user, navigate, href]);
 
   const isAdmin = roles?.includes("admin");
 
@@ -660,24 +649,17 @@ function Admin() {
     }
   }
 
+  function navegarAba(destino: string) {
+    if (ehAbaAdministrativa(destino) && destino !== aba) {
+      void navigate({ to: "/admin", hash: destino, hashScrollIntoView: false });
+    }
+  }
+
   function navegarDashboard(destino: string) {
-    switch (destino) {
-      case "financeiro":
-        void navigate({ to: "/financeiro" });
-        break;
-      case "impressao":
-        void navigate({ to: "/impressao" });
-        break;
-      case "pedidos":
-      case "produtos":
-      case "clientes":
-      case "insumos":
-      case "loja":
-        void navigate({ to: "/admin", hash: destino });
-        setAba(destino);
-        break;
-      default:
-        setAba(destino);
+    if (destino === "financeiro" || destino === "impressao") {
+      void navigate({ to: destino === "financeiro" ? "/financeiro" : "/impressao" });
+    } else {
+      navegarAba(destino);
     }
   }
 
@@ -752,8 +734,10 @@ function Admin() {
       <div className="mx-auto max-w-lg px-6 py-12 text-center">
         <h1 className="text-lg font-semibold">Não foi possível verificar a permissão</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Há uma sessão, mas não foi possível consultar as permissões. Recarregue a página; se persistir, informe este erro na homologação.
+          Há uma sessão, mas a consulta de permissões falhou.
         </p>
+        <Button className="mt-4" disabled={verificandoPermissao}
+          onClick={() => void refetchPermissao()}>Tentar novamente</Button>
       </div>
     );
   }
@@ -765,6 +749,10 @@ function Admin() {
   }
 
   async function mudarStatusPedido(p: any, status: OrderStatus) {
+    if (status !== "cancelado" && colunaPedido(p.status) === "novos") {
+      toast.error("O aceite segue pela Central da Atendente e o preparo pela Cozinha.");
+      return;
+    }
     // Cancelamento atômico (0093) — atrás de flag OFF. Flag OFF => caminho
     // legado intacto. Flag ON + sucesso => RPC já cancelou e liberou. Flag ON
     // sem attestation/erro => aborta (NUNCA cai no UPDATE direto).
@@ -857,7 +845,7 @@ function Admin() {
     <AdminShell
       aba={aba}
       menuDemonstrativo={modoDemo}
-      onAba={setAba}
+      onAba={navegarAba}
       onRefresh={refreshAll}
       usuario={user?.email ?? null}
       onSair={async () => {
@@ -865,13 +853,13 @@ function Admin() {
         navigate({ to: "/auth", replace: true });
       }}
     >
-      <Tabs value={aba} onValueChange={setAba}>
+      <Tabs value={aba} onValueChange={navegarAba}>
         <TabsContent value="dashboard" className="mt-0">
           {modoDemo ? (
             <PainelDashboardL2
               periodo={periodo}
               setPeriodo={setPeriodo}
-              setAba={setAba}
+              setAba={navegarAba}
               notLidas={notLidas}
               marcarLida={marcarLida}
               busca={buscaGlobal}
@@ -912,29 +900,34 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-0">
+          <div className="mx-auto max-w-[1700px] p-3 sm:p-4">
+            <AdminTopbar usuario={user?.email ?? null} acesso="Administração" />
+            {pedidosComErro ? (
+              <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/60 p-3">
+                <p>Não foi possível carregar os pedidos.</p>
+                <Button variant="outline" onClick={refreshAll}>Tentar novamente</Button>
+              </div>
+            ) : pedidosPendentes ? (
+              <p role="status" className="p-4 text-muted-foreground">Carregando pedidos…</p>
+            ) : (
+              <PedidosAdmin
+                pedidos={pedidos}
+                onStatus={mudarStatusPedido}
+                onPagamento={mudarPagamento}
+                foco={pedidoFoco}
+                onLimparFoco={() => setPedidoFoco("")}
+              />
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="central-atendente" className="mt-0">
           {modoDemo ? (
             <CentralAtendenteL2 usuario={user?.email ?? null} />
           ) : (
-            // Mesma Central de Pedidos de três colunas aprovada para Atendente,
-            // agora ligada ao Supabase de testes (sem fixtures locais).
-            // As funções avançadas do Admin seguem acessíveis sob demanda.
             <div className="mx-auto max-w-[1700px] space-y-4">
               <AdminTopbar usuario={user?.email ?? null} acesso="Administração" />
               <CentralPedidos usuarioId={user?.id} papeis={roles ?? []} />
-              <details open={pedidoFoco ? true : undefined} className="mx-3 rounded-xl border border-[#D4A94A]/35 bg-[#151412] p-3">
-                <summary className="cursor-pointer font-semibold text-[#F2CE6B]">
-                  Gestão avançada de pedidos — status e pagamentos
-                </summary>
-                <div className="mt-3">
-                  <PedidosAdmin
-                    pedidos={pedidos ?? []}
-                    onStatus={mudarStatusPedido}
-                    onPagamento={mudarPagamento}
-                    foco={pedidoFoco}
-                    onLimparFoco={() => setPedidoFoco("")}
-                  />
-                </div>
-              </details>
             </div>
           )}
         </TabsContent>
@@ -1507,7 +1500,11 @@ function PedidosAdmin({
   const [buscaLocal, setBuscaLocal] = useState("");
   const [fPeriodo, setFPeriodo] = useState("todos");
   const [fPgto, setFPgto] = useState("todas");
-  const listaBase = pedidos.filter((p) => (filtro === "todos" ? true : p.status === filtro));
+  const [modalidade, setModalidade] = useState("todas");
+  const listaBase = pedidos.filter((p) =>
+    (filtro === "todos" || p.status === filtro || colunaPedido(p.status) === filtro) &&
+    (modalidade === "todas" || p.tipo_entrega === modalidade),
+  );
   const listaEvt =
     fEvento === "todos"
       ? listaBase
@@ -1538,7 +1535,8 @@ function PedidosAdmin({
           return (
             String(p.numero).includes(t) ||
             (p.cliente_nome ?? "").toLowerCase().includes(t) ||
-            (p.telefone ?? "").includes(t)
+            (p.telefone ?? "").includes(t) ||
+            (p.pedido_itens ?? []).some((item: any) => String(item.nome ?? "").toLowerCase().includes(t))
           );
         })
       : listaAge;
@@ -1584,6 +1582,7 @@ function PedidosAdmin({
   }, [pedidos]);
   function verTodosPedidos() {
     setFiltro("todos");
+    setModalidade("todas");
     setFEvento("todos");
     setSoAgendados(false);
     setBuscaLocal("");
@@ -1611,42 +1610,19 @@ function PedidosAdmin({
   function exportarCSV() {
     downloadCSV(`pedidos-${new Date().toISOString().slice(0, 10)}.csv`, linhasCSV);
   }
-  const colunas = [
-    {
-      titulo: "PENDENTE",
-      sub: "pedidos novos",
-      status: ["recebido"],
-      dot: "bg-primary",
-      ring: "border-t-primary",
-    },
-    {
-      titulo: "EM PRODUÇÃO",
-      sub: "preparando",
-      status: ["em_producao"],
-      dot: "bg-secondary",
-      ring: "border-t-secondary",
-    },
-    {
-      titulo: "DESPACHE",
-      sub: "prontos para sair",
-      status: ["pronto", "aguardando_motoboy", "em_rota"],
-      dot: "bg-success",
-      ring: "border-t-success",
-    },
-  ];
-  const naoColunados = listaTope.filter((p) => !colunas.some((c) => c.status.includes(p.status)));
+  const naoColunados = listaTope.filter((p) => colunaPedido(p.status) === "historico");
   const cartao = (p: any) => (
     <article key={p.id} className="rounded-lg border border-border bg-card p-3 shadow-card">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-display">Nº {p.numero}</span>
+        <span className="font-display text-base font-semibold">Nº {p.numero}</span>
         <StatusBadge status={p.status} />
         <span className="ml-auto font-display text-primary">{brl(p.total)}</span>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        {p.cliente_nome} • {p.telefone} • {dataHora(p.created_at)}
+        {p.cliente_nome} · {p.telefone} · {dataHora(p.created_at)}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        {p.endereco} — {p.bairro}
+        {p.tipo_entrega === "retirada" ? "Retirada no balcão" : `${p.endereco ?? ""} — ${p.bairro ?? ""}`}
         {(p as any).cidade ? ` • ${(p as any).cidade}` : ""}{" "}
         {p.complemento ? `(${p.complemento})` : ""}{" "}
         <span className="ml-1 rounded bg-muted px-1.5 py-0.5">
@@ -1660,7 +1636,8 @@ function PedidosAdmin({
           ""
         )}
       </p>
-      <ul className="mt-1 text-xs">
+      {p.agendado_para ? <p className="mt-2 text-sm font-semibold text-primary">Agendado para {dataHora(p.agendado_para)}</p> : null}
+      <ul className="mt-2 text-sm">
         {(p.pedido_itens ?? []).map((i: any) => (
           <li key={i.id}>
             {i.quantidade}x {i.nome}
@@ -1668,8 +1645,20 @@ function PedidosAdmin({
         ))}
       </ul>
       {p.observacoes && <p className="mt-1 rounded bg-muted p-1.5 text-xs">Obs: {p.observacoes}</p>}
+      {colunaPedido(p.status) === "novos" ? (
+        <Link className="mt-2 inline-flex min-h-9 items-center text-sm font-medium text-primary underline"
+          to={p.aceito_em_atendente || p.status === "aceito" ? "/producao" : "/admin"}
+          hash={p.aceito_em_atendente || p.status === "aceito" ? "" : "central-atendente"}>
+          {p.aceito_em_atendente || p.status === "aceito" ? "Ver fila da Cozinha" : "Ver na Central da Atendente"}
+        </Link>
+      ) : null}
+      <details className="mt-2 border-t border-border pt-2">
+      <summary className="cursor-pointer text-sm font-semibold">Detalhes e ações</summary>
       <NotasAdmin pedidoId={p.id} numero={p.numero} />
       <div className="mt-2 flex flex-wrap gap-1.5">
+        {colunaPedido(p.status) === "novos" ? (
+          <Button size="sm" variant="outline" onClick={() => onStatus(p, "cancelado")}>Cancelar pedido</Button>
+        ) : (
         <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
           <SelectTrigger className="w-40">
             <SelectValue />
@@ -1682,6 +1671,7 @@ function PedidosAdmin({
             ))}
           </SelectContent>
         </Select>
+        )}
         {onPagamento ? (
           <Select value={p.pagamento_status ?? "pendente"} onValueChange={(s) => onPagamento(p, s)}>
             <SelectTrigger className="w-40">
@@ -1712,30 +1702,158 @@ function PedidosAdmin({
           <Printer className="mr-1 size-3.5" /> Imprimir direto
         </Button>
       </div>
+      </details>
     </article>
   );
   return (
     <>
-      <div className="relative min-h-36 overflow-hidden rounded-xl shadow-[var(--shadow-card)]">
-        <img
-          src={fritos}
-          alt="Pedidos Néia"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
-        <div className="relative flex items-center gap-3 p-5">
-          <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
-            <ClipboardList className="size-7" aria-hidden />
-          </span>
-          <div>
-            <h1 className="font-display text-2xl font-bold text-white">Pedidos</h1>
-            <p className="text-sm text-white/80">
-              Acompanhe o status de todos os pedidos da loja.
-            </p>
-          </div>
+      <PremiumPageHeader
+        icone={ClipboardList}
+        titulo="Gestão de Pedidos"
+        subtitulo="Atendimento · Néia Salgados"
+        acoes={<Button asChild><Link to="/pdv">+ Novo Pedido</Link></Button>}
+      />
+      <section className="mt-4 rounded-xl border border-border bg-card p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="sr-only">Filtros de gestão de pedidos</h2>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={soAgendados}
+              onChange={(e) => setSoAgendados(e.target.checked)}
+            />{" "}
+            Só agendados
+          </label>
+          <Select value={fEvento} onValueChange={setFEvento}>
+            <SelectTrigger className="ml-auto w-44">
+              <SelectValue placeholder="Evento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os eventos</SelectItem>
+              <SelectItem value="sem_evento">Sem evento</SelectItem>
+              <SelectItem value="aniversario">Aniversário</SelectItem>
+              <SelectItem value="casamento">Casamento</SelectItem>
+              <SelectItem value="empresa">Empresa</SelectItem>
+              <SelectItem value="festa">Festa</SelectItem>
+              <SelectItem value="confraternizacao">Confraternização</SelectItem>
+              <SelectItem value="outro">Outro</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filtro} onValueChange={setFiltro}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os estágios</SelectItem>
+              {COLUNAS_GESTAO.map((coluna) => <SelectItem key={coluna.id} value={coluna.id}>{coluna.titulo}</SelectItem>)}
+              {[
+                "recebido",
+                "aceito",
+                "em_producao",
+                "pronto",
+                "aguardando_motoboy",
+                "em_rota",
+                "entregue",
+                "retirado",
+                "cancelado",
+              ].map((v) => (
+                <SelectItem key={v} value={v}>
+                  {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v] ?? v}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            value={buscaLocal}
+            onChange={(e) => setBuscaLocal(e.target.value)}
+            aria-label="Buscar pedidos"
+            placeholder="Nº, cliente, telefone ou sabor…"
+            className="w-52"
+          />
+          <Select value={fPeriodo} onValueChange={setFPeriodo}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todo o período</SelectItem>
+              <SelectItem value="1">Hoje</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={fPgto} onValueChange={setFPgto}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Pagamento" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as formas</SelectItem>
+              <SelectItem value="pix">Pix</SelectItem>
+              <SelectItem value="dinheiro">Dinheiro</SelectItem>
+              <SelectItem value="credito">Crédito</SelectItem>
+              <SelectItem value="debito">Débito</SelectItem>
+            </SelectContent>
+          </Select>
+          <select aria-label="Modalidade" value={modalidade} onChange={(event) => setModalidade(event.target.value)}
+            className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+            <option value="todas">Entrega e retirada</option>
+            <option value="entrega">Entrega</option>
+            <option value="retirada">Retirada</option>
+          </select>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={exportarCSV}>
+            Exportar CSV
+          </Button>
+          <Button size="sm" variant="ghost" onClick={verTodosPedidos}>Limpar filtros</Button>
+          {foco ? (
+            <Button size="sm" variant="outline" onClick={onLimparFoco}>
+              Foco: “{foco}” ✕
+            </Button>
+          ) : null}
         </div>
-      </div>
 
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {COLUNAS_GESTAO.map((c) => {
+            const itens = listaTope.filter((p) => colunaPedido(p.status) === c.id);
+            return (
+              <div
+                key={c.titulo}
+                className={`flex min-h-36 flex-col rounded-xl border border-border border-t-4 ${c.cor} bg-muted/30`}
+              >
+                <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+                  <span className={`size-2.5 shrink-0 rounded-full ${c.ponto}`} />
+                  <h3 className="font-display text-sm font-semibold tracking-wide">{c.titulo}</h3>
+                  <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+                    {itens.length}
+                  </span>
+                </div>
+                <p className="px-3 pt-2 text-xs text-muted-foreground">{c.descricao}</p>
+                <div className="no-scrollbar flex max-h-[70vh] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+                  {itens.map(cartao)}
+                  {itens.length === 0 && (
+                    <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
+                      Nenhum pedido.
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {naoColunados.length > 0 ? (
+          <details className="mt-4 rounded-xl border border-border bg-muted/30">
+            <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">
+              Histórico — {naoColunados.length} pedido(s) fora das colunas (entregues / retirados / cancelados)
+            </summary>
+            <div className="flex flex-col gap-2.5 p-3">{naoColunados.map(cartao)}</div>
+          </details>
+        ) : null}
+
+        {lista.length === 0 && (
+          <p className="mt-4 text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>
+        )}
+      </section>
+      <details className="mt-4 rounded-xl border border-border bg-card p-4">
+        <summary className="cursor-pointer text-sm font-semibold">Resumo e pagamentos do dia</summary>
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatusCard
           className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
@@ -1905,175 +2023,7 @@ function PedidosAdmin({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <a
-          href="/pdv"
-          className="flex min-h-[56px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 text-[#202B3A] shadow-card hover:border-[rgba(196,154,67,.55)]"
-        >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-b from-[#D9B25E] to-[#C49A43] font-bold text-[#202B3A]">
-            +
-          </span>
-          <span>
-            <span className="block text-sm font-bold">Novo Pedido</span>
-            <span className="block text-xs text-[#64748B]">Registrar pedido manualmente</span>
-          </span>
-        </a>
-        <button
-          type="button"
-          onClick={verTodosPedidos}
-          className="flex min-h-[56px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 text-left text-[#202B3A] shadow-card hover:border-[rgba(196,154,67,.55)]"
-        >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
-            <ClipboardList className="size-5" aria-hidden />
-          </span>
-          <span>
-            <span className="block text-sm font-bold">Ver Todos os Pedidos</span>
-            <span className="block text-xs text-[#64748B]">Limpa filtros e foco</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          onClick={exportarCSV}
-          className="flex min-h-[56px] items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4 text-left text-[#202B3A] shadow-card hover:border-[rgba(196,154,67,.55)]"
-        >
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-b from-[#D9B25E] to-[#C49A43] text-[#202B3A]">
-            <Download className="size-5" aria-hidden />
-          </span>
-          <span>
-            <span className="block text-sm font-bold">Exportar CSV</span>
-            <span className="block text-xs text-[#64748B]">Vendas e desempenho</span>
-          </span>
-        </button>
-      </div>
-
-      <section className="mt-4 rounded-xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-display text-xl">Gestão de pedidos</h2>
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={soAgendados}
-              onChange={(e) => setSoAgendados(e.target.checked)}
-            />{" "}
-            Só agendados
-          </label>
-          <Select value={fEvento} onValueChange={setFEvento}>
-            <SelectTrigger className="ml-auto w-44">
-              <SelectValue placeholder="Evento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os eventos</SelectItem>
-              <SelectItem value="sem_evento">Sem evento</SelectItem>
-              <SelectItem value="aniversario">Aniversário</SelectItem>
-              <SelectItem value="casamento">Casamento</SelectItem>
-              <SelectItem value="empresa">Empresa</SelectItem>
-              <SelectItem value="festa">Festa</SelectItem>
-              <SelectItem value="confraternizacao">Confraternização</SelectItem>
-              <SelectItem value="outro">Outro</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filtro} onValueChange={setFiltro}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              {[
-                "recebido",
-                "em_producao",
-                "pronto",
-                "aguardando_motoboy",
-                "em_rota",
-                "entregue",
-                "cancelado",
-              ].map((v) => (
-                <SelectItem key={v} value={v}>
-                  {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={buscaLocal}
-            onChange={(e) => setBuscaLocal(e.target.value)}
-            placeholder="🔎 Nº, cliente ou telefone…"
-            className="w-52"
-          />
-          <Select value={fPeriodo} onValueChange={setFPeriodo}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todo o período</SelectItem>
-              <SelectItem value="1">Hoje</SelectItem>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={fPgto} onValueChange={setFPgto}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Pagamento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as formas</SelectItem>
-              <SelectItem value="pix">Pix</SelectItem>
-              <SelectItem value="dinheiro">Dinheiro</SelectItem>
-              <SelectItem value="credito">Crédito</SelectItem>
-              <SelectItem value="debito">Débito</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm" variant="outline" className="ml-auto" onClick={exportarCSV}>
-            Exportar CSV
-          </Button>
-          {foco ? (
-            <Button size="sm" variant="outline" onClick={onLimparFoco}>
-              Foco: “{foco}” ✕
-            </Button>
-          ) : null}
-        </div>
-
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          {colunas.map((c) => {
-            const itens = listaTope.filter((p) => c.status.includes(p.status));
-            return (
-              <div
-                key={c.titulo}
-                className={`flex min-h-[18rem] flex-col rounded-xl border border-border border-t-4 ${c.ring} bg-muted/30`}
-              >
-                <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-                  <span className={`size-2.5 shrink-0 rounded-full ${c.dot}`} />
-                  <h3 className="font-display text-sm font-semibold tracking-wide">{c.titulo}</h3>
-                  <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-                    {itens.length}
-                  </span>
-                </div>
-                <p className="px-3 pt-2 text-xs text-muted-foreground">{c.sub}</p>
-                <div className="no-scrollbar flex max-h-[70vh] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
-                  {itens.map(cartao)}
-                  {itens.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                      Nenhum pedido.
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {naoColunados.length > 0 ? (
-          <details className="mt-4 rounded-xl border border-border bg-muted/30">
-            <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">
-              Histórico — {naoColunados.length} pedido(s) fora das colunas (entregues / cancelados)
-            </summary>
-            <div className="flex flex-col gap-2.5 p-3">{naoColunados.map(cartao)}</div>
-          </details>
-        ) : null}
-
-        {lista.length === 0 && (
-          <p className="mt-4 text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>
-        )}
-      </section>
+      </details>
     </>
   );
 }
