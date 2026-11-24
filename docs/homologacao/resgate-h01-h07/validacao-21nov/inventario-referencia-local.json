@@ -1,0 +1,158 @@
+[
+  {
+    "modo": "desktop",
+    "path": "/admin#produtos",
+    "rota": "/admin#produtos",
+    "titulos": [
+      "Produtos (5)",
+      "Categorias"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#fichas",
+    "rota": "/admin#fichas",
+    "titulos": [
+      "Ficha técnica por produto"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#compras",
+    "rota": "/admin#compras",
+    "titulos": [
+      "Compras Premium"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#fornecedores",
+    "rota": "/admin#fornecedores",
+    "titulos": [
+      "Fornecedores Premium"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#comercial",
+    "rota": "/admin#comercial",
+    "titulos": [
+      "Comercial (base: dados carregados)",
+      "Orçamentos por status"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/campanhas",
+    "rota": "/campanhas",
+    "titulos": [
+      "Comercial — Marketing e Reativação"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/equipe",
+    "rota": "/equipe",
+    "titulos": [
+      "Equipe",
+      "Meu ponto",
+      "Funcionários",
+      "Escalas da semana"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/fiscal",
+    "rota": "/fiscal",
+    "titulos": [
+      "Fiscal",
+      "Empresa (Administração → Fiscal)"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/contador",
+    "rota": "/contador",
+    "titulos": [
+      "Contador"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#produtos",
+    "rota": "/admin#produtos",
+    "titulos": [
+      "Produtos (5)",
+      "Categorias"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#fichas",
+    "rota": "/admin#fichas",
+    "titulos": [
+      "Ficha técnica por produto"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#compras",
+    "rota": "/admin#compras",
+    "titulos": [
+      "Compras Premium"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#fornecedores",
+    "rota": "/admin#fornecedores",
+    "titulos": [
+      "Fornecedores Premium"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#comercial",
+    "rota": "/admin#comercial",
+    "titulos": [
+      "Comercial (base: dados carregados)",
+      "Orçamentos por status"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/campanhas",
+    "rota": "/campanhas",
+    "titulos": [
+      "Comercial — Marketing e Reativação"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/equipe",
+    "rota": "/equipe",
+    "titulos": [
+      "Equipe",
+      "Meu ponto",
+      "Funcionários",
+      "Escalas da semana"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/fiscal",
+    "rota": "/fiscal",
+    "titulos": [
+      "Fiscal",
+      "Empresa (Administração → Fiscal)"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/contador",
+    "rota": "/contador",
+    "titulos": [
+      "Contador"
+    ]
+  }
+]

@@ -1,0 +1,174 @@
+[
+  {
+    "modo": "desktop",
+    "path": "/admin#produtos",
+    "rota": "/admin#produtos",
+    "titulos": [
+      "Produtos (0)",
+      "Categorias"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#fichas",
+    "rota": "/admin#fichas",
+    "titulos": [
+      "Ficha técnica por produto"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#compras",
+    "rota": "/admin#compras",
+    "titulos": [
+      "Compras"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#fornecedores",
+    "rota": "/admin#fornecedores",
+    "titulos": [
+      "Fornecedores",
+      "Novo fornecedor"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/admin#comercial",
+    "rota": "/admin#comercial",
+    "titulos": [
+      "Comercial (base: dados carregados)",
+      "Orçamentos por status"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/campanhas",
+    "rota": "/campanhas",
+    "titulos": [
+      "📣 Campanhas",
+      "Cupom de reativação",
+      "Simulador de campanha"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/equipe",
+    "rota": "/equipe",
+    "titulos": [
+      "Equipe",
+      "Meu ponto",
+      "Funcionários",
+      "Escalas da semana"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/fiscal",
+    "rota": "/fiscal",
+    "titulos": [
+      "Fiscal",
+      "Empresa (Administração → Fiscal)",
+      "Provedor fiscal (transmissão SEFAZ)",
+      "Emitir (pedidos sem documento)"
+    ]
+  },
+  {
+    "modo": "desktop",
+    "path": "/contador",
+    "rota": "/contador",
+    "titulos": [
+      "Contador",
+      "Fechamento — 2026-11",
+      "Documentos fiscais",
+      "Vendas por pagamento"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#produtos",
+    "rota": "/admin#produtos",
+    "titulos": [
+      "Produtos (0)",
+      "Categorias"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#fichas",
+    "rota": "/admin#fichas",
+    "titulos": [
+      "Ficha técnica por produto"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#compras",
+    "rota": "/admin#compras",
+    "titulos": [
+      "Compras"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#fornecedores",
+    "rota": "/admin#fornecedores",
+    "titulos": [
+      "Fornecedores",
+      "Novo fornecedor"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/admin#comercial",
+    "rota": "/admin#comercial",
+    "titulos": [
+      "Comercial (base: dados carregados)",
+      "Orçamentos por status"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/campanhas",
+    "rota": "/campanhas",
+    "titulos": [
+      "📣 Campanhas",
+      "Cupom de reativação",
+      "Simulador de campanha"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/equipe",
+    "rota": "/equipe",
+    "titulos": [
+      "Equipe",
+      "Meu ponto",
+      "Funcionários",
+      "Escalas da semana"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/fiscal",
+    "rota": "/fiscal",
+    "titulos": [
+      "Fiscal",
+      "Empresa (Administração → Fiscal)",
+      "Provedor fiscal (transmissão SEFAZ)",
+      "Emitir (pedidos sem documento)"
+    ]
+  },
+  {
+    "modo": "mobile",
+    "path": "/contador",
+    "rota": "/contador",
+    "titulos": [
+      "Contador",
+      "Fechamento — 2026-11",
+      "Documentos fiscais",
+      "Vendas por pagamento"
+    ]
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "modo": "desktop",
+    "caso": "PDV recupera permissões após falha de rede",
+    "status": "ok"
+  },
+  {
+    "modo": "mobile",
+    "caso": "PDV recupera permissões após falha de rede",
+    "status": "ok"
+  }
+]
