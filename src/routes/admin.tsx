@@ -1121,10 +1121,21 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="estoque-salgados" className="mt-4">
-          <SalgadosAdmin onProdutos={(nome) => {
-            setProdutoFoco(nome ?? "");
-            navegarAba("produtos");
-          }} />
+          <SalgadosAdmin
+            onProdutos={() => {
+              setProdutoFoco("");
+              navegarAba("produtos");
+            }}
+            renderMovimento={(produto, acao, atualizar) => (
+              <MovEstoque
+                key={`${produto.id}:${acao}`}
+                produto={produto}
+                onChange={atualizar}
+                somenteEntrada={acao === "entrada"}
+                mostrarHistorico={false}
+              />
+            )}
+          />
         </TabsContent>
 
         <TabsContent value="insumos" className="mt-4">
@@ -2512,7 +2523,12 @@ function ProdutosAdmin({
   );
 }
 
-function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void }) {
+function MovEstoque({ produto, onChange, somenteEntrada = false, mostrarHistorico = true }: {
+  produto: { id: string; nome: string; estoque: number };
+  onChange: () => void;
+  somenteEntrada?: boolean;
+  mostrarHistorico?: boolean;
+}) {
   const [tipo, setTipo] = useState<TipoMov>("entrada");
   const [qtd, setQtd] = useState(1);
   const [motivo, setMotivo] = useState("");
@@ -2520,6 +2536,7 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
   const chavePendente = useRef<string | null>(null);
   const { data: movs } = useQuery({
     queryKey: ["estoque-mov", produto.id],
+    enabled: mostrarHistorico,
     queryFn: async () => {
       try {
         const { data, error } = await supabase
@@ -2586,6 +2603,8 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
       <div className="mt-2 grid gap-2 sm:grid-cols-4">
         <select
           value={tipo}
+          aria-label="Tipo de movimentação"
+          disabled={somenteEntrada}
           onChange={(e) => setTipo(e.target.value as TipoMov)}
           className="rounded-md border border-input bg-background px-2 py-1.5 text-sm"
         >
@@ -2613,7 +2632,7 @@ function MovEstoque({ produto, onChange }: { produto: any; onChange: () => void 
       <Button size="sm" className="mt-2" disabled={enviando} onClick={salvar}>
         Registrar
       </Button>
-      {(movs ?? []).length > 0 ? (
+      {mostrarHistorico && (movs ?? []).length > 0 ? (
         <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
           {(movs ?? []).map((m: any) => (
             <li key={m.id}>
