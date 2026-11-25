@@ -11,7 +11,7 @@ const carregar = (arquivo) => {
   return "data:text/javascript;base64," + Buffer.from(outputText).toString("base64");
 };
 
-const { gerarRecomendacoesNeia, rotuloCategoriaNeia, rotuloNaturezaNeia, rotuloPrioridadeNeia } =
+const { gerarRecomendacoesNeia, rotuloCategoriaNeia, rotuloNaturezaNeia, rotuloPrioridadeNeia, rotuloSituacaoFonteNeia } =
   await import(carregar("../src/lib/neia-inteligencia.ts"));
 const { ehAbaAdministrativa } = await import(carregar("../src/lib/paineis-staff.ts"));
 
@@ -185,4 +185,164 @@ test("o módulo não grava nada: sugestão de tarefa depende de confirmação na
   );
   assert.match(tela, /setSugestao\(item\.tarefa\)/);
   assert.match(tela, /sugestao=\{sugestao\}/);
+  assert.match(tela, /Abrir recomendação/);
+  assert.match(tela, /aria-expanded=\{expandida\}/);
+  assert.match(tela, /item\.destino\.to/);
+});
+
+test("estoque separa ausência de cadastro, estoque zerado, mínimo e reserva excedida", () => {
+  const resultado = gerarRecomendacoesNeia({
+    atualizadoEm,
+    estoque: {
+      reposicao: 0,
+      vencendo: 0,
+      vencidos: 0,
+      sabores: [
+        { nome: "Coxinha", fisico: null, reservado: 0, disponivel: null, minimo: 50 },
+        { nome: "Risoles", fisico: 0, reservado: 0, disponivel: 0, minimo: 50 },
+        { nome: "Bolinha", fisico: 10, reservado: 4, disponivel: 6, minimo: null },
+        { nome: "Pastel", fisico: 2, reservado: 5, disponivel: -3, minimo: 10 },
+      ],
+    },
+  });
+  const porId = new Map(resultado.recomendacoes.map((item) => [item.id, item]));
+  assert.ok(porId.has("estoque-sem-cadastro"));
+  assert.match(porId.get("estoque-sem-cadastro").motivo, /Coxinha/);
+  assert.match(porId.get("estoque-sem-cadastro").motivo, /não significa estoque zerado/);
+  assert.ok(porId.has("estoque-zerado"));
+  assert.match(porId.get("estoque-zerado").motivo, /Risoles/);
+  assert.doesNotMatch(porId.get("estoque-zerado").motivo, /Coxinha/);
+  assert.ok(porId.has("estoque-sem-minimo"));
+  assert.match(porId.get("estoque-sem-minimo").motivo, /Bolinha/);
+  assert.ok(porId.has("estoque-reserva"));
+  assert.match(porId.get("estoque-reserva").motivo, /Pastel/);
+  assert.equal(porId.get("estoque-reserva").prioridade, "critica");
+});
+
+test("crescimento de 0% é estabilidade e não é tratado como queda", () => {
+  const resultado = gerarRecomendacoesNeia({
+    atualizadoEm,
+    comercial: {
+      crescimento: 0,
+      totalAtual: 1000,
+      totalAnterior: 1000,
+      reativar60a89: null,
+      campanhasProntas: null,
+    },
+  });
+  const vendas = resultado.recomendacoes.find((item) => item.id === "comercial-vendas");
+  assert.ok(vendas);
+  assert.equal(vendas.titulo, "Vendas estáveis");
+  assert.equal(vendas.tom, "azul");
+  assert.equal(vendas.prioridade, "baixa");
+  assert.match(vendas.motivo, /não é queda/);
+});
+
+test("reativação respeita as faixas de 30–59, 60–89 e 90+ dias", () => {
+  const resultado = gerarRecomendacoesNeia({
+    atualizadoEm,
+    comercial: {
+      crescimento: null,
+      totalAtual: null,
+      totalAnterior: null,
+      reativar30a59: 2,
+      reativar60a89: 3,
+      reativar90mais: 4,
+      campanhasProntas: null,
+    },
+  });
+  const reativacao = resultado.recomendacoes.find((item) => item.id === "comercial-reativacao");
+  assert.ok(reativacao);
+  assert.match(reativacao.motivo, /2 em 30–59 dias/);
+  assert.match(reativacao.motivo, /3 em 60–89 dias/);
+  assert.match(reativacao.motivo, /4 em 90 dias ou mais/);
+  assert.match(reativacao.dados.join(" "), /opt-out/);
+});
+
+test("contas próximas do vencimento, recebimentos atrasados e entregas atrasadas geram alertas", () => {
+  const resultado = gerarRecomendacoesNeia({
+    atualizadoEm,
+    entregas: {
+      aguardandoColeta: 0,
+      motoboysDisponiveis: 1,
+      tempoMedioMinutos: null,
+      atrasadas: 2,
+    },
+    financeiro: {
+      vencido: 0,
+      vencendo: 250,
+      recebimentosAtrasados: 120,
+      lucro: null,
+      margemParcial: false,
+      custosCobertos: null,
+      custosTotal: null,
+    },
+  });
+  const porId = new Map(resultado.recomendacoes.map((item) => [item.id, item]));
+  assert.ok(porId.has("financeiro-vencendo"));
+  assert.equal(porId.get("financeiro-vencendo").natureza, "previsao");
+  assert.ok(porId.has("financeiro-recebimentos"));
+  assert.equal(porId.get("financeiro-recebimentos").prioridade, "alta");
+  assert.ok(porId.has("entregas-atrasadas"));
+  assert.equal(porId.get("entregas-atrasadas").prioridade, "critica");
+});
+
+test("fontes distinguem dados suficientes, parciais, sem registros e falha", () => {
+  const resultado = gerarRecomendacoesNeia({
+    atualizadoEm,
+    fontes: {
+      estoque: "suficiente",
+      producao: "parcial",
+      entregas: "sem-registros",
+      financeiro: "falha",
+      comercial: "falha",
+    },
+  });
+  const porCategoria = new Map(resultado.fontes.map((fonte) => [fonte.categoria, fonte]));
+  assert.equal(porCategoria.get("estoque").situacao, "suficiente");
+  assert.equal(porCategoria.get("producao").situacao, "parcial");
+  assert.equal(porCategoria.get("entregas").situacao, "sem-registros");
+  assert.equal(porCategoria.get("financeiro").situacao, "falha");
+  assert.equal(porCategoria.get("estoque").disponivel, true);
+  assert.equal(porCategoria.get("entregas").disponivel, true);
+  assert.equal(porCategoria.get("financeiro").disponivel, false);
+  assert.equal(resultado.semDados, false);
+  assert.equal(rotuloSituacaoFonteNeia("sem-registros"), "Sem registros");
+  assert.equal(rotuloSituacaoFonteNeia("falha"), "Falha na consulta");
+
+  const semLeitura = gerarRecomendacoesNeia({
+    atualizadoEm,
+    fontes: {
+      estoque: "falha",
+      producao: "falha",
+      entregas: "falha",
+      financeiro: "falha",
+      comercial: "falha",
+    },
+  });
+  assert.equal(semLeitura.semDados, true);
+  const semRegistros = gerarRecomendacoesNeia({
+    atualizadoEm,
+    fontes: {
+      estoque: "sem-registros",
+      producao: "sem-registros",
+      entregas: "sem-registros",
+      financeiro: "sem-registros",
+      comercial: "sem-registros",
+    },
+  });
+  assert.equal(semRegistros.semDados, true);
+});
+
+test("a tela envia os dados por sabor, as faixas de reativação e os novos alertas", () => {
+  const tela = readFileSync(
+    new URL("../src/components/admin/neia-inteligencia.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(tela, /sabores: saldos\.linhas\.map/);
+  assert.match(tela, /reativar30a59/);
+  assert.match(tela, /reativar90mais/);
+  assert.match(tela, /atrasadas: entregasDados/);
+  assert.match(tela, /recebimentosAtrasados: fin\.receberAtrasado/);
+  assert.match(tela, /rotuloSituacaoFonteNeia/);
 });

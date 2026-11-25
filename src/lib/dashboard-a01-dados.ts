@@ -6,6 +6,7 @@ import { agregarClientes, useCrmSettings } from "@/lib/crm";
 import { calcularEstoqueDashboard } from "@/lib/dashboard-a01-estoque";
 import {
   contem,
+  deslocarDia,
   faixaAnterior,
   type FaixaDashboard,
   type PedidoDashboard,
@@ -296,6 +297,10 @@ export function financeiroDashboard(
   );
   const entradasCaixa = movimento.reduce((soma, item) => soma + item.entradasCentavos, 0) / 100;
   const saidasCaixa = movimento.reduce((soma, item) => soma + item.saidasCentavos, 0) / 100;
+  const hoje = hojeSP();
+  const limiteProximo = deslocarDia(hoje, 7);
+  const vencimentoProximo = (conta: Conta) =>
+    Boolean(conta.vencimento && conta.vencimento >= hoje && conta.vencimento <= limiteProximo);
   return {
     recebimentos: periodo.reduce((soma, item) => soma + item.entradasOperacionaisCentavos, 0) / 100,
     realizado: realizado(false),
@@ -314,8 +319,19 @@ export function financeiroDashboard(
     receber: total(pendentes.filter((conta) => conta.tipo === "receber")),
     vencido: total(
       pendentes.filter(
-        (conta) => conta.tipo === "pagar" && conta.vencimento && conta.vencimento < hojeSP(),
+        (conta) => conta.tipo === "pagar" && conta.vencimento && conta.vencimento < hoje,
       ),
+    ),
+    vencendo: total(
+      pendentes.filter((conta) => conta.tipo === "pagar" && vencimentoProximo(conta)),
+    ),
+    receberAtrasado: total(
+      pendentes.filter(
+        (conta) => conta.tipo === "receber" && conta.vencimento && conta.vencimento < hoje,
+      ),
+    ),
+    receberProximo: total(
+      pendentes.filter((conta) => conta.tipo === "receber" && vencimentoProximo(conta)),
     ),
     sessao,
     caixaIncompleto,

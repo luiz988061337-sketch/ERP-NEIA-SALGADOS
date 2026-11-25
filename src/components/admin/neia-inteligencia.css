@@ -106,6 +106,19 @@
   line-height: 1.25;
 }
 
+.neia-a02-detalhe {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #3c4852;
+  border-radius: 8px;
+  background: #0d1419;
+}
+
+.neia-a02-girar {
+  transform: rotate(180deg);
+}
+
 .neia-a02-acoes {
   display: flex;
   flex-wrap: wrap;
