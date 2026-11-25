@@ -108,7 +108,12 @@ import { ActionButton, MetricCard, PremiumDemoBadge, PremiumPageHeader, PremiumS
 import { DonoPremium } from "@/components/admin/dono-premium";
 import { MetasPremium } from "@/components/admin/metas-premium";
 import { ContadorPremium } from "@/components/admin/contador-premium";
-import { DashboardGestao } from "@/components/admin/dashboard-admin";
+import { DashboardOperacional } from "@/components/admin/dashboard-a01";
+import { PainelEquipeTarefasA01 } from "@/components/admin/tarefas-a01";
+import { PAPEIS_TAREFAS_A01 } from "@/lib/tarefas-a01";
+import dashboardCss from "@/components/admin/dashboard-a01.css?url";
+import { contem, faixaDashboard, pertenceAoGrupo, STATUS_DASHBOARD, type FaixaDashboard, type GrupoPedido } from "@/lib/dashboard-a01";
+import { lerDashboard } from "@/lib/dashboard-a01-dados";
 import { PainelDashboardL2 } from "@/components/admin/dashboard-l2";
 import { CentralAtendenteL2 } from "@/components/admin/central-atendente-l2";
 import { CentralPedidos } from "@/components/central-pedidos";
@@ -127,7 +132,22 @@ import { noIntervalo } from "@/lib/operacao";
 import { cn } from "@/lib/utils";
 import estoqueCss from "@/components/estoque-preview/estoques.css?url";
 
+type FiltroDashboard = { a01Inicio?: string; a01Fim?: string; a01Grupo?: GrupoPedido; a01Pedido?: string };
+
+function filtroDashboard(search: Record<string, unknown>): FiltroDashboard {
+  const { a01Pedido, a01Inicio, a01Fim, a01Grupo } = search;
+  if (typeof a01Pedido === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(a01Pedido)) {
+    return { a01Pedido };
+  }
+  const faixa = typeof a01Inicio === "string" && typeof a01Fim === "string"
+    ? faixaDashboard(a01Inicio, a01Fim) : null;
+  if (!faixa || faixa.dias > 366) return {};
+  const grupo = STATUS_DASHBOARD.find(([id]) => id === a01Grupo)?.[0];
+  return { a01Inicio: faixa.inicio, a01Fim: faixa.ultimoDia, ...(grupo ? { a01Grupo: grupo } : {}) };
+}
+
 export const Route = createFileRoute("/admin")({
+  validateSearch: filtroDashboard,
   head: () => ({
     meta: [
       { title: "Administração — Néia Salgados" },
@@ -139,7 +159,7 @@ export const Route = createFileRoute("/admin")({
     // E01: mesmo CSS aprovado do Estoque de Salgados. Todos os seletores são
     // namespaced (`est-*`) ou escopados por `.estoques-preview`, sem afetar as
     // demais áreas da administração.
-    links: [{ rel: "stylesheet", href: estoqueCss }],
+    links: [{ rel: "stylesheet", href: estoqueCss }, { rel: "stylesheet", href: dashboardCss }],
   }),
   component: Admin,
 });
@@ -152,6 +172,7 @@ function Admin() {
   const queryClient = useQueryClient();
   const { pathname, hash, href } = useLocation();
   const aba = abaAdministrativa(hash);
+  const filtroA01 = Route.useSearch();
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoje");
   const [buscaGlobal, setBuscaGlobal] = useState("");
   const [pedidoFoco, setPedidoFoco] = useState("");
@@ -177,7 +198,7 @@ function Admin() {
     });
   }
 
-  const { data: clientesStats } = useClientesStats();
+  const { data: clientesStats } = useClientesStats(roles?.includes("admin") === true);
 
   useEffect(() => {
     if (pathname === "/admin" && !loading && !user) {
@@ -199,6 +220,26 @@ function Admin() {
         .limit(400);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const temFiltroA01 = aba === "pedidos" && Boolean(filtroA01.a01Inicio || filtroA01.a01Pedido);
+  const pedidosA01 = useQuery({
+    queryKey: ["dashboard-a01", user?.id, "detalhe-pedidos", filtroA01],
+    enabled: !!isAdmin && temFiltroA01,
+    refetchInterval: 15000,
+    queryFn: async ({ signal }) => {
+      const faixa = filtroA01.a01Inicio && filtroA01.a01Fim ? faixaDashboard(filtroA01.a01Inicio, filtroA01.a01Fim) : null;
+      const grupo = filtroA01.a01Grupo;
+      const campo = grupo === "agendados" ? "agendado_para" : "created_at";
+      const linhas = await lerDashboard<NonNullable<typeof pedidos>[number]>((inicio, fim) => {
+        let consulta = supabase.from("pedidos").select("*, pedido_itens(*)").order("created_at", { ascending: false }).order("id");
+        if (filtroA01.a01Pedido) consulta = consulta.eq("id", filtroA01.a01Pedido);
+        else if (faixa) consulta = consulta.gte(campo, faixa.ini).lt(campo, faixa.fim);
+        return consulta.range(inicio, fim).abortSignal(signal);
+      });
+      return linhas.filter((pedido) => filtroA01.a01Pedido ||
+        (faixa && contem(faixa, pedido[campo]) && (grupo ? pertenceAoGrupo(pedido, grupo) : pedido.status !== "cancelado")));
     },
   });
 
@@ -664,12 +705,11 @@ function Admin() {
     }
   }
 
-  function navegarDashboard(destino: string) {
-    if (destino === "financeiro" || destino === "impressao") {
-      void navigate({ to: destino === "financeiro" ? "/financeiro" : "/impressao" });
-    } else {
-      navegarAba(destino);
-    }
+  function abrirPedidosDashboard(faixa?: FaixaDashboard, grupo?: GrupoPedido, pedidoId?: string) {
+    setPedidoFoco("");
+    const search: FiltroDashboard = pedidoId ? { a01Pedido: pedidoId } : faixa
+      ? { a01Inicio: faixa.inicio, a01Fim: faixa.ultimoDia, ...(grupo ? { a01Grupo: grupo } : {}) } : {};
+    void navigate({ to: "/admin", search, hash: "pedidos", hashScrollIntoView: false });
   }
 
   function refreshAll() {
@@ -684,6 +724,7 @@ function Admin() {
       "admin-avaliacoes",
       "admin-all-roles",
       "admin-metas",
+      "dashboard-a01",
     ])
       queryClient.invalidateQueries({ queryKey: [k] });
     void refetchRoles();
@@ -751,9 +792,16 @@ function Admin() {
     );
   }
 
+  const podeAcessarTarefas = !modoDemo && PAPEIS_TAREFAS_A01.some((papel) => roles?.includes(papel));
+  if (hash === "minhas-tarefas" && podeAcessarTarefas) {
+    return <PainelEquipeTarefasA01 key={user.id} usuarioId={user.id} admin={!!isAdmin} />;
+  }
   if (!isAdmin) {
     return (
-      <p className="p-10 text-center text-muted-foreground">Acesso restrito ao administrador.</p>
+      <div className="space-y-3 p-10 text-center">
+        <p className="text-muted-foreground">Acesso restrito ao administrador.</p>
+        {podeAcessarTarefas && <Link className="inline-flex min-h-11 items-center font-semibold underline" to="/admin" hash="minhas-tarefas">Abrir minhas tarefas</Link>}
+      </div>
     );
   }
 
@@ -877,35 +925,19 @@ function Admin() {
               setProdutoFoco={setProdutoFoco}
               setClienteFoco={setClienteFoco}
             />
-          ) : (
-            <>
-              {pedidosComErro || produtosComErro ? (
-                <p role="alert" className="mx-4 mt-4 rounded-lg border border-destructive/60 p-3 text-sm text-destructive">
-                  Não foi possível carregar todos os dados do painel. Use “Atualizar dados” para tentar novamente.
-                </p>
-              ) : pedidosPendentes || produtosPendentes ? (
-                <p role="status" className="mx-4 mt-4 text-sm text-muted-foreground">Carregando indicadores…</p>
-              ) : null}
-              {!pedidosPendentes && !produtosPendentes && !pedidosComErro && !produtosComErro ? (
-                <DashboardGestao
-                  pedidos={pedidos}
-                  produtos={produtos}
-                  profiles={profiles ?? []}
-                  clientesStats={clientesStats ?? []}
-                  periodo={periodo}
-                  setPeriodo={setPeriodo}
-                  setAba={navegarDashboard}
-                  notLidas={notLidas}
-                  marcarLida={marcarLida}
-                  busca={buscaGlobal}
-                  setBusca={setBuscaGlobal}
-                  setPedidoFoco={setPedidoFoco}
-                  setProdutoFoco={setProdutoFoco}
-                  setClienteFoco={setClienteFoco}
-                />
-              ) : null}
-            </>
-          )}
+          ) : user ? (
+            <DashboardOperacional
+              key={user.id}
+              usuarioId={user.id}
+              email={user.email ?? null}
+              abrirPedidos={abrirPedidosDashboard}
+              abrirCadastro={(tipo, termo) => {
+                if (tipo === "produtos") setProdutoFoco(termo);
+                else setClienteFoco(termo);
+                navegarAba(tipo);
+              }}
+            />
+          ) : null}
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-0">
@@ -917,23 +949,31 @@ function Admin() {
               <div id="painel-operacional-pedidos">
                 <CentralPedidos usuarioId={user.id} papeis={roles} />
               </div>
-              <details open={pedidoFoco ? true : undefined} className="mx-3 rounded-lg border border-border bg-card p-3 sm:mx-4">
+              <details key={JSON.stringify(filtroA01)} open={pedidoFoco || temFiltroA01 ? true : undefined} className="mx-3 rounded-lg border border-border bg-card p-3 sm:mx-4">
                 <summary className="cursor-pointer text-sm font-semibold">Gestão avançada de pedidos</summary>
-                {pedidosComErro ? (
+                {(temFiltroA01 ? pedidosA01.isError : pedidosComErro) ? (
                   <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/60 p-3">
                     <p>Não foi possível carregar os pedidos.</p>
                     <Button variant="outline" onClick={refreshAll}>Tentar novamente</Button>
                   </div>
-                ) : pedidosPendentes ? (
+                ) : (temFiltroA01 ? pedidosA01.isPending : pedidosPendentes) ? (
                   <p role="status" className="p-4 text-muted-foreground">Carregando pedidos…</p>
                 ) : (
-                  <PedidosAdmin
-                    pedidos={pedidos}
-                    onStatus={mudarStatusPedido}
-                    onPagamento={mudarPagamento}
-                    foco={pedidoFoco}
-                    onLimparFoco={() => setPedidoFoco("")}
-                  />
+                  <>
+                    {temFiltroA01 && <div className="my-3 flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
+                      <p>Dashboard · {filtroA01.a01Pedido ? "Pedido selecionado" :
+                        STATUS_DASHBOARD.find(([id]) => id === filtroA01.a01Grupo)?.[1] ?? "Pedidos válidos"}
+                        {filtroA01.a01Inicio ? " · " + filtroA01.a01Inicio + " a " + filtroA01.a01Fim : ""}</p>
+                      <Button variant="outline" onClick={() => abrirPedidosDashboard()}>Limpar filtro do Dashboard</Button>
+                    </div>}
+                    <PedidosAdmin
+                      pedidos={(temFiltroA01 ? pedidosA01.data : pedidos) ?? []}
+                      onStatus={mudarStatusPedido}
+                      onPagamento={mudarPagamento}
+                      foco={pedidoFoco}
+                      onLimparFoco={() => setPedidoFoco("")}
+                    />
+                  </>
                 )}
               </details>
             </div>
@@ -1562,7 +1602,8 @@ function PedidosAdmin({
           );
         })
       : listaAge;
-  const listaTope = lista.slice(0, 60);
+  const [limiteLista, setLimiteLista] = useState(60);
+  const listaTope = lista.slice(0, limiteLista);
   // Resumo do dia (real, independente dos filtros): KPIs, recentes, status e pagamentos.
   const resumoPed = useMemo(() => {
     const hoje = new Date().toDateString();
@@ -1604,6 +1645,7 @@ function PedidosAdmin({
   }, [pedidos]);
   function verTodosPedidos() {
     setFiltro("todos");
+    setLimiteLista(60);
     setModalidade("todas");
     setFEvento("todos");
     setSoAgendados(false);
@@ -1922,6 +1964,9 @@ function PedidosAdmin({
         />
       </div>
 
+      {lista.length > limiteLista && <Button type="button" variant="outline" className="mt-3" onClick={() => setLimiteLista((limite) => limite + 60)}>
+        Mostrar mais pedidos ({listaTope.length} de {lista.length})
+      </Button>}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <section
           className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] lg:col-span-2"
