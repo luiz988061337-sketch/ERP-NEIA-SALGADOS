@@ -80,19 +80,57 @@ Toda recomendação gerada contém:
 | Conferir contas vencidas | Financeiro | Fato | Crítica | Saldo pendente em contas vencidas | Programar pagamento com o responsável |
 | Resultado do período negativo | Financeiro | Fato | Alta | Lucro estimado negativo | Revisar despesas e preços |
 | Completar cadastro de custos | Financeiro | Estimativa | Normal | Pedidos sem todos os custos registrados | Completar custo dos produtos |
-| Oportunidade de reativação | Comercial | Fato | Normal | Clientes sem compra há 60–89 dias e sem opt-out | Revisar lista elegível |
+| Oportunidade de reativação | Comercial | Fato | Normal | Clientes sem compra há 30–59, 60–89 ou 90+ dias, sem opt-out | Revisar lista elegível |
 | Campanhas prontas | Comercial | Fato | Baixa | Campanha com status pronta | Revisar público e mensagem |
+| Sabores sem estoque cadastrado | Estoque | Fato | Alta | Sabor sem nenhum lote físico registrado | Registrar o primeiro lote ou confirmar fora de linha |
+| Estoque físico zerado | Estoque | Fato | Crítica | Sabor com lote cadastrado e saldo físico zero | Repor ou pausar a venda do sabor |
+| Reserva acima do estoque físico | Estoque | Fato | Crítica | Reservas ativas maiores que o saldo físico | Conferir reservas e estoque |
+| Definir estoque mínimo | Estoque | Fato | Normal | Sabor sem estoque mínimo cadastrado | Definir o mínimo operacional |
+| Contas próximas do vencimento | Financeiro | Previsão | Normal | Contas a pagar vencendo nos próximos 7 dias | Programar pagamentos antes do vencimento |
+| Recebimentos atrasados | Financeiro | Fato | Alta | Contas a receber já vencidas | Cobrar os valores em atraso |
+| Entregas em atraso | Entregas | Fato | Crítica | Atraso de entrega registrado e não resolvido | Conferir o pedido e avisar o cliente |
 
 ## Dados insuficientes e duplicidade
 
 - Regra sem dado obrigatório não é avaliada e não gera alerta.
-- A tela informa quais fontes estão indisponíveis na consulta.
-- Quando nenhuma fonte responde, o módulo declara ausência de dados e não
-  conclui nada.
+- A tela informa a situação de cada fonte com cor própria:
+  - **Dados suficientes** (verde) — leitura completa;
+  - **Dados parciais** (ouro) — leitura com lacunas (ex.: sabor sem mínimo,
+    carga da cozinha incompleta, CRM ou campanhas indisponíveis);
+  - **Sem registros** (azul) — a consulta respondeu, mas não há registros;
+  - **Falha na consulta** (vermelho) — a leitura não foi concluída.
+- Ausência de registros e falha de consulta nunca são tratadas como operação
+  normal; quando todas as fontes estão nesses estados, o módulo declara
+  ausência de dados e não conclui nada.
 - As recomendações são consolidadas por identificador; não há alerta repetido
   para o mesmo fato.
 - Não há dado fictício no código operacional: sem leitura real, o alerta
   correspondente simplesmente não aparece.
+
+## Ajustes A02.1.1 (26/11/2026)
+
+1. **Estoque por sabor**: o motor recebe o saldo de cada sabor e separa
+   ausência de cadastro (nunca teve lote) de estoque zerado (lote cadastrado,
+   saldo zero), além de apontar sabores sem mínimo e reservas acima do físico.
+2. **Situação das fontes**: `ResultadoNeia.fontes` passa a carregar a situação
+   completa (suficiente, parcial, sem registros, falha) informada pela tela,
+   que distingue erro de consulta de ausência de registros.
+3. **Reativação em três faixas**: 30–59, 60–89 e 90+ dias, sempre respeitando
+   o opt-out do CRM; a elegibilidade continua sendo conferida antes do envio.
+4. **Variação de vendas 0%**: é apresentada como "Vendas estáveis" (prioridade
+   baixa, tom azul) e nunca como queda.
+5. **Financeiro completo**: contas a pagar próximas do vencimento (7 dias),
+   recebimentos atrasados e, quando houver dados, entregas com atraso
+   registrado e não resolvido.
+6. **Abrir recomendação**: cada cartão abre em detalhe sob demanda; o link do
+   módulo e o botão **Sugerir tarefa** ficam dentro do detalhe, e a criação da
+   tarefa continua dependendo da confirmação no formulário da A01.
+7. **Menu lateral e identidade**: o item Néia Inteligência permanece no grupo
+   Gestão do menu compartilhado com a A01, sem alteração de estrutura; a paleta
+   grafite/dourado e os estilos escopados `.neia-a02` são mantidos.
+8. O Dashboard A01 continua com `escopo: "a01"`: recebe as correções de
+   regra (0% neutro, faixas de reativação) sem receber os novos alertas da
+   A02.1.1.
 
 ## Tarefas
 

@@ -13,6 +13,27 @@
 
 # Regras de trabalho Codex e OpenCode
 
+## Configuração permanente de ambientes
+
+### Homologação — desenvolvimento e testes
+- Endereço fixo: `https://erp-neia-salgados-git-resga-dcaca5-luiz988061337-3147s-projects.vercel.app`
+- Banco Supabase: `lflzlcqinarrcgncafol`
+- Branch: `resgate-visual-h01-h07-codex`
+- Configurações obrigatórias: `VITE_DEMO_PREVIEW=0` e `NEIA_AMBIENTE=homologacao`
+
+### Produção — ambiente protegido
+- Endereço: `https://erp-neia-salgados.vercel.app`
+- Banco Supabase: `ruioyioynwwwiqbjznoa`
+- Não modificar sem autorização expressa do proprietário.
+
+### Regras de publicação e versionamento
+- Utilizar sempre o mesmo endereço de homologação; não criar novos projetos ou endereços.
+- Sincronizar o GitHub antes de iniciar qualquer etapa e salvar os commits após cada implementação.
+- Preservar os módulos aprovados.
+- Validar o ambiente antes de publicar.
+- Bloquear a publicação se houver referência ao banco de produção (`ruioyioynwwwiqbjznoa`) ou se o modo demonstração estiver ativado (`VITE_DEMO_PREVIEW=1`).
+- Nunca usar force push.
+
 ## Preservação
 - Não reconstruir o ERP sem autorização.
 - Preservar layouts, fluxos e funcionalidades aprovados.
