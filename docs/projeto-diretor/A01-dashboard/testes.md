@@ -12,6 +12,8 @@
 | tarefas-rls.test.sql | Passou no PostgreSQL 17 local e no Supabase lflzlcqinarrcgncafol. |
 | Dados de homologação | Consultas autorizadas verificaram fontes e permissões. A base consultada estava sem pedidos, lotes ativos e sessão de caixa. Cenários com valores foram cobertos pelos testes de cálculo. |
 | Preservação do alias | O checkpoint local reconcilia arquivos de fonte com os SHA-1 do deployment anterior. |
+| Vercel | Build de homologação concluído e alias fixo confirmado no commit ef1b0434a779a7c891b5d2c5d7ea6a3b15c0f4b4. |
+| Conferência autenticada no endereço fixo | Dashboard abriu com os dez cartões e o modo demo desligado. Confirmados filtro de 7 dias, abertura de Novos com filtro aplicado e campos do formulário real de tarefas, sem gravar registros. |
 
 ## Permissões das tarefas
 

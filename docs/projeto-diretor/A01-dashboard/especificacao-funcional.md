@@ -1,6 +1,6 @@
 # A01 — Dashboard administrativo da Néia Salgados
 
-O Dashboard operacional integra o Admin existente em /admin#dashboard. Usa o menu da Administração, superfícies grafite e douradas, fontes legíveis e áreas que se reorganizam em larguras menores. As fotos de estoque vêm do cadastro de produtos. A referência oficial é o anexo original da etapa, com 1.672 × 941 pixels e valores ilustrativos.
+O Dashboard operacional integra o Admin existente em /admin#dashboard. Usa o menu da Administração, superfícies grafite e douradas, fontes legíveis e áreas que se reorganizam em larguras menores. As fotos de estoque vêm do cadastro de produtos. A [referência visual](referencia-visual.png) é o PNG fornecido pelo proprietário, com 1.672 × 941 pixels e valores ilustrativos.
 
 ## Indicadores e fontes
 
