@@ -2,7 +2,7 @@ const abasAdmin = new Set([
   "dashboard", "pedidos", "produtos", "clientes", "motoboys",
   "cupons", "dono", "metas", "financeiro", "impressao", "comercial", "estoque-salgados", "insumos", "embalagens",
   "fichas", "fornecedores", "compras", "precificacao", "usuarios", "logs",
-  "hero", "calculadora", "loja", "entregas", "avaliacoes",
+  "hero", "calculadora", "loja", "entregas", "avaliacoes", "neia-inteligencia",
 ]);
 
 export function normalizarHash(hash: string) {

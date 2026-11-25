@@ -109,9 +109,11 @@ import { DonoPremium } from "@/components/admin/dono-premium";
 import { MetasPremium } from "@/components/admin/metas-premium";
 import { ContadorPremium } from "@/components/admin/contador-premium";
 import { DashboardOperacional } from "@/components/admin/dashboard-a01";
+import { NeiaInteligencia } from "@/components/admin/neia-inteligencia";
 import { PainelEquipeTarefasA01 } from "@/components/admin/tarefas-a01";
 import { PAPEIS_TAREFAS_A01 } from "@/lib/tarefas-a01";
 import dashboardCss from "@/components/admin/dashboard-a01.css?url";
+import inteligenciaCss from "@/components/admin/neia-inteligencia.css?url";
 import { contem, faixaDashboard, pertenceAoGrupo, STATUS_DASHBOARD, type FaixaDashboard, type GrupoPedido } from "@/lib/dashboard-a01";
 import { lerDashboard } from "@/lib/dashboard-a01-dados";
 import { PainelDashboardL2 } from "@/components/admin/dashboard-l2";
@@ -158,7 +160,11 @@ export const Route = createFileRoute("/admin")({
     // E01: mesmo CSS aprovado do Estoque de Salgados. Todos os seletores são
     // namespaced (`est-*`) ou escopados por `.estoques-preview`, sem afetar as
     // demais áreas da administração.
-    links: [{ rel: "stylesheet", href: estoqueCss }, { rel: "stylesheet", href: dashboardCss }],
+    links: [
+      { rel: "stylesheet", href: estoqueCss },
+      { rel: "stylesheet", href: dashboardCss },
+      { rel: "stylesheet", href: inteligenciaCss },
+    ],
   }),
   component: Admin,
 });
@@ -950,6 +956,10 @@ function Admin() {
               }}
             />
           ) : null}
+        </TabsContent>
+
+        <TabsContent value="neia-inteligencia" className="mt-0">
+          {user ? <NeiaInteligencia key={user.id} usuarioId={user.id} /> : null}
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-0">

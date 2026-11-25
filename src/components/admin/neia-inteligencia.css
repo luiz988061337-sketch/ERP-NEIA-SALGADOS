@@ -1,0 +1,136 @@
+.neia-a02 {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.neia-a02 .neia-a01-cabecalho {
+  margin-bottom: 0;
+}
+
+.neia-a02-secoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.neia-a02-secoes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 43px;
+  padding: 8px 14px;
+  border: 1px solid var(--a01-linha);
+  border-radius: 8px;
+  color: var(--a01-texto);
+  background: #151c22;
+}
+
+.neia-a02-secoes button svg {
+  color: var(--a01-ouro);
+}
+
+.neia-a02-secoes button[aria-pressed="true"] {
+  background: var(--a01-ouro, #ffd252);
+  color: #17110a;
+  border-color: var(--a01-ouro, #ffd252);
+}
+
+.neia-a02-secoes button[aria-pressed="true"] svg {
+  color: #17110a;
+}
+
+.neia-a02-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.neia-a02-fontes,
+.neia-a02-monitoramento,
+.neia-a02-pendente {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.neia-a02-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: 14px;
+  color: var(--a01-suave);
+}
+
+.neia-a02-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.neia-a02-filtros button {
+  min-height: 38px;
+  padding: 5px 12px;
+  border: 1px solid var(--a01-linha);
+  border-radius: 999px;
+  color: var(--a01-texto);
+}
+
+.neia-a02-filtros button[aria-pressed="true"] {
+  background: var(--a01-ouro, #ffd252);
+  color: #17110a;
+  border-color: var(--a01-ouro, #ffd252);
+  font-weight: 750;
+}
+
+.neia-a02-lista {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.neia-a02-lista > li {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #34404a;
+  border-radius: 10px;
+  background: #121a20;
+}
+
+.neia-a02-lista > li > strong {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.neia-a02-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.neia-a02-acoes a {
+  color: var(--a01-texto);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.neia-a02-pendente {
+  max-width: 900px;
+}
+
+@media (max-width: 560px) {
+  .neia-a02-grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .neia-a02-secoes button {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

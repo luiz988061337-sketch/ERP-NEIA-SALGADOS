@@ -22,6 +22,7 @@ import {
   ScrollText,
   ShoppingCart,
   Snowflake,
+  Sparkles,
   Star,
   Store,
   Tag,
@@ -168,6 +169,13 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   {
     label: "Gestão",
     items: [
+      {
+        value: "neia-inteligencia",
+        label: "Néia Inteligência",
+        icon: Sparkles,
+        href: "/admin",
+        hash: "neia-inteligencia",
+      },
       { value: "dono", label: "Relatório do Dono", icon: BarChart3, href: "/admin", hash: "dono" },
       { value: "metas", label: "Metas", icon: Target, href: "/admin", hash: "metas" },
       {
@@ -247,6 +255,7 @@ export const ADMIN_ABA_TITULO: Record<string, string> = {
   producao: "Produção",
   central: "Central de Entregas",
   pdv: "PDV / Balcão",
+  "neia-inteligencia": "Néia Inteligência",
   dono: "Relatório do Dono",
   metas: "Metas",
   comercial: "Comercial C1–C5",
@@ -291,6 +300,7 @@ export const ADMIN_ABA_DESCRICAO: Record<string, string> = {
   producao: "Fila de produção e prioridades da cozinha.",
   central: "Rotas, entregas e acompanhamento em tempo real.",
   pdv: "Balcão com seleção de produtos, combos e pagamento.",
+  "neia-inteligencia": "Monitoramento preventivo com fatos, estimativas e previsões.",
   dono: "Faturamento, DRE, margem por produto, bairros e alertas do mês.",
   metas: "Acompanhamento de faturamento e produtos.",
   comercial: "Funil de vendas, recompra e perfil de clientes.",

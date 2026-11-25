@@ -42,6 +42,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { brl } from "@/lib/format";
 import { TarefasA01 } from "@/components/admin/tarefas-a01";
+import { gerarRecomendacoesNeia, rotuloNaturezaNeia } from "@/lib/neia-inteligencia";
 import { tarefasAtrasadas, useTarefasA01, type SugestaoTarefaA01 } from "@/lib/tarefas-a01";
 import { hojeSP } from "@/lib/competencia";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
@@ -341,114 +342,53 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
     ["aguardando_motoboy", "pronto"].includes(pedido.status),
   ).length;
 
-  const recomendacoes: {
-    titulo: string;
-    fonte: string;
-    tipo: string;
-    tom: string;
-    acao?: ReactNode;
-  }[] = [];
-  if (crescimento)
-    recomendacoes.push({
-      titulo: crescimento > 0 ? "Vendas em alta" : "Vendas em queda",
-      tipo: "Fato",
-      tom: crescimento > 0 ? "verde" : "vermelho",
-      fonte:
-        brl(vendas!.total) +
-        " no período e " +
-        brl(base!.total) +
-        " no anterior. Variação de " +
-        percentual(crescimento) +
-        ".",
-    });
-  if (reposicao?.length || vencimentos?.length)
-    recomendacoes.push({
-      titulo: "Revisar estoque",
-      tipo: "Fato",
-      tom: "ouro",
-      fonte:
-        (reposicao?.length ?? 0) +
-        " sabores com necessidade de reposição e " +
-        (vencimentos?.length ?? 0) +
-        " com alerta de validade.",
-      acao: (
-        <Link to="/admin" hash="estoque-salgados">
-          Conferir estoque
-        </Link>
-      ),
-    });
-  if (previsaoAtraso)
-    recomendacoes.push({
-      titulo: "Risco nos agendados",
-      tipo: "Previsão",
-      tom: "ouro",
-      fonte:
-        previsaoAtraso +
-        " prazos dentro dos " +
-        carga!.minutos +
-        " min estimados para a fila. Confira a ordem de preparo.",
-      acao: <Link to="/producao">Abrir produção</Link>,
-    });
-  if (filaAtrasada?.length)
-    recomendacoes.push({
-      titulo: "Pedidos em atraso",
-      tipo: "Fato",
-      tom: "vermelho",
-      fonte: filaAtrasada.length + " pedidos ativos estão sinalizados com atraso no ERP.",
-      acao: (
-        <Link to="/admin" hash="pedidos">
-          Conferir pedidos
-        </Link>
-      ),
-    });
-  if (esperandoMotoboy && entregasDados?.motoboys === 0)
-    recomendacoes.push({
-      titulo: "Organizar próxima saída",
-      tipo: "Fato",
-      tom: "ouro",
-      fonte:
-        esperandoMotoboy +
-        " pedidos aguardando coleta e nenhum motoboy disponível na base. Confira retornos e endereços.",
-      acao: <Link to="/central-entregas">Abrir Central</Link>,
-    });
-  if (fin?.vencido)
-    recomendacoes.push({
-      titulo: "Conferir contas vencidas",
-      tipo: "Fato",
-      tom: "vermelho",
-      fonte: brl(fin.vencido) + " de saldo pendente em contas a pagar vencidas.",
-      acao: (
-        <Link to="/financeiro" hash="contas-financeiro">
-          Abrir contas
-        </Link>
-      ),
-    });
-  if (margem?.parcial && margem.total)
-    recomendacoes.push({
-      titulo: "Completar cadastro de custos",
-      tipo: "Estimativa",
-      tom: "ouro",
-      fonte:
-        margem.cobertos +
-        " de " +
-        margem.total +
-        " pedidos têm custos registrados para todos os itens.",
-      acao: (
-        <Link to="/admin" hash="produtos">
-          Ver produtos
-        </Link>
-      ),
-    });
-  if (cliente?.reativar[1])
-    recomendacoes.push({
-      titulo: "Oportunidade de reativação",
-      tipo: "Fato",
-      tom: "verde",
-      fonte:
-        cliente.reativar[1] +
-        " clientes do CRM sem compra há 60–89 dias. Confira elegibilidade antes de preparar uma campanha.",
-      acao: <Link to="/campanhas">Abrir Comercial</Link>,
-    });
+  const inteligencia = gerarRecomendacoesNeia(
+    {
+      atualizadoEm: relogio.toISOString(),
+      estoque: saldos
+        ? {
+            reposicao: reposicao?.length ?? 0,
+            vencendo: vencimentos?.filter((linha) => linha.vence).length ?? 0,
+            vencidos: vencimentos?.filter((linha) => linha.vencido).length ?? 0,
+          }
+        : undefined,
+      producao: fila
+        ? {
+            emProducao: emProducao?.length ?? 0,
+            atrasados: filaAtrasada?.length ?? 0,
+            minutosFila: carga && !carga.incompleta ? carga.minutos : null,
+            prazosEmRisco: previsaoAtraso,
+          }
+        : undefined,
+      entregas: filaEntrega
+        ? {
+            aguardandoColeta: esperandoMotoboy ?? 0,
+            motoboysDisponiveis: entregasDados?.motoboys ?? null,
+            tempoMedioMinutos: tempoEntrega,
+          }
+        : undefined,
+      financeiro: fin
+        ? {
+            vencido: fin.vencido,
+            lucro,
+            margemParcial: Boolean(margem?.parcial && margem.total),
+            custosCobertos: margem?.cobertos ?? null,
+            custosTotal: margem?.total ?? null,
+          }
+        : undefined,
+      comercial: pedidos
+        ? {
+            crescimento,
+            totalAtual: vendas?.total ?? null,
+            totalAnterior: base?.total ?? null,
+            reativar60a89: cliente?.reativar[1] ?? null,
+            campanhasProntas: campanhas.isError ? null : (campanhas.data ?? null),
+          }
+        : undefined,
+    },
+    { escopo: "a01" },
+  );
+  const recomendacoes = inteligencia.recomendacoes;
 
   const [busca, setBusca] = useState("");
   const [termo, setTermo] = useState("");
@@ -1036,19 +976,24 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
             {recomendacoes.length ? (
               <ul>
                 {recomendacoes.map((item) => (
-                  <li key={item.titulo}>
-                    <span className={"neia-a01-" + item.tom}>{item.tipo}</span>
+                  <li key={item.id}>
+                    <span className={"neia-a01-" + item.tom}>
+                      {rotuloNaturezaNeia(item.natureza)}
+                    </span>
                     <strong>{item.titulo}</strong>
-                    <p>{item.fonte}</p>
-                    {item.acao}
+                    <p>{item.motivo}</p>
+                    <Link
+                      to={item.destino.to}
+                      {...(item.destino.hash ? { hash: item.destino.hash } : {})}
+                    >
+                      {item.destino.rotulo}
+                    </Link>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       disabled={consultaTarefas.isError}
-                      onClick={() =>
-                        setSugestaoTarefa({ titulo: item.titulo, descricao: item.fonte })
-                      }
+                      onClick={() => setSugestaoTarefa(item.tarefa)}
                     >
                       Sugerir tarefa
                     </Button>
@@ -1062,11 +1007,16 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
               Sem base anterior suficiente, crescimento e tendência ficam indisponíveis. A fila
               estima tempo, sem medir utilização.
             </p>
-            <Button className="neia-a01-dourado" disabled>
-              <Sparkles size={18} />
-              Consultar Néia Inteligência
+            <Button asChild className="neia-a01-dourado">
+              <Link to="/admin" hash="neia-inteligencia">
+                <Sparkles size={18} />
+                Consultar Néia Inteligência
+              </Link>
             </Button>
-            <p className="neia-a01-nota">Consulta interativa depende do módulo A02.</p>
+            <p className="neia-a01-nota">
+              Monitoramento preventivo disponível. Previsões e consulta inteligente dependem da
+              A02.2 e A02.3.
+            </p>
           </Cartao>
           <div id="a01-tarefas">
             <Cartao titulo="Minhas tarefas" icone={ClipboardList}>
