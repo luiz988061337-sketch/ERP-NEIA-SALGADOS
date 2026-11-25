@@ -7,6 +7,36 @@ Commit da funcionalidade: `d1e9f96`
 Commit remoto validado: `d93d8a3`
 Commit A02.1.1 (ajustes finais): `bc437ab`
 
+## Aprovação (26/11/2026)
+
+**A02.1 e A02.1.1 aprovadas visualmente pelo proprietário** no endereço fixo de
+homologação. Testes manuais realizados:
+
+- Monitoramento preventivo nas cinco áreas com dados reais.
+- Detalhamento das recomendações (Abrir recomendação) e acesso aos módulos.
+- Sugestão de tarefa, aprovação e criação de tarefas.
+- Integração com Minhas tarefas e com o Dashboard A01.
+
+## Pendências pós-aprovação (não bloqueiam a etapa)
+
+1. **Validação dos demais setores**: acompanhar as regras novas (estoque por
+   sabor, financeiro, entregas) com a operação real de cada área ao longo do
+   uso, ajustando limiares se necessário.
+2. **Sincronização dos novos alertas no Dashboard A01**: avaliar quando e
+   quais alertas da A02.1.1 entram no conjunto do Dashboard (hoje ele mantém
+   `escopo: "a01"` por decisão aprovada).
+3. **Prioridade automática das tarefas sugeridas**: hoje a prioridade da
+   tarefa sugerida acompanha a recomendação; definir regra dedicada se o
+   proprietário desejar outra classificação.
+4. **Atribuição a funcionários**: permitir que a sugestão de tarefa indique o
+   responsável (hoje a atribuição é feita na confirmação da tarefa).
+
+## Encerramento
+
+Etapa A02.1/A02.1.1 encerrada em 26/11/2026, com checkpoint permanente no
+GitHub (`checkpoint-a02.1`). A etapa seguinte é a **A02.2 — Previsões e
+cenários**, que permanece bloqueada até autorização expressa do proprietário.
+
 ## A02.1.1 — Entregue
 
 - Estoque por sabor: separa ausência de cadastro (nunca teve lote) de estoque
@@ -86,11 +116,10 @@ no build e em tempo de execução.
 
 ## Pendências reais
 
-1. Conferência autenticada no endereço fixo: falta validar login, dados reais,
-   filtros, links e criação de tarefa com o proprietário. Se o navegador
-   mantiver o HTML anterior, fazer recarregamento forçado (Ctrl+F5).
-2. A02.2 Previsões e cenários: aguardando autorização.
-3. A02.3 Consulta inteligente: aguardando autorização.
+1. A02.2 Previsões e cenários: aguardando autorização.
+2. A02.3 Consulta inteligente: aguardando autorização.
+3. Validações e ajustes pós-aprovação listados na seção "Pendências
+   pós-aprovação" (não bloqueiam o uso).
 4. O Preview mantém a proteção de acesso da Vercel; sem sessão, a URL redireciona
    para o login da Vercel.
 
