@@ -1,0 +1,668 @@
+.neia-a01 {
+  --a01-ouro: #ffd252;
+  --a01-painel: #10171d;
+  --a01-linha: #4e5861;
+  --a01-texto: #f5f7fa;
+  --a01-suave: #bac5cc;
+  min-width: 0;
+  container: a01 / inline-size;
+  padding: 0 16px 20px;
+  color: var(--a01-texto);
+  background: #0a1015;
+  font-size: 15px;
+}
+.neia-a01 h1,
+.neia-a01 h2,
+.neia-a01 p,
+.neia-a01 dl,
+.neia-a01 ul {
+  margin: 0;
+}
+.neia-a01-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 70px;
+  border-bottom: 1px solid var(--a01-linha);
+}
+.neia-a01-busca {
+  display: flex;
+  align-items: center;
+  position: relative;
+  flex: 1;
+  min-width: 190px;
+  max-width: 560px;
+}
+.neia-a01-busca > svg {
+  position: absolute;
+  left: 12px;
+  color: var(--a01-suave);
+}
+.neia-a01-busca > input {
+  min-height: 44px;
+  padding-left: 43px;
+  background: #151c22;
+  font-size: 15px;
+  border-color: var(--a01-linha);
+}
+.neia-a01-controles,
+.neia-a01-periodo,
+.neia-a01-periodo span,
+.neia-a01-legenda,
+.neia-a01-status button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.neia-a01-controles {
+  flex-wrap: wrap;
+}
+.neia-a01-controles button {
+  min-height: 43px;
+  font-size: 15px;
+}
+.neia-a01-perfil-papel {
+  display: block;
+  font-size: 13px;
+  color: var(--a01-suave);
+  text-align: left;
+}
+.neia-a01-contagem {
+  border-radius: 999px;
+  padding: 1px 7px;
+  background: #a8232c;
+  color: #fff;
+}
+.neia-a01-busca-lista {
+  position: absolute;
+  inset: calc(100% + 5px) 0 auto;
+  z-index: 20;
+  max-height: min(420px, 50vh);
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--a01-linha);
+  border-radius: 9px;
+  background: #131b22;
+  box-shadow: 0 8px 28px #0009;
+}
+.neia-a01-busca-lista button {
+  width: 100%;
+  min-height: 43px;
+  text-align: left;
+  padding: 8px;
+  border-radius: 5px;
+}
+.neia-a01-busca-lista button:hover,
+.neia-a01-status button:hover {
+  background: #26313a;
+}
+.neia-a01-busca-lista p {
+  padding: 8px;
+}
+.neia-a01-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 18px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+.neia-a01-cabecalho h1 {
+  font-size: clamp(24px, 2.1vw, 35px);
+  line-height: 1.16;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.neia-a01-cabecalho p {
+  margin-top: 5px;
+  color: var(--a01-suave);
+}
+.neia-a01-periodo {
+  flex-wrap: wrap;
+}
+.neia-a01-periodo span {
+  color: var(--a01-suave);
+  white-space: nowrap;
+}
+.neia-a01-periodo > div {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--a01-linha);
+  border-radius: 8px;
+}
+.neia-a01-periodo button {
+  min-height: 42px;
+  padding: 6px 13px;
+  border-radius: 6px;
+  color: var(--a01-texto);
+}
+.neia-a01-periodo button[aria-pressed="true"],
+.neia-a01-dourado {
+  background: var(--a01-ouro, #ffd252);
+  color: #17110a;
+  font-weight: 750;
+}
+.neia-a01-grade,
+.neia-a01-principal,
+.neia-a01-lateral,
+.neia-a01-operacao,
+.neia-a01-kpis,
+.neia-a01-resumos {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+.neia-a01-grade,
+.neia-a01-principal,
+.neia-a01-lateral {
+  align-content: start;
+}
+.neia-a01-operacao[data-vendas="sem-dados"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.neia-a01-operacao[data-vendas="sem-dados"] > :first-child {
+  grid-column: 1 / -1;
+  padding-block: 9px;
+}
+.neia-a01-kpis {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.neia-a01-operacao {
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+.neia-a01-resumos {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.neia-a01-estoque {
+  grid-column: 1 / -1;
+}
+.neia-a01-cartao,
+.neia-a01-metrica {
+  min-width: 0;
+  border: 1px solid var(--a01-linha);
+  border-radius: 12px;
+  background: linear-gradient(145deg, #182027, var(--a01-painel) 65%);
+}
+.neia-a01-cartao {
+  padding: 12px;
+}
+.neia-a01-cartao h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: clamp(16px, 1.1vw, 19px);
+  line-height: 1.2;
+  font-weight: 750;
+  margin-bottom: 8px;
+}
+.neia-a01-cartao h2 svg,
+.neia-a01-metrica svg,
+.neia-a01-rapidas svg {
+  color: var(--a01-ouro);
+  flex-shrink: 0;
+}
+.neia-a01-metrica {
+  text-align: left;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 12px;
+}
+.neia-a01-metrica span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.neia-a01-metrica strong {
+  font-size: clamp(20px, 1.65vw, 29px);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.neia-a01-metrica small,
+.neia-a01-nota,
+.neia-a01-estado {
+  color: var(--a01-suave);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.neia-a01-metrica-verde {
+  border-color: #2a9864;
+  background: linear-gradient(145deg, #143426, #0d211c);
+}
+.neia-a01-metrica-verde svg {
+  color: #63eb9e;
+}
+.neia-a01 .neia-a01-verde,
+.neia-a01-dialogo .neia-a01-verde {
+  color: #66eca1;
+}
+.neia-a01 .neia-a01-vermelho,
+.neia-a01-dialogo .neia-a01-vermelho {
+  color: #ff8790;
+}
+.neia-a01 .neia-a01-ouro {
+  color: var(--a01-ouro);
+}
+.neia-a01-azul {
+  color: #7dd4ff;
+}
+.neia-a01-bolinha {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+.neia-a01-status,
+.neia-a01-inteligencia ul,
+.neia-a01-notificacoes {
+  list-style: none;
+  padding: 0;
+}
+.neia-a01-status button {
+  width: 100%;
+  min-height: 37px;
+  text-align: left;
+  border-top: 1px solid #34404a;
+  padding: 3px 0;
+}
+.neia-a01-status button strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.neia-a01-linhas > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #34404a;
+  padding: 6px 0;
+}
+.neia-a01-linhas dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.neia-a01 .neia-a01-nota,
+.neia-a01-estado {
+  margin-top: 6px;
+}
+.neia-a01-estado[role="alert"] {
+  color: #ff8790;
+}
+.neia-a01-estado button,
+.neia-a01-inteligencia li a,
+.neia-a01-dialogo a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.neia-a01-grafico {
+  min-width: 0;
+  height: 220px;
+}
+.neia-a01-legenda {
+  gap: 16px;
+  color: var(--a01-suave);
+  font-size: 14px;
+}
+.neia-a01-legenda span:first-child,
+.neia-a01-atalho {
+  color: var(--a01-ouro);
+}
+.neia-a01-detalhar {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.neia-a01-detalhar select {
+  min-height: 40px;
+  border: 1px solid var(--a01-linha);
+  border-radius: 6px;
+  background: var(--a01-painel);
+  padding: 3px 6px;
+  max-width: 100%;
+}
+.neia-a01-atalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 41px;
+  border-top: 1px solid #34404a;
+  font-weight: 700;
+  text-decoration: none;
+}
+.neia-a01-atalho:hover,
+.neia-a01-rapidas a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.neia-a01-tabela-scroll {
+  overflow-x: auto;
+}
+.neia-a01-estoque table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.neia-a01-estoque th,
+.neia-a01-estoque td {
+  padding: 6px 4px;
+  text-align: left;
+  border-bottom: 1px solid #34404a;
+  font-variant-numeric: tabular-nums;
+}
+.neia-a01-estoque [scope="row"] {
+  min-width: 180px;
+}
+.neia-a01-estoque td:not(:last-child),
+.neia-a01-estoque [scope="col"] {
+  white-space: nowrap;
+}
+.neia-a01-estoque th span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.neia-a01-estoque img {
+  border-radius: 6px;
+  flex: none;
+  object-fit: cover;
+}
+.neia-a01-estoque small {
+  display: block;
+  font-size: 13px;
+}
+.neia-a01-inteligencia {
+  border-color: #a9802e;
+}
+.neia-a01-inteligencia li {
+  background: #121b23;
+  border: 1px solid #35424c;
+  border-radius: 8px;
+  padding: 8px;
+  margin: 6px 0;
+}
+.neia-a01-inteligencia li span,
+.neia-a01-inteligencia li strong {
+  display: block;
+}
+.neia-a01-inteligencia li span,
+.neia-a01-inteligencia li p,
+.neia-a01-inteligencia li a {
+  font-size: 14px;
+}
+.neia-a01-inteligencia li p {
+  color: var(--a01-suave);
+}
+.neia-a01-inteligencia .neia-a01-dourado {
+  min-height: 44px;
+  width: 100%;
+  margin-top: 10px;
+  white-space: normal;
+}
+.neia-a01-rapidas {
+  margin-top: 12px;
+  border-color: #8f7132;
+}
+.neia-a01-rapidas > div {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
+}
+.neia-a01-rapidas a {
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  padding: 6px;
+  border: 1px solid #8f7132;
+  border-radius: 8px;
+  background: #252116;
+  font-weight: 700;
+}
+.neia-a01-dialogo {
+  color: #f5f7fa;
+  background: #131b22;
+  border-color: #4e5861;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  font-size: 15px;
+}
+.neia-a01-dialogo a {
+  color: #ffd252;
+}
+.neia-a01-form {
+  display: grid;
+  gap: 10px;
+}
+.neia-a01-form label {
+  display: grid;
+  gap: 4px;
+}
+.neia-a01-form input {
+  min-height: 44px;
+}
+.neia-a01-notificacoes li {
+  padding: 9px 0;
+  border-top: 1px solid #4e5861;
+}
+.neia-a01-notificacoes li button {
+  min-height: 40px;
+  text-align: left;
+}
+.neia-a01 :focus-visible,
+.neia-a01-dialogo :focus-visible {
+  outline: 2px solid #ffd252;
+  outline-offset: 2px;
+}
+@container a01 (min-width: 1160px) {
+  .neia-a01-grade {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 22%);
+  }
+}
+@container a01 (min-width: 685px) and (max-width: 1159px) {
+  .neia-a01-lateral {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container a01 (max-width: 1049px) {
+  .neia-a01-operacao {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .neia-a01-operacao > :first-child {
+    grid-column: 1 / -1;
+  }
+  .neia-a01-kpis,
+  .neia-a01-rapidas > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .neia-a01 {
+    padding-inline: 10px;
+  }
+}
+@container a01 (max-width: 665px) {
+  .neia-a01-estoque table,
+  .neia-a01-estoque tbody {
+    display: block;
+    min-width: 0;
+  }
+  .neia-a01-estoque thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .neia-a01-estoque tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+    padding-block: 8px;
+    border-bottom: 1px solid #34404a;
+  }
+  .neia-a01-estoque [scope="row"],
+  .neia-a01-estoque td:last-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .neia-a01-estoque th,
+  .neia-a01-estoque td {
+    border: 0;
+    padding: 2px 0;
+  }
+  .neia-a01-estoque td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--a01-suave);
+    font-size: 13px;
+  }
+}
+@container a01 (max-width: 684px) {
+  .neia-a01-topo {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+    padding: 7px 0;
+  }
+  .neia-a01-operacao,
+  .neia-a01-operacao[data-vendas="sem-dados"],
+  .neia-a01-resumos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .neia-a01-kpis,
+  .neia-a01-rapidas > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .neia-a01-cartao {
+    padding: 10px;
+  }
+  .neia-a01-grafico {
+    height: 195px;
+  }
+  .neia-a01-busca input {
+    font-size: 16px;
+  }
+}
+
+.neia-a01-tarefas-controles {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.neia-a01-tarefas-controles > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.neia-a01-tarefas-controles > div button {
+  padding: 3px 7px;
+  min-height: 42px;
+  border: 1px solid var(--a01-linha);
+  border-radius: 7px;
+}
+.neia-a01-tarefas-controles > div button[aria-pressed="true"] {
+  color: #17110a;
+  background: var(--a01-ouro);
+  font-weight: 750;
+}
+.neia-a01-tarefas-lista {
+  list-style: none;
+  padding: 0;
+}
+.neia-a01-tarefas-lista li {
+  border-top: 1px solid #34404a;
+  margin-top: 7px;
+  padding: 8px 0;
+  overflow-wrap: anywhere;
+}
+.neia-a01-tarefas-lista details {
+  margin-top: 5px;
+}
+.neia-a01-tarefas-lista summary {
+  min-height: 32px;
+  cursor: pointer;
+  color: var(--a01-ouro);
+}
+.neia-a01-tarefas-botoes {
+  display: flex;
+  flex-wrap: wrap;
+}
+.neia-a01-tarefas-botoes button {
+  min-height: 40px;
+}
+.neia-a01-tarefas-equipe {
+  width: 100%;
+  padding-bottom: 28px;
+}
+.neia-a01-tarefas-equipe .neia-a01-tarefas-controles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.neia-a01-perfil-tarefas,
+.neia-a01-tarefas-equipe .neia-a01-aviso-tarefas {
+  margin-bottom: 12px;
+}
+.neia-a01-perfil-tarefas button {
+  justify-self: start;
+}
+.neia-a01-filtros-tarefas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.neia-a01-filtros-tarefas label {
+  display: grid;
+  gap: 3px;
+}
+.neia-a01-filtros-tarefas select {
+  min-width: 0;
+  min-height: 42px;
+  color: inherit;
+  background: var(--a01-painel);
+  border: 1px solid var(--a01-linha);
+  border-radius: 7px;
+  padding-inline: 8px;
+}
+.neia-a01-shell [data-sidebar="sidebar"],
+.neia-a01-shell [data-sidebar="content"] {
+  background: #0a1015;
+}
+.neia-a01-shell [data-sidebar="header"],
+.neia-a01-shell [data-sidebar="footer"] {
+  background: #10171d;
+}
+.neia-a01-shell [data-sidebar="menu-button"] {
+  font-size: 14px;
+}
+.neia-a01-form select {
+  border: 1px solid #4e5861;
+  min-height: 44px;
+  border-radius: 7px;
+  background: #131b22;
+  padding: 5px 8px;
+}
+.neia-a01-form .neia-a01-compartilhar {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.neia-a01-compartilhar input {
+  accent-color: #ffd252;
+  width: 17px;
+}
+.neia-a01-dialogo .neia-a01-notificacoes {
+  overflow-wrap: anywhere;
+}

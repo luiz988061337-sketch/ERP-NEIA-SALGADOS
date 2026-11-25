@@ -177,6 +177,7 @@ export function montarFluxoCaixaMensal(args: {
   pedidosPagos: PedidoRecebidoCaixa[];
   pedidosPagosSemData?: number;
   aPartirDe?: string | null;
+  antesDe?: string | null;
   meiosIncluidos?: string[];
 }): FluxoCaixaMensal[] {
   const fluxo = new Map<string, FluxoCaixaMensal>(args.competencias.map((competencia) => [competencia, {
@@ -204,6 +205,7 @@ export function montarFluxoCaixaMensal(args: {
     const competencia = competenciaSaoPaulo(evento.created_at);
     if (!conta || !Number.isSafeInteger(valor) || valor <= 0) continue;
     if (args.aPartirDe && Date.parse(evento.created_at) < Date.parse(args.aPartirDe)) continue;
+    if (args.antesDe && Date.parse(evento.created_at) >= Date.parse(args.antesDe)) continue;
     if (!competencia) {
       for (const periodo of fluxo.values()) periodo.eventosSemData += 1;
       continue;
@@ -275,6 +277,7 @@ export function montarFluxoCaixaMensal(args: {
     if (!Number.isSafeInteger(valor) || valor <= 0) continue;
     if (args.meiosIncluidos?.length && !args.meiosIncluidos.includes(evento.forma_pagamento ?? "outro")) continue;
     if (args.aPartirDe && Date.parse(evento.created_at) < Date.parse(args.aPartirDe)) continue;
+    if (args.antesDe && Date.parse(evento.created_at) >= Date.parse(args.antesDe)) continue;
     if (!competencia) {
       for (const periodo of fluxo.values()) periodo.eventosSemData += 1;
       continue;
@@ -297,6 +300,7 @@ export function montarFluxoCaixaMensal(args: {
     const centavos = Math.round(Number(pedido.total ?? 0) * 100);
     const competencia = competenciaSaoPaulo(pedido.pagamento_em);
     if (args.aPartirDe && Date.parse(pedido.pagamento_em ?? "") < Date.parse(args.aPartirDe)) continue;
+    if (args.antesDe && Date.parse(pedido.pagamento_em ?? "") >= Date.parse(args.antesDe)) continue;
     const periodo = competencia ? fluxo.get(competencia) : undefined;
     if (!Number.isSafeInteger(centavos) || centavos <= 0) continue;
     if (periodo) {

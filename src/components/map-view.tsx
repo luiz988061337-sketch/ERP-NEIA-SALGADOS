@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ehModoDemo } from "@/lib/demo-preview";
 
-type Ponto = { lat: number; lng: number; label: string; moto?: boolean };
+type Ponto = { lat: number; lng: number; label: string; moto?: boolean; rotulo?: string };
 
 declare global {
   interface Window {
@@ -46,10 +46,15 @@ function loadMaps(): Promise<void> {
   return loaderPromise;
 }
 
-export function MapView({ pontos, className }: { pontos: Ponto[]; className?: string }) {
+export function MapView({ pontos, className, sequencia }: {
+  pontos: Ponto[];
+  className?: string;
+  sequencia?: readonly Pick<Ponto, "lat" | "lng">[];
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const linhaRef = useRef<any>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,8 +85,18 @@ export function MapView({ pontos, className }: { pontos: Ponto[]; className?: st
                 icon: { path: g.maps.SymbolPath.CIRCLE, scale: 0.1, fillOpacity: 0, strokeOpacity: 0 },
                 label: { text: "🛵", fontSize: "30px" },
               })
-            : new g.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map: mapRef.current, title: p.label }),
+            : new g.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map: mapRef.current, title: p.label, label: p.rotulo }),
         );
+        linhaRef.current?.setMap(null);
+        linhaRef.current = sequencia && sequencia.length > 1
+          ? new g.maps.Polyline({
+              map: mapRef.current,
+              path: sequencia,
+              strokeColor: "#D4A94A",
+              strokeOpacity: 0.9,
+              strokeWeight: 4,
+            })
+          : null;
         if (pontos.length > 1) {
           const bounds = new g.maps.LatLngBounds();
           pontos.forEach((p) => bounds.extend(p));
@@ -96,8 +111,9 @@ export function MapView({ pontos, className }: { pontos: Ponto[]; className?: st
       });
     return () => {
       cancelled = true;
+      linhaRef.current?.setMap(null);
     };
-  }, [pontos]);
+  }, [pontos, sequencia]);
 
   if (pontos.length === 0) return null;
 
