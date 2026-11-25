@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
-import { ChevronDown, Crown, LogOut, RefreshCw, UserRound } from "lucide-react";
+import { ChevronDown, ClipboardList, Crown, LogOut, RefreshCw, UserRound } from "lucide-react";
 
 import {
   Sidebar,
@@ -19,7 +19,9 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ADMIN_NAV, menuAdmin } from "./admin-nav";
+import { ADMIN_NAV, menuAdmin, type AdminNavItem } from "./admin-nav";
+
+const itemTarefas: AdminNavItem = { value: "minhas-tarefas", label: "Minhas tarefas", icon: ClipboardList, href: "/admin", hash: "minhas-tarefas" };
 
 /**
  * Shell do Admin — aparência da referência preto/dourado:
@@ -39,6 +41,7 @@ export function AdminShell({
   grupoAtivo,
   menuDemonstrativo = modoPreview,
   menuPedidosAtendente = false,
+  menuTarefas,
 }: {
   aba: string;
   onAba: (v: string) => void;
@@ -49,11 +52,13 @@ export function AdminShell({
   modoPreview?: boolean;
   menuDemonstrativo?: boolean;
   menuPedidosAtendente?: boolean;
+  menuTarefas?: "admin" | "equipe" | undefined;
   /** Mantém o destaque dourado restrito ao grupo da suíte aberta. */
   grupoAtivo?: string | undefined;
 }) {
   return (
     <SidebarProvider
+      className={menuTarefas && (aba === "dashboard" || aba === "minhas-tarefas") ? "neia-a01-shell" : undefined}
       style={
         {
           "--sidebar-width": "14rem",
@@ -87,7 +92,7 @@ export function AdminShell({
         </SidebarHeader>
 
         <MenuLateral aba={aba} onAba={onAba} grupoAtivo={grupoAtivo}
-          demonstrativo={menuDemonstrativo} pedidosAtendente={menuPedidosAtendente} />
+          demonstrativo={menuDemonstrativo} pedidosAtendente={menuPedidosAtendente} tarefas={menuTarefas} />
 
         <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -98,7 +103,7 @@ export function AdminShell({
               <p className="truncate text-xs font-semibold text-foreground">
                 {usuario?.split("@")[0] ?? "Equipe"}
               </p>
-              <p className="truncate text-xs text-muted-foreground">Administradora</p>
+              <p className="truncate text-xs text-muted-foreground">{menuTarefas === "equipe" ? "Equipe" : "Administradora"}</p>
             </div>
             <span
               className="size-2 shrink-0 rounded-full bg-[#35C97C] group-data-[collapsible=icon]:hidden"
@@ -179,16 +184,25 @@ function MenuLateral({
   grupoAtivo,
   demonstrativo,
   pedidosAtendente,
+  tarefas,
 }: {
   aba: string;
   onAba: (v: string) => void;
   grupoAtivo?: string | undefined;
   demonstrativo: boolean;
   pedidosAtendente: boolean;
+  tarefas?: "admin" | "equipe" | undefined;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const { pathname, hash } = useLocation();
-  const grupos = menuAdmin(demonstrativo, pedidosAtendente);
+  const gruposAdmin = menuAdmin(demonstrativo, pedidosAtendente);
+  const grupos = tarefas === "equipe"
+    ? [{ label: "Principal", items: [itemTarefas] }]
+    : gruposAdmin.map((grupo) => {
+      if (tarefas !== "admin" || grupo.label !== "Principal") return grupo;
+      const [inicio, ...resto] = grupo.items;
+      return { ...grupo, items: inicio ? [inicio, itemTarefas, ...resto] : [itemTarefas] };
+    });
   const itens = grupos.flatMap((grupo) => grupo.items);
   const candidatos = itens.filter((item) =>
     item.href === pathname || (item.href && pathname.startsWith(`${item.href}/`)),

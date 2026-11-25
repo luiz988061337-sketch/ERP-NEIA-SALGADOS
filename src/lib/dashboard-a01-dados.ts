@@ -3,9 +3,9 @@ import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { hojeSP } from "@/lib/competencia";
 import { agregarClientes, useCrmSettings } from "@/lib/crm";
+import { calcularEstoqueDashboard } from "@/lib/dashboard-a01-estoque";
 import {
   contem,
-  deslocarDia,
   faixaAnterior,
   type FaixaDashboard,
   type PedidoDashboard,
@@ -90,7 +90,13 @@ type Produto = {
   categorias: { slug: string } | null;
 };
 
-type Lote = { id: string; produto_id: string; validade: string | null; restante: number };
+type Lote = {
+  id: string;
+  produto_id: string;
+  validade: string | null;
+  restante: number;
+  status: string;
+};
 type Reserva = { id: string; produto_id: string; quantidade: number };
 type Consumo = { reserva_id: string; quantidade: number };
 
@@ -107,9 +113,7 @@ export async function consultarEstoque(signal: AbortSignal) {
     lerDashboard<Lote>((i, f) =>
       supabase
         .from("lotes")
-        .select("id,produto_id,validade,restante")
-        .eq("status", "ativo")
-        .gt("restante", 0)
+        .select("id,produto_id,validade,restante,status")
         .order("id")
         .range(i, f)
         .abortSignal(signal),
@@ -133,35 +137,7 @@ export async function consultarEstoque(signal: AbortSignal) {
         .abortSignal(signal),
     ),
   ]);
-  const somaPor = <T>(linhas: T[], chave: (linha: T) => string, valor: (linha: T) => number) => {
-    const mapa = new Map<string, number>();
-    for (const linha of linhas)
-      mapa.set(chave(linha), (mapa.get(chave(linha)) ?? 0) + valor(linha));
-    return mapa;
-  };
-  const fisico = somaPor(
-    lotes,
-    (lote) => lote.produto_id,
-    (lote) => lote.restante,
-  );
-  const retirado = somaPor(
-    consumos,
-    (consumo) => consumo.reserva_id,
-    (consumo) => consumo.quantidade,
-  );
-  const reservado = somaPor(
-    reservas,
-    (reserva) => reserva.produto_id,
-    (reserva) => Math.max(0, reserva.quantidade - (retirado.get(reserva.id) ?? 0)),
-  );
-  const validade = new Map<string, string>();
-  for (const lote of lotes) {
-    const anterior = validade.get(lote.produto_id);
-    if (lote.validade && (!anterior || lote.validade < anterior))
-      validade.set(lote.produto_id, lote.validade);
-  }
-  const hoje = hojeSP();
-  const limite = deslocarDia(hoje, 7);
+  const saldoDoSabor = calcularEstoqueDashboard(lotes, reservas, consumos, hojeSP());
   const salgados = produtos.filter((produto) =>
     [
       "mini-fritos",
@@ -177,35 +153,16 @@ export async function consultarEstoque(signal: AbortSignal) {
     ].includes(produto.categorias?.slug ?? ""),
   );
   const linhas = salgados
-    .map((produto) => {
-      const quantidade = fisico.get(produto.id) ?? 0;
-      const pendente = reservado.get(produto.id) ?? 0;
-      const disponivel = quantidade - pendente;
-      const minimo = produto.estoque_minimo;
-      const validadeProxima = validade.get(produto.id) ?? null;
-      const repor = quantidade < pendente || (minimo !== null && minimo > 0 && disponivel < minimo);
-      const vencido = validadeProxima !== null && validadeProxima < hoje;
-      const vence = validadeProxima !== null && validadeProxima <= limite && !vencido;
-      return {
-        id: produto.id,
-        nome: produto.nome,
-        imagem: produto.imagem_url,
-        fisico: quantidade,
-        reservado: pendente,
-        disponivel,
-        minimo,
-        validadeProxima,
-        repor,
-        vencido,
-        vence,
-        destaque: produto.destaque,
-      };
-    })
+    .map((produto) => ({
+      id: produto.id,
+      nome: produto.nome,
+      imagem: produto.imagem_url?.trim() || null,
+      destaque: produto.destaque,
+      ...saldoDoSabor(produto),
+    }))
     .sort(
       (a, b) =>
-        Number(b.vencido) - Number(a.vencido) ||
-        Number(b.repor) - Number(a.repor) ||
-        Number(b.vence) - Number(a.vence) ||
+        b.prioridade - a.prioridade ||
         Number(b.destaque) - Number(a.destaque) ||
         a.nome.localeCompare(b.nome, "pt-BR"),
     );

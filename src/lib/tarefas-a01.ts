@@ -10,6 +10,14 @@ export const PAPEIS_TAREFAS_A01 = [
   "financeiro",
   "motoboy",
 ] as const;
+const rotulosEquipe: Record<string, string> = {
+  admin: "Administração",
+  atendente: "Atendimento",
+  producao: "Produção",
+  financeiro: "Financeiro",
+  motoboy: "Entregas",
+};
+
 export const PRIORIDADES_A01 = [
   ["baixa", "Baixa"],
   ["normal", "Normal"],
@@ -46,6 +54,7 @@ type EdicaoTarefa = Pick<
 type EventoTarefa = {
   id: number;
   tarefa_id: string;
+  ator_id: string;
   ator_nome: string;
   acao: "criada" | "editada" | "concluida" | "sugestao_aprovada";
   ocorrido_em: string;
@@ -86,6 +95,54 @@ export function useTarefasA01(usuarioId: string) {
   });
 }
 
+export function nomeRegistradoTarefa(valor: string | null | undefined) {
+  const nome = valor?.trim();
+  return nome && !/^Colaborador [a-f0-9]{8}$/i.test(nome) ? nome : null;
+}
+
+export function nomeTarefa(id: string, registrado: string, nomes?: ReadonlyMap<string, string>) {
+  return nomeRegistradoTarefa(registrado) ?? nomes?.get(id) ?? "Nome não cadastrado";
+}
+
+async function lerNomes(ids: string[], signal: AbortSignal) {
+  const nomes = new Map<string, string>();
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id,nome")
+      .in("id", ids.slice(i, i + 100))
+      .abortSignal(signal);
+    if (error) throw error;
+    for (const pessoa of data ?? []) {
+      const nome = nomeRegistradoTarefa(pessoa.nome);
+      if (nome) nomes.set(pessoa.id, nome);
+    }
+  }
+  return nomes;
+}
+
+export function useNomesTarefasA01(usuarioId: string, identidades: string[]) {
+  const ids = [...new Set(identidades)].sort();
+  return useQuery({
+    queryKey: ["dashboard-a01", usuarioId, "nomes-tarefas", ids],
+    enabled: ids.length > 0,
+    queryFn: ({ signal }) => lerNomes(ids, signal),
+  });
+}
+
+export async function salvarNomeTarefasA01(usuarioId: string, valor: string) {
+  const nome = nomeRegistradoTarefa(valor);
+  if (!nome || nome.length > 160)
+    throw new Error("Informe o nome cadastrado, com até 160 caracteres.");
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert({ id: usuarioId, nome }, { onConflict: "id" })
+    .select("nome")
+    .single();
+  if (error || !data?.nome) throw new Error("Não foi possível salvar o nome no seu perfil.");
+  return String(data.nome);
+}
+
 export function useResponsaveisA01(usuarioId: string, habilitar: boolean) {
   return useQuery({
     queryKey: ["dashboard-a01", usuarioId, "responsaveis-tarefas"],
@@ -102,19 +159,15 @@ export function useResponsaveisA01(usuarioId: string, habilitar: boolean) {
           .abortSignal(signal),
       );
       const ids = [...new Set([usuarioId, ...equipe.map((item) => item.user_id)])];
-      const nomes = new Map<string, string>();
-      for (let i = 0; i < ids.length; i += 100) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id,nome")
-          .in("id", ids.slice(i, i + 100))
-          .abortSignal(signal);
-        if (error) throw error;
-        for (const pessoa of data ?? []) if (pessoa.nome) nomes.set(pessoa.id, pessoa.nome);
+      const nomes = await lerNomes(ids, signal);
+      const funcoes = new Map<string, string[]>();
+      for (const pessoa of equipe) {
+        const rotulo = rotulosEquipe[pessoa.role];
+        if (rotulo) funcoes.set(pessoa.user_id, [...(funcoes.get(pessoa.user_id) ?? []), rotulo]);
       }
       return ids
-        .map((id) => ({ id, nome: nomes.get(id) ?? "Colaborador " + id.slice(0, 8) }))
-        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+        .map((id) => ({ id, nome: nomes.get(id) ?? null, funcao: funcoes.get(id)?.join(" / ") }))
+        .sort((a, b) => (a.nome ?? "").localeCompare(b.nome ?? "", "pt-BR"));
     },
   });
 }
@@ -127,7 +180,7 @@ export function useHistoricoTarefaA01(usuarioId: string, tarefaId: string | unde
       lerDashboard<EventoTarefa>((i, f) =>
         supabase
           .from("a01_tarefas_historico")
-          .select("id,tarefa_id,ator_nome,acao,ocorrido_em,anterior,atual")
+          .select("id,tarefa_id,ator_id,ator_nome,acao,ocorrido_em,anterior,atual")
           .eq("tarefa_id", tarefaId)
           .order("versao", { ascending: false })
           .range(i, f)

@@ -247,6 +247,7 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
   const base =
     pedidos && resumirVendas(pedidos.filter((pedido) => contem(anterior, pedido.created_at)));
   const pontos = vendas && base ? serieVendas(faixa, vendas.validos, base.validos) : [];
+  const temVendas = Boolean(vendas && (vendas.quantidade || base?.quantidade));
   const pico = pontos.reduce<(typeof pontos)[number] | undefined>(
     (maximo, ponto) => (ponto.pedidos.length > (maximo?.pedidos.length ?? 0) ? ponto : maximo),
     undefined,
@@ -367,7 +368,7 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
       tom: "ouro",
       fonte:
         (reposicao?.length ?? 0) +
-        " sabores abaixo do mínimo ou das reservas e " +
+        " sabores com necessidade de reposição e " +
         (vencimentos?.length ?? 0) +
         " com alerta de validade.",
       acao: (
@@ -686,13 +687,13 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
             />
           </div>
 
-          <div className="neia-a01-operacao">
+          <div className="neia-a01-operacao" data-vendas={temVendas ? "com-dados" : "sem-dados"}>
             <Cartao
               titulo={faixa.dias === 1 ? "Vendas por hora" : "Vendas por dia"}
               icone={BarChart3}
             >
               <EstadoDados query={pedidosQuery} />
-              {vendas && (vendas.quantidade || base?.quantidade) ? (
+              {temVendas ? (
                 <>
                   <div
                     className="neia-a01-grafico"
@@ -847,28 +848,28 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
                   aria-label="Tabela de estoque"
                   tabIndex={0}
                 >
-                  <table>
-                    <thead>
-                      <tr>
+                  <table role="table">
+                    <thead role="rowgroup">
+                      <tr role="row">
                         {["Sabor", "Disponível", "Reservado", "Físico", "Mínimo", "Situação"].map(
                           (label) => (
-                            <th key={label} scope="col">
+                            <th key={label} scope="col" role="columnheader">
                               {label}
                             </th>
                           ),
                         )}
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody role="rowgroup">
                       {saldos.linhas.slice(0, 6).map((linha) => (
-                        <tr key={linha.id}>
-                          <th scope="row">
+                        <tr key={linha.id} role="row">
+                          <th scope="row" role="rowheader">
                             <span>
                               {linha.imagem && (
                                 <img
                                   src={linha.imagem}
-                                  width={28}
-                                  height={28}
+                                  width={36}
+                                  height={36}
                                   alt=""
                                   loading="lazy"
                                 />
@@ -876,34 +877,35 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
                               {linha.nome}
                             </span>
                           </th>
-                          <td className={linha.repor ? "neia-a01-vermelho" : "neia-a01-verde"}>
+                          <td
+                            role="cell"
+                            data-label="Disponível"
+                            className={linha.repor ? "neia-a01-vermelho" : undefined}
+                          >
                             {exibir(linha.disponivel)}
                           </td>
-                          <td>{exibir(linha.reservado)}</td>
-                          <td>{exibir(linha.fisico)}</td>
-                          <td>{exibir(linha.minimo)}</td>
-                          <td>
-                            <div
-                              className={
-                                linha.repor || linha.vencido
-                                  ? "neia-a01-vermelho"
-                                  : linha.vence
-                                    ? "neia-a01-ouro"
-                                    : ""
-                              }
-                            >
-                              {linha.repor
-                                ? "Repor"
-                                : linha.vence || linha.vencido
-                                  ? "Atenção"
-                                  : "Regular"}
-                              {linha.validadeProxima && (
-                                <small>
-                                  {linha.vencido ? "Vencido " : linha.vence ? "Vence " : ""}
-                                  {dataBR(linha.validadeProxima)}
+                          <td role="cell" data-label="Reservado">
+                            {exibir(linha.reservado)}
+                          </td>
+                          <td role="cell" data-label="Físico">
+                            {exibir(linha.fisico)}
+                          </td>
+                          <td role="cell" data-label="Mínimo">
+                            {exibir(linha.minimo)}
+                          </td>
+                          <td role="cell" data-label="Situação">
+                            {linha.alertas.length ? (
+                              linha.alertas.map((alerta) => (
+                                <small key={alerta.texto} className={"neia-a01-" + alerta.tom}>
+                                  {alerta.texto}
                                 </small>
-                              )}
-                            </div>
+                              ))
+                            ) : (
+                              <span className="neia-a01-verde">Regular</span>
+                            )}
+                            {linha.validadeProxima && (
+                              <small>Validade {dataBR(linha.validadeProxima)}</small>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -912,6 +914,11 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
                 </div>
               ) : (
                 saldos && <p className="neia-a01-nota">Nenhum sabor cadastrado no estoque.</p>
+              )}
+              {saldos?.linhas.some((linha) => linha.fisico === null) && (
+                <p className="neia-a01-nota">
+                  O saldo físico depende do cadastro de lotes por sabor.
+                </p>
               )}
               <Link className="neia-a01-atalho" to="/admin" hash="estoque-salgados">
                 Ver estoque completo <ChevronRight size={16} />

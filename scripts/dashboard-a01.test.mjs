@@ -16,6 +16,16 @@ const carregar = (arquivo, trocar = (codigo) => codigo) => {
 
 const competencia = carregar("../src/lib/competencia.ts");
 const motor = carregar("../src/lib/motor-producao.ts");
+const dashboard = carregar("../src/lib/dashboard-a01.ts", (src) =>
+  src
+    .replace('"./competencia"', JSON.stringify(competencia))
+    .replace('"./motor-producao"', JSON.stringify(motor)),
+);
+const { calcularEstoqueDashboard } = await import(
+  carregar("../src/lib/dashboard-a01-estoque.ts", (src) =>
+    src.replace('"./dashboard-a01"', JSON.stringify(dashboard)),
+  )
+);
 const {
   cargaCozinha,
   contem,
@@ -37,6 +47,56 @@ const {
   )
 );
 const { montarFluxoCaixaMensal } = await import(carregar("../src/lib/financeiro.ts"));
+
+test("estoque soma os lotes ativos e desconta as retiradas de cada reserva uma vez", () => {
+  const saldo = calcularEstoqueDashboard(
+    [
+      { produto_id: "coxinha", status: "ativo", restante: 120, validade: null },
+      { produto_id: "coxinha", status: "ativo", restante: 60, validade: "2026-11-28" },
+      { produto_id: "coxinha", status: "vencido", restante: 45, validade: "2026-10-20" },
+    ],
+    [
+      { id: "pedido-avulso", produto_id: "coxinha", quantidade: 60 },
+      { id: "pedido-combo", produto_id: "coxinha", quantidade: 35 },
+    ],
+    [
+      { reserva_id: "pedido-avulso", quantidade: 25 },
+      { reserva_id: "pedido-avulso", quantidade: 10 },
+      { reserva_id: "pedido-combo", quantidade: 10 },
+    ],
+    "2026-11-25",
+  )({ id: "coxinha", estoque_minimo: 150 });
+  assert.deepEqual([saldo.fisico, saldo.reservado, saldo.disponivel], [180, 50, 130]);
+  assert.deepEqual(
+    saldo.alertas.map((alerta) => alerta.texto),
+    ["Abaixo do mínimo", "Vence em breve"],
+  );
+});
+
+test("estoque separa sabor sem lote, zero comprovado e saldo sem mínimo", () => {
+  const resumir = calcularEstoqueDashboard(
+    [
+      { produto_id: "zero", status: "ativo", restante: 0, validade: null },
+      { produto_id: "sem-minimo", status: "ativo", restante: 28, validade: null },
+    ],
+    [{ id: "reserva", produto_id: "sem-lote", quantidade: 10 }],
+    [],
+    "2026-11-25",
+  );
+  const semLote = resumir({ id: "sem-lote", estoque_minimo: 50 });
+  assert.deepEqual(
+    [semLote.fisico, semLote.reservado, semLote.disponivel, semLote.repor],
+    [null, 10, null, false],
+  );
+  assert.equal(semLote.alertas[0].texto, "Sem lote cadastrado");
+  const zero = resumir({ id: "zero", estoque_minimo: 50 });
+  assert.deepEqual([zero.fisico, zero.disponivel, zero.alertas[0].texto], [0, 0, "Estoque zerado"]);
+  assert.equal(
+    resumir({ id: "sem-minimo", estoque_minimo: 0 }).alertas[0].texto,
+    "Sem mínimo definido",
+  );
+  assert.deepEqual(resumir({ id: "sem-minimo", estoque_minimo: 10 }).alertas, []);
+});
 
 function pedido(patch = {}) {
   return {

@@ -5,7 +5,8 @@
   --a01-texto: #f5f7fa;
   --a01-suave: #bac5cc;
   min-width: 0;
-  padding: 0 18px 22px;
+  container: a01 / inline-size;
+  padding: 0 16px 20px;
   color: var(--a01-texto);
   background: #0a1015;
   font-size: 15px;
@@ -152,8 +153,17 @@
   min-width: 0;
   gap: 12px;
 }
+.neia-a01-grade,
+.neia-a01-principal,
 .neia-a01-lateral {
   align-content: start;
+}
+.neia-a01-operacao[data-vendas="sem-dados"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.neia-a01-operacao[data-vendas="sem-dados"] > :first-child {
+  grid-column: 1 / -1;
+  padding-block: 9px;
 }
 .neia-a01-kpis {
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -162,7 +172,10 @@
   grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 1fr);
 }
 .neia-a01-resumos {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.neia-a01-estoque {
+  grid-column: 1 / -1;
 }
 .neia-a01-cartao,
 .neia-a01-metrica {
@@ -333,6 +346,7 @@
 }
 .neia-a01-estoque table {
   width: 100%;
+  min-width: 620px;
   border-collapse: collapse;
   font-size: 14px;
 }
@@ -342,6 +356,13 @@
   text-align: left;
   border-bottom: 1px solid #34404a;
   font-variant-numeric: tabular-nums;
+}
+.neia-a01-estoque [scope="row"] {
+  min-width: 180px;
+}
+.neia-a01-estoque td:not(:last-child),
+.neia-a01-estoque [scope="col"] {
+  white-space: nowrap;
 }
 .neia-a01-estoque th span {
   display: flex;
@@ -441,17 +462,17 @@
   outline: 2px solid #ffd252;
   outline-offset: 2px;
 }
-@media (min-width: 1375px) {
+@container a01 (min-width: 1160px) {
   .neia-a01-grade {
-    grid-template-columns: minmax(0, 1fr) minmax(245px, 20%);
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 22%);
   }
 }
-@media (min-width: 1650px) {
-  .neia-a01-resumos {
-    grid-template-columns: minmax(300px, 1.45fr) repeat(3, minmax(0, 1fr));
+@container a01 (min-width: 685px) and (max-width: 1159px) {
+  .neia-a01-lateral {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 1050px) {
+@container a01 (max-width: 1049px) {
   .neia-a01-operacao {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -467,6 +488,46 @@
   .neia-a01 {
     padding-inline: 10px;
   }
+}
+@container a01 (max-width: 665px) {
+  .neia-a01-estoque table,
+  .neia-a01-estoque tbody {
+    display: block;
+    min-width: 0;
+  }
+  .neia-a01-estoque thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    clip-path: inset(50%);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .neia-a01-estoque tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+    padding-block: 8px;
+    border-bottom: 1px solid #34404a;
+  }
+  .neia-a01-estoque [scope="row"],
+  .neia-a01-estoque td:last-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .neia-a01-estoque th,
+  .neia-a01-estoque td {
+    border: 0;
+    padding: 2px 0;
+  }
+  .neia-a01-estoque td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--a01-suave);
+    font-size: 13px;
+  }
+}
+@container a01 (max-width: 684px) {
   .neia-a01-topo {
     align-items: stretch;
     flex-direction: column;
@@ -474,6 +535,7 @@
     padding: 7px 0;
   }
   .neia-a01-operacao,
+  .neia-a01-operacao[data-vendas="sem-dados"],
   .neia-a01-resumos {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -539,15 +601,50 @@
   min-height: 40px;
 }
 .neia-a01-tarefas-equipe {
-  max-width: min(720px, 100%);
-  margin: 0 auto;
-  padding-bottom: 30px;
+  width: 100%;
+  padding-bottom: 28px;
 }
-.neia-a01-tarefas-equipe .neia-a01-cabecalho a {
-  color: var(--a01-ouro);
-  min-height: 44px;
+.neia-a01-tarefas-equipe .neia-a01-tarefas-controles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.neia-a01-perfil-tarefas,
+.neia-a01-tarefas-equipe .neia-a01-aviso-tarefas {
+  margin-bottom: 12px;
+}
+.neia-a01-perfil-tarefas button {
+  justify-self: start;
+}
+.neia-a01-filtros-tarefas {
   display: grid;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+.neia-a01-filtros-tarefas label {
+  display: grid;
+  gap: 3px;
+}
+.neia-a01-filtros-tarefas select {
+  min-width: 0;
+  min-height: 42px;
+  color: inherit;
+  background: var(--a01-painel);
+  border: 1px solid var(--a01-linha);
+  border-radius: 7px;
+  padding-inline: 8px;
+}
+.neia-a01-shell [data-sidebar="sidebar"],
+.neia-a01-shell [data-sidebar="content"] {
+  background: #0a1015;
+}
+.neia-a01-shell [data-sidebar="header"],
+.neia-a01-shell [data-sidebar="footer"] {
+  background: #10171d;
+}
+.neia-a01-shell [data-sidebar="menu-button"] {
+  font-size: 14px;
 }
 .neia-a01-form select {
   border: 1px solid #4e5861;

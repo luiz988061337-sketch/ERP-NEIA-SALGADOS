@@ -1,5 +1,4 @@
-import { useState, type FormEvent } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, ClipboardList, History, Pencil, Plus } from "lucide-react";
 
@@ -18,8 +17,12 @@ import {
   atualizarTarefaA01,
   chaveTarefas,
   criarTarefaA01,
+  nomeTarefa,
+  salvarNomeTarefasA01,
+  tarefasAtrasadas,
   PRIORIDADES_A01,
   useHistoricoTarefaA01,
+  useNomesTarefasA01,
   useResponsaveisA01,
   useTarefasA01,
   type PrioridadeA01,
@@ -42,21 +45,32 @@ const horario = new Intl.DateTimeFormat("pt-BR", {
 const diaBR = (s: string | null) => s?.split("-").reverse().join("/") ?? "Sem prazo";
 const rotuloPrioridade = (s: string) => PRIORIDADES_A01.find(([id]) => s === id)?.[1] ?? s;
 
-function mudancasTarefa(anterior: TarefaA01 | null, atual: TarefaA01) {
+function mudancasTarefa(
+  anterior: TarefaA01 | null,
+  atual: TarefaA01,
+  mostrarNome: (id: string, registrado: string) => string,
+) {
   if (!anterior) return [];
   const campos = [
     ["Título", anterior.titulo, atual.titulo],
     ["Descrição", anterior.descricao, atual.descricao],
     ["Prioridade", rotuloPrioridade(anterior.prioridade), rotuloPrioridade(atual.prioridade)],
     ["Prazo", diaBR(anterior.prazo), diaBR(atual.prazo)],
-    ["Responsável", anterior.responsavel_nome, atual.responsavel_nome],
     [
       "Visibilidade",
       anterior.compartilhada ? "Compartilhada" : "Individual",
       atual.compartilhada ? "Compartilhada" : "Individual",
     ],
   ];
-  return campos.filter(([, antes, depois]) => antes !== depois);
+  const alterados = campos.filter(([, antes, depois]) => antes !== depois);
+  if (anterior.responsavel_id !== atual.responsavel_id) {
+    alterados.push([
+      "Responsável",
+      mostrarNome(anterior.responsavel_id, anterior.responsavel_nome),
+      mostrarNome(atual.responsavel_id, atual.responsavel_nome),
+    ]);
+  }
+  return alterados;
 }
 
 type Props = {
@@ -66,12 +80,24 @@ type Props = {
   consulta: ReturnType<typeof useTarefasA01>;
   sugestao?: SugestaoTarefaA01 | null;
   limparSugestao?: () => void;
+  painelCompleto?: boolean;
 };
 
-export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparSugestao }: Props) {
+export function TarefasA01({
+  usuarioId,
+  admin,
+  hoje,
+  consulta,
+  sugestao,
+  limparSugestao,
+  painelCompleto = false,
+}: Props) {
   const client = useQueryClient();
   const [verConcluidas, setVerConcluidas] = useState(false);
   const [limite, setLimite] = useState(5);
+  const [filtroResponsavel, setFiltroResponsavel] = useState("");
+  const [filtroPrioridade, setFiltroPrioridade] = useState("");
+  const [filtroPrazo, setFiltroPrazo] = useState("");
   const [editando, setEditando] = useState<TarefaA01 | "nova" | null>(null);
   const [concluir, setConcluir] = useState<TarefaA01 | null>(null);
   const [historico, setHistorico] = useState<TarefaA01 | null>(null);
@@ -82,6 +108,19 @@ export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparS
   const existente = editando && editando !== "nova" ? editando : null;
   const responsaveis = useResponsaveisA01(usuarioId, admin && editorAberto && !sugestao);
   const eventos = useHistoricoTarefaA01(usuarioId, historico?.id);
+  const identidades = (consulta.data ?? []).flatMap((tarefa) => [
+    tarefa.criado_por,
+    tarefa.responsavel_id,
+  ]);
+  for (const evento of eventos.data ?? []) {
+    identidades.push(evento.ator_id, evento.atual.responsavel_id);
+    if (evento.anterior) identidades.push(evento.anterior.responsavel_id);
+  }
+  const nomes = useNomesTarefasA01(usuarioId, identidades);
+  const mostrarNome = (id: string, registrado: string) =>
+    nomes.data?.get(id) ?? nomeTarefa(id, registrado);
+  const nomeNoHistorico = (id: string, registrado: string) =>
+    nomeTarefa(id, registrado, nomes.data);
   const alteraVisibilidade = admin || !existente || existente.criado_por === usuarioId;
   const podeEditar = (tarefa: TarefaA01) =>
     admin || tarefa.criado_por === usuarioId || tarefa.responsavel_id === usuarioId;
@@ -160,7 +199,21 @@ export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparS
   const concluidas = todas
     ?.filter((tarefa) => tarefa.concluida)
     .sort((a, b) => Date.parse(b.concluida_em ?? "") - Date.parse(a.concluida_em ?? ""));
-  const selecionadas = verConcluidas ? concluidas : pendentes;
+  const opcoesResponsaveis = new Map(
+    todas?.map((tarefa) => [
+      tarefa.responsavel_id,
+      mostrarNome(tarefa.responsavel_id, tarefa.responsavel_nome),
+    ]),
+  );
+  const selecionadas = (verConcluidas ? concluidas : pendentes)?.filter((tarefa) => {
+    if (filtroResponsavel && tarefa.responsavel_id !== filtroResponsavel) return false;
+    if (filtroPrioridade && tarefa.prioridade !== filtroPrioridade) return false;
+    if (filtroPrazo === "sem-prazo") return tarefa.prazo === null;
+    if (filtroPrazo === "hoje") return tarefa.prazo === hoje;
+    if (filtroPrazo === "atrasadas")
+      return !tarefa.concluida && tarefa.prazo !== null && tarefa.prazo < hoje;
+    return true;
+  });
 
   return (
     <>
@@ -201,6 +254,60 @@ export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparS
           </button>
         </div>
       </div>
+      {painelCompleto && (
+        <fieldset className="neia-a01-filtros-tarefas">
+          <legend>Filtrar tarefas</legend>
+          <label>
+            Responsável
+            <select
+              value={filtroResponsavel}
+              onChange={(e) => {
+                setFiltroResponsavel(e.target.value);
+                setLimite(5);
+              }}
+            >
+              <option value="">Todos</option>
+              {[...opcoesResponsaveis].map(([id, nome]) => (
+                <option key={id} value={id}>
+                  {nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Prioridade
+            <select
+              value={filtroPrioridade}
+              onChange={(e) => {
+                setFiltroPrioridade(e.target.value);
+                setLimite(5);
+              }}
+            >
+              <option value="">Todas</option>
+              {PRIORIDADES_A01.map(([id, nome]) => (
+                <option key={id} value={id}>
+                  {nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Prazo
+            <select
+              value={filtroPrazo}
+              onChange={(e) => {
+                setFiltroPrazo(e.target.value);
+                setLimite(5);
+              }}
+            >
+              <option value="">Todos</option>
+              <option value="hoje">Hoje</option>
+              <option value="atrasadas">Atrasadas</option>
+              <option value="sem-prazo">Sem prazo</option>
+            </select>
+          </label>
+        </fieldset>
+      )}
       {msg && (
         <p className="neia-a01-verde" role="status">
           {msg}
@@ -238,9 +345,9 @@ export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparS
                         : diaBR(tarefa.prazo)}
                     </p>
                     <p className="neia-a01-nota">
-                      Criada por {tarefa.criado_nome}
+                      Criada por {mostrarNome(tarefa.criado_por, tarefa.criado_nome)}
                       <br />
-                      Responsável {tarefa.responsavel_nome}
+                      Responsável {mostrarNome(tarefa.responsavel_id, tarefa.responsavel_nome)}
                     </p>
                     {tarefa.descricao && (
                       <details>
@@ -307,7 +414,11 @@ export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparS
           </>
         ) : (
           <p className="neia-a01-nota">
-            {verConcluidas ? "Nenhuma tarefa concluída." : "Nenhuma tarefa pendente."}
+            {filtroResponsavel || filtroPrioridade || filtroPrazo
+              ? "Nenhuma tarefa corresponde aos filtros."
+              : verConcluidas
+                ? "Nenhuma tarefa concluída."
+                : "Nenhuma tarefa pendente."}
           </p>
         ))}
 
@@ -373,21 +484,31 @@ export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparS
                       existente.responsavel_id !== usuarioId &&
                       !responsaveis.data?.some((p) => p.id === existente.responsavel_id) && (
                         <option value={existente.responsavel_id}>
-                          {existente.responsavel_nome}
+                          {mostrarNome(existente.responsavel_id, existente.responsavel_nome)}
                         </option>
                       )}
                     {responsaveis.data
                       ?.filter((p) => p.id !== usuarioId)
                       .map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.nome}
+                          {p.nome ?? "Nome não cadastrado" + (p.funcao ? " · " + p.funcao : "")}
                         </option>
                       ))}
                   </select>
                 </label>
               ) : (
-                <p>Responsável: {existente?.responsavel_nome ?? "Você"}</p>
+                <p>
+                  Responsável:{" "}
+                  {existente
+                    ? mostrarNome(existente.responsavel_id, existente.responsavel_nome)
+                    : "Você"}
+                </p>
               )}
+              {admin &&
+                !sugestao &&
+                responsaveis.data?.some((p) => p.id !== usuarioId && !p.nome) && (
+                  <p>O nome cadastrado no perfil identifica o responsável na lista.</p>
+                )}
               {responsaveis.isError && admin && !sugestao && (
                 <p className="neia-a01-vermelho">
                   Falha ao carregar a equipe.{" "}
@@ -486,14 +607,17 @@ export function TarefasA01({ usuarioId, admin, hoje, consulta, sugestao, limparS
               {eventos.data.map((evento) => (
                 <li key={evento.id}>
                   <strong>
-                    {acaoHistorico[evento.acao]} · {evento.ator_nome}
+                    {acaoHistorico[evento.acao]} ·{" "}
+                    {nomeNoHistorico(evento.ator_id, evento.ator_nome)}
                   </strong>
                   <p>{horario.format(new Date(evento.ocorrido_em))}</p>
-                  {mudancasTarefa(evento.anterior, evento.atual).map(([campo, anterior, atual]) => (
-                    <p key={campo}>
-                      {campo}: {anterior || "—"} → {atual || "—"}
-                    </p>
-                  ))}
+                  {mudancasTarefa(evento.anterior, evento.atual, nomeNoHistorico).map(
+                    ([campo, anterior, atual]) => (
+                      <p key={campo}>
+                        {campo}: {anterior || "—"} → {atual || "—"}
+                      </p>
+                    ),
+                  )}
                 </li>
               ))}
             </ul>
@@ -513,29 +637,104 @@ export function PainelEquipeTarefasA01({
   usuarioId: string;
   admin: boolean;
 }) {
+  const client = useQueryClient();
   const consulta = useTarefasA01(usuarioId);
+  const perfil = useNomesTarefasA01(usuarioId, [usuarioId]);
   const [agora, setAgora] = useState(() => new Date());
+  const [editarNome, setEditarNome] = useState(false);
+  const hoje = hojeSP(agora);
+  const atrasadas = tarefasAtrasadas(consulta.isError ? undefined : consulta.data, usuarioId, hoje);
+  const nomeAtual = perfil.data?.get(usuarioId);
+
+  useEffect(() => {
+    const timer = setInterval(() => setAgora(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const salvarNome = useMutation({
+    mutationFn: (nome: string) => salvarNomeTarefasA01(usuarioId, nome),
+    onSuccess: (nome) => {
+      client.setQueryData(
+        ["dashboard-a01", usuarioId, "nomes-tarefas", [usuarioId]],
+        new Map([[usuarioId, nome]]),
+      );
+      void client.invalidateQueries({ queryKey: ["dashboard-a01", usuarioId] });
+      setEditarNome(false);
+    },
+  });
+
   return (
     <div className="neia-a01 neia-a01-tarefas-equipe">
       <header className="neia-a01-cabecalho">
         <div>
           <h1>Minhas tarefas</h1>
-          <p>Responsabilidades da operação Néia Salgados</p>
+          {nomeAtual && <p>{nomeAtual}</p>}
         </div>
-        <Link to="/admin" hash="dashboard">
-          Voltar
-        </Link>
+        {perfil.isSuccess && nomeAtual && (
+          <Button type="button" variant="outline" onClick={() => setEditarNome((valor) => !valor)}>
+            {editarNome ? "Fechar perfil" : "Editar nome do perfil"}
+          </Button>
+        )}
       </header>
-      <section
-        className="neia-a01-cartao"
-        aria-label="Tarefas da equipe"
-        onFocus={() => setAgora(new Date())}
-      >
+      {perfil.isError && (
+        <p role="alert">
+          Falha ao consultar o perfil.{" "}
+          <Button type="button" variant="outline" onClick={() => void perfil.refetch()}>
+            Tentar novamente
+          </Button>
+        </p>
+      )}
+      {perfil.isSuccess && (!nomeAtual || editarNome) && (
+        <form
+          className="neia-a01-cartao neia-a01-form neia-a01-perfil-tarefas"
+          onSubmit={(evento) => {
+            evento.preventDefault();
+            if (!salvarNome.isPending)
+              salvarNome.mutate(String(new FormData(evento.currentTarget).get("nome") ?? ""));
+          }}
+        >
+          <label>
+            Seu nome no ERP{" "}
+            <Input
+              name="nome"
+              autoComplete="name"
+              maxLength={160}
+              required
+              defaultValue={nomeAtual ?? ""}
+            />
+          </label>
+          <p className="neia-a01-nota">
+            O nome do perfil identifica suas tarefas e ações no histórico.
+          </p>
+          {salvarNome.isError && (
+            <p role="alert" className="neia-a01-vermelho">
+              {salvarNome.error.message}
+            </p>
+          )}
+          <Button type="submit" className="neia-a01-dourado" disabled={salvarNome.isPending}>
+            Salvar nome
+          </Button>
+        </form>
+      )}
+      {atrasadas.length > 0 && (
+        <p role="status" className="neia-a01-vermelho neia-a01-aviso-tarefas">
+          {atrasadas.length === 1
+            ? "Você tem 1 tarefa atrasada."
+            : "Você tem " + atrasadas.length + " tarefas atrasadas."}
+        </p>
+      )}
+      <section className="neia-a01-cartao" aria-label="Tarefas da equipe">
         <h2>
           <ClipboardList size={20} />
           Tarefas e histórico
         </h2>
-        <TarefasA01 usuarioId={usuarioId} admin={admin} hoje={hojeSP(agora)} consulta={consulta} />
+        <TarefasA01
+          usuarioId={usuarioId}
+          admin={admin}
+          hoje={hoje}
+          consulta={consulta}
+          painelCompleto
+        />
       </section>
     </div>
   );

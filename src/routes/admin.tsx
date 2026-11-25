@@ -171,7 +171,7 @@ function Admin() {
   const { data: roles, isError: erroConsultaRoles, refetch: refetchPermissao, isFetching: verificandoPermissao } = useRoles(user?.id);
   const queryClient = useQueryClient();
   const { pathname, hash, href } = useLocation();
-  const aba = abaAdministrativa(hash);
+  const aba = !modoDemo && hash === "minhas-tarefas" ? "minhas-tarefas" : abaAdministrativa(hash);
   const filtroA01 = Route.useSearch();
   const [periodo, setPeriodo] = useState<PeriodoKey>("hoje");
   const [buscaGlobal, setBuscaGlobal] = useState("");
@@ -700,7 +700,7 @@ function Admin() {
   }
 
   function navegarAba(destino: string) {
-    if (ehAbaAdministrativa(destino) && destino !== aba) {
+    if ((ehAbaAdministrativa(destino) || (!modoDemo && destino === "minhas-tarefas")) && destino !== aba) {
       void navigate({ to: "/admin", hash: destino, hashScrollIntoView: false });
     }
   }
@@ -793,8 +793,18 @@ function Admin() {
   }
 
   const podeAcessarTarefas = !modoDemo && PAPEIS_TAREFAS_A01.some((papel) => roles?.includes(papel));
-  if (hash === "minhas-tarefas" && podeAcessarTarefas) {
-    return <PainelEquipeTarefasA01 key={user.id} usuarioId={user.id} admin={!!isAdmin} />;
+  async function sairDoAdmin() {
+    await supabase.auth.signOut();
+    void navigate({ to: "/auth", replace: true });
+  }
+
+  if (!isAdmin && podeAcessarTarefas && aba === "minhas-tarefas") {
+    return (
+      <AdminShell aba={aba} menuTarefas="equipe" usuario={user.email ?? null}
+        onAba={navegarAba} onRefresh={refreshAll} onSair={sairDoAdmin}>
+        <PainelEquipeTarefasA01 key={user.id} usuarioId={user.id} admin={false} />
+      </AdminShell>
+    );
   }
   if (!isAdmin) {
     return (
@@ -905,12 +915,15 @@ function Admin() {
       onAba={navegarAba}
       onRefresh={refreshAll}
       usuario={user?.email ?? null}
-      onSair={async () => {
-        await supabase.auth.signOut();
-        navigate({ to: "/auth", replace: true });
-      }}
+      menuTarefas={modoDemo ? undefined : "admin"}
+      onSair={sairDoAdmin}
     >
       <Tabs value={aba} onValueChange={navegarAba}>
+        {podeAcessarTarefas && (
+          <TabsContent value="minhas-tarefas" className="mt-0">
+            <PainelEquipeTarefasA01 key={user.id} usuarioId={user.id} admin />
+          </TabsContent>
+        )}
         <TabsContent value="dashboard" className="mt-0">
           {modoDemo ? (
             <PainelDashboardL2
