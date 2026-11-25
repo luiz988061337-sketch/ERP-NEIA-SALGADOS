@@ -125,6 +125,7 @@ import type { Role } from "@/lib/session";
 import type { PeriodoKey } from "@/lib/operacao";
 import { noIntervalo } from "@/lib/operacao";
 import { cn } from "@/lib/utils";
+import estoqueCss from "@/components/estoque-preview/estoques.css?url";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -135,6 +136,10 @@ export const Route = createFileRoute("/admin")({
         content: "Dashboard, produtos, pedidos, clientes, motoboys e financeiro.",
       },
     ],
+    // E01: mesmo CSS aprovado do Estoque de Salgados. Todos os seletores são
+    // namespaced (`est-*`) ou escopados por `.estoques-preview`, sem afetar as
+    // demais áreas da administração.
+    links: [{ rel: "stylesheet", href: estoqueCss }],
   }),
   component: Admin,
 });

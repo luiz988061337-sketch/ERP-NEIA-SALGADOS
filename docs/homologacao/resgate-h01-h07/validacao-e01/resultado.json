@@ -1,0 +1,52 @@
+{
+  "elementos": [
+    "01 cabeçalho/KPIs exatos e ações de alerta/ajuda",
+    "02/03/04 físico, reservado, disponível e abaixo do mínimo",
+    "05 fotos dos sabores",
+    "06 sabor físico único sem dupla contagem de modalidades",
+    "07 filtros de categoria, status e fornecedor",
+    "08 filtro apenas abaixo do mínimo",
+    "09 botões Movimentação e Registrar entrada de estoque",
+    "10 todas as colunas da referência + alerta de validade",
+    "11 visualizar/editar destacados",
+    "12 painel inferior do sabor",
+    "13 Reservar, Liberar reserva e Registrar perda",
+    "14 lotes FEFO com quantidade, validade e prioridade",
+    "15 últimas movimentações",
+    "16 acesso ao histórico (sem executar movimentação)",
+    "17 menu/navegação preservados",
+    "fontes legíveis e destaques críticos",
+    "sem marcadores de demonstração no módulo operacional",
+    "formulários reais abertos sem registrar movimentação"
+  ],
+  "erros": [],
+  "externos": [],
+  "dialogos": [
+    "Histórico — Bolinho mini (demo)",
+    "Registrar entrada de estoque: Código do novo lote",
+    "Movimentação: Vínculo da retirada",
+    "Reservar: Pedido em produção",
+    "Registrar perda: Justificativa / referência"
+  ],
+  "medidas": {
+    "kpi": {
+      "fonte": "24px",
+      "cor": "rgb(244, 241, 234)"
+    },
+    "produto": {
+      "fonte": "12px",
+      "cor": "rgb(244, 241, 234)"
+    },
+    "verde": {
+      "fonte": "24px",
+      "cor": "rgb(53, 201, 124)"
+    },
+    "vermelho": {
+      "fonte": "24px",
+      "cor": "rgb(241, 106, 106)"
+    },
+    "scrollWidth": 1440,
+    "innerWidth": 1440
+  },
+  "resultado": "17/17 elementos verificados, sem movimentações reais"
+}
