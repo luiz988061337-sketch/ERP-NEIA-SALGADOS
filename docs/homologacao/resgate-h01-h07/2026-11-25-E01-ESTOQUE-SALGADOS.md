@@ -62,6 +62,15 @@ As capturas usam builds estáticos locais em modo demonstração, sem Supabase e
 
 Evidência detalhada: `docs/homologacao/resgate-h01-h07/validacao-e01/resultado.json`.
 
+## Publicação
+
+- Commit local: `02ce53f` (`resgate-visual-h01-h07-codex`), sem push.
+- Build publicado: `VITE_DEMO_PREVIEW=0`, `NEIA_AMBIENTE=homologacao`.
+- Deployment: `dpl_AuRDHK9rsrLVKktJGHVS7QRar5Qa`, `READY`, protegido por `vercel_authentication`.
+- URL própria: `https://erp-neia-salgados-8l0q4sx0u-luiz988061337-3147s-projects.vercel.app`
+- Alias fixo reposicionado: `https://erp-neia-salgados-git-resga-dcaca5-luiz988061337-3147s-projects.vercel.app`
+- Production não foi promovida nem alterada.
+
 ## Pendências operacionais
 
 1. **Fornecedor por produto:** o schema atual não possui vínculo fornecedor × produto. O filtro usa a origem real interna “Produção Néia” como único valor. Para múltiplos fornecedores é necessária alteração de banco, não executada.
