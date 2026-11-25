@@ -70,7 +70,6 @@ export const ADMIN_NAV: AdminNavGroup[] = [
         href: "/admin",
         hash: "pedidos",
       },
-      { value: "central-atendente", label: "Central da Atendente", icon: ClipboardList, href: "/admin", hash: "central-atendente" },
       { value: "producao", label: "Produção", icon: CookingPot, href: "/producao" },
       { value: "central", label: "Central de Entregas", icon: Truck, href: "/central-entregas" },
       { value: "pdv", label: "PDV / Balcão", icon: ReceiptText, href: "/pdv" },
@@ -230,8 +229,7 @@ export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): Adm
       const destino = DESTINOS_OPERACIONAIS[item.value];
       if (item.value === "clientes-crm") return [];
       if (item.value === "clientes") return [{ ...item, value: "clientes-crm" }];
-      if (item.value === "pedidos" && pedidosAtendente) return [];
-      if (item.value === "central-atendente" && pedidosAtendente) {
+      if (item.value === "pedidos" && pedidosAtendente) {
         const { hash: _hash, ...itemAtendente } = item;
         return [{ ...itemAtendente, href: "/atendente" }];
       }
@@ -246,7 +244,6 @@ export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): Adm
 export const ADMIN_ABA_TITULO: Record<string, string> = {
   dashboard: "Dashboard",
   pedidos: "Pedidos",
-  "central-atendente": "Central da Atendente",
   producao: "Produção",
   central: "Central de Entregas",
   pdv: "PDV / Balcão",

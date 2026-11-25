@@ -173,6 +173,10 @@ const SEMENTES: Record<string, Linha[]> = {
     // unidade comercial própria. Não são combos e não entram no carrossel.
     linha("categorias", { id: "00000000-0000-4000-8000-000000000124", nome: "Congelados", slug: "salgados-congelados", ativo: true, ordem: 4 }),
     linha("categorias", { id: "00000000-0000-4000-8000-000000000125", nome: "Bebidas", slug: "bebidas", ativo: true, ordem: 5 }),
+    // Categorias do módulo de salgados (somente demonstração local E01).
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000126", nome: "Mini fritos", slug: "mini-fritos", ativo: true, ordem: 6 }),
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000127", nome: "Mini assados", slug: "mini-assados", ativo: true, ordem: 7 }),
+    linha("categorias", { id: "00000000-0000-4000-8000-000000000128", nome: "Mini pasteis", slug: "mini-pasteis", ativo: true, ordem: 8 }),
   ],
   produtos: [
     // HOMO-13B: salgados prontos seguem o contrato real — venda em múltiplos
@@ -189,6 +193,10 @@ const SEMENTES: Record<string, Linha[]> = {
     // bebida vendida por UN. Nenhum dos dois usa passo de 50.
     linha("produtos", { id: "00000000-0000-4000-8000-000000000004", nome: "Coxinha congelada (demo)", categoria: "Congelados", categoria_id: "00000000-0000-4000-8000-000000000124", tipo_venda: "unidade", unidade_medida: "pacote", preco: 32.9, ativo: true, disponivel: true, descricao: "Produto fictício — 1 pacote", imagem_url: hero, estoque: 40, embalagem_custo: 1.2, tempo_fritura_s: 0, tempo_mao_obra_min: 0 }),
     linha("produtos", { id: "00000000-0000-4000-8000-000000000005", nome: "Refrigerante (demo)", categoria: "Bebidas", categoria_id: "00000000-0000-4000-8000-000000000125", tipo_venda: "unidade", unidade_medida: "un", preco: 6.9, ativo: true, disponivel: true, descricao: "Produto fictício — 1 unidade", imagem_url: assados, estoque: 80, embalagem_custo: 0.4, tempo_fritura_s: 0, tempo_mao_obra_min: 0 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000006", nome: "Coxinha mini (demo)", categoria: "Mini fritos", categoria_id: "00000000-0000-4000-8000-000000000126", tipo_venda: "unidade", unidade_medida: "un", preco: 4.9, ativo: true, disponivel: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 140, estoque_minimo: 50, tempo_fritura_s: 180, tempo_mao_obra_min: 0.5 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000007", nome: "Bolinho mini (demo)", categoria: "Mini fritos", categoria_id: "00000000-0000-4000-8000-000000000126", tipo_venda: "unidade", unidade_medida: "un", preco: 4.5, ativo: true, disponivel: true, descricao: "Produto fictício", imagem_url: fritos, estoque: 83, estoque_minimo: 40, tempo_fritura_s: 170, tempo_mao_obra_min: 0.5 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000008", nome: "Pão de queijo mini (demo)", categoria: "Mini assados", categoria_id: "00000000-0000-4000-8000-000000000127", tipo_venda: "unidade", unidade_medida: "un", preco: 3.9, ativo: true, disponivel: true, descricao: "Produto fictício", imagem_url: assados, estoque: 24, estoque_minimo: 30, tempo_fritura_s: 0, tempo_mao_obra_min: 0.3 }),
+    linha("produtos", { id: "00000000-0000-4000-8000-000000000009", nome: "Pastel mini (demo)", categoria: "Mini pasteis", categoria_id: "00000000-0000-4000-8000-000000000128", tipo_venda: "unidade", unidade_medida: "un", preco: 5.2, ativo: true, disponivel: true, descricao: "Produto fictício", imagem_url: hero, estoque: 66, estoque_minimo: 25, tempo_fritura_s: 150, tempo_mao_obra_min: 0.4 }),
   ],
   // HOMO-CLIENTE-14: fixtures do carrossel da home. Nomes e fotos vêm do
   // próprio catálogo demonstrativo; nenhum produto ou imagem é inventado e
@@ -297,14 +305,43 @@ const SEMENTES: Record<string, Linha[]> = {
       user_id: USUARIO_DEMO.id,
       motoboy_id: null,
     }),
+    // Pedidos em produção apenas do banco em memória da demonstração.
+    linha("pedidos", { id: "00000000-0000-4000-8000-000000000203", numero: 4600, codigo: "DEMO-003", cliente_nome: "Cliente fictício", status: "em_producao", producao_status: "aguardando", total: 40, taxa_entrega: 0, user_id: USUARIO_DEMO.id }),
+    linha("pedidos", { id: "00000000-0000-4000-8000-000000000204", numero: 4601, codigo: "DEMO-004", cliente_nome: "Cliente fictício", status: "em_producao", producao_status: "aguardando", total: 32, taxa_entrega: 0, user_id: USUARIO_DEMO.id }),
     ...PEDIDOS_CLIENTE_SEMENTE,
   ],
   pedido_itens: [
     linha("pedido_itens", { pedido_id: "00000000-0000-4000-8000-000000000201", produto_id: "00000000-0000-4000-8000-000000000001", nome: "Coxinha de frango (demo)", quantidade: 5, preco_unitario: 7.9, subtotal: 39.5 }),
     ...ITENS_PEDIDOS_CLIENTE_SEMENTE,
   ],
-  estoque_movimentacoes: [],
-  reservas_estoque: [],
+  // E01: somente o modo DEMONSTRAÇÃO (VITE_DEMO_PREVIEW=1) usa estes lotes
+  // fictícios para validar o layout do Estoque de Salgados sem tocar em banco.
+  lotes: [
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a01", produto_id: "00000000-0000-4000-8000-000000000001", codigo: "LOTE-101", quantidade: 80, restante: 80, validade: "2026-11-30", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a02", produto_id: "00000000-0000-4000-8000-000000000001", codigo: "LOTE-102", quantidade: 60, restante: 60, validade: "2026-12-20", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a03", produto_id: "00000000-0000-4000-8000-000000000002", codigo: "LOTE-201", quantidade: 35, restante: 35, validade: "2026-11-28", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a04", produto_id: "00000000-0000-4000-8000-000000000002", codigo: "LOTE-202", quantidade: 48, restante: 48, validade: "2026-12-10", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a05", produto_id: "00000000-0000-4000-8000-000000000003", codigo: "LOTE-301", quantidade: 24, restante: 24, validade: "2026-11-29", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a06", produto_id: "00000000-0000-4000-8000-000000000004", codigo: "LOTE-401", quantidade: 40, restante: 40, validade: "2026-11-30", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a07", produto_id: "00000000-0000-4000-8000-000000000006", codigo: "LOTE-601", quantidade: 80, restante: 80, validade: "2026-11-28", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a08", produto_id: "00000000-0000-4000-8000-000000000006", codigo: "LOTE-602", quantidade: 60, restante: 60, validade: "2026-12-20", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a09", produto_id: "00000000-0000-4000-8000-000000000007", codigo: "LOTE-701", quantidade: 35, restante: 35, validade: "2026-11-29", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a10", produto_id: "00000000-0000-4000-8000-000000000007", codigo: "LOTE-702", quantidade: 48, restante: 48, validade: "2026-12-10", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a11", produto_id: "00000000-0000-4000-8000-000000000008", codigo: "LOTE-801", quantidade: 24, restante: 24, validade: "2026-11-29", status: "ativo" }),
+    linha("lotes", { id: "00000000-0000-4000-8000-000000000a12", produto_id: "00000000-0000-4000-8000-000000000009", codigo: "LOTE-901", quantidade: 66, restante: 66, validade: "2026-12-14", status: "ativo" }),
+  ],
+  reserva_consumos: [],
+  estoque_movimentacoes: [
+    linha("estoque_movimentacoes", { id: "00000000-0000-4000-8000-000000000b01", produto_id: "00000000-0000-4000-8000-000000000001", tipo: "entrada_manual", quantidade: 80, saldo_anterior: 0, saldo_posterior: 80, observacao: "Lote LOTE-101", created_at: "2026-11-23T08:10:00" }),
+    linha("estoque_movimentacoes", { id: "00000000-0000-4000-8000-000000000b02", produto_id: "00000000-0000-4000-8000-000000000001", tipo: "reserva", quantidade: -20, saldo_anterior: 140, saldo_posterior: 120, observacao: "Pedido DEMO-001", created_at: "2026-11-24T14:35:00" }),
+    linha("estoque_movimentacoes", { id: "00000000-0000-4000-8000-000000000b03", produto_id: "00000000-0000-4000-8000-000000000007", tipo: "entrada_manual", quantidade: 83, saldo_anterior: 0, saldo_posterior: 83, observacao: "Lotes LOTE-701/702", created_at: "2026-11-22T09:00:00" }),
+    linha("estoque_movimentacoes", { id: "00000000-0000-4000-8000-000000000b04", produto_id: "00000000-0000-4000-8000-000000000007", tipo: "reserva", quantidade: -15, saldo_anterior: 83, saldo_posterior: 68, observacao: "Pedido DEMO-004", created_at: "2026-11-24T16:20:00" }),
+  ],
+  reservas_estoque: [
+    linha("reservas_estoque", { id: "00000000-0000-4000-8000-000000000c01", pedido_id: "00000000-0000-4000-8000-000000000203", produto_id: "00000000-0000-4000-8000-000000000001", quantidade: 20, status: "ativa" }),
+    linha("reservas_estoque", { id: "00000000-0000-4000-8000-000000000c02", pedido_id: "00000000-0000-4000-8000-000000000204", produto_id: "00000000-0000-4000-8000-000000000007", quantidade: 15, status: "ativa" }),
+    linha("reservas_estoque", { id: "00000000-0000-4000-8000-000000000c03", pedido_id: "00000000-0000-4000-8000-000000000203", produto_id: "00000000-0000-4000-8000-000000000006", quantidade: 20, status: "ativa" }),
+  ],
   fila_impressao: [],
   fila_fritura: [],
   pedido_status_historico: [],
@@ -482,6 +519,9 @@ class ConsultaDemo implements PromiseLike<Resposta> {
     return this;
   }
   limit(n: number) { this.limite = n; return this; }
+  // Compatibilidade com as consultas operacionais: o cliente real aceita
+  // AbortSignal; o emulador não precisa cancelar nada e apenas o ignora.
+  abortSignal(_sinal?: unknown) { return this; }
   range(inicio: number, fim: number) { this.inicio = inicio; this.limite = fim - inicio + 1; return this; }
 
   insert(payload: Linha | Linha[]): this { this.modo = "insert"; this.payload = payload; return this; }

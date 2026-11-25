@@ -156,7 +156,7 @@ function jaTemAdminShell(pathname: string, modoDemo: boolean): boolean {
 }
 
 const ABA_ESPECIAL: Record<string, string> = {
-  "/atendente": "central-atendente",
+  "/atendente": "pedidos",
   "/crm-config": "clientes-crm",
   "/operacao": "dashboard",
   "/orcamentos": "dashboard",

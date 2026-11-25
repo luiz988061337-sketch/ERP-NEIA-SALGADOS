@@ -35,13 +35,13 @@ export function EntregasResumo({
             <h1 className="font-display text-xl font-extrabold uppercase tracking-tight text-[#F2CE6B] sm:text-[28px]">
               Central de Entregas — Rotas
             </h1>
-            <p className="text-sm text-muted-foreground">Distribuição e acompanhamento das entregas</p>
+            <p className="text-sm text-muted-foreground">Agrupamento inteligente de pedidos por rota</p>
           </div>
         </div>
         {acoes}
       </header>
 
-      <section aria-label="Indicadores de entregas" className="mt-4 grid min-w-0 grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <section aria-label="Indicadores de entregas" className="mt-4 grid min-w-0 grid-cols-2 gap-3 lg:grid-cols-5">
         {indicadores.map(({ label, valor, icone: Icone }) => (
           <article key={label} className="min-w-0 rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-3 shadow-card sm:min-h-28 sm:p-4">
             <div className="flex items-start gap-2 text-[13px] font-medium uppercase leading-snug text-[#F2CE6B]">

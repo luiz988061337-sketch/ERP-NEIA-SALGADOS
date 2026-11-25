@@ -19,6 +19,10 @@ import {
   ChevronRight,
   XCircle,
   Satellite,
+  Bike,
+  Route as RouteIcon,
+  Send,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -35,6 +39,7 @@ import { EntregasResumo } from "@/components/entregas/entregas-resumo";
 import { comLocalizacaoSegura, lerLocalizacoesEntrega, MOTOBOY_RPC_ATIVO } from "@/lib/localizacao-entrega";
 import { brl, dataHora, hora, PAGAMENTO_LABEL } from "@/lib/format";
 import { useRoles, useSession } from "@/lib/session";
+import { pontoDaLoja, useLojaConfig } from "@/lib/loja";
 import { MOTIVO_ATRASO, MOTIVO_ATRASO_LABEL } from "@/lib/entrega";
 import {
   E4_ATRIBUICAO_ATIVA,
@@ -46,6 +51,25 @@ import {
 // E9.1: travas de clique repetido por pedido (fora do estado React para
 // cobrir cliques antes do re-render). Não muda comportamento com flag off.
 const atribuindoEmVoo = new Set<string>();
+const quadroEntregas = "min-w-0 rounded-2xl border border-[#D4A94A]/50 bg-gradient-to-b from-[#14130F] to-[#0F0E0C] p-4";
+const tituloQuadro = "font-display text-lg font-bold uppercase text-[#F2CE6B]";
+const linhaEntregas = "rounded-xl border border-[#D4A94A]/30 bg-[#141310]";
+
+function nomeRota(id: string) {
+  return `Rota ${id.slice(0, 8)}`;
+}
+
+function estadoRota(rota: { status: string; liberada_central_em?: string | null }) {
+  if (rota.status === "em_rota") return "Em rota";
+  return rota.liberada_central_em ? "Saída liberada" : "Aguardando liberação";
+}
+
+function abrirSecaoEntregas(id: string) {
+  const destino = document.getElementById(id);
+  const painel = destino?.closest("details");
+  if (painel) painel.open = true;
+  destino?.scrollIntoView({ block: "start" });
+}
 
 export const Route = createFileRoute("/central-entregas")({
   head: () => ({
@@ -85,6 +109,7 @@ function CentralEntregas() {
   const { user, loading } = useSession();
   const { data: roles, isError: erroAcesso, refetch: refetchAcesso, isFetching: verificandoAcesso } = useRoles(user?.id);
   const queryClient = useQueryClient();
+  const { data: loja } = useLojaConfig();
   const [filtro, setFiltro] = useState<
     "todos" | "hoje" | "em_rota" | "aguardando" | "entregues" | "retirada"
   >("todos");
@@ -355,7 +380,7 @@ function CentralEntregas() {
     const { data, error } = await supabase
       .from("rotas_entrega")
       .select(
-        `id,motoboy_id,status,saiu_em,${MOTOBOY_RPC_ATIVO ? "liberada_central_em,liberada_central_por," : ""}rota_pedidos(pedido_id,ordem,pedidos(id,numero,status,cliente_nome,agendado_para))`,
+        `id,motoboy_id,status,saiu_em,${MOTOBOY_RPC_ATIVO ? "liberada_central_em,liberada_central_por," : ""}rota_pedidos(pedido_id,ordem,pedidos(id,numero,status,cliente_nome,agendado_para,bairro,destino_lat,destino_lng))`,
       )
       .in("status", MOTOBOY_RPC_ATIVO ? ["preparando", "em_rota"] : ["em_rota"])
       .order("saiu_em", { ascending: true });
@@ -452,6 +477,7 @@ function CentralEntregas() {
           queryClient.invalidateQueries({ queryKey: ["central-j3c-atrasos"] });
           queryClient.invalidateQueries({ queryKey: ["central-j3c-historico"] });
           queryClient.invalidateQueries({ queryKey: ["central-j3f-rotas"] });
+          queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
         },
       )
       // J3-H H3: mesmo canal, segundo binding (motoboys). Sem canal novo, sem polling.
@@ -547,23 +573,12 @@ function CentralEntregas() {
     const emAndamento = [...emRota]
       .sort((a: any, b: any) => +new Date(b.created_at) - +new Date(a.created_at))
       .slice(0, 8);
-    const motos = (motoboys ?? []).map((m: any) => ({
-      nome: m.nome ?? "?",
-      status: m.status ?? "offline",
-      entregas: lista.filter(
-        (p: any) =>
-          p.motoboy_id && String(p.motoboy_id) === String(m.user_id) && p.status !== "cancelado",
-      ).length,
-    }));
-    const motosEmRota = (motoboys ?? []).filter((m: any) => m.status === "em_rota").length;
-    return { emRota, aguardando, entreguesHoje, emAndamento, porMotoboy, motos, motosEmRota };
+    return { emRota, aguardando, entreguesHoje, emAndamento, porMotoboy };
   }, [pedidos, motoboys]);
 
   function verHistoricoPedido(id: string) {
     setHistPedidoId(id);
-    document
-      .getElementById("secao-historico")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    abrirSecaoEntregas("secao-historico");
   }
 
   // ---------- FUNÇÕES ----------
@@ -827,14 +842,14 @@ function CentralEntregas() {
   /* Pontos do mapa dominante: destinos dos pedidos + posições dos motoboys.
      Mesma lógica do mapa antigo, unificada em um único MapView no topo. */
   const pontosMapa = useMemo(() => {
-    const pts: { lat: number; lng: number; label: string; color: string }[] = [];
+    const pts: { lat: number; lng: number; label: string; moto?: boolean; motoboyId?: string }[] = [];
     for (const p of pedidosFiltrados ?? []) {
       if (p.destino_lat != null && p.destino_lng != null) {
         pts.push({
           lat: p.destino_lat,
           lng: p.destino_lng,
           label: `Pedido ${p.numero}`,
-          color: "primary",
+
         });
       }
     }
@@ -856,7 +871,8 @@ function CentralEntregas() {
           lat: ultimoPedido.motoboy_lat,
           lng: ultimoPedido.motoboy_lng,
           label: `Motoboy ${m.nome}${desatualizada ? " ⚠ desatualizada" : ""}`,
-          color: "success",
+          moto: true,
+          motoboyId: m.id,
         });
       }
     }
@@ -880,6 +896,23 @@ function CentralEntregas() {
     .filter((vinculo: any) => vinculo.pedidos)
     .sort((a: any, b: any) => a.ordem - b.ordem)
     .map((vinculo: any) => vinculo.pedidos);
+  const motoboyDaRota = (motoboys ?? []).find((m: any) => m.id === rotaNoMapa?.motoboy_id);
+  const rotaPodeEncerrar = paradas.length > 0 && paradas.every((p: any) => ["entregue", "cancelado"].includes(p.status));
+  const localLoja = loja ? pontoDaLoja(loja) : null;
+  const pontosDasParadas = paradas.flatMap((p: any, indice: number) =>
+    p.destino_lat == null || p.destino_lng == null ? [] : [{
+      lat: p.destino_lat, lng: p.destino_lng, label: "Pedido " + p.numero,
+      rotulo: String.fromCharCode(65 + indice),
+    }],
+  );
+  const pontosSelecionados = rotaNoMapa
+    ? [...pontosDasParadas, ...pontosMapa.filter((ponto) => ponto.motoboyId === rotaNoMapa.motoboy_id)]
+    : pontosMapa;
+  const pontosDaRota = localLoja && pontosSelecionados.length ? [localLoja, ...pontosSelecionados] : pontosSelecionados;
+  const origemEParadas = localLoja ? [localLoja, ...pontosDasParadas] : pontosDasParadas;
+  const sequenciaDaRota = pontosDasParadas.length === paradas.length && paradas.length > 0
+    ? origemEParadas : [];
+  const pedidosParaRota = pedidosVisiveis.filter((p: any) => p.tipo_entrega === "entrega" && (aguardandoAtribuicaoCentral(p) || atribuidoCentral(p)));
   const atribuicoes = !erroPedidos && pedidos
     ? pedidos.filter((pedido: any) => pedido.tipo_entrega === "entrega" && pedido.motoboy_id &&
         ["pronto", "aguardando_motoboy"].includes(pedido.status)).length
@@ -887,7 +920,7 @@ function CentralEntregas() {
 
   return (
     <>
-      <div className="central-entregas-operacional-premium mx-auto w-full min-w-0 max-w-[1600px] space-y-4 px-3 py-4 sm:px-5">
+      <div className="central-entregas-operacional-premium mx-auto w-full min-w-0 max-w-[1400px] space-y-4 p-3 sm:p-4">
         <EntregasResumo
           aguardando={!erroPedidos && pedidos ? resumoCentral.aguardando.length : "—"}
           atribuidos={atribuicoes}
@@ -909,700 +942,258 @@ function CentralEntregas() {
         ) : null}
 
         <EntregasLayout
-          mapa={<section
-            id="secao-mapa"
-            className="overflow-hidden rounded-2xl border border-[#D4A94A]/50 bg-card p-3 shadow-card sm:p-4"
-            aria-label="Mapa de entregas em tempo real"
-          >
-            <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="rounded-full border border-[#D4A94A]/60 px-3 py-1.5 text-sm font-bold uppercase tracking-wide">
-                {rotaNoMapa ? `Rota ${String(rotaNoMapa.id).slice(0, 8)}` : "Mapa de Entregas"}
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                Pedidos e motoboys em tempo real
-              </span>
-            </header>
-            <div className="h-64 overflow-hidden rounded-xl border border-border bg-background lg:h-[340px]">
-              {pontosMapa.length > 0 ? (
-                <MapView pontos={pontosMapa as any} />
-              ) : (
-                <p className="grid h-full place-content-center px-5 text-center text-sm text-muted-foreground">
-                  Nenhum ponto no mapa ainda — aguardando pedidos com localização confirmada.
-                </p>
-              )}
-            </div>
-            {paradas.length > 0 && (
-              <ol aria-label="Paradas da rota selecionada" className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {paradas.map((pedido: any, indice: number) => (
-                  <li key={pedido.id} className="min-w-0 rounded-xl border border-[#D4A94A]/35 bg-background p-3 text-sm">
-                    <strong className="flex items-center gap-2">
-                      <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[#D4A94A]/40 text-[#F2CE6B]">{indice + 1}</span>
-                      #{pedido.numero}
-                    </strong>
-                    <p className="mt-1 break-words text-muted-foreground">{pedido.cliente_nome}</p>
-                    {pedido.agendado_para && <p className="mt-1 font-semibold text-[#F2CE6B]">Agendado às {hora(pedido.agendado_para)}</p>}
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>}
-          rota={<section className="rounded-2xl border border-[#D4A94A]/50 bg-card p-4">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <h2 id="secao-rotas" className="basis-full font-display text-lg font-bold uppercase">
-              Cartões de rotas
-            </h2>
-            <label className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              Motoboy
-              <select value={filtroMotoboyRotas} onChange={(event) => setFiltroMotoboyRotas(event.target.value)}
-                className="min-h-10 max-w-full rounded-md border border-input bg-background px-3 text-foreground">
-                <option value="">Todos os motoboys</option>
-                {(motoboys ?? []).map((motoboy: any) => <option key={motoboy.id} value={motoboy.id}>{motoboy.nome}</option>)}
-              </select>
-            </label>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] })}
-            >
-              Atualizar
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            {MOTOBOY_RPC_ATIVO ? "A Central libera a saída das rotas atribuídas. " : "Rotas em andamento. "}
-            Encerrar exige todos os pedidos entregues ou cancelados.
-          </p>
-          {rotasCarregando && !(rotasAtivas ?? []).length ? (
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando rotas…
-            </p>
-          ) : rotasErro ? (
-            <p className="text-sm text-destructive">
-              Não foi possível carregar as rotas: {(rotasErro as Error).message}
-            </p>
-          ) : rotasVisiveis.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma rota para o filtro atual.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {rotasVisiveis.map((r: any) => {
-                const vinculados = (r.rota_pedidos ?? [])
-                  .map((rp: any) => rp.pedidos)
-                  .filter(Boolean);
-                const pendentes = vinculados.filter(
-                  (p: any) => p.status !== "entregue" && p.status !== "cancelado",
-                );
-                const concluidos = vinculados.length - pendentes.length;
-                const mb = (motoboys ?? []).find((x: any) => x.id === r.motoboy_id);
-                const podeEncerrar = vinculados.length > 0 && pendentes.length === 0;
-                const confirmando = rotaConfirmId === r.id;
-                const processando = rotaEncerrandoId === r.id;
-                return (
-                  <div key={r.id} className="rounded-xl border border-[#D4A94A]/55 bg-background p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="font-display text-base font-bold text-[#F2CE6B]">Rota {String(r.id).slice(0, 8)}</h3>
-                      <span className="rounded-full border border-border px-2 py-1 text-xs font-semibold">
-                        {r.status === "em_rota" ? "Em rota" : r.liberada_central_em ? "Saída liberada" : "Aguardando liberação"}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Motoboy: {mb?.nome ?? "—"}
-                      {r.saiu_em ? ` • saiu às ${hora(r.saiu_em)}` : ""}
-                    </p>
-                    <p className="text-sm mt-1">
-                      {vinculados.length === 0
-                        ? "Sem pedidos vinculados."
-                        : `${concluidos} de ${vinculados.length} pedido(s) finalizados`}
-                      {pendentes.length > 0 && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          • pendentes: {pendentes.map((p: any) => `Nº ${p.numero}`).join(", ")}
-                        </span>
-                      )}
-                    </p>
-                    {vinculados.length > 0 ? (
-                      <ol className="mt-3 space-y-2">
-                        {vinculados.map((pedido: any) => (
-                          <li key={pedido.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#D4A94A]/35 bg-card px-3 py-2 text-sm">
-                            <span className="min-w-0 break-words"><strong className="block">Pedido #{pedido.numero}</strong>{pedido.cliente_nome}</span>
-                            <StatusBadge status={pedido.status} />
-                          </li>
-                        ))}
-                      </ol>
-                    ) : null}
-                    {vinculados.length > 0 && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="mt-3"
-                        aria-pressed={rotaNoMapa?.id === r.id}
-                        onClick={() => {
-                          setRotaSelecionada(r.id);
-                          document.getElementById("secao-mapa")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }}
-                      >
-                        <MapPin className="size-4" aria-hidden /> Ver paradas
-                      </Button>
-                    )}
-                    {MOTOBOY_RPC_ATIVO && r.status === "preparando" && (
-                      <div className="mt-3"><p className="text-sm">{r.liberada_central_em ? `Liberação registrada às ${hora(r.liberada_central_em)}. O servidor revalida a composição antes da saída.` : "Atribuída pela Central. Confirme a liberação para permitir a saída após as retiradas."}</p>
-                        <Button size="sm" className="mt-2" disabled={rotaLiberando !== null}
-                          onClick={() => void liberarRota(r.id)}>Liberar saída</Button>
-                      </div>
-                    )}
-                    {!confirmando ? (
-                      <div className="mt-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={!podeEncerrar || processando}
-                          onClick={() => setRotaConfirmId(r.id)}
-                        >
-                          Encerrar rota
-                        </Button>
-                        {!podeEncerrar && vinculados.length > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Aguarde todos os pedidos serem entregues ou cancelados.
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="mt-3 rounded-lg border border-border p-3">
-                        <p className="text-sm">
-                          <strong>Encerrar esta rota?</strong> Todos os pedidos foram entregues ou
-                          cancelados?
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={processando}
-                            onClick={() => setRotaConfirmId(null)}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            size="sm"
-                            disabled={processando}
-                            onClick={() => encerrarRota(r.id)}
-                          >
-                            {processando ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Encerrando…
-                              </>
-                            ) : (
-                              "Encerrar rota"
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>}
-        />
-
-          <div className="space-y-3">
-            <section
-              className="rounded-xl border border-border bg-card shadow-card"
-              aria-label="Motoboys"
-            >
-              <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-border px-3 py-2">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Motoboys
+          mapa={
+            <section id="secao-mapa" className={quadroEntregas} aria-label="Mapa de entregas">
+              <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="rounded-full border border-[#D4A94A] px-4 py-1.5 text-sm font-extrabold uppercase tracking-wide">
+                  {rotaNoMapa ? nomeRota(rotaNoMapa.id) : "Mapa de entregas"}
                 </h2>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
-                  {(resumoCentral.motos ?? []).length}
+                <span className="text-sm text-muted-foreground">
+                  {rotasVisiveis.length} rotas · {paradas.length} paradas selecionadas
                 </span>
               </header>
-              <ul className="space-y-2 p-3">
-                {(resumoCentral.motos ?? []).map((m: any) => {
-                  const st = String(m.status ?? "").toLowerCase();
-                  const corDot =
-                    st.includes("rota") || st.includes("em rota")
-                      ? "#2563EB"
-                      : st.includes("dispon")
-                        ? "#21835D"
-                        : "#64748B";
-                  return (
-                    <li
-                      key={m.nome}
-                      className="flex items-center gap-2.5 rounded-lg bg-muted px-2.5 py-2"
-                    >
-                      <span
-                        className="grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-foreground"
-                        style={{ backgroundColor: corDot }}
-                        aria-hidden
-                      >
-                        {(m.nome ?? "?").charAt(0).toUpperCase()}
+              <div className="relative h-64 overflow-hidden rounded-xl border border-[#D4A94A]/20 bg-[#0B0A08] sm:h-[340px]">
+                {pontosDaRota.length > 0 ? (
+                  <>
+                    <MapView pontos={pontosDaRota} sequencia={sequenciaDaRota} className="h-full w-full" />
+                    {sequenciaDaRota.length > 1 && (
+                      <span className="pointer-events-none absolute bottom-2 left-2 rounded-md border border-[#D4A94A]/40 bg-[#0B0A08]/90 px-2 py-1 text-xs">
+                        Sequência de paradas
                       </span>
-                      <div className="min-w-0 flex-1 leading-tight">
-                        <p className="truncate text-sm font-semibold">{m.nome}</p>
-                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <span
-                            className="inline-block size-1.5 rounded-full"
-                            style={{ backgroundColor: corDot }}
-                            aria-hidden
-                          />
-                          {m.status} • {m.entregas} entrega(s)
-                        </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="grid h-full place-content-center gap-3 bg-[linear-gradient(to_right,#201C14_1px,transparent_1px),linear-gradient(to_bottom,#201C14_1px,transparent_1px)] bg-[length:36px_36px] px-5 text-center">
+                    <MapPin className="mx-auto size-8 text-[#F2CE6B]" aria-hidden />
+                    <p className="rounded-md bg-[#0B0A08] p-2 text-sm text-muted-foreground">Aguardando pedidos com localização confirmada.</p>
+                  </div>
+                )}
+              </div>
+              {paradas.length > 0 && (
+                <ol aria-label="Paradas da rota selecionada" className="mt-3 grid gap-3 sm:grid-cols-3">
+                  {paradas.map((pedido: any, indice: number) => (
+                    <li key={pedido.id} className={linhaEntregas + " min-w-0 p-3"}>
+                      <strong className="flex items-center gap-2 text-sm">
+                        <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[#D4A94A]/40 bg-[#D4A94A]/15 text-[#F2CE6B]">{String.fromCharCode(65 + indice)}</span>
+                        #{pedido.numero}
+                      </strong>
+                      <p className="mt-1 break-words text-xs text-muted-foreground">{pedido.cliente_nome}</p>
+                      {pedido.agendado_para && <p className="mt-2 text-xs font-bold text-[#F2CE6B]">Cliente até {hora(pedido.agendado_para)}</p>}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          }
+          rota={
+            <section id="secao-rota-selecionada" className={quadroEntregas} aria-label="Rota selecionada">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-display text-xl font-extrabold uppercase">{rotaNoMapa ? nomeRota(rotaNoMapa.id) : "Rota selecionada"}</h2>
+                <span className="rounded-full border border-[#D4A94A] px-3 py-1 text-xs font-bold uppercase">{paradas.length} pedidos</span>
+              </div>
+              {rotaNoMapa ? (
+                <>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-xl border border-[#D4A94A]/50 bg-[#D4A94A]/10 text-[#F2CE6B]"><User className="size-6" aria-hidden /></span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase text-[#F2CE6B]">Motoboy</p>
+                      <p className="break-words text-lg font-bold">{motoboyDaRota?.nome ?? "Não vinculado"}</p>
+                    </div>
+                    <span className="rounded-full border border-[#D4A94A]/40 px-3 py-1 text-xs font-semibold">{estadoRota(rotaNoMapa)}</span>
+                  </div>
+                  <ol className="mt-4 space-y-2">
+                    {paradas.map((pedido: any) => (
+                      <li key={pedido.id} className={linhaEntregas + " flex flex-wrap items-center gap-3 p-3"}>
+                        <Package className="size-5 shrink-0 text-[#F2CE6B]" aria-hidden />
+                        <div className="min-w-0 flex-1 break-words text-sm">
+                          <strong className="block">Pedido #{pedido.numero}</strong>
+                          <span className="text-muted-foreground">{pedido.cliente_nome}{pedido.bairro ? " · " + pedido.bairro : ""}</span>
+                        </div>
+                        <StatusBadge status={pedido.status} />
+                      </li>
+                    ))}
+                  </ol>
+                  {rotaNoMapa.saiu_em ? <p className="mt-3 text-sm text-muted-foreground">Saiu às {hora(rotaNoMapa.saiu_em)}</p> : null}
+                  {MOTOBOY_RPC_ATIVO && rotaNoMapa.status === "preparando" && (
+                    <p className="mt-3 rounded-xl border border-amber-700/40 bg-amber-950/20 p-3 text-sm text-amber-300">
+                      {rotaNoMapa.liberada_central_em
+                        ? "Liberação registrada às " + hora(rotaNoMapa.liberada_central_em) + ". O servidor revalida os pedidos antes da saída."
+                        : "Confira os pedidos antes de enviar a rota. A saída exige a confirmação da retirada."}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="mt-4 rounded-xl border border-[#D4A94A]/30 bg-[#141310] p-4 text-sm text-muted-foreground">Nenhuma rota para o filtro atual. Monte uma rota ou selecione um cartão quando houver rotas disponíveis.</p>
+              )}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" className="h-auto min-h-11 whitespace-normal border-[#D4A94A]/60 text-[#F2CE6B]" onClick={() => abrirSecaoEntregas("secao-criar-rota")}>
+                  <RouteIcon className="size-4" aria-hidden /> Montar rota
+                </Button>
+                <Button type="button" variant="outline" className="h-auto min-h-11 whitespace-normal border-[#D4A94A]/60 text-[#F2CE6B]" onClick={() => abrirSecaoEntregas("secao-motoboys")}>
+                  <User className="size-4" aria-hidden /> Selecionar motoboy
+                </Button>
+                <Button type="button" variant="outline" className="h-auto min-h-11 whitespace-normal border-[#D4A94A]/60 text-[#F2CE6B]" disabled={!rotaNoMapa} onClick={() => abrirSecaoEntregas("secao-mapa")}>
+                  <Navigation className="size-4" aria-hidden /> Ver rota
+                </Button>
+                <Button type="button" className="erp-btn-gold h-auto min-h-11 whitespace-normal"
+                  disabled={!MOTOBOY_RPC_ATIVO || rotaNoMapa?.status !== "preparando" || Boolean(rotaNoMapa?.liberada_central_em) || rotaLiberando !== null}
+                  onClick={() => { if (rotaNoMapa) void liberarRota(rotaNoMapa.id); }}>
+                  <Send className="size-4" aria-hidden /> {rotaLiberando ? "Enviando rota…" : "Enviar rota"}
+                </Button>
+              </div>
+              {rotaNoMapa?.status === "em_rota" && (
+                <div className="mt-4 border-t border-[#D4A94A]/25 pt-3">
+                  {rotaConfirmId === rotaNoMapa.id ? (
+                    <>
+                      <p className="mb-2 text-sm">Encerrar esta rota? Todos os pedidos foram entregues ou cancelados?</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="ghost" disabled={rotaEncerrandoId !== null} onClick={() => setRotaConfirmId(null)}>Cancelar</Button>
+                        <Button size="sm" disabled={rotaEncerrandoId !== null} onClick={() => void encerrarRota(rotaNoMapa.id)}>
+                          {rotaEncerrandoId ? "Encerrando…" : "Confirmar encerramento"}
+                        </Button>
                       </div>
+                    </>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="outline" disabled={!rotaPodeEncerrar || rotaEncerrandoId !== null} onClick={() => setRotaConfirmId(rotaNoMapa.id)}>Encerrar rota</Button>
+                      {!rotaPodeEncerrar && <p className="mt-1 text-xs text-muted-foreground">Aguarde todos os pedidos serem entregues ou cancelados.</p>}
+                    </>
+                  )}
+                </div>
+              )}
+            </section>
+          }
+        />
+
+        <div className="grid min-w-0 gap-4 xl:grid-cols-2">
+          <section className={quadroEntregas} aria-labelledby="pedidos-aguardando">
+            <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 id="pedidos-aguardando" className={tituloQuadro}>Pedidos aguardando e reservados</h2>
+              <span className="rounded-full border border-[#D4A94A]/40 px-3 py-1 text-xs">{pedidosParaRota.length} pedidos</span>
+            </header>
+            {pedidosParaRota.length ? (
+              <ul className="space-y-2">
+                {pedidosParaRota.map((pedido: any) => {
+                  const elegivel = aguardandoAtribuicaoCentral(pedido) && pedido.status === "pronto";
+                  const marcado = pedidosRota.includes(pedido.id);
+                  return (
+                    <li key={pedido.id}>
+                      <button type="button" aria-pressed={elegivel ? marcado : undefined}
+                        className={linhaEntregas + " flex w-full items-start gap-3 p-3 text-left hover:border-[#D4A94A]/70 " + (marcado ? "ring-1 ring-[#F2CE6B]" : "")}
+                        onClick={() => {
+                          if (elegivel) setPedidosRota((atuais) => marcado ? atuais.filter((id) => id !== pedido.id) : [...atuais, pedido.id]);
+                          else if (pedido.rota_id && rotasAtivas?.some((rota: any) => rota.id === pedido.rota_id)) {
+                            setFiltroMotoboyRotas("");
+                            setRotaSelecionada(pedido.rota_id);
+                            abrirSecaoEntregas("secao-rota-selecionada");
+                          } else verHistoricoPedido(pedido.id);
+                        }}>
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-[#D4A94A]/40 bg-[#D4A94A]/10 text-[#F2CE6B]"><Package className="size-4" aria-hidden /></span>
+                        <span className="min-w-0 flex-1 break-words">
+                          <strong className="block text-sm">#{pedido.numero} · {pedido.cliente_nome}</strong>
+                          <span className="block text-xs text-muted-foreground">{[pedido.bairro, PAGAMENTO_LABEL[pedido.forma_pagamento] ?? pedido.forma_pagamento].filter(Boolean).join(" · ")}</span>
+                          <span className="mt-2 flex flex-wrap gap-2">
+                            {pedido.agendado_para && <span className="text-xs font-bold text-[#F2CE6B]">Cliente até {hora(pedido.agendado_para)}</span>}
+                            {pedido.atrasado && <span className="rounded-full bg-red-950/60 px-2 text-xs font-bold text-red-300">Atrasado</span>}
+                            {!elegivel && atribuidoCentral(pedido) && <span className="rounded-full bg-amber-950/50 px-2 text-xs text-amber-300">Reservado</span>}
+                          </span>
+                        </span>
+                        {marcado ? <CheckCircle className="size-5 shrink-0 text-[#F2CE6B]" aria-label="Selecionado" /> : <StatusBadge status={pedido.status} />}
+                      </button>
                     </li>
                   );
                 })}
-                {(resumoCentral.motos ?? []).length === 0 && (
-                  <li className="text-xs text-muted-foreground">Sem motoboys cadastrados.</li>
-                )}
-              </ul>
-            </section>
-
-            <section
-              className="rounded-xl border border-border bg-card shadow-card"
-              aria-label="Resumo do dia"
-            >
-              <header className="flex min-h-[42px] items-center border-b border-border px-3 py-2">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                  Resumo do Dia
-                </h2>
-              </header>
-              <ul className="space-y-1 p-3 text-xs">
-                <li className="flex justify-between rounded bg-muted px-2.5 py-1.5">
-                  <span className="text-muted-foreground">Entregas realizadas</span>
-                  <b className="text-[#21835D]">{resumoCentral.entreguesHoje.length}</b>
-                </li>
-                <li className="flex justify-between rounded bg-muted px-2.5 py-1.5">
-                  <span className="text-muted-foreground">Em rota</span>
-                  <b className="text-[#2563EB]">{resumoCentral.emRota.length}</b>
-                </li>
-                <li className="flex justify-between rounded bg-muted px-2.5 py-1.5">
-                  <span className="text-muted-foreground">Aguardando</span>
-                  <b className="text-[#B45309]">{resumoCentral.aguardando.length}</b>
-                </li>
-              </ul>
-            </section>
-          </div>
-
-        {/* ========== PEDIDOS EM ROTA ========== */}
-        <section
-          className="mb-4 overflow-hidden rounded-xl border border-border bg-card shadow-card"
-          aria-label="Pedidos em rota"
-        >
-          <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-border px-3 py-2">
-            <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Pedidos em Rota
-            </h2>
-            <span className="text-xs uppercase text-muted-foreground">
-              Clique para ver histórico/rastreio
-            </span>
-          </header>
-          <div className="p-2">
-            {resumoCentral.emAndamento.length > 0 ? (
-              <ul className="divide-y divide-[#EEF1F5]">
-                <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-1 text-xs text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px]">
-                  <span>Nº</span>
-                  <span>Cliente</span>
-                  <span className="hidden sm:block">Endereço</span>
-                  <span>Motoboy</span>
-                  <span>Status</span>
-                  <span className="hidden sm:block">KM</span>
-                  <span className="hidden sm:block">Saída</span>
-                  <span />
-                </li>
-                {resumoCentral.emAndamento.map((p: any) => (
-                  <li key={p.id}>
-                    <button
-                      type="button"
-                      onClick={() => verHistoricoPedido(p.id)}
-                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px] sm:text-[13px]"
-                    >
-                      <span className="font-bold text-[#A9813A]">#{p.numero}</span>
-                      <span className="truncate">{p.cliente_nome}</span>
-                      <span className="hidden truncate text-muted-foreground sm:block">
-                        {p.endereco ?? "—"}
-                      </span>
-                      <span className="truncate">
-                        {resumoCentral.porMotoboy.get(String(p.motoboy_id ?? "")) ?? "—"}
-                      </span>
-                      <span>
-                        <StatusBadge status={p.status} />
-                      </span>
-                      <span className="hidden text-xs font-semibold sm:block">
-                        {p.distancia_km != null
-                          ? `${Number(p.distancia_km).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`
-                          : "—"}
-                      </span>
-                      <span className="hidden text-muted-foreground sm:block">
-                        {p.saiu_em ? hora(p.saiu_em) : "—"}
-                      </span>
-                      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-                    </button>
-                  </li>
-                ))}
               </ul>
             ) : (
-              <div className="p-2">
-                <EmptyState titulo="Nenhuma entrega em rota" />
-              </div>
+              <p className="rounded-xl border border-[#D4A94A]/25 p-3 text-sm text-muted-foreground">Nenhum pedido aguardando ou reservado.</p>
             )}
-          </div>
+          </section>
+
+          <section id="secao-motoboys" className={quadroEntregas} aria-labelledby="titulo-motoboys">
+            <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 id="titulo-motoboys" className={tituloQuadro}>Motoboys</h2>
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                Filtrar
+                <select value={filtroMotoboyRotas} onChange={(event) => setFiltroMotoboyRotas(event.target.value)}
+                  className="min-h-10 max-w-[13rem] rounded-lg border border-[#D4A94A]/40 bg-[#17150F] px-2 text-foreground">
+                  <option value="">Todos os motoboys</option>
+                  {(motoboys ?? []).map((motoboy: any) => <option key={motoboy.id} value={motoboy.id}>{motoboy.nome}</option>)}
+                </select>
+              </label>
+            </header>
+            <ul className="space-y-2">
+              {(motoboys ?? []).filter((m: any) => !filtroMotoboyRotas || m.id === filtroMotoboyRotas).map((m: any) => {
+                const disponivel = m.status === "disponivel_base";
+                const emRota = m.status === "em_rota";
+                const quantidade = (rotasAtivas ?? []).filter((rota: any) => rota.motoboy_id === m.id)
+                  .reduce((total: number, rota: any) => total + (rota.rota_pedidos?.length ?? 0), 0);
+                return (
+                  <li key={m.id}>
+                    <button type="button" disabled={!disponivel} aria-pressed={motoboyRota === m.id}
+                      onClick={() => setMotoboyRota(m.id)}
+                      className={linhaEntregas + " flex w-full flex-wrap items-center gap-3 p-3 text-left disabled:cursor-default " + (motoboyRota === m.id ? "ring-1 ring-[#F2CE6B]" : "")}>
+                      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#D4A94A]/15 text-[#F2CE6B]"><Bike className="size-5" aria-hidden /></span>
+                      <span className="min-w-0 flex-1">
+                        <strong className="block break-words text-sm">{m.nome}</strong>
+                        <span className="block text-xs text-muted-foreground">{quantidade}/3 entregas em rotas ativas</span>
+                      </span>
+                      <span className={disponivel ? "text-sm text-emerald-300" : emRota ? "text-sm text-sky-300" : "text-sm text-muted-foreground"}>
+                        {disponivel ? "Disponível" : emRota ? "Em rota" : "Indisponível"}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+              {!motoboys?.length && <li className="rounded-xl border border-[#D4A94A]/25 p-3 text-sm text-muted-foreground">Sem motoboys cadastrados.</li>}
+            </ul>
+          </section>
+        </div>
+
+        <section id="secao-rotas" className={quadroEntregas} aria-labelledby="titulo-cartoes-rotas">
+          <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="titulo-cartoes-rotas" className={tituloQuadro}>Cartões de rotas</h2>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-[#D4A94A]/40 px-3 py-1 text-xs">{rotasVisiveis.length} rotas</span>
+              <Button size="sm" variant="outline" onClick={() => void queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] })}>Atualizar rotas</Button>
+            </div>
+          </header>
+          {rotasErro ? (
+            <p role="alert" className="text-sm text-destructive">Não foi possível carregar as rotas. Tente atualizar.</p>
+          ) : rotasCarregando && !rotasAtivas ? (
+            <p role="status" className="text-sm text-muted-foreground">Carregando rotas.</p>
+          ) : !rotasVisiveis.length ? (
+            <p className="rounded-xl border border-[#D4A94A]/25 p-3 text-sm text-muted-foreground">Nenhuma rota para o filtro atual.</p>
+          ) : (
+            <ul className="grid min-w-0 gap-3 md:grid-cols-3">
+              {rotasVisiveis.map((rota: any) => {
+                const selecionada = rotaNoMapa?.id === rota.id;
+                const motoboy = (motoboys ?? []).find((m: any) => m.id === rota.motoboy_id);
+                const numeros = (rota.rota_pedidos ?? []).map((v: any) => v.pedidos?.numero).filter((n: unknown) => n != null);
+                return (
+                  <li key={rota.id} className="min-w-0">
+                    <button type="button" aria-pressed={selecionada} onClick={() => {
+                      setRotaSelecionada(rota.id);
+                      abrirSecaoEntregas("secao-rota-selecionada");
+                    }} className={linhaEntregas + " h-full w-full p-4 text-left text-sm hover:border-[#D4A94A]/70 " + (selecionada ? "ring-1 ring-[#F2CE6B]" : "")}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <strong className="uppercase text-[#F2CE6B]">{nomeRota(rota.id)}</strong>
+                        <span className="rounded-full border border-[#D4A94A]/30 px-2 py-0.5 text-xs">{estadoRota(rota)}</span>
+                      </div>
+                      <p className="mt-2 break-words">{motoboy?.nome ?? "Motoboy não vinculado"}</p>
+                      <p className="mt-2 break-words border-t border-[#D4A94A]/20 pt-2 text-xs text-muted-foreground">
+                        {numeros.length ? numeros.map((numero: number) => "#" + numero).join(" · ") : "Sem pedidos vinculados"}
+                      </p>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </section>
 
-        {/* ========== RESUMO OPERACIONAL (J3-E) ========== */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <button
-            type="button"
-            onClick={() =>
-              document
-                .getElementById("secao-atribuicao")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
-          >
-            <p className="text-xs text-muted-foreground">Aguardando motoboy</p>
-            <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              document
-                .getElementById("secao-mapa")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
-          >
-            <p className="text-xs text-muted-foreground">Em rota</p>
-            <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              document
-                .getElementById("secao-ocorrencias")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
-          >
-            <p className="text-xs text-muted-foreground">Ocorrências em aberto</p>
-            <p className="font-display text-xl text-primary">
-              {(ocorrencias ?? []).filter((o: any) => !o.resolvido_em).length}
-            </p>
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              document
-                .getElementById("secao-historico")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
-          >
-            <p className="text-xs text-muted-foreground">Entregues</p>
-            <p className="font-display text-xl text-primary">{contadores.entregue}</p>
-          </button>
-        </div>
 
-        {/* ========== FILTROS ========== */}
-        <div className="mb-4">
-          <Tabs value={filtro} onValueChange={handleFiltroChange} className="w-full">
-            <TabsList className="flex flex-wrap gap-2">
-              <TabsTrigger value="todos" className="px-4 py-2 text-sm border rounded-md">
-                Todos {pedidos?.length ? `(${pedidos.length})` : ""}
-              </TabsTrigger>
-              <TabsTrigger value="hoje" className="px-4 py-2 text-sm border rounded-md">
-                Hoje {pedidos?.length ? "" : ""}
-              </TabsTrigger>
-              <TabsTrigger value="em_rota" className="px-4 py-2 text-sm border rounded-md">
-                Em rota
-              </TabsTrigger>
-              <TabsTrigger value="aguardando" className="px-4 py-2 text-sm border rounded-md">
-                Aguardando motoboy
-              </TabsTrigger>
-              <TabsTrigger value="entregues" className="px-4 py-2 text-sm border rounded-md">
-                Entregues
-              </TabsTrigger>
-              <TabsTrigger value="retirada" className="px-4 py-2 text-sm border rounded-md">
-                Retirada
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-          {/* Busca rápida (J3-H H4): número ou cliente, sobre os pedidos já carregados. */}
-          <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={buscaPedido}
-              onChange={(e) => setBuscaPedido(e.target.value)}
-              placeholder="Buscar por número ou cliente…"
-              className="w-full rounded-md border border-input bg-background pl-9 pr-9 py-2 text-sm"
-            />
-            {buscaPedido && (
-              <button
-                type="button"
-                aria-label="Limpar busca"
-                onClick={() => setBuscaPedido("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* ========== INDICADORES ========== */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Aguardando</p>
-            <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Atribuídos</p>
-            <p className="font-display text-xl text-primary">{contadores.atribuidos}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Em rota</p>
-            <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Entregues</p>
-            <p className="font-display text-xl text-primary">{contadores.entregue}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Total</p>
-            <p className="font-display text-xl text-primary">{contadores.total}</p>
-          </div>
-        </div>
-
-        {/* ========== KANBAN ========== */}
-        <h2 className="font-display text-lg">Kanban de Pedidos</h2>
-        <div className="flex items-start gap-4 overflow-x-auto pb-2">
-          {/* Coluna AGUARDANDO */}
-          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">
-              AGUARDANDO MOTOBOY
-            </h3>
-            <p className="text-xs text-muted-foreground">Pedidos prontos aguardando atribuição</p>
-            <div className="h-64 overflow-y-auto space-y-2">
-              {(pedidosVisiveis ?? [])
-                .filter(aguardandoAtribuicaoCentral)
-                .map((p: any) => (
-                  <PedidoCard key={p.id} pedido={p} />
-                ))}
-              {(pedidosVisiveis ?? []).filter(aguardandoAtribuicaoCentral)
-                .length === 0 && (
-                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
-                  Nenhum pedido aguardando
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Coluna ATRIBUÍDOS */}
-          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">
-              ATRIBUÍDOS
-            </h3>
-            <p className="text-xs text-muted-foreground">Pedidos com motoboy atribuído</p>
-            <div className="h-64 overflow-y-auto space-y-2">
-              {(pedidosVisiveis ?? [])
-                .filter(atribuidoCentral)
-                .map((p: any) => (
-                  <PedidoCard key={p.id} pedido={p} />
-                ))}
-              {(pedidosVisiveis ?? []).filter(atribuidoCentral).length === 0 && (
-                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
-                  Nenhum pedido atribuído
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Coluna EM ROTA */}
-          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">EM ROTA</h3>
-            <p className="text-xs text-muted-foreground">Pedidos com motoboy em deslocamento</p>
-            <div className="h-64 overflow-y-auto space-y-2">
-              {(pedidosVisiveis ?? [])
-                .filter((p: any) => p.status === "em_rota")
-                .map((p: any) => (
-                  <PedidoCard key={p.id} pedido={p} />
-                ))}
-              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "em_rota").length === 0 && (
-                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
-                  Nenhum pedido em rota
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Coluna ENTREGUES */}
-          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
-            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">ENTREGUES</h3>
-            <p className="text-xs text-muted-foreground">Pedidos finalizados</p>
-            <div className="h-64 overflow-y-auto space-y-2">
-              {(pedidosVisiveis ?? [])
-                .filter((p: any) => p.status === "entregue")
-                .map((p: any) => (
-                  <PedidoCard key={p.id} pedido={p} />
-                ))}
-              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "entregue").length === 0 && (
-                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
-                  Nenhum pedido entregue
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ========== ATRIBUIÇÃO DE MOTOBOY ========== */}
-        {(pedidosFiltrados ?? []).filter(aguardandoAtribuicaoCentral).length >
-          0 && (
-          <div className="mt-4 rounded-xl border border-border bg-card p-6">
-            <h2 id="secao-atribuicao" className="font-display text-lg mb-4">
-              Atribuir Motoboy
-            </h2>
-            <p className="text-sm text-muted-foreground mb-3">
-              Selecionar motoboy para pedido(s) em aguardando_motoboy
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div>
-                <Label>Motoboy</Label>
-                <select
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) => setMotoboySelecionado(e.target.value)}
-                >
-                  <option value="">Selecione um motoboy</option>
-                  {motoboysElegiveis?.map((m: any) => (
-                    <option key={m.id} value={m.id}>
-                      {m.nome} — {m.status}
-                      {m.veiculo && ` • ${m.veiculo}`}
-                      {m.placa && ` • ${m.placa}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label>Pedidos</Label>
-                <select
-                  multiple
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) =>
-                    setPedidosSelecionados(
-                      Array.from(e.target.selectedOptions).map((o: any) => o.value),
-                    )
-                  }
-                >
-                  <option value="">Nenhum pedido</option>
-                  {(pedidosFiltrados ?? [])
-                    .filter(aguardandoAtribuicaoCentral)
-                    .slice(0, 10)
-                    .map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        Pedido Nº {p.numero} — {p.cliente_nome}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-
-            <Button
-              disabled={atribuindoSelecao}
-              onClick={async () => {
-                const mbId = motoboySelecionado as string;
-                const pedidosIds = pedidosSelecionados as string[];
-                if (!mbId || !pedidosIds.length) {
-                  toast.error("Selecione motoboy e pelo menos um pedido.");
-                  return;
-                }
-                setAtribuindoSelecao(true);
-                try {
-                  const resultado = await atribuirPedidosEmLote(pedidosIds, (pid) =>
-                    atribuirMotoboy(pid, mbId),
-                  );
-                  setMotoboySelecionado(resultado.falhas.length > 0 ? mbId : "");
-                  setPedidosSelecionados(resultado.falhas);
-                  if (resultado.falhas.length > 0) {
-                    toast.warning(
-                      `${resultado.atribuidos.length} de ${resultado.solicitados} pedidos atribuídos. Revise os demais antes de tentar novamente.`,
-                    );
-                  } else {
-                    toast.success(
-                      `${resultado.atribuidos.length} pedido(s) atribuídos ao motoboy.`,
-                    );
-                  }
-                } finally {
-                  setAtribuindoSelecao(false);
-                }
-              }}
-            >
-              {atribuindoSelecao ? "Atribuindo…" : "Confirmar Atribuição"}
-            </Button>
-          </div>
-        )}
-
-        {/* ========== CRIAR ROTA ========== */}
-        <div className="mt-4 rounded-xl border border-border bg-card p-6">
-          <h2 className="font-display text-lg mb-4">Criar Nova Rota</h2>
-          <p className="text-sm text-muted-foreground">
-            Selecionar motoboy e pedidos para criar uma rota de entrega.
-          </p>
-
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <Label>Motoboy</Label>
-              <select
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => setMotoboyRota(e.target.value)}
-              >
-                <option value="">Selecione um motoboy</option>
-                {motoboysElegiveis?.map((m: any) => (
-                  <option key={m.id} value={m.id}>
-                    {m.nome} — {m.status}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label>Pedidos</Label>
-              <select
-                multiple
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) =>
-                  setPedidosRota(Array.from(e.target.selectedOptions).map((o: any) => o.value))
-                }
-              >
-                <option value="">Nenhum pedido</option>
-                {(pedidosFiltrados ?? [])
-                  .filter(aguardandoAtribuicaoCentral)
-                  .slice(0, 15)
-                  .map((p: any) => (
-                    <option key={p.id} value={p.id}>
-                      Pedido Nº {p.numero} — {p.cliente_nome}
-                    </option>
-                  ))}
-              </select>
-            </div>
-          </div>
-
-          <Button
-            onClick={() => {
-              const mbId = motoboyRota as string;
-              const pedidosIds = pedidosRota as string[];
-              if (!mbId || !pedidosIds.length) {
-                toast.error("Selecione motoboy e pelo menos um pedido.");
-                return;
-              }
-              void criarRota(pedidosIds, mbId);
-            }}
-            disabled={criandoRota}
-          >
-            {criandoRota ? "Criando rota…" : "Criar Rota"}
-          </Button>
-        </div>
-
-        {/* ========== MAPA — movido para o topo (elemento dominante) ========== */}
-
+        <details className={quadroEntregas}>
+          <summary className={tituloQuadro + " cursor-pointer"}>Histórico de entregas e ocorrências</summary>
         {/* ========== HISTÓRICO (J3-C) ========== */}
         <div className="mt-6 rounded-xl border border-border bg-card p-6">
           <h2 id="secao-historico" className="font-display text-lg">
@@ -1947,6 +1538,424 @@ function CentralEntregas() {
           )}
         </div>
 
+        </details>
+
+        <details className={quadroEntregas}>
+          <summary className={tituloQuadro + " cursor-pointer"}>Ações e acompanhamento</summary>
+        {/* ========== ATRIBUIÇÃO DE MOTOBOY ========== */}
+        {(pedidosFiltrados ?? []).filter(aguardandoAtribuicaoCentral).length >
+          0 && (
+          <div className="mt-4 rounded-xl border border-border bg-card p-6">
+            <h2 id="secao-atribuicao" className="font-display text-lg mb-4">
+              Atribuir Motoboy
+            </h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Selecionar motoboy para pedido(s) em aguardando_motoboy
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div>
+                <Label>Motoboy</Label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  onChange={(e) => setMotoboySelecionado(e.target.value)}
+                >
+                  <option value="">Selecione um motoboy</option>
+                  {motoboysElegiveis?.map((m: any) => (
+                    <option key={m.id} value={m.id}>
+                      {m.nome} — {m.status}
+                      {m.veiculo && ` • ${m.veiculo}`}
+                      {m.placa && ` • ${m.placa}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Pedidos</Label>
+                <select
+                  multiple
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  onChange={(e) =>
+                    setPedidosSelecionados(
+                      Array.from(e.target.selectedOptions).map((o: any) => o.value),
+                    )
+                  }
+                >
+                  <option value="">Nenhum pedido</option>
+                  {(pedidosFiltrados ?? [])
+                    .filter(aguardandoAtribuicaoCentral)
+                    .slice(0, 10)
+                    .map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        Pedido Nº {p.numero} — {p.cliente_nome}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            <Button
+              disabled={atribuindoSelecao}
+              onClick={async () => {
+                const mbId = motoboySelecionado as string;
+                const pedidosIds = pedidosSelecionados as string[];
+                if (!mbId || !pedidosIds.length) {
+                  toast.error("Selecione motoboy e pelo menos um pedido.");
+                  return;
+                }
+                setAtribuindoSelecao(true);
+                try {
+                  const resultado = await atribuirPedidosEmLote(pedidosIds, (pid) =>
+                    atribuirMotoboy(pid, mbId),
+                  );
+                  setMotoboySelecionado(resultado.falhas.length > 0 ? mbId : "");
+                  setPedidosSelecionados(resultado.falhas);
+                  if (resultado.falhas.length > 0) {
+                    toast.warning(
+                      `${resultado.atribuidos.length} de ${resultado.solicitados} pedidos atribuídos. Revise os demais antes de tentar novamente.`,
+                    );
+                  } else {
+                    toast.success(
+                      `${resultado.atribuidos.length} pedido(s) atribuídos ao motoboy.`,
+                    );
+                  }
+                } finally {
+                  setAtribuindoSelecao(false);
+                }
+              }}
+            >
+              {atribuindoSelecao ? "Atribuindo…" : "Confirmar Atribuição"}
+            </Button>
+          </div>
+        )}
+
+        {/* ========== CRIAR ROTA ========== */}
+        <div className="mt-4 rounded-xl border border-border bg-card p-6">
+          <h2 id="secao-criar-rota" className="font-display text-lg mb-4">Criar Nova Rota</h2>
+          <p className="text-sm text-muted-foreground">
+            Selecionar motoboy e pedidos para criar uma rota de entrega.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <Label>Motoboy</Label>
+              <select
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={motoboyRota}
+                onChange={(e) => setMotoboyRota(e.target.value)}
+              >
+                <option value="">Selecione um motoboy</option>
+                {motoboysElegiveis?.map((m: any) => (
+                  <option key={m.id} value={m.id}>
+                    {m.nome} — {m.status}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Pedidos</Label>
+              <select
+                multiple
+                value={pedidosRota}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                onChange={(e) =>
+                  setPedidosRota(Array.from(e.target.selectedOptions, (o) => o.value).filter(Boolean))
+                }
+              >
+                <option value="">Nenhum pedido</option>
+                {(pedidosFiltrados ?? [])
+                  .filter((pedido: any) => aguardandoAtribuicaoCentral(pedido) && pedido.status === "pronto")
+                  .map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      Pedido Nº {p.numero} — {p.cliente_nome}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => {
+              const mbId = motoboyRota as string;
+              const pedidosIds = pedidosRota as string[];
+              if (!mbId || !pedidosIds.length) {
+                toast.error("Selecione motoboy e pelo menos um pedido.");
+                return;
+              }
+              void criarRota(pedidosIds, mbId);
+            }}
+            disabled={criandoRota}
+          >
+            {criandoRota ? "Criando rota…" : "Criar Rota"}
+          </Button>
+        </div>
+
+        {/* ========== PEDIDOS EM ROTA ========== */}
+        <section
+          className="mb-4 overflow-hidden rounded-xl border border-border bg-card shadow-card"
+          aria-label="Pedidos em rota"
+        >
+          <header className="flex min-h-[42px] items-center justify-between gap-2 border-b border-border px-3 py-2">
+            <h2 className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Pedidos em Rota
+            </h2>
+            <span className="text-xs uppercase text-muted-foreground">
+              Clique para ver histórico/rastreio
+            </span>
+          </header>
+          <div className="p-2">
+            {resumoCentral.emAndamento.length > 0 ? (
+              <ul className="divide-y divide-[#EEF1F5]">
+                <li className="grid grid-cols-[auto_1fr_auto] items-center gap-2 px-2 py-1 text-xs text-muted-foreground sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px]">
+                  <span>Nº</span>
+                  <span>Cliente</span>
+                  <span className="hidden sm:block">Endereço</span>
+                  <span>Motoboy</span>
+                  <span>Status</span>
+                  <span className="hidden sm:block">KM</span>
+                  <span className="hidden sm:block">Saída</span>
+                  <span />
+                </li>
+                {resumoCentral.emAndamento.map((p: any) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => verHistoricoPedido(p.id)}
+                      className="grid min-h-[44px] w-full grid-cols-[auto_1fr_auto] items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-muted sm:grid-cols-[64px_1fr_1fr_96px_110px_72px_64px_24px] sm:text-[13px]"
+                    >
+                      <span className="font-bold text-[#A9813A]">#{p.numero}</span>
+                      <span className="truncate">{p.cliente_nome}</span>
+                      <span className="hidden truncate text-muted-foreground sm:block">
+                        {p.endereco ?? "—"}
+                      </span>
+                      <span className="truncate">
+                        {resumoCentral.porMotoboy.get(String(p.motoboy_id ?? "")) ?? "—"}
+                      </span>
+                      <span>
+                        <StatusBadge status={p.status} />
+                      </span>
+                      <span className="hidden text-xs font-semibold sm:block">
+                        {p.distancia_km != null
+                          ? `${Number(p.distancia_km).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`
+                          : "—"}
+                      </span>
+                      <span className="hidden text-muted-foreground sm:block">
+                        {p.saiu_em ? hora(p.saiu_em) : "—"}
+                      </span>
+                      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="p-2">
+                <EmptyState titulo="Nenhuma entrega em rota" />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ========== RESUMO OPERACIONAL (J3-E) ========== */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("secao-atribuicao")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Aguardando motoboy</p>
+            <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              document
+                .getElementById("secao-mapa")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Em rota</p>
+            <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              abrirSecaoEntregas("secao-ocorrencias")
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Ocorrências em aberto</p>
+            <p className="font-display text-xl text-primary">
+              {(ocorrencias ?? []).filter((o: any) => !o.resolvido_em).length}
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              abrirSecaoEntregas("secao-historico")
+            }
+            className="min-h-[44px] rounded-xl border border-border bg-card p-3 text-left cursor-pointer shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs text-muted-foreground">Entregues</p>
+            <p className="font-display text-xl text-primary">{contadores.entregue}</p>
+          </button>
+        </div>
+
+        {/* ========== FILTROS ========== */}
+        <div className="mb-4">
+          <Tabs value={filtro} onValueChange={handleFiltroChange} className="w-full">
+            <TabsList className="flex flex-wrap gap-2">
+              <TabsTrigger value="todos" className="px-4 py-2 text-sm border rounded-md">
+                Todos {pedidos?.length ? `(${pedidos.length})` : ""}
+              </TabsTrigger>
+              <TabsTrigger value="hoje" className="px-4 py-2 text-sm border rounded-md">
+                Hoje {pedidos?.length ? "" : ""}
+              </TabsTrigger>
+              <TabsTrigger value="em_rota" className="px-4 py-2 text-sm border rounded-md">
+                Em rota
+              </TabsTrigger>
+              <TabsTrigger value="aguardando" className="px-4 py-2 text-sm border rounded-md">
+                Aguardando motoboy
+              </TabsTrigger>
+              <TabsTrigger value="entregues" className="px-4 py-2 text-sm border rounded-md">
+                Entregues
+              </TabsTrigger>
+              <TabsTrigger value="retirada" className="px-4 py-2 text-sm border rounded-md">
+                Retirada
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {/* Busca rápida (J3-H H4): número ou cliente, sobre os pedidos já carregados. */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={buscaPedido}
+              onChange={(e) => setBuscaPedido(e.target.value)}
+              placeholder="Buscar por número ou cliente…"
+              className="w-full rounded-md border border-input bg-background pl-9 pr-9 py-2 text-sm"
+            />
+            {buscaPedido && (
+              <button
+                type="button"
+                aria-label="Limpar busca"
+                onClick={() => setBuscaPedido("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ========== INDICADORES ========== */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Aguardando</p>
+            <p className="font-display text-xl text-primary">{contadores.aguardando}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Atribuídos</p>
+            <p className="font-display text-xl text-primary">{contadores.atribuidos}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Em rota</p>
+            <p className="font-display text-xl text-primary">{contadores.em_rota}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Entregues</p>
+            <p className="font-display text-xl text-primary">{contadores.entregue}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-3">
+            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="font-display text-xl text-primary">{contadores.total}</p>
+          </div>
+        </div>
+
+        {/* ========== KANBAN ========== */}
+        <h2 className="font-display text-lg">Kanban de Pedidos</h2>
+        <div className="flex items-start gap-4 overflow-x-auto pb-2">
+          {/* Coluna AGUARDANDO */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">
+              AGUARDANDO MOTOBOY
+            </h3>
+            <p className="text-xs text-muted-foreground">Pedidos prontos aguardando atribuição</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter(aguardandoAtribuicaoCentral)
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter(aguardandoAtribuicaoCentral)
+                .length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido aguardando
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna ATRIBUÍDOS */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">
+              ATRIBUÍDOS
+            </h3>
+            <p className="text-xs text-muted-foreground">Pedidos com motoboy atribuído</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter(atribuidoCentral)
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter(atribuidoCentral).length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido atribuído
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna EM ROTA */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">EM ROTA</h3>
+            <p className="text-xs text-muted-foreground">Pedidos com motoboy em deslocamento</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter((p: any) => p.status === "em_rota")
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "em_rota").length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido em rota
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna ENTREGUES */}
+          <div className="w-80 shrink-0 rounded-xl border border-border bg-card p-4">
+            <h3 className="font-display text-sm uppercase text-muted-foreground mb-2">ENTREGUES</h3>
+            <p className="text-xs text-muted-foreground">Pedidos finalizados</p>
+            <div className="h-64 overflow-y-auto space-y-2">
+              {(pedidosVisiveis ?? [])
+                .filter((p: any) => p.status === "entregue")
+                .map((p: any) => (
+                  <PedidoCard key={p.id} pedido={p} />
+                ))}
+              {(pedidosVisiveis ?? []).filter((p: any) => p.status === "entregue").length === 0 && (
+                <p className="text-sm text-muted-foreground hover:cursor-pointer select-none">
+                  Nenhum pedido entregue
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* ========== ACOMPANHAMENTO EM ROTA (J3-F) ========== */}
         <div className="mt-6">
           <h2 id="secao-acompanhamento" className="font-display text-lg">
@@ -2042,6 +2051,7 @@ function CentralEntregas() {
             </p>
           )}
         </div>
+        </details>
       </div>
     </>
   );
