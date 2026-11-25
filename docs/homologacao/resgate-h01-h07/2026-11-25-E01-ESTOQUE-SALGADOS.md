@@ -69,6 +69,9 @@ Evidência detalhada: `docs/homologacao/resgate-h01-h07/validacao-e01/resultado.
 - Deployment: `dpl_AuRDHK9rsrLVKktJGHVS7QRar5Qa`, `READY`, protegido por `vercel_authentication`.
 - URL própria: `https://erp-neia-salgados-8l0q4sx0u-luiz988061337-3147s-projects.vercel.app`
 - Alias fixo reposicionado: `https://erp-neia-salgados-git-resga-dcaca5-luiz988061337-3147s-projects.vercel.app`
+- Conferência final no alias: HTML sem banner/dados fictícios visíveis e chunk `admin-Y8solXOk.js` com “Registrar entrada”, “Lotes (FEFO)” e “Ver histórico”.
+- Durante a conferência foi detectado um deployment posterior (`dpl_3QawQZKWiSVtHFJUNUmnd4MN9xGc`) assinado ao alias por processo externo; o alias foi reposicionado ao deployment E01 acima e confirmado por `vercel inspect`.
+- O texto “MODO DEMONSTRAÇÃO” existe apenas dentro da condição `ehModoDemo()` do bundle compartilhado; com `VITE_DEMO_PREVIEW=0` ele não é renderizado (confirmado no HTML servido).
 - Production não foi promovida nem alterada.
 
 ## Pendências operacionais
