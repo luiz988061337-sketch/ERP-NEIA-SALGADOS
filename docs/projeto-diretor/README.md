@@ -58,3 +58,4 @@ depende de autorização expressa do proprietário.
 - [A01 — Dashboard Administrativo](A01-dashboard/status.md)
 - [A02 — Néia Inteligência](A02-neia-inteligencia/status.md)
 - [Menu lateral — aprovação definitiva e padrão obrigatório](menu-lateral/status.md)
+- [Estoque de Salgados — aprovação visual e cadastro de 26 sabores](estoque-salgados/status.md)

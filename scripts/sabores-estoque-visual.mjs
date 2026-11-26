@@ -159,12 +159,12 @@ try {
   const grupos = [
     ["fritos", "Fritos", 9],
     ["mini-pasteis", "Mini Pastéis", 4],
-    ["assados", "Assados", 6],
+    ["assados", "Assados", 8],
     ["empadas", "Empadas", 2],
     ["mini-pizzas", "Mini Pizzas", 3],
   ];
   assert.deepEqual(await pag.$$eval(filtros, (els) => els.map((el) => el.textContent.trim())), [
-    "Todos (24)",
+    "Todos (26)",
     ...grupos.map(([, nome, count]) => `${nome} (${count})`),
   ]);
   assert.equal(await pag.$$eval(`${painel} [data-categoria]`, (els) => els.length), 5);
@@ -177,7 +177,7 @@ try {
   );
   await capturar("00-painel-estoque");
   testes.push(
-    "Todos (24), cinco grupos na ordem da especificação e estoque inicial sem quantidades",
+    "Todos (26), cinco grupos na ordem da especificação e estoque inicial sem quantidades",
   );
 
   await pag.click(`${grupo("fritos")} h2 button`);
@@ -205,7 +205,7 @@ try {
     testes.push(`Filtro de ${nome} com ${count} sabores`);
   }
 
-  await clickTexto(filtros, "Todos (24)");
+  await clickTexto(filtros, "Todos (26)");
   await pag.type('[aria-label="Buscar sabor"]', "brocolis");
   await pag.waitForSelector(`${grupo("assados")} tbody tr`);
   assert.equal(await pag.$$eval(`${painel} [data-categoria] tbody tr`, (els) => els.length), 1);

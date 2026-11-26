@@ -1,11 +1,13 @@
-# Estoque de Salgados — diagnóstico dos 24 vínculos em homologação
+# Estoque de Salgados — diagnóstico dos 26 sabores em homologação
 
 Consulta de leitura no Supabase de homologação em 26/11/2026. Foram encontrados
 31 produtos, todos com saldo legado positivo na coluna comercial, zero lotes,
 zero movimentações, zero reservas e zero itens de pedidos com produto referenciado.
-A tabela `sabores_estoque` ainda não existe. O indicador de 0 de 24 reflete a
+A tabela `sabores_estoque` ainda não existe. O indicador de 0 de 26 reflete a
 ausência do cadastro oficial. Os valores legados não comprovam existência de
-estoque físico e precisam de conciliação antes da operação.
+estoque físico e precisam de conciliação antes da operação. A leitura foi
+reconfirmada em 26/11/2026 com destino explícito
+`--project-ref lflzlcqinarrcgncafol`; nenhuma escrita remota foi executada.
 
 **Vínculos unitários confirmáveis automaticamente: 0.** A lista abaixo identifica
 os produtos existentes para conferência. Um candidato comercial não substitui
@@ -33,6 +35,8 @@ cadastros, sem exibição para o operador no painel.
 | Assados | Enroladinho de presunto e queijo | — | Sabor sem candidato identificado no catálogo. |
 | Assados | Hamburguinho | — | Sabor sem candidato identificado no catálogo. |
 | Assados | Ricota com zaatar | — | Sabor sem candidato identificado no catálogo. |
+| Assados | Trouxinha de calabresa | — | Sabor acrescentado ao cadastro oficial; sem candidato identificado no catálogo. |
+| Assados | Enroladinho de salsicha | Mini Enroladinho de Salsicha 20un (`fcf21928-b16a-4e52-a06e-df6d89a9f33a`) | Embalagem comercial com nome ambíguo. Não vincular automaticamente ao sabor unitário; conferir unidade e modalidade com o proprietário. |
 | Empadas | Mini empada de palmito | Mini Empadinha de Palmito 20un (`b29bbb13-dafe-47bd-86d2-532f59253a09`) | Candidato comercial identificado pelo nome. Validar composição e quantidade. |
 | Empadas | Mini empada de frango | Mini Empadinha de Frango 20un (`f96f2b19-4c9c-461b-b8f5-6ee7a82ed28d`) | Candidato comercial identificado pelo nome. Validar composição e quantidade. |
 | Mini Pizzas | Mini pizza de calabresa | Mini Pizza de Calabresa 15un (`f1d762a7-3710-4c40-af4c-f85512cdd4d0`) | Candidato comercial identificado pelo nome. Validar composição e quantidade. |
@@ -43,8 +47,10 @@ cadastros, sem exibição para o operador no painel.
 
 1. Aplicar o cadastro oficial e a rotina de lotes apenas após autorização. O
    script de cadastro registra a categoria e a chave oficial e conserva os
-   IDs dos registros unitários reconhecidos. Nesta base, os 24 registros
-   oficiais ainda terão o vínculo operacional pendente.
+   IDs dos registros unitários reconhecidos. Nesta base, os 26 registros
+   oficiais ainda terão o vínculo operacional pendente. O plano completo,
+   verificações e reversão estão em
+   [cadastro-oficial-salgados-26.md](cadastro-oficial-salgados-26.md).
 2. Definir o identificador unitário de cada sabor. O estoque atual usa
    `produtos.id` nas chaves de lotes, reservas e movimentações. Para sabores
    sem um produto unitário, é necessário aprovar a representação técnica
@@ -53,7 +59,10 @@ cadastros, sem exibição para o operador no painel.
 3. Associar cada modalidade comercial ao ID unitário preservando os IDs de
    cadastro, itens de pedidos e históricos existentes. Validar quantidades
    reais das embalagens e a composição dos sortidos. Os tamanhos no nome são
-   indícios para conferência.
+   indícios para conferência. O UUID de `Mini Enroladinho de Salsicha 20un`
+   diverge em documentos históricos; o identificador conferido na leitura
+   atual de homologação é o registrado na tabela acima e deve ser confirmado
+   antes de qualquer vínculo.
 4. Reutilizar a composição por unidade de `pedido_item_componentes` nos fluxos
    que já a consomem. A venda direta e as modalidades legadas devem resolver
    o mesmo ID unitário antes da reserva. A demanda de cada sabor deve entrar

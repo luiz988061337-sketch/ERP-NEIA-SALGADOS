@@ -51,7 +51,9 @@ WITH oficial(chave, categoria, nome, ordem, apelidos) AS (
     ('empada-frango', 'empadas', 'Mini empada de frango', 21, ARRAY['Mini empada de frango', 'Mini empadinha de frango', 'Empadinha de frango', 'Empada de frango']),
     ('pizza-calabresa', 'mini-pizzas', 'Mini pizza de calabresa', 22, ARRAY['Mini pizza de calabresa']),
     ('pizza-queijo', 'mini-pizzas', 'Mini pizza de queijo', 23, ARRAY['Mini pizza de queijo', 'Mini pizza de mussarela', 'Mini pizza de muçarela']),
-    ('pizza-presunto-queijo', 'mini-pizzas', 'Mini pizza de presunto e queijo', 24, ARRAY['Mini pizza de presunto e queijo', 'Mini pizza P&Q'])
+    ('pizza-presunto-queijo', 'mini-pizzas', 'Mini pizza de presunto e queijo', 24, ARRAY['Mini pizza de presunto e queijo', 'Mini pizza P&Q']),
+    ('trouxinha-calabresa', 'assados', 'Trouxinha de calabresa', 25, ARRAY['Trouxinha de calabresa']),
+    ('enroladinho-salsicha', 'assados', 'Enroladinho de salsicha', 26, ARRAY['Enroladinho de salsicha'])
 ),
 produtos_unitarios AS (
   SELECT p.id,

@@ -16,10 +16,12 @@ manual do proprietário.
 
 ## Diagnóstico e banco
 
-O [diagnóstico dos 24 sabores](diagnostico-vinculos-salgados.md) documenta os
+O [diagnóstico dos 26 sabores](diagnostico-vinculos-salgados.md) documenta os
 produtos consultados, IDs atuais e casos ambíguos. A homologação tinha 31
-produtos, zero lotes, zero movimentos e zero reservas. Nenhum dos 24 sabores
-tinha um candidato unitário que pudesse ser vinculado automaticamente.
+produtos, zero lotes, zero movimentos e zero reservas. Nenhum dos 26 sabores
+tinha um candidato unitário que pudesse ser vinculado automaticamente. O layout
+desta revisão foi [aprovado visualmente](aprovacao-visual-estoque-salgados.md),
+sem aprovação operacional.
 
 A instalação dos scripts de cadastro e de operações de lote, a conciliação do
 saldo legado e a homologação da vinculação de modalidades comerciais seguem
@@ -45,4 +47,5 @@ SQL. O código SQL foi preparado e testado fora do banco remoto.
 ## Relatórios e impressão
 
 A Central de Relatórios de Estoque está [registrada como etapa
-futura](estoque-salgados-codex.md).
+futura](estoque-salgados-codex.md). O [cadastro oficial de 26 sabores](cadastro-oficial-salgados-26.md)
+foi preparado após a aprovação visual e aguarda autorização para aplicação em homologação.

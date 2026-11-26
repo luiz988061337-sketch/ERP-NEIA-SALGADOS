@@ -9,18 +9,26 @@ import {
 } from "../src/lib/catalogo-sabores-estoque.ts";
 import { lerSituacaoSalgado } from "../src/lib/situacao-salgados.ts";
 
-test("24 sabores e apelidos únicos, na ordem aprovada e presentes no cadastro SQL", () => {
+test("26 sabores e apelidos únicos, na ordem aprovada e presentes no cadastro SQL", () => {
   assert.deepEqual(
     categoriasSaboresEstoque.map(({ id }) => id),
     ["fritos", "mini-pasteis", "assados", "empadas", "mini-pizzas"],
   );
   assert.deepEqual(
     categoriasSaboresEstoque.map(({ id }) => saboresEstoque.filter((s) => s[1] === id).length),
-    [9, 4, 6, 2, 3],
+    [9, 4, 8, 2, 3],
   );
-  assert.equal(new Set(saboresEstoque.map(([id]) => id)).size, 24);
+  assert.equal(new Set(saboresEstoque.map(([id]) => id)).size, 26);
+  assert.deepEqual(saboresEstoque.slice(-2).map(([id]) => id), [
+    "trouxinha-calabresa",
+    "enroladinho-salsicha",
+  ]);
   const nomes = saboresEstoque.flatMap(([, , ...apelidos]) => apelidos.map(normalizarNomeSabor));
   assert.equal(new Set(nomes).size, nomes.length);
+  assert.equal(
+    nomes.some((nome) => nome.includes("mini enroladinho de salsicha 20un")),
+    false,
+  );
   const sql = readFileSync(new URL("./cadastrar-sabores-estoque.sql", import.meta.url), "utf8");
   const linhas = [
     ...sql.matchAll(/^\s*\('([^']+)', '([^']+)', '([^']+)', (\d+), ARRAY\[(.*)\]\)/gm),
@@ -75,10 +83,15 @@ test("preserva vínculo confirmado e deixa nomes ambíguos ou embalagens para re
     categorias: { slug: "mini-congelados" },
     tipo_venda: "unidade",
   });
-  const produtos = [unitario, outro, embalagem, congelado];
+  const salsicha20un = produto("s", "Mini Enroladinho de Salsicha 20un");
+  const produtos = [unitario, outro, embalagem, congelado, salsicha20un];
   const semVinculos = organizarSaboresEstoque(produtos, null);
   assert.equal(semVinculos.sabores.filter((s) => s.produto).length, 0);
-  assert.equal(semVinculos.legados.length, 4);
+  assert.equal(semVinculos.legados.length, 5);
+  assert.equal(
+    semVinculos.sabores.find((s) => s.chave === "enroladinho-salsicha").produto,
+    undefined,
+  );
   const comVinculos = organizarSaboresEstoque(produtos, [
     { chave: "coxinha-frango", produto_id: "u" },
   ]);

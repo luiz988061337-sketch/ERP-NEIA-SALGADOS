@@ -88,6 +88,8 @@ export const saboresEstoque = [
     "Mini pizza de muçarela",
   ],
   ["pizza-presunto-queijo", "mini-pizzas", "Mini pizza de presunto e queijo", "Mini pizza P&Q"],
+  ["trouxinha-calabresa", "assados", "Trouxinha de calabresa"],
+  ["enroladinho-salsicha", "assados", "Enroladinho de salsicha"],
 ] as const satisfies ReadonlyArray<readonly [string, CategoriaSaborEstoque, string, ...string[]]>;
 
 export function normalizarNomeSabor(nome: string) {
