@@ -30,9 +30,39 @@ const itemTarefas: AdminNavItem = {
 };
 
 /**
- * Shell do Admin — aparência da referência preto/dourado:
- * sidebar compacta com moldura dourada, marca (coroa + NÉIA SALGADOS),
- * item ativo em amarelo sólido dos painéis, ícones claros e usuário no rodapé.
+ * Tokens aprovados dos painéis A01/A02.1 (`dashboard-a01.css`).
+ * Aplicados somente ao menu lateral para não alterar os painéis internos.
+ */
+const CORES_MENU = {
+  fundo: "#0a1015",
+  painel: "#10171d",
+  item: "#131b22",
+  linha: "#4e5861",
+  texto: "#f5f7fa",
+  suave: "#bac5cc",
+  ouro: "#ffd252",
+  escuro: "#17110a",
+  hover: "#26313a",
+  sucesso: "#63eb9e",
+  alerta: "#ff8790",
+} as const;
+
+const estilosSidebar = {
+  "--sidebar": CORES_MENU.fundo,
+  "--sidebar-foreground": CORES_MENU.texto,
+  "--sidebar-primary": CORES_MENU.ouro,
+  "--sidebar-primary-foreground": CORES_MENU.escuro,
+  "--sidebar-accent": CORES_MENU.hover,
+  "--sidebar-accent-foreground": CORES_MENU.texto,
+  "--sidebar-border": CORES_MENU.linha,
+  "--sidebar-ring": CORES_MENU.ouro,
+} as React.CSSProperties;
+
+/**
+ * Shell do Admin — menu lateral compartilhado em grafite azulado dos painéis
+ * A01/A02.1: fundo #0a1015, divisórias cinza, textos claros e item ativo em
+ * amarelo sólido. A identidade (coroa + NÉIA SALGADOS) e o usuário no rodapé
+ * usam os mesmos tokens aprovados.
  *
  * O menu usa os grupos de ADMIN_NAV e os destinos operacionais do ambiente.
  */
@@ -79,22 +109,23 @@ export function AdminShell({
     >
       <Sidebar
         collapsible="icon"
-        className="border-r border-[#D4A94A]/45 bg-[#0F0E0C] group-data-[variant=inset]:bg-sidebar group-data-[collapsible=icon]:!p-2"
+        style={estilosSidebar}
+        className="border-r border-[#4e5861] bg-[#0a1015] group-data-[variant=inset]:bg-sidebar group-data-[collapsible=icon]:!p-2"
       >
-        <SidebarHeader className="border-b border-[#D4A94A]/35 bg-[#141310]">
+        <SidebarHeader className="border-b border-[#4e5861] bg-[#10171d]">
           <div className="flex items-center gap-2.5 px-1.5 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#D4A94A] bg-[#1A1712]">
-              <Crown className="size-[18px] text-[#F2CE6B]" aria-hidden />
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#4e5861] bg-[#131b22]">
+              <Crown className="size-[18px] text-[#ffd252]" aria-hidden />
             </span>
             <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-              <p className="truncate font-display text-sm font-bold uppercase leading-tight tracking-wide text-[#F2CE6B]">
+              <p className="truncate font-display text-sm font-bold uppercase leading-tight tracking-wide text-[#ffd252]">
                 Néia Salgados
               </p>
-              <p className="truncate text-xs uppercase tracking-wider text-muted-foreground">
+              <p className="truncate text-xs uppercase tracking-wider text-[#bac5cc]">
                 Painel de Gestão
               </p>
               {modoPreview ? (
-                <span className="mt-1 inline-block rounded-full border border-[#F5B301]/60 bg-[#F5B301]/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#F5B301]">
+                <span className="mt-1 inline-block rounded-full border border-[#ffd252]/60 bg-[#ffd252]/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#ffd252]">
                   Prévia
                 </span>
               ) : null}
@@ -111,32 +142,32 @@ export function AdminShell({
           tarefas={menuTarefasEfetivo}
         />
 
-        <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
+        <SidebarFooter className="border-t border-[#4e5861] bg-[#10171d]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full border border-[#D4A94A] bg-[#1A1712]">
-              <UserRound className="size-4 text-[#F2CE6B]" aria-hidden />
+            <span className="grid size-8 shrink-0 place-items-center rounded-full border border-[#4e5861] bg-[#131b22]">
+              <UserRound className="size-4 text-[#ffd252]" aria-hidden />
             </span>
             <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-              <p className="truncate text-xs font-semibold text-foreground">
+              <p className="truncate text-xs font-semibold text-[#f5f7fa]">
                 {usuario?.split("@")[0] ?? "Equipe"}
               </p>
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-xs text-[#bac5cc]">
                 {menuTarefasEfetivo === "equipe" ? "Equipe" : "Administradora"}
               </p>
             </div>
             <span
-              className="size-2 shrink-0 rounded-full bg-[#35C97C] group-data-[collapsible=icon]:hidden"
+              className="size-2 shrink-0 rounded-full bg-[#63eb9e] group-data-[collapsible=icon]:hidden"
               title="Online"
               aria-label="Online"
             />
           </div>
-          <SidebarSeparator className="bg-[#D4A94A]/25" />
+          <SidebarSeparator className="bg-[#4e5861]" />
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="Atualizar dados"
                 onClick={onRefresh}
-                className="h-9 min-h-9 text-sidebar-foreground hover:bg-[#D4A94A]/15 hover:text-[#F2CE6B]"
+                className="h-9 min-h-9 text-[#bac5cc] hover:bg-[#26313a] hover:text-[#f5f7fa]"
               >
                 <RefreshCw />
                 <span className="truncate">Atualizar dados</span>
@@ -147,7 +178,7 @@ export function AdminShell({
                 <SidebarMenuButton
                   tooltip="Sair"
                   onClick={onSair}
-                  className="h-9 min-h-9 text-sidebar-foreground hover:bg-[#F16A6A]/15 hover:text-[#F16A6A]"
+                  className="h-9 min-h-9 text-[#bac5cc] hover:bg-[#ff8790]/15 hover:text-[#ff8790]"
                 >
                   <LogOut />
                   <span className="truncate">Sair</span>
@@ -162,7 +193,7 @@ export function AdminShell({
           <div className="flex border-b border-border bg-sidebar px-3 py-2 md:hidden">
             <SidebarTrigger
               aria-label="Abrir menu administrativo"
-              className="size-11 border border-[#D4A94A]/60 bg-[#141310] text-[#F2CE6B] hover:bg-[#D4A94A]/15 hover:text-[#F2CE6B]"
+              className="size-11 border border-[#4e5861] bg-[#10171d] text-[#ffd252] hover:bg-[#26313a] hover:text-[#ffd252]"
             />
             <span className="self-center pl-3 text-sm font-semibold text-foreground">
               Menu administrativo
@@ -256,7 +287,7 @@ function MenuLateral({
   }
 
   return (
-    <SidebarContent className="bg-[#0F0E0C] [scrollbar-color:rgba(212,169,74,0.55)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D4A94A]/60 [&::-webkit-scrollbar-track]:bg-transparent">
+    <SidebarContent className="bg-[#0a1015] [scrollbar-color:#4e5861_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#4e5861]/80 [&::-webkit-scrollbar-track]:bg-transparent">
       {grupos.map((grupo) => {
         const aberto = gruposAbertos[grupo.label] !== false;
         const ehComercial = grupo.label === "Comercial";
@@ -264,14 +295,14 @@ function MenuLateral({
           <SidebarGroup key={grupo.label} data-grupo={grupo.label} className="py-1">
             <SidebarGroupLabel
               asChild
-              className="px-3 font-display text-xs uppercase tracking-wide text-[#C7B78E] group-data-[collapsible=icon]:hidden"
+              className="px-3 font-display text-xs uppercase tracking-wide text-[#bac5cc] group-data-[collapsible=icon]:hidden"
             >
               <button
                 type="button"
                 aria-expanded={aberto}
                 aria-label={`${aberto ? "Recolher" : "Expandir"} ${grupo.label}`}
                 onClick={() => alternarGrupo(grupo.label)}
-                className="flex w-full items-center justify-between gap-2 text-left hover:text-[#F2CE6B]"
+                className="flex w-full items-center justify-between gap-2 text-left hover:text-[#ffd252]"
               >
                 <span className="truncate">{grupo.label}</span>
                 <ChevronDown
@@ -301,7 +332,7 @@ function MenuLateral({
                       : undefined;
                     const classeIcone = `${
                       ehComercial ? "shrink-0" : ""
-                    } ${ativo ? "text-[#17110A]" : "text-[#C9A24B]"}`;
+                    } ${ativo ? "text-[#17110a]" : "text-[#bac5cc]"}`;
                     const textoItem = item.linhas
                       ? item.linhas.map((linha, indice) => (
                           <span key={`${item.value}-linha-${indice}`} className="block">
@@ -314,15 +345,16 @@ function MenuLateral({
                     // amarelo sólido aprovado em todos os módulos.
                     const estiloAtivo = ativo
                       ? ({
-                          backgroundColor: "#FFD252",
+                          backgroundColor: CORES_MENU.ouro,
                           backgroundImage: "none",
-                          color: "#17110A",
+                          color: CORES_MENU.escuro,
+                          borderColor: CORES_MENU.ouro,
                         } as const)
                       : undefined;
                     const classes = `${
                       ativo
-                        ? "rounded-lg border border-[#FFD252] bg-[#FFD252] px-3 font-semibold text-[#17110A] shadow-card hover:bg-[#FFD252] hover:text-[#17110A]"
-                        : "rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
+                        ? "rounded-lg border border-[#ffd252] bg-[#ffd252] px-3 font-semibold text-[#17110a] shadow-card hover:bg-[#ffd252] hover:text-[#17110a]"
+                        : "rounded-lg border border-transparent px-3 text-[#f5f7fa] hover:border-[#4e5861] hover:bg-[#26313a] hover:text-[#f5f7fa]"
                     } ${alturaItem}`;
 
                     return (
@@ -350,7 +382,7 @@ function MenuLateral({
                             >
                               <item.icon className={classeIcone} />
                               <span
-                                className={`${classeTexto}${ativo ? " text-[#17110A]" : ""}`}
+                                className={`${classeTexto}${ativo ? " text-[#17110a]" : ""}`}
                                 style={estiloTexto}
                               >
                                 {textoItem}
