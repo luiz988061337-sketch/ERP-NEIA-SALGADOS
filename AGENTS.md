@@ -97,6 +97,12 @@ e referências aprovadas do módulo antes de iniciar uma tarefa.
 - Priorizar legibilidade, contraste e alertas operacionais claros.
 - Evitar CSS global que altere áreas não relacionadas.
 
+## Menu lateral aprovado (P0 — 26/11/2026)
+- `AdminShell`/`MenuLateral` é o padrão obrigatório e a fonte única do menu lateral em todos os módulos administrativos. Não criar menus independentes nem substituir ou duplicar manualmente o componente compartilhado.
+- O menu publicado no commit `07b96de` foi aprovado definitivamente pelo proprietário no endereço oficial de homologação. A aprovação cobre exclusivamente o menu lateral; não autoriza alterações em painéis internos, rotas, permissões, banco, produção ou deployments.
+- A paleta oficial, os 224 px de largura, os grupos, o item ativo, o cabeçalho da logo e o rodapé do usuário são aprovados e preservados. Não alterar cores, tokens, estrutura ou identidade visual sem autorização expressa do proprietário.
+- Toda alteração nesse menu exige autorização expressa, nova conferência manual, atualização da documentação de aprovação e novo checkpoint versionado. Referência: `docs/projeto-diretor/menu-lateral/status.md`.
+
 ## Autonomia e limites
 - O agente pode examinar o código relevante, implementar dentro da etapa aprovada, corrigir erros comuns, executar testes locais, investigar build, preparar relatórios e gerar Previews locais seguros.
 - Não interromper por erros técnicos comuns. Interromper diante de risco de perda de dados, alteração em Production ou banco real, mudança de regras financeiras/comerciais aprovadas, necessidade de credenciais ou permissões amplas, mudança substancial de layout, conflito Git com risco de sobrescrita ou falha de segurança sem solução comprovada.
