@@ -78,6 +78,17 @@ Ela não apaga registros de `sabores_estoque`, não altera produtos e não reapl
 
 ## Publicação e pendências
 
-A publicação será feita somente no alias oficial de homologação, sem `--prod`, com variáveis explícitas e sem alterar menu, layout aprovado, checkpoints anteriores ou Production. Detalhes do deployment serão acrescentados após a conferência do alias.
+| Item | Resultado |
+| --- | --- |
+| Commit publicado | `6cc0cacdef75ee9b51b85be94128de2562bcb658` |
+| Checkpoint | `checkpoint-organizacao-sequencia-sabores-01` |
+| Comando | `vercel deploy --yes --target preview`, sem `--prod`, com variáveis de homologação passadas explicitamente |
+| Deployment | `dpl_B4hKmBtpke61FMfknMGXitu8M6ow` — `READY`, `target: preview` |
+| URL própria | `https://erp-neia-salgados-mk3h653vx-luiz988061337-3147s-projects.vercel.app` |
+| Alias oficial | <https://erp-neia-salgados-git-resga-dcaca5-luiz988061337-3147s-projects.vercel.app/admin#estoque-salgados>, reposicionado para o deployment acima e confirmado por `vercel inspect` |
+| Bundle publicado | Chunk `admin-BhZNfGWE.js` com `Organizar sabores`, `reordenar_sabores_estoque` e `Confirmar restauração`; SHA-256 `922ec3ad4102a1ebc3c8336ba8dbf023ad3218805fd230d8e29805a4163df4b9`, idêntico no deployment e no alias |
+| Ambiente | `index-DnPOabKs.js` contém `lflzlcqinarrcgncafol` e não contém `ruioyioynwwwiqbjznoa`; HTML servido sem “MODO DEMONSTRAÇÃO” |
+
+Nenhum projeto, domínio ou endereço novo foi criado. A inspeção somente leitura de `https://erp-neia-salgados.vercel.app` confirmou que Production continuava no deployment `dpl_DK144zp5kG9FSsL4J5HdniQ34Ukk`, de 12/11/2026, sem promoção nesta etapa. Menu lateral, layout aprovado, capturas aprovadas e checkpoints anteriores foram preservados.
 
 A conferência manual do proprietário permanece pendente para esta publicação. Vinculação comercial, movimentação por lote, relatórios, impressões e alteração no cardápio público continuam dependendo de etapas próprias.
