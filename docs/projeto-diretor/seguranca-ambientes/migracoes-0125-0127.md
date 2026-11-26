@@ -1,11 +1,13 @@
 # Auditoria das migrações 0125, 0126 e 0127 em homologação
 
-Auditoria **somente leitura**, executada em 26/11/2026 no projeto
-`lflzlcqinarrcgncafol`. Nenhuma migração remota foi aplicada nesta entrega.
+Auditoria e reconciliação executadas em 26/11/2026, exclusivamente no projeto
+`lflzlcqinarrcgncafol`, com autorização do proprietário. **Nenhum DDL foi
+reaplicado**: apenas o histórico `supabase_migrations` foi regularizado.
 
 ## 1. Histórico registrado
 
-`supabase_migrations.schema_migrations` contém apenas:
+`supabase_migrations.schema_migrations` contém três linhas. Antes da
+reconciliação de 26/11/2026, continha apenas:
 
 | version | name |
 | --- | --- |
@@ -90,11 +92,18 @@ order by 1, 2;
 
 Executar sempre com `--project-ref lflzlcqinarrcgncafol` explícito.
 
-## 4. Procedimento de reconciliação (não executado)
+## 4. Procedimento de reconciliação (executado em 26/11/2026)
 
-**Pré-requisitos:** autorização específica do proprietário, janela combinada,
-`npm run seguranca:destino -- --project-ref lflzlcqinarrcgncafol` retornando 0,
-e ausência de outra migração em andamento.
+**Autorização:** concedida pelo proprietário exclusivamente para
+`lflzlcqinarrcgncafol`. Nenhuma alteração em produção foi autorizada ou feita.
+
+**Pré-requisitos conferidos:** `npm run seguranca:destino -- --project-ref
+lflzlcqinarrcgncafol` retornou 0 (com as variáveis de homologação explícitas no
+ambiente); o vínculo local do CLI e a configuração apontam para homologação;
+snapshot de leitura do histórico anterior salvo localmente antes da execução;
+42/42 objetos esperados presentes; colunas `0127` (7/7) e A02 (23 e 7) conferidas;
+ordem das versões validada (`20261125162414` < `20261126160000` <
+`20261126160100`).
 
 ### Passo 1 — conferir antes
 
@@ -146,6 +155,22 @@ where version in ('20261126160000','20261126160100');
 Devem existir exatamente duas linhas novas; nenhum objeto de banco deve ser
 recriado.
 
+#### Evidências da execução
+
+| Verificação | Resultado |
+| --- | --- |
+| Simulação sem `--confirmar` | destino autorizado, nada executado |
+| Execução guardada com `--confirmar` | exit 0, transação concluída |
+| Histórico final | 3 linhas, em ordem: `20261125162414`, `20261126160000`, `20261126160100` |
+| `statements` registrados | 1 por versão; 9.136 / 9.633 / 8.620 bytes (conteúdo integral dos arquivos) |
+| Objetos A01/A02 após | 42/42 presentes; nenhum faltante |
+| Colunas após | 7/7 colunas da `0127`, 23 em `a02_recomendacoes`, 7 no histórico A02 |
+| Dados de negócio em homologação | inalterados pela reconciliação (`a01_tarefas`=3, histórico=6, recomendações=2, histórico=3) |
+| Produção | nenhuma conexão de escrita, nenhuma alteração |
+
+O arquivo SQL efetivamente executado está versionado em
+[`reconciliar-0126-0127.sql`](reconciliar-0126-0127.sql).
+
 ### Reversão
 
 Somente o histórico muda neste procedimento. Em caso de erro:
@@ -165,11 +190,12 @@ npx supabase migration repair --status applied \
 
 O `migration repair` grava apenas o histórico, mas exige conexão com senha e
 pode criar registros sem o conteúdo das statements. Por isso a opção SQL
-controlada acima é a recomendada para este caso.
+controlada acima foi a utilizada.
 
 ## 6. O que não fazer
 
 - Não reaplicar `0126`/`0127` para "atualizar" o histórico.
 - Não usar `supabase db push` sem conferir o projeto de destino.
 - Não rodar `migration repair` apontando para produção.
-- Não alterar o histórico antes da autorização do proprietário.
+- Não alterar o histórico sem autorização do proprietário (neste caso, a
+  autorização foi concedida e limitada a homologação).
