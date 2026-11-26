@@ -325,3 +325,118 @@
     justify-content: flex-start;
   }
 }
+.est-salgados-dialogo {
+  --a01-ouro: #ffd252;
+  --a01-painel: #10171d;
+  --a01-linha: #4e5861;
+  --a01-texto: #f5f7fa;
+  --a01-suave: #bac5cc;
+  width: min(calc(100vw - 2rem), 54rem);
+  max-width: 54rem;
+  padding: clamp(16px, 3vw, 28px);
+  gap: 16px;
+}
+
+.est-salgados-dialogo [data-slot="dialog-title"] {
+  font-size: clamp(20px, 3vw, 25px);
+}
+.est-salgados-dialogo [data-slot="dialog-description"] {
+  color: var(--a01-suave);
+  font-size: 15px;
+}
+.est-salgados-dialogo .neia-a01-form {
+  gap: 14px;
+}
+.est-dialog-grid,
+.est-dialog-saldos {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr));
+}
+.est-salgados-dialogo label {
+  display: grid;
+  gap: 5px;
+  font-weight: 650;
+  min-width: 0;
+}
+.est-salgados-dialogo :is(input, select, textarea) {
+  width: 100%;
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--a01-linha);
+  border-radius: 8px;
+  background: #151c22;
+  color: var(--a01-texto);
+  color-scheme: dark;
+  font: inherit;
+}
+.est-salgados-dialogo :is(input:read-only, input:disabled) {
+  color: var(--a01-suave);
+}
+.est-dialog-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.est-dialog-acoes button,
+.est-dialog-lista button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--a01-linha);
+  border-radius: 8px;
+  background: #151c22;
+  color: var(--a01-texto);
+  font-weight: 650;
+  text-align: left;
+}
+.est-dialog-acoes button.neia-a01-dourado {
+  background: var(--a01-ouro);
+  color: #17110a;
+  border-color: var(--a01-ouro);
+}
+.est-salgados-dialogo button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.est-salgados-dialogo [role="alert"] {
+  color: #ff8790;
+}
+.est-salgados-dialogo [role="status"] {
+  color: var(--a01-suave);
+}
+.est-dialog-saldos > div,
+.est-dialog-lista li {
+  padding: 9px 12px;
+  background: var(--a01-painel);
+  border: 1px solid var(--a01-linha);
+  border-radius: 8px;
+}
+.est-dialog-saldos > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.est-dialog-lista {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.est-dialog-tabela {
+  max-width: 100%;
+}
+.est-dialog-tabela table {
+  min-width: 450px;
+}
+.est-dialog-tabela :is(thead, thead tr) {
+  background: #182027;
+}
+.est-dialog-tabela :is(td, th) {
+  padding: 9px 12px;
+  font-size: 14px;
+}
+.est-dialog-tabela tbody tr:hover {
+  background: #182027;
+}

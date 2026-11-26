@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowLeftRight,
   Bell,
-  CheckCircle2,
   CircleHelp,
   ClipboardList,
   History,
@@ -16,13 +15,13 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ehModoDemo } from "@/lib/demo-preview";
+import { usePerfil, useRoles, useSession } from "@/lib/session";
 import {
-  ActionButton,
-  DarkTable,
-  DarkTableRow,
-  SectionCard,
-  StatusBadge,
-} from "@/components/admin/erp-ui";
+  operacoesSalgados,
+  validarMovimentoSalgados,
+  type OperacaoSalgados,
+} from "@/lib/operacoes-salgados";
+import { DarkTable, DarkTableRow } from "@/components/admin/erp-ui";
 import {
   Dialog,
   DialogContent,
@@ -30,12 +29,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { categoriasProdutosSalgados, organizarSaboresEstoque } from "@/lib/catalogo-sabores-estoque";
-import { diasDaValidade, lerSituacaoSalgado, loteVencidoComSaldo } from "@/lib/situacao-salgados";
+import {
+  categoriasProdutosSalgados,
+  categoriasSaboresEstoque,
+  organizarSaboresEstoque,
+} from "@/lib/catalogo-sabores-estoque";
+import {
+  diasDaValidade,
+  lerSituacaoSalgado,
+  loteVencidoComSaldo,
+  situacoesSalgados,
+} from "@/lib/situacao-salgados";
 import { EstoqueCategorias, FotoSabor, formatarQuantidade } from "./salgados-categorias";
+import { HistoricoSalgados } from "./salgados-historico";
 import "./salgados-admin.css";
 
 /**
@@ -43,39 +49,11 @@ import "./salgados-admin.css";
  * sabores vinculados vêm das mesmas fontes operacionais do estoque E01.
  */
 
-type Operacao = "entrada" | "reserva" | "liberar" | "retirada" | "perda" | "ajuste";
-type TipoMovimento =
-  | "entrada_manual"
-  | "venda"
-  | "perda"
-  | "ajuste"
-  | "entrada_producao"
-  | "reserva"
-  | "liberacao"
-  | "cancelamento"
-  | "vencimento"
-  | "devolucao"
-  | "degustacao";
-
-const TITULOS: Record<Operacao, string> = {
-  entrada: "Registrar entrada de estoque",
-  reserva: "Reservar quantidade",
-  liberar: "Liberar reserva",
-  retirada: "Registrar retirada do freezer",
-  perda: "Registrar perda",
-  ajuste: "Ajustar inventário",
-};
-const TIPO_RPC: Record<"entrada" | "retirada" | "perda" | "ajuste", TipoMovimento> = {
-  entrada: "entrada_manual",
-  retirada: "venda",
-  perda: "perda",
-  ajuste: "ajuste",
-};
-
 const numero = new Intl.NumberFormat("pt-BR");
-const diaLoja = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", dateStyle: "short" });
-const estilosTabela =
-  "[&_td]:whitespace-nowrap [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-sm [&_th]:text-xs";
+const diaLoja = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "America/Sao_Paulo",
+  dateStyle: "short",
+});
 
 function formatarData(iso: string | null | undefined) {
   return iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
@@ -94,32 +72,44 @@ function alertaValidade(validade: string | null, hoje: string) {
  * no build operacional a consulta aninhada real permanece intacta abaixo.
  */
 async function consultarSalgadosDemo() {
-  const [{ data: produtosData, error: erroProdutos }, { data: lotes }, { data: reservas }, { data: consumos }, { data: pedidos }, { data: movimentos }] =
-    await Promise.all([
-      supabase
-        .from("produtos")
-        .select("id, nome, imagem_url, disponivel, estoque, estoque_minimo, tipo_venda, unidade_medida, categoria_id")
-        .order("nome"),
-      supabase.from("lotes").select("id, codigo, validade, restante, status, produto_id"),
-      supabase.from("reservas_estoque").select("id, pedido_id, produto_id, quantidade, status"),
-      supabase.from("reserva_consumos").select("id, reserva_id, quantidade"),
-      supabase.from("pedidos").select("id, created_at").eq("status", "em_producao").limit(50),
-      supabase.from("estoque_movimentacoes").select("produto_id"),
-    ]);
+  const [
+    { data: produtosData, error: erroProdutos },
+    { data: lotes },
+    { data: reservas },
+    { data: consumos },
+    { data: pedidos },
+    { data: movimentos },
+  ] = await Promise.all([
+    supabase
+      .from("produtos")
+      .select(
+        "id, nome, imagem_url, disponivel, estoque, estoque_minimo, tipo_venda, unidade_medida, categoria_id",
+      )
+      .order("nome"),
+    supabase.from("lotes").select("id, codigo, validade, restante, status, produto_id"),
+    supabase.from("reservas_estoque").select("id, pedido_id, produto_id, quantidade, status"),
+    supabase.from("reserva_consumos").select("id, reserva_id, quantidade"),
+    supabase.from("pedidos").select("id, numero, created_at").eq("status", "em_producao").limit(50),
+    supabase.from("estoque_movimentacoes").select("produto_id"),
+  ]);
   if (erroProdutos) throw erroProdutos;
 
   const categoriasDemo = new Map(
     (await supabase.from("categorias").select("id, nome, slug")).data?.map((c) => [c.id, c]) ?? [],
   );
   const produtos = (produtosData ?? [])
-    .filter((p) => categoriasProdutosSalgados.includes(categoriasDemo.get(p.categoria_id)?.slug ?? ""))
+    .filter((p) =>
+      categoriasProdutosSalgados.includes(categoriasDemo.get(p.categoria_id)?.slug ?? ""),
+    )
     .map((p) => {
       const categoria = categoriasDemo.get(p.categoria_id);
       const lotesProduto = (lotes ?? []).filter((l) => l.produto_id === p.id);
       const reservasProduto = (reservas ?? [])
         .filter((r) => r.produto_id === p.id && r.status === "ativa")
         .map((r) => {
-          const consumido = (consumos ?? []).filter((c) => c.reserva_id === r.id).reduce((s, c) => s + c.quantidade, 0);
+          const consumido = (consumos ?? [])
+            .filter((c) => c.reserva_id === r.id)
+            .reduce((s, c) => s + c.quantidade, 0);
           return {
             id: r.id,
             pedidoId: r.pedido_id,
@@ -156,13 +146,15 @@ async function consultarSalgados(signal: AbortSignal) {
   const [{ data, error }, { data: pedidos }, cadastro] = await Promise.all([
     supabase
       .from("produtos")
-      .select(`
+      .select(
+        `
         id, nome, imagem_url, disponivel, estoque, estoque_minimo, tipo_venda, unidade_medida,
         categorias!inner(slug, nome),
         lotes(id, codigo, validade, restante, status),
         movimentos:estoque_movimentacoes(id),
         reservas_estoque(id, pedido_id, quantidade, status, reserva_consumos(quantidade))
-      `)
+      `,
+      )
       .in("categorias.slug", categoriasProdutosSalgados)
       .order("nome")
       .order("validade", { referencedTable: "lotes", ascending: true, nullsFirst: false })
@@ -170,7 +162,7 @@ async function consultarSalgados(signal: AbortSignal) {
       .abortSignal(signal),
     supabase
       .from("pedidos")
-      .select("id, created_at")
+      .select("id, numero, created_at")
       .eq("status", "em_producao")
       .order("created_at", { ascending: false })
       .limit(50)
@@ -186,7 +178,8 @@ async function consultarSalgados(signal: AbortSignal) {
       .filter((reserva) => reserva.status === "ativa")
       .map((reserva) => {
         const consumido = reserva.reserva_consumos.reduce(
-          (total, retirada) => total + retirada.quantidade, 0,
+          (total, retirada) => total + retirada.quantidade,
+          0,
         );
         return {
           id: reserva.id,
@@ -220,59 +213,7 @@ async function consultarSalgados(signal: AbortSignal) {
   return { produtos, pedidos: pedidos ?? [], vinculos: cadastro.data };
 }
 
-function Campo({
-  label,
-  name,
-  value,
-  type = "text",
-  min,
-  step,
-  required = true,
-}: {
-  label: string;
-  name: string;
-  value?: string | number;
-  type?: string;
-  min?: number;
-  step?: string | number;
-  required?: boolean;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={`est-${name}`}>{label}</Label>
-      <Input
-        id={`est-${name}`}
-        name={name}
-        defaultValue={value}
-        type={type}
-        min={min}
-        step={step}
-        required={required}
-      />
-    </div>
-  );
-}
-
-function Seletor({
-  label,
-  name,
-  children,
-}: {
-  label: string;
-  name: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={`est-${name}`}>{label}</Label>
-      <select id={`est-${name}`} name={name} className="est-select">
-        {children}
-      </select>
-    </div>
-  );
-}
-
-function ModalEstoque({
+function JanelaEstoque({
   titulo,
   descricao,
   fechar,
@@ -281,7 +222,7 @@ function ModalEstoque({
   titulo: string;
   descricao: string;
   fechar: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Dialog
@@ -290,7 +231,7 @@ function ModalEstoque({
         if (!aberto) fechar();
       }}
     >
-      <DialogContent className="est-dialog max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="neia-a01-dialogo est-salgados-dialogo">
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
           <DialogDescription>{descricao}</DialogDescription>
@@ -301,617 +242,712 @@ function ModalEstoque({
   );
 }
 
-type MovimentoReal = {
-  id: string;
-  itemId: string;
-  tipo: string;
-  quantidade: number;
-  antes: number;
-  depois: number;
-  unidade: string;
-  motivo: string;
-  referencia: string;
-  data: string;
-};
-
-function HistoricoEstoque({
-  movimentos,
-  nomes,
-}: {
-  movimentos: MovimentoReal[];
-  nomes: Record<string, string>;
-}) {
-  return (
-    <DarkTable
-      colunas={["Data", "Item / operação", "Quantidade", "Antes → Depois", "Justificativa / vínculo"]}
-      vazio={!movimentos.length ? "Nenhuma movimentação registrada para este sabor." : undefined}
-    >
-      {movimentos.map((m) => (
-        <DarkTableRow key={m.id}>
-          <td>
-            {formatarData(m.data)}
-            <small>{m.data.slice(11, 16)}</small>
-          </td>
-          <td>
-            <b>{nomes[m.itemId] ?? "Produto"}</b>
-            <small>{m.tipo}</small>
-          </td>
-          <td>
-            {numero.format(m.quantidade)} {m.unidade}
-          </td>
-          <td>
-            {numero.format(m.antes)} → {numero.format(m.depois)} {m.unidade}
-          </td>
-          <td>
-            {m.motivo}
-            <small>{m.referencia}</small>
-          </td>
-        </DarkTableRow>
-      ))}
-    </DarkTable>
-  );
-}
-
-function HistoricoMovimentos({
-  produtoId,
-  nomes,
-}: {
-  produtoId: string;
-  nomes: Record<string, string>;
-}) {
-  const { data, isPending, isError, refetch } = useQuery({
-    queryKey: ["admin-historico-salgado", produtoId],
-    queryFn: async ({ signal }) => {
-      const { data: movimentos, error } = await supabase
-        .from("estoque_movimentacoes")
-        .select(
-          "id, tipo, quantidade, saldo_anterior, saldo_posterior, observacao, created_at, referencia_tipo",
-        )
-        .eq("produto_id", produtoId)
-        .order("created_at", { ascending: false })
-        .limit(50)
-        .abortSignal(signal);
-      if (error) throw error;
-      return movimentos;
-    },
-  });
-
-  if (isPending) return <p role="status" className="text-sm text-muted-foreground">Carregando histórico…</p>;
-  if (isError) {
-    return (
-      <div role="alert" className="space-y-2 text-sm">
-        <p>Não foi possível consultar o histórico.</p>
-        <Button variant="outline" size="sm" onClick={() => void refetch()}>Tentar novamente</Button>
-      </div>
-    );
-  }
-  const movimentos: MovimentoReal[] = (data ?? []).map((m) => ({
-    id: m.id,
-    itemId: produtoId,
-    tipo: m.tipo.replaceAll("_", " "),
-    quantidade: m.quantidade,
-    antes: m.saldo_anterior,
-    depois: m.saldo_posterior,
-    unidade: "un.",
-    motivo: m.observacao || "—",
-    referencia: m.referencia_tipo || "—",
-    data: m.created_at,
-  }));
-  return <HistoricoEstoque movimentos={movimentos} nomes={nomes} />;
-}
-
-function MovimentacoesSalgado({ produtoId }: { produtoId: string }) {
-  const { data, isError, isPending, refetch } = useQuery({
-    queryKey: ["admin-movimentacoes-salgado", produtoId],
-    queryFn: async ({ signal }) => {
-      const { data: movimentos, error } = await supabase
-        .from("estoque_movimentacoes")
-        .select("id, tipo, created_at, quantidade, observacao")
-        .eq("produto_id", produtoId)
-        .order("created_at", { ascending: false })
-        .limit(3)
-        .abortSignal(signal);
-      if (error) throw error;
-      return movimentos;
-    },
-  });
-
-  if (isPending) return <p role="status" className="text-sm text-muted-foreground">Carregando movimentações…</p>;
-  if (isError) {
-    return (
-      <div role="alert" className="space-y-2 text-sm">
-        <p>Não foi possível consultar as movimentações.</p>
-        <Button variant="outline" size="sm" onClick={() => void refetch()}>Tentar novamente</Button>
-      </div>
-    );
-  }
-  if (!data?.length) return <p className="text-sm text-muted-foreground">Nenhuma movimentação registrada.</p>;
-
-  return (
-    <>
-      <ul className="est-recent">
-        {data.map((mov) => (
-          <li key={mov.id}>
-            <span className={mov.quantidade >= 0 ? "est-green" : "est-red"}>
-              {mov.quantidade >= 0 ? "+" : "−"}
-            </span>
-            <div>
-              <b>{mov.tipo.replaceAll("_", " ")}: {numero.format(Math.abs(mov.quantidade))} un.</b>
-              <small>{mov.observacao || "—"}</small>
-            </div>
-            <small>{formatarData(mov.created_at)}</small>
-          </li>
-        ))}
-      </ul>
-      <p className="est-muted">
-        Retirada com reserva resolve a pendência e reduz o físico uma única vez.
-      </p>
-    </>
-  );
-}
+const horaLoja = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
+type Janela =
+  | OperacaoSalgados
+  | "detalhes"
+  | "historico"
+  | "movimentos"
+  | "alertas"
+  | "ajuda"
+  | "conferencia"
+  | "foto";
 
 export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => void }) {
-  const [foco, setFoco] = useState<string | null>(null);
-  const [modal, setModal] = useState<"movimento" | "historico" | "alertas" | "ajuda" | null>(null);
-  const [tipo, setTipo] = useState<Operacao>("entrada");
+  const [janela, setJanela] = useState<Janela>();
+  const [chave, setChave] = useState("");
+  const [loteId, setLoteId] = useState("");
+  const [contado, setContado] = useState("");
+  const [historicoId, setHistoricoId] = useState<string>();
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
-
+  const operacaoEmCurso = useRef(false);
+  const envio = useRef<{ assinatura: string; id: string } | null>(null);
+  const { user } = useSession();
+  const { data: perfil } = usePerfil(user?.id);
+  const { data: funcoes } = useRoles(user?.id);
+  const admin = funcoes?.includes("admin") ?? false;
+  const podeMovimentar = admin || !!funcoes?.includes("producao");
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["admin-estoque-salgados"],
     queryFn: ({ signal }) => consultarSalgados(signal),
   });
-
   const produtos = data?.produtos;
-  const pedidos = data?.pedidos ?? [];
-  const visivel = !isPending && !isError ? produtos : undefined;
   const hoje = diaLoja.format(new Date());
   const { sabores, legados } = organizarSaboresEstoque<NonNullable<typeof produtos>[number]>(
     produtos ?? [],
     data?.vinculos ?? null,
   );
-  const linhas = sabores.map((sabor) => ({ ...sabor, situacao: lerSituacaoSalgado(sabor.produto, hoje) }));
-  const linhasLegadas = legados.map((p) => ({
-    chave: p.id,
-    nome: p.nome,
-    imagem: p.imagem_url,
-    produto: p,
-    situacao: lerSituacaoSalgado(p, hoje),
+  const idsConfirmados = new Map(data?.vinculos?.map((s) => [s.chave, s.produto_id]));
+  const linhas = sabores.map((sabor) => ({
+    ...sabor,
+    situacao: lerSituacaoSalgado(sabor.produto, hoje),
   }));
-  const estadosPorProduto = new Map(
-    [...linhas, ...linhasLegadas].flatMap((linha) =>
-      linha.produto ? [[linha.produto.id, linha.situacao] as const] : [],
-    ),
-  );
-  const estados = [...estadosPorProduto.values()];
-  const baixos = estados.filter((estado) => estado.abaixo).length;
-  const vencendo = estados.reduce((total, estado) => total + estado.vencendo, 0);
-  const vencidos = estados.filter((estado) => estado.alertas.includes("vencido")).length;
-  const reservasExcedentes = estados.filter((estado) => estado.alertas.includes("excedente")).length;
-  const primeiroVinculado = sabores.find((sabor) => sabor.produto)?.produto;
-  const produto = produtos?.find((p) => p.id === foco) ?? primeiroVinculado ?? produtos?.[0];
-  const nomes = Object.fromEntries((produtos ?? []).map((p) => [p.id, p.nome]));
+  const selecionado = linhas.find((s) => s.chave === chave);
+  const produto = selecionado?.produto;
+  const situacao = selecionado?.situacao;
+  const vinculado = !!produto && idsConfirmados.get(chave) === produto.id && !ehModoDemo();
+  const lotes = produto?.lotesTodos ?? [];
+  const lote = lotes.find((l) => l.id === loteId);
+  const tipo = janela && janela in operacoesSalgados ? (janela as OperacaoSalgados) : undefined;
+  const historicoProdutos = [
+    ...linhas.flatMap((s) => (s.produto ? [{ id: s.produto.id, nome: s.nome }] : [])),
+    ...(admin ? legados.map((p) => ({ id: p.id, nome: p.nome })) : []),
+  ];
+  const pedidos = data?.pedidos ?? [];
+  const numerosPedidos = new Map(pedidos.map((p) => [p.id, p.numero]));
+  const pedidoLabel = (id: string) =>
+    numerosPedidos.has(id) ? "#" + numerosPedidos.get(id) : "Pedido vinculado";
+  const reservas = produto?.reservas.filter((r) => r.pendente > 0) ?? [];
+  const saldoUtil =
+    produto?.lotesFefo
+      .filter((l) => !l.validade || l.validade >= hoje)
+      .reduce((n, l) => n + l.restante, 0) ?? 0;
+  const disponivelUtil = saldoUtil - (produto?.reservado ?? 0);
+  const responsavel = perfil?.nome || user?.email || "Sessão indisponível";
 
-  function abrir(operacao: Operacao, id = produto?.id) {
-    if (!id) return;
-    setFoco(id);
-    setTipo(operacao);
+  function abrir(nova: Janela, sabor = chave) {
+    setChave(sabor);
+    setJanela(nova);
     setErro("");
-    setModal("movimento");
+    setLoteId("");
+    setContado("");
+    setHistoricoId(undefined);
   }
-
-  async function enviar(evento: React.FormEvent<HTMLFormElement>) {
-    evento.preventDefault();
-    if (!produto) return;
-    const dados = new FormData(evento.currentTarget);
-    const quantidade = Math.floor(Number(dados.get("quantidade")) || 0);
-    const motivo = String(dados.get("motivo") ?? "").trim();
-    const pedido = String(dados.get("pedido") ?? "");
-    const reservaId = String(dados.get("reserva") ?? "");
-
-    if (quantidade <= 0 && tipo !== "liberar") {
-      setErro("Informe uma quantidade maior que zero.");
-      return;
+  function abrirHistorico(id?: string) {
+    abrir("historico");
+    setHistoricoId(id);
+  }
+  function fechar() {
+    if (!operacaoEmCurso.current) setJanela(undefined);
+  }
+  function identificarEnvio(assinatura: string) {
+    if (envio.current?.assinatura !== assinatura)
+      envio.current = { assinatura, id: crypto.randomUUID() };
+    return envio.current.id;
+  }
+  function erroGravacao(falha: unknown) {
+    if (
+      typeof falha === "object" &&
+      falha !== null &&
+      "code" in falha &&
+      falha.code === "PGRST202"
+    ) {
+      return "A operação depende da instalação da rotina de lotes no banco.";
     }
-    setErro("");
+    if (
+      typeof falha === "object" &&
+      falha !== null &&
+      "code" in falha &&
+      falha.code === "P0001" &&
+      "message" in falha &&
+      typeof falha.message === "string"
+    )
+      return falha.message;
+    return falha instanceof Error
+      ? falha.message
+      : "O banco recusou a operação. Atualize os dados e confira o saldo.";
+  }
+  async function gravar(executar: () => Promise<void>, mensagem: string) {
+    if (operacaoEmCurso.current) return;
+    operacaoEmCurso.current = true;
     setSalvando(true);
+    setErro("");
     try {
-      if (tipo === "reserva") {
-        if (!pedido) throw new Error("Selecione um pedido em produção.");
-        const { data: resultado, error } = await supabase.rpc("reservar_estoque_atomica", {
-          p_pedido_id: pedido,
-          p_produto_id: produto.id,
-          p_qtd: quantidade,
-        });
-        if (error) throw error;
-        if (resultado !== true) throw new Error("Estoque insuficiente ou pedido indisponível.");
-      } else if (tipo === "liberar") {
-        if (!pedido) throw new Error("Selecione um pedido com reserva pendente.");
-        const { error } = await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: pedido });
-        if (error) throw error;
-      } else if (tipo === "retirada" && reservaId) {
-        // Consumo de reserva: a RPC registra a baixa física uma única vez.
-        const { error } = await supabase.rpc("registrar_consumo_reserva", {
-          p_reserva_id: reservaId,
-          p_quantidade: quantidade,
-          p_idem_key: crypto.randomUUID(),
-          p_produto_id: produto.id,
-          ...(motivo ? { p_observacao: motivo } : {}),
-        });
-        if (error) throw error;
-      } else {
-        let loteId: string | undefined;
-        let delta = quantidade;
-
-        if (tipo === "entrada") {
-          const codigo = String(dados.get("codigo") ?? "").trim();
-          if (!codigo) throw new Error("Informe o código do novo lote.");
-          const validade = String(dados.get("validade") ?? "");
-          const { data: lote, error: erroLote } = await supabase
-            .from("lotes")
-            .insert({
-              produto_id: produto.id,
-              codigo,
-              quantidade,
-              restante: quantidade,
-              validade: validade || null,
-              status: "ativo",
-            })
-            .select("id")
-            .single();
-          if (erroLote) throw erroLote;
-          loteId = lote.id;
-        }
-
-        if (tipo === "ajuste") {
-          const loteEscolhido = String(dados.get("lote") ?? "");
-          const anterior = produto.lotesTodos.find((l) => l.id === loteEscolhido)?.restante ?? 0;
-          delta = quantidade - anterior;
-          if (loteEscolhido) {
-            const { error: erroLote } = await supabase
-              .from("lotes")
-              .update({ restante: quantidade })
-              .eq("id", loteEscolhido);
-            if (erroLote) throw erroLote;
-          }
-        }
-
-        if (tipo === "perda" || (tipo === "retirada" && !reservaId)) delta = -quantidade;
-
-        const { error } = await supabase.rpc("registrar_mov_estoque", {
-          p_produto_id: produto.id,
-          p_tipo: TIPO_RPC[tipo],
-          p_quantidade: delta,
-          ...(loteId ? { p_lote_id: loteId } : {}),
-          p_observacao: motivo || TITULOS[tipo],
-          p_referencia_tipo: "manual",
-        });
-        if (error) throw error;
-      }
-
-      toast.success("Movimentação registrada no estoque.");
-      setModal(null);
+      await executar();
+      toast.success(mensagem);
+      envio.current = null;
+      setJanela(undefined);
       await refetch();
-    } catch (err) {
-      setErro(err instanceof Error ? err.message : "Não foi possível registrar a movimentação.");
+    } catch (falha) {
+      setErro(erroGravacao(falha));
     } finally {
+      operacaoEmCurso.current = false;
       setSalvando(false);
     }
   }
-
-  const situacaoProduto = produto ? estadosPorProduto.get(produto.id) : undefined;
+  async function registrar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (
+      !tipo ||
+      !produto ||
+      !vinculado ||
+      !user ||
+      !podeMovimentar ||
+      (tipo === "ajuste" && !admin)
+    )
+      return;
+    const dados = new FormData(event.currentTarget);
+    const ler = (nome: string) => String(dados.get(nome) ?? "").trim();
+    const quantidade = ler("quantidade"),
+      codigo = ler("codigo"),
+      fabricacao = ler("fabricacao"),
+      validade = ler("validade");
+    const motivo = ler("motivo"),
+      notas = ler("observacoes"),
+      pedido = ler("pedido");
+    const reserva = reservas.find((r) => r.id === ler("reserva"));
+    const erroCampo = validarMovimentoSalgados({
+      tipo,
+      quantidade,
+      codigo,
+      fabricacao,
+      validade,
+      motivo,
+      hoje,
+      disponivel: disponivelUtil,
+      lote: lote ? { ...lote, inutilizavel: loteVencidoComSaldo(lote, hoje) } : undefined,
+      reserva,
+      pedido,
+    });
+    if (erroCampo) {
+      setErro(erroCampo);
+      return;
+    }
+    if (tipo === "entrada" && lotes.some((l) => l.codigo.toLowerCase() === codigo.toLowerCase())) {
+      setErro("Já existe um lote com este código para o sabor.");
+      return;
+    }
+    const observacao = [motivo, notas].filter(Boolean).join(" · ");
+    const id = identificarEnvio(
+      JSON.stringify([
+        chave,
+        tipo,
+        produto.id,
+        quantidade,
+        codigo,
+        fabricacao,
+        validade,
+        loteId,
+        pedido,
+        reserva?.id,
+        observacao,
+      ]),
+    );
+    await gravar(async () => {
+      if (tipo === "reserva") {
+        if (!pedidos.some((p) => p.id === pedido))
+          throw new Error("Selecione um pedido em produção.");
+        const r = await supabase.rpc("reservar_estoque_atomica", {
+          p_pedido_id: pedido,
+          p_produto_id: produto.id,
+          p_qtd: Number(quantidade),
+        });
+        if (r.error) throw r.error;
+        if (r.data !== true) throw new Error("O pedido ou o saldo disponível mudou.");
+        return;
+      }
+      if (tipo === "liberar") {
+        if (!reservas.some((r) => r.pedidoId === pedido))
+          throw new Error("Selecione um pedido com reserva pendente.");
+        const r = await supabase.rpc("cancelar_pedido_atomico", {
+          p_pedido_id: pedido,
+          p_motivo: observacao || "Cancelamento pelo estoque",
+        });
+        if (r.error) throw r.error;
+        if (
+          !r.data ||
+          typeof r.data !== "object" ||
+          !("status" in r.data) ||
+          !["cancelado", "ja_cancelado"].includes(String(r.data["status"]))
+        )
+          throw new Error("O pedido não pôde ser cancelado.");
+        return;
+      }
+      const r = await supabase.rpc("movimentar_lote_salgado", {
+        p_sabor: chave,
+        p_produto: produto.id,
+        p_tipo: tipo,
+        p_quantidade: Number(quantidade),
+        p_chave: id,
+        ...(lote && (tipo === "perda" || tipo === "ajuste")
+          ? { p_lote: lote.id, p_saldo_esperado: lote.restante }
+          : {}),
+        ...(tipo === "entrada"
+          ? { p_codigo: codigo, p_fabricacao: fabricacao, p_validade: validade }
+          : {}),
+        ...(tipo === "retirada" && reserva ? { p_reserva: reserva.id } : {}),
+        p_observacao: observacao,
+      });
+      if (r.error) throw r.error;
+      if (r.data !== "registrado" && r.data !== "ja_registrado")
+        throw new Error("A movimentação não foi confirmada.");
+    }, "Movimentação confirmada no estoque.");
+  }
 
   return (
     <div data-testid="estoque-salgados" className="neia-a01 est-salgados-painel">
       <header className="neia-a01-cabecalho">
         <div className="est-salgados-titulo">
-          <span><Snowflake size={26} aria-hidden /></span>
+          <span>
+            <Snowflake size={26} aria-hidden />
+          </span>
           <div>
             <h1>Estoque de Salgados</h1>
             <p>Controle por sabor, lotes, reservas e movimentações.</p>
           </div>
         </div>
         <div className="est-salgados-cabecalho-acoes">
-          <button className="neia-a01-dourado" disabled={!produto || isError} onClick={() => abrir("entrada")}>
+          <button className="neia-a01-dourado" onClick={() => abrir("entrada")}>
             <Plus size={19} /> Entrada de estoque
           </button>
-          <button disabled={!produto || isError} onClick={() => abrir("perda")}><MinusCircle size={17} /> Registrar perda</button>
-          <button disabled={!produto || isError} onClick={() => abrir("ajuste")}><ClipboardList size={17} /> Inventário</button>
-          <button disabled={!produto || isError} onClick={() => setModal("historico")}><History size={17} /> Histórico</button>
+          <button onClick={() => abrir("perda")}>
+            <MinusCircle size={17} /> Registrar perda
+          </button>
+          <button onClick={() => abrir("ajuste")}>
+            <ClipboardList size={17} /> Inventário
+          </button>
+          <button onClick={() => abrirHistorico()}>
+            <History size={17} /> Histórico
+          </button>
         </div>
       </header>
-
       {isPending && <p role="status">Carregando estoque e reservas…</p>}
       {isError && (
-        <div role="alert" className="neia-a01-estado flex flex-wrap items-center justify-between gap-2">
-          <p>Não foi possível consultar o estoque de salgados.</p>
-          <Button variant="outline" onClick={() => void refetch()}>Tentar novamente</Button>
-        </div>
+        <p role="alert">
+          Não foi possível consultar o estoque.{" "}
+          <button onClick={() => void refetch()}>Tentar novamente</button>
+        </p>
       )}
-
-      {visivel && (
+      {!isPending && !isError && (
         <>
           <EstoqueCategorias
             sabores={linhas}
-            legados={linhasLegadas}
-            cadastrados={data?.vinculos?.length ?? 0}
+            cadastrados={
+              linhas.filter((s) => !!s.produto && idsConfirmados.get(s.chave) === s.produto.id)
+                .length
+            }
             acoes={{
-              onVer: (id) => {
-                setFoco(id);
-                requestAnimationFrame(() => document.getElementById("est-detalhe-salgado")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
-              },
-              onHistorico: (id) => { setFoco(id); setModal("historico"); },
-              onInventario: (id) => abrir("ajuste", id),
+              onVer: (sabor) => abrir("detalhes", sabor),
+              onHistorico: abrirHistorico,
+              onInventario: (id) =>
+                abrir("ajuste", linhas.find((s) => s.produto?.id === id)?.chave),
             }}
           />
           <div className="est-salgados-cabecalho-acoes est-salgados-secundarias">
-            <button onClick={() => onProdutos()}><ClipboardList size={17} /> Cadastro de Produtos</button>
-            <button disabled={!produto} onClick={() => abrir("retirada")}><ArrowLeftRight size={17} /> Movimentação</button>
-            <button onClick={() => setModal("alertas")}><Bell size={17} /> Alertas</button>
-            <button onClick={() => setModal("ajuda")}><CircleHelp size={17} /> Ajuda</button>
+            <button onClick={() => abrir("movimentos")}>
+              <ArrowLeftRight size={17} /> Movimentações
+            </button>
+            <button onClick={() => abrir("alertas")}>
+              <Bell size={17} /> Alertas
+            </button>
+            <button onClick={() => abrir("ajuda")}>
+              <CircleHelp size={17} /> Ajuda
+            </button>
+            {admin && (
+              <button onClick={() => abrir("conferencia")}>
+                <ClipboardList size={17} /> Conferência de cadastros
+              </button>
+            )}
           </div>
-
-          {produto && foco && (
-            <div className="est-bottom-three" id="est-detalhe-salgado">
-              <SectionCard
-                titulo={<span className="est-inline"><Snowflake size={17} /> {produto.nome}</span>}
-                acoes={<StatusBadge tom="neutro">{produto.categorias.nome}</StatusBadge>}
-              >
-                <div className="est-product-detail">
-                  <FotoSabor imagem={produto.imagem_url} />
-                  <p>
-                    Produto do cadastro único<small>{produto.id}</small>
-                  </p>
-                </div>
-                <div className="est-mini-metrics">
-                  {[
-                    ["Físico", situacaoProduto?.fisico ?? null],
-                    ["Reservado", situacaoProduto?.reservado ?? null],
-                    ["Disponível", situacaoProduto?.disponivel ?? null],
-                    ["Mínimo", situacaoProduto?.minimo ?? null],
-                  ].map(([titulo, valor]) => (
-                    <div key={titulo}>
-                      <small>{titulo}</small>
-                      <b>{formatarQuantidade(typeof valor === "number" ? valor : null)}</b>
-                    </div>
-                  ))}
-                </div>
-                <div className="est-detail-actions">
-                  <ActionButton variant="ghost" onClick={() => onProdutos(produto.nome)}>
-                    Editar produto e foto
-                  </ActionButton>
-                  <ActionButton variant="ghost" onClick={() => abrir("reserva")} disabled={produto.disponivel <= 0}>
-                    Reservar
-                  </ActionButton>
-                  <ActionButton variant="ghost" onClick={() => abrir("liberar")} disabled={!produto.reservas.length}>
-                    Liberar reserva
-                  </ActionButton>
-                  <ActionButton variant="ghost" onClick={() => abrir("perda")}>
-                    Registrar perda
-                  </ActionButton>
-                </div>
-              </SectionCard>
-
-              <SectionCard titulo={<span className="est-inline"><Package size={17} /> Lotes (FEFO)</span>}>
-                <DarkTable colunas={["Lote", "Quantidade", "Validade", "Prioridade"]} className={estilosTabela}>
-                  {produto.lotesFefo.filter((lote) => !lote.validade || lote.validade >= hoje).map((lote, indice) => (
-                    <DarkTableRow key={lote.id}>
-                      <td>{lote.codigo}</td>
-                      <td>{numero.format(lote.restante)}</td>
-                      <td>{formatarData(lote.validade)}</td>
-                      <td>
-                        <StatusBadge tom={alertaValidade(lote.validade, hoje) ? "atencao" : "ok"}>
-                          Usar {indice + 1}º{alertaValidade(lote.validade, hoje) ? " · Próximo" : ""}
-                        </StatusBadge>
-                      </td>
-                    </DarkTableRow>
-                  ))}
-                  {produto.lotesTodos.filter((lote) => loteVencidoComSaldo(lote, hoje)).map((lote) => (
-                    <DarkTableRow key={lote.id}>
-                      <td>{lote.codigo}</td>
-                      <td>{numero.format(lote.restante)}</td>
-                      <td>{formatarData(lote.validade)}</td>
-                      <td><StatusBadge tom="perigo">Vencido</StatusBadge></td>
-                    </DarkTableRow>
-                  ))}
-                </DarkTable>
-              </SectionCard>
-
-              <SectionCard
-                titulo={<span className="est-inline"><ArrowLeftRight size={17} /> Últimas movimentações</span>}
-                acoes={
-                  <button className="est-text-action" onClick={() => setModal("historico")}>
-                    Ver histórico →
-                  </button>
-                }
-              >
-                <MovimentacoesSalgado produtoId={produto.id} />
-              </SectionCard>
-            </div>
-          )}
         </>
       )}
 
-      {modal === "movimento" && produto && (
-        <ModalEstoque
-          titulo={TITULOS[tipo]}
-          descricao="Operação registrada no banco de homologação."
-          fechar={() => setModal(null)}
+      {tipo && (
+        <JanelaEstoque
+          key={tipo}
+          titulo={operacoesSalgados[tipo]}
+          descricao="Controle por unidade e lote."
+          fechar={fechar}
         >
-          <p>
-            <b>{produto.nome}</b> · Físico {numero.format(produto.fisico)} · Reservado{" "}
-            {numero.format(produto.reservado)} · Disponível {numero.format(produto.disponivel)}
-          </p>
-          <form key={tipo} className="est-form" onSubmit={(evento) => void enviar(evento)}>
-            <label htmlFor="est-produtoId">
-                Produto cadastrado
+          <form className="neia-a01-form" onSubmit={(event) => void registrar(event)}>
+            <div className="est-dialog-grid">
+              <label>
+                Categoria
                 <select
-                  id="est-produtoId"
-                  name="produtoId"
-                  className="est-select"
-                  value={produto.id}
-                  onChange={(e) => setFoco(e.target.value)}
+                  value={selecionado?.categoria ?? ""}
+                  onChange={(e) => {
+                    setChave(linhas.find((s) => s.categoria === e.target.value)?.chave ?? "");
+                    setLoteId("");
+                    setContado("");
+                    setErro("");
+                  }}
                 >
-                  {primeiroVinculado && (
-                    <optgroup label="Sabores com estoque vinculado">
-                      {sabores.flatMap(({ produto: p, nome }) => p ? [
-                        <option key={p.id} value={p.id}>{nome}{!p.ativo ? " (inativo)" : ""}</option>,
-                      ] : [])}
-                    </optgroup>
-                  )}
-                  {!!legados.length && (
-                    <optgroup label="Produtos fora do cadastro oficial">
-                      {legados.map((p) => (
-                        <option key={p.id} value={p.id}>{p.nome}{!p.ativo ? " (inativo)" : ""}</option>
-                      ))}
-                    </optgroup>
-                  )}
-                </select>
-              </label>
-            <label>
-              Tipo de movimentação
-              <select
-                aria-label="Tipo de movimentação de salgados"
-                className="est-select"
-                value={tipo}
-                onChange={(e) => {
-                  setTipo(e.target.value as Operacao);
-                  setErro("");
-                }}
-              >
-                {Object.entries(TITULOS).map(([valor, titulo]) => (
-                  <option key={valor} value={valor}>{titulo}</option>
-                ))}
-              </select>
-            </label>
-            {tipo === "liberar" ? (
-              <>
-                <p>O cancelamento libera todas as reservas ainda não consumidas deste pedido, sabor por sabor.</p>
-                <Seletor label="Pedido a cancelar" name="pedido">
-                  {produto.reservas.map((reserva) => (
-                    <option key={reserva.id} value={reserva.pedidoId}>
-                      {reserva.pedidoId} · {reserva.pendente} un. pendentes
+                  <option value="">Selecione</option>
+                  {categoriasSaboresEstoque.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
                     </option>
                   ))}
-                </Seletor>
-              </>
-            ) : (
-              <>
-                {tipo === "retirada" && (
-                  <Seletor label="Vínculo da retirada" name="reserva">
-                    <option value="">Retirada avulsa (somente disponível)</option>
-                    {produto.reservas.map((reserva) => (
-                      <option key={reserva.id} value={reserva.id}>
-                        {reserva.pedidoId} · {reserva.pendente} un. pendentes
+                </select>
+              </label>
+              <label>
+                Sabor oficial
+                <select
+                  required
+                  value={chave}
+                  onChange={(e) => {
+                    setChave(e.target.value);
+                    setLoteId("");
+                    setContado("");
+                    setErro("");
+                  }}
+                >
+                  <option value="">Selecione</option>
+                  {linhas
+                    .filter((s) => !selecionado || s.categoria === selecionado.categoria)
+                    .map((s) => (
+                      <option key={s.chave} value={s.chave}>
+                        {s.nome}
                       </option>
                     ))}
-                  </Seletor>
-                )}
-                {tipo === "ajuste" && (
-                  <Seletor label="Lote conferido" name="lote">
-                    {produto.lotesTodos.map((lote) => (
-                      <option key={lote.id} value={lote.id}>
-                        {lote.codigo} · saldo {lote.restante}
-                      </option>
-                    ))}
-                  </Seletor>
-                )}
-                <Campo
-                  name="quantidade"
-                  label={tipo === "ajuste" ? "Quantidade física contada no lote (un.)" : "Quantidade (un.)"}
-                  type="number"
-                  min={tipo === "ajuste" ? 0 : 1}
-                  step="1"
-                />
-                {tipo === "reserva" && (
-                  <label>
-                    Pedido em produção
-                    <select name="pedido" className="est-select" required>
-                      <option value="">Selecione um pedido</option>
-                      {pedidos.map((pedido) => (
-                        <option key={pedido.id} value={pedido.id}>{pedido.id}</option>
+                </select>
+              </label>
+              {(tipo === "perda" || tipo === "ajuste") && (
+                <label>
+                  Lote
+                  <select required value={loteId} onChange={(e) => setLoteId(e.target.value)}>
+                    <option value="">Selecione um lote</option>
+                    {lotes
+                      .filter((l) =>
+                        tipo === "ajuste"
+                          ? !loteVencidoComSaldo(l, hoje) &&
+                            l.status !== "vencido" &&
+                            (!l.validade || l.validade >= hoje)
+                          : l.restante > 0,
+                      )
+                      .map((l) => (
+                        <option value={l.id} key={l.id}>
+                          {l.codigo} · {l.restante} un.
+                        </option>
                       ))}
-                    </select>
+                  </select>
+                </label>
+              )}
+              {tipo !== "liberar" && (
+                <label>
+                  {tipo === "ajuste" ? "Quantidade contada (un.)" : "Quantidade (un.)"}
+                  <input
+                    name="quantidade"
+                    type="number"
+                    required
+                    step={1}
+                    min={tipo === "ajuste" ? 0 : 1}
+                    max={2147483647}
+                    value={contado}
+                    onChange={(e) => setContado(e.target.value)}
+                  />
+                </label>
+              )}
+              {tipo === "entrada" && (
+                <>
+                  <label>
+                    Código do lote
+                    <input name="codigo" required maxLength={80} />
                   </label>
-                )}
-                {tipo === "entrada" && (
-                  <>
-                    <Campo name="codigo" label="Código do novo lote" />
-                    <Campo name="validade" label="Validade do lote" type="date" required={false} />
-                  </>
-                )}
-                {tipo !== "reserva" && <Campo name="motivo" label="Justificativa / referência" />}
-              </>
-            )}
-            {erro && <p role="alert" className="est-red">{erro}</p>}
-            <p className="est-muted">
-              As operações são registradas no banco de homologação. A ordem FEFO considera a
-              validade real dos lotes.
-            </p>
-            <ActionButton type="submit" disabled={salvando}>
-              <CheckCircle2 size={16} />
-              {salvando ? "Registrando…" : "Confirmar movimentação"}
-            </ActionButton>
-          </form>
-        </ModalEstoque>
-      )}
-
-      {modal === "historico" && produto && (
-        <ModalEstoque
-          titulo={`Histórico — ${produto.nome}`}
-          descricao="Registros reais de reservas e movimentações."
-          fechar={() => setModal(null)}
-        >
-          <div className="est-form">
-            {produto.reservas.map((reserva) => (
-              <p key={reserva.id}>
-                <b>{reserva.pedidoId}</b> · Reservado {reserva.quantidade} · Retirado {reserva.consumido} ·
-                Pendente {reserva.pendente}
+                  <label>
+                    Data de fabricação
+                    <input name="fabricacao" type="date" required max={hoje} />
+                  </label>
+                  <label>
+                    Data de validade
+                    <input name="validade" type="date" required min={hoje} />
+                  </label>
+                </>
+              )}
+              {tipo === "retirada" && (
+                <label>
+                  Vínculo da retirada
+                  <select name="reserva">
+                    <option value="">Retirada avulsa (saldo disponível, FEFO)</option>
+                    {reservas.map((r) => (
+                      <option value={r.id} key={r.id}>
+                        {pedidoLabel(r.pedidoId)} · {r.pendente} un.
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {(tipo === "reserva" || tipo === "liberar") && (
+                <label>
+                  Pedido
+                  <select name="pedido" required>
+                    <option value="">Selecione</option>
+                    {(tipo === "reserva"
+                      ? pedidos.map((p) => p.id)
+                      : [...new Set(reservas.map((r) => r.pedidoId))]
+                    ).map((id) => (
+                      <option key={id} value={id}>
+                        {pedidoLabel(id)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <label>
+                Responsável autenticado
+                <input readOnly value={responsavel} />
+              </label>
+              {tipo === "perda" && (
+                <label>
+                  Data e horário
+                  <input readOnly value={horaLoja.format(new Date())} />
+                </label>
+              )}
+            </div>
+            {tipo === "ajuste" && (
+              <p>
+                Saldo registrado <strong>{lote?.restante ?? "—"}</strong> · Diferença{" "}
+                <strong>{lote && contado !== "" ? Number(contado) - lote.restante : "—"}</strong> ·
+                Autorização {admin ? "Administrador" : "Necessário perfil administrador"}
               </p>
-            ))}
-            {!produto.reservas.length && <p className="est-muted">Nenhuma reserva ativa para este sabor.</p>}
-          </div>
-          <HistoricoMovimentos produtoId={produto.id} nomes={nomes} />
-        </ModalEstoque>
+            )}
+            {tipo === "liberar" && (
+              <p>
+                Esta ação cancela o pedido e libera somente as reservas que ainda não foram
+                consumidas.
+              </p>
+            )}
+            {(tipo === "perda" || tipo === "ajuste") && (
+              <label>
+                {tipo === "perda" ? "Motivo da perda" : "Justificativa"}
+                <input name="motivo" required maxLength={200} />
+              </label>
+            )}
+            <label>
+              Observações
+              <textarea name="observacoes" maxLength={300} rows={2} />
+            </label>
+            {!vinculado && (
+              <p role="status">
+                {selecionado
+                  ? "A confirmação fica disponível quando o cadastro oficial do sabor estiver vinculado."
+                  : "Selecione um sabor oficial para conferir o vínculo de estoque."}
+              </p>
+            )}
+            {vinculado && (!podeMovimentar || (tipo === "ajuste" && !admin)) && (
+              <p role="status">Seu perfil não tem autorização para confirmar esta operação.</p>
+            )}
+            {erro && <p role="alert">{erro}</p>}
+            <div className="est-dialog-acoes">
+              <button type="button" onClick={fechar}>
+                Fechar
+              </button>
+              <button
+                className="neia-a01-dourado"
+                disabled={
+                  salvando || !vinculado || !podeMovimentar || (tipo === "ajuste" && !admin)
+                }
+              >
+                {salvando ? "Confirmando…" : "Confirmar operação"}
+              </button>
+            </div>
+          </form>
+        </JanelaEstoque>
       )}
-
-      {modal === "alertas" && (
-        <ModalEstoque
+      {janela === "detalhes" && selecionado && situacao && (
+        <JanelaEstoque
+          titulo={selecionado.nome}
+          descricao="Saldos por unidade, validade e movimentações."
+          fechar={fechar}
+        >
+          <div className="est-dialog-saldos">
+            <FotoSabor imagem={selecionado.imagem} />
+            {[
+              ["Físico", situacao.fisico],
+              ["Reservado", situacao.reservado],
+              ["Disponível", situacao.disponivel],
+              ["Estoque mínimo", situacao.minimo],
+            ].map(([label, saldo]) => (
+              <div key={label}>
+                <span>{label}</span>
+                <strong>{formatarQuantidade(saldo as number | null)}</strong>
+              </div>
+            ))}
+          </div>
+          <DarkTable
+            className="est-dialog-tabela"
+            colunas={["Lote", "Saldo", "Validade", "Situação"]}
+            vazio={!lotes.length ? "Nenhum lote cadastrado para este sabor." : undefined}
+          >
+            {lotes.map((l) => (
+              <DarkTableRow key={l.id}>
+                <td>{l.codigo}</td>
+                <td>{l.restante}</td>
+                <td>{formatarData(l.validade)}</td>
+                <td>
+                  {loteVencidoComSaldo(l, hoje)
+                    ? "Vencido"
+                    : alertaValidade(l.validade, hoje) && l.restante > 0
+                      ? "Próximo do vencimento"
+                      : l.restante === 0
+                        ? "Esgotado"
+                        : "Em estoque"}
+                </td>
+              </DarkTableRow>
+            ))}
+          </DarkTable>
+          {reservas.length > 0 && (
+            <details>
+              <summary>Reservas pendentes</summary>
+              <ul className="est-dialog-lista">
+                {reservas.map((r) => (
+                  <li key={r.id}>
+                    {pedidoLabel(r.pedidoId)} · {r.quantidade} reservadas · {r.consumido} retiradas
+                    · {r.pendente} pendentes
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+          <div className="est-dialog-acoes">
+            <button onClick={() => abrirHistorico(produto?.id)}>Histórico e movimentações</button>
+            {podeMovimentar && (
+              <button onClick={() => abrir("movimentos")}>Operações de estoque</button>
+            )}
+            {admin && <button onClick={() => abrir("foto")}>Editar produto e foto</button>}
+          </div>
+        </JanelaEstoque>
+      )}
+      {janela === "historico" && (
+        <JanelaEstoque
+          titulo="Histórico de estoque"
+          descricao="Consulte o registro de movimentações por sabor e lote."
+          fechar={fechar}
+        >
+          <HistoricoSalgados produtos={historicoProdutos} inicial={historicoId} />
+        </JanelaEstoque>
+      )}
+      {janela === "movimentos" && (
+        <JanelaEstoque
+          titulo="Movimentações de estoque"
+          descricao="Escolha a ação que deseja conferir."
+          fechar={fechar}
+        >
+          <div className="est-dialog-acoes">
+            {Object.entries(operacoesSalgados).map(([id, nome]) => (
+              <button key={id} onClick={() => abrir(id as OperacaoSalgados)}>
+                {nome}
+              </button>
+            ))}
+            <button onClick={() => abrirHistorico(produto?.id)}>Consultar histórico</button>
+          </div>
+        </JanelaEstoque>
+      )}
+      {janela === "alertas" && (
+        <JanelaEstoque
           titulo="Alertas do estoque de salgados"
-          descricao="Indicadores calculados sobre os saldos reais."
-          fechar={() => setModal(null)}
+          descricao="A análise usa somente os saldos, lotes e reservas disponíveis."
+          fechar={fechar}
         >
           <p>
-            {baixos} sabores abaixo do mínimo. {vencendo} lotes com vencimento em até 7 dias. {" "}{vencidos} sabores com lote vencido. {reservasExcedentes} com reserva acima do físico.
+            {linhas.filter((s) => s.situacao.fisico === null).length} sabores sem dados operacionais
+            de estoque.
           </p>
-          <ul>
-            {(produtos ?? [])
-              .filter((p) => estadosPorProduto.get(p.id)?.abaixo)
-              .map((p) => (
-                <li key={p.id}>
-                  {p.nome}: produzir pelo menos {numero.format(p.minimo - p.disponivel)} un. para
-                  atingir o mínimo.
+          <ul className="est-dialog-lista">
+            {linhas
+              .filter(
+                (s) => s.situacao.fisico !== null && s.situacao.alertas.some((a) => a !== "normal"),
+              )
+              .map((s) => (
+                <li key={s.chave}>
+                  <strong>{s.nome}</strong> ·{" "}
+                  {s.situacao.alertas.map((a) => situacoesSalgados[a].texto).join(" · ")}
+                  {s.situacao.abaixo &&
+                    s.situacao.minimo !== null &&
+                    s.situacao.disponivel !== null && (
+                      <span>
+                        {" "}
+                        · Reposição sugerida{" "}
+                        {numero.format(s.situacao.minimo - s.situacao.disponivel)} un.
+                      </span>
+                    )}
                 </li>
               ))}
           </ul>
-        </ModalEstoque>
+        </JanelaEstoque>
       )}
-
-      {modal === "ajuda" && (
-        <ModalEstoque
-          titulo="Como funciona o estoque de salgados"
-          descricao="Regras operacionais do estoque."
-          fechar={() => setModal(null)}
+      {janela === "ajuda" && (
+        <JanelaEstoque
+          titulo="Como funciona o estoque"
+          descricao="Reservas, retirada e validade."
+          fechar={fechar}
         >
-          <p>
-            Disponível = físico − reservado. Existe um único total reservado por sabor: vendas
-            avulsas, combos fixos, combos personalizados e qualquer outro pedido confirmado entram
-            na mesma soma, sem reservado separado por origem. Na retirada do freezer a reserva é
-            consumida e o físico é baixado uma vez, pelo lote que vence primeiro. Cancelar libera
-            apenas o que ainda não foi retirado. Insumos e embalagens nunca são baixados
-            automaticamente nesta etapa.
-          </p>
-        </ModalEstoque>
+          <ul className="est-dialog-lista">
+            <li>O disponível é o físico menos o reservado.</li>
+            <li>
+              A confirmação do pedido reserva as unidades. A retirada do freezer dá baixa no físico.
+            </li>
+            <li>O cancelamento libera apenas a parte da reserva ainda não consumida.</li>
+            <li>Use primeiro os lotes aptos que vencem mais cedo (FEFO).</li>
+            <li>Um sabor precisa de vínculo oficial para registrar movimentações.</li>
+          </ul>
+        </JanelaEstoque>
+      )}
+      {janela === "conferencia" && admin && (
+        <JanelaEstoque
+          titulo="Conferência de cadastros"
+          descricao="Produtos comerciais e antigos, fora da movimentação diária de sabores."
+          fechar={fechar}
+        >
+          <ul className="est-dialog-lista">
+            {legados.map((p) => (
+              <li key={p.id}>
+                <span>
+                  <strong>{p.nome}</strong> · {p.categorias.nome}
+                </span>{" "}
+                <button onClick={() => abrirHistorico(p.id)}>Histórico</button>
+              </li>
+            ))}
+          </ul>
+          {!legados.length && <p>Nenhum produto para conferência.</p>}
+          <div className="est-dialog-acoes">
+            <button onClick={() => onProdutos()}>Abrir Cadastro de Produtos</button>
+          </div>
+        </JanelaEstoque>
+      )}
+      {janela === "foto" && selecionado && admin && (
+        <JanelaEstoque titulo="Editar produto e foto" descricao={selecionado.nome} fechar={fechar}>
+          <form
+            className="neia-a01-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!vinculado || !produto) return;
+              const url = String(new FormData(event.currentTarget).get("foto") ?? "").trim();
+              if (url && !/^https:\/\//i.test(url)) {
+                setErro("Informe um endereço de imagem HTTPS.");
+                return;
+              }
+              void gravar(async () => {
+                const r = await supabase
+                  .from("produtos")
+                  .update({ imagem_url: url || null })
+                  .eq("id", produto.id)
+                  .select("id")
+                  .single();
+                if (r.error || r.data?.id !== produto.id)
+                  throw r.error ?? new Error("A atualização não foi confirmada.");
+              }, "Foto do produto atualizada.");
+            }}
+          >
+            <FotoSabor imagem={selecionado.imagem} />
+            <label>
+              Endereço HTTPS da foto
+              <input
+                name="foto"
+                type="url"
+                defaultValue={produto?.imagem_url ?? ""}
+                disabled={!vinculado}
+              />
+            </label>
+            {!vinculado && <p>Vincule o sabor oficial para editar o produto e a foto.</p>}
+            {erro && <p role="alert">{erro}</p>}
+            <div className="est-dialog-acoes">
+              {vinculado && produto && (
+                <button type="button" onClick={() => onProdutos(produto.nome)}>
+                  Editar cadastro completo
+                </button>
+              )}
+              <button className="neia-a01-dourado" disabled={!vinculado || salvando}>
+                Salvar foto
+              </button>
+            </div>
+          </form>
+        </JanelaEstoque>
       )}
     </div>
   );

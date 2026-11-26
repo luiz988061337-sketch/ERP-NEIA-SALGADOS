@@ -22,6 +22,8 @@ Aplicar o cadastro no ambiente autorizado. Conferir os vínculos identificados p
 ## Pendência futura — Central de relatórios e impressão de estoque
 
 Definir com o proprietário o conteúdo, os filtros e os formatos dos relatórios.
-Prever impressão A4, impressão térmica e exportação de dados. Validar o fluxo
+Prever inventário para contagem física, estoque geral e por categoria, perdas,
+reposição, validade e movimentações. Incluir impressão A4, impressão térmica
+e exportação em PDF e Excel. Validar o fluxo
 com a HP Smart Tank 584 (A4) e a TANCA TP-550 (térmica) antes da aprovação da
 etapa. A implementação depende de uma etapa própria.

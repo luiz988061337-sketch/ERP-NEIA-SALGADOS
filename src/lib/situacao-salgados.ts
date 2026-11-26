@@ -37,7 +37,7 @@ export function lerSituacaoSalgado(produto: EstoqueSalgado | undefined, hoje: st
   const disponivel = fisico !== null && reservado !== null ? fisico - reservado : null;
   const minimo = produto && produto.minimo > 0 ? produto.minimo : null;
   const lotesComSaldo = produto?.lotesTodos.filter((lote) => lote.restante > 0) ?? [];
-  const vencido = lotesComSaldo.some((lote) => loteVencidoComSaldo(lote, hoje));
+  const vencidos = lotesComSaldo.filter((lote) => loteVencidoComSaldo(lote, hoje)).length;
   const validadesAtivas = lotesComSaldo
     .filter((lote) => lote.status === "ativo")
     .flatMap((lote) => (lote.validade && lote.validade >= hoje ? [lote.validade] : []))
@@ -46,7 +46,7 @@ export function lerSituacaoSalgado(produto: EstoqueSalgado | undefined, hoje: st
   const proximaValidade = validadesAtivas[0] ?? null;
   const abaixo = disponivel !== null && minimo !== null && disponivel < minimo;
   const alertas: (keyof typeof situacoesSalgados)[] = [];
-  if (vencido) alertas.push("vencido");
+  if (vencidos) alertas.push("vencido");
   if (disponivel !== null && disponivel < 0) alertas.push("excedente");
   if (fisico === 0) alertas.push("zerado");
   if (abaixo) alertas.push("abaixo");
@@ -54,5 +54,15 @@ export function lerSituacaoSalgado(produto: EstoqueSalgado | undefined, hoje: st
   if (!temEstoque) alertas.push("semEstoque");
   if (minimo === null && temEstoque) alertas.push("semMinimo");
   if (!alertas.length) alertas.push("normal");
-  return { fisico, reservado, disponivel, minimo, proximaValidade, alertas, vencendo, abaixo };
+  return {
+    fisico,
+    reservado,
+    disponivel,
+    minimo,
+    proximaValidade,
+    alertas,
+    vencendo,
+    vencidos,
+    abaixo,
+  };
 }

@@ -4174,6 +4174,23 @@ export type Database = {
         Returns: undefined
       }
       pedido_cobertura_reserva: { Args: { p_pedido_id: string }; Returns: Json }
+      movimentar_lote_salgado: {
+        Args: {
+          p_sabor: string
+          p_produto: string
+          p_tipo: string
+          p_quantidade: number
+          p_chave: string
+          p_lote?: string
+          p_codigo?: string
+          p_fabricacao?: string
+          p_validade?: string
+          p_observacao?: string
+          p_saldo_esperado?: number
+          p_reserva?: string
+        }
+        Returns: string
+      }
       registrar_mov_estoque:
         | {
             Args: {

@@ -237,13 +237,15 @@ try {
 
   await clickTexto(`${painel} header button`, "Entrada de estoque");
   await pag.waitForSelector('[role="dialog"]');
+  await pag.select('[role="dialog"] select[required]', "coxinha-frango");
   assert.equal(
-    await pag.$eval('[role="dialog"] select[name="produtoId"]', (el) => el.value),
-    produto.id,
+    await pag.$eval('[role="dialog"] button.neia-a01-dourado', (el) => el.disabled),
+    false,
   );
+  assert.ok(await pag.$('[role="dialog"] input[name="fabricacao"]'));
   await pag.keyboard.press("Escape");
   await pag.waitForSelector('[role="dialog"]', { hidden: true });
-  testes.push("Entrada de estoque oferece o ID unitário vinculado");
+  testes.push("Entrada de estoque oferece o sabor vinculado e informa a fabricação");
   assert.deepEqual(erros, []);
 } finally {
   await browser.close();

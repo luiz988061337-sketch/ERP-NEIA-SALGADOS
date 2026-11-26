@@ -59,7 +59,7 @@ type LinhaSabor = {
   situacao: ReturnType<typeof lerSituacaoSalgado>;
 };
 type AcoesSabor = {
-  onVer: (id: string) => void;
+  onVer: (chave: string) => void;
   onHistorico: (id: string) => void;
   onInventario: (id: string) => void;
 };
@@ -122,33 +122,35 @@ function TabelaSabores({
               </div>
             </td>
             <td>
-              {produto ? (
+              {
                 <div className="est-sabor-acoes">
                   <button
                     aria-label={`Ver lotes de ${nome}`}
                     title="Ver lotes"
-                    onClick={() => onVer(produto.id)}
+                    onClick={() => onVer(chave)}
                   >
                     <Eye size={17} />
                   </button>
-                  <button
-                    aria-label={`Ajustar inventário de ${nome}`}
-                    title="Ajustar inventário"
-                    onClick={() => onInventario(produto.id)}
-                  >
-                    <Pencil size={17} />
-                  </button>
-                  <button
-                    aria-label={`Histórico de ${nome}`}
-                    title="Histórico"
-                    onClick={() => onHistorico(produto.id)}
-                  >
-                    <History size={17} />
-                  </button>
+                  {produto && (
+                    <button
+                      aria-label={`Ajustar inventário de ${nome}`}
+                      title="Ajustar inventário"
+                      onClick={() => onInventario(produto.id)}
+                    >
+                      <Pencil size={17} />
+                    </button>
+                  )}
+                  {produto && (
+                    <button
+                      aria-label={`Histórico de ${nome}`}
+                      title="Histórico"
+                      onClick={() => onHistorico(produto.id)}
+                    >
+                      <History size={17} />
+                    </button>
+                  )}
                 </div>
-              ) : (
-                "—"
-              )}
+              }
             </td>
           </DarkTableRow>
         ))}
@@ -178,12 +180,10 @@ function resumo(linhas: LinhaSabor[]) {
 
 export function EstoqueCategorias({
   sabores,
-  legados,
   acoes,
   cadastrados,
 }: {
   sabores: (LinhaSabor & { categoria: CategoriaSaborEstoque })[];
-  legados: LinhaSabor[];
   acoes: AcoesSabor;
   cadastrados: number;
 }) {
@@ -225,15 +225,51 @@ export function EstoqueCategorias({
       (categoria === "todos" || categoria === grupo.id) &&
       (!filtrando || !!grupo.linhasVisiveis.length),
   );
-  const legadosVisiveis = categoria === "todos" ? filtrar(legados) : [];
   const k = resumo(sabores);
+  const semEstoque = sabores.filter(({ situacao }) => situacao.fisico === null).length;
+  const comDados = semEstoque < sabores.length;
   const indicadores = [
+    { rotulo: "Sabores cadastrados", valor: cadastrados, Icone: Package, tom: "azul" },
+    { rotulo: "Sem estoque cadastrado", valor: semEstoque, Icone: Package, tom: "azul" },
+    {
+      rotulo: "Mínimo não definido",
+      valor:
+        sabores.filter(({ produto, situacao }) => produto && situacao.minimo === null).length ||
+        (comDados ? 0 : null),
+      Icone: AlertTriangle,
+      tom: "ouro",
+    },
+    {
+      rotulo: "Lotes próximos do vencimento",
+      valor: comDados ? sabores.reduce((n, s) => n + s.situacao.vencendo, 0) : null,
+      Icone: AlertTriangle,
+      tom: "ouro",
+    },
+    {
+      rotulo: "Lotes vencidos",
+      valor: comDados ? sabores.reduce((n, s) => n + s.situacao.vencidos, 0) : null,
+      Icone: AlertTriangle,
+      tom: "vermelho",
+    },
+    {
+      rotulo: "Reservas acima do físico",
+      valor: comDados
+        ? sabores.filter((s) => s.situacao.alertas.includes("excedente")).length
+        : null,
+      Icone: AlertTriangle,
+      tom: "vermelho",
+    },
     { rotulo: "Sabores oficiais", valor: sabores.length, Icone: Package, tom: "ouro" },
     { rotulo: "Estoque físico", valor: k.fisico, Icone: Layers, tom: "azul" },
     { rotulo: "Reservado", valor: k.reservado, Icone: LockKeyhole, tom: "azul" },
     { rotulo: "Disponível", valor: k.disponivel, Icone: CheckCircle2, tom: "verde" },
-    { rotulo: "Abaixo do mínimo", valor: k.baixos, Icone: AlertTriangle, tom: "ouro" },
-    { rotulo: "Zerados", valor: k.zerados, Icone: XCircle, tom: "vermelho" },
+    {
+      rotulo: "Abaixo do mínimo",
+      valor: comDados ? k.baixos : null,
+      Icone: AlertTriangle,
+      tom: "ouro",
+    },
+    { rotulo: "Zerados", valor: comDados ? k.zerados : null, Icone: XCircle, tom: "vermelho" },
   ];
 
   return (
@@ -339,8 +375,10 @@ export function EstoqueCategorias({
                       Disponível <b>{formatarQuantidade(totais.disponivel)}</b>
                     </span>
                     <span className={totais.alertas ? "neia-a01-vermelho" : ""}>
-                      <AlertTriangle size={15} aria-hidden /> {totais.alertas}{" "}
-                      {totais.alertas === 1 ? "alerta" : "alertas"}
+                      <AlertTriangle size={15} aria-hidden />{" "}
+                      {totais.fisico === null
+                        ? "Sem dados"
+                        : `${totais.alertas} ${totais.alertas === 1 ? "alerta" : "alertas"}`}
                     </span>
                   </span>
                   <ChevronDown className="est-sabores-chevron" size={20} aria-hidden />
@@ -352,15 +390,7 @@ export function EstoqueCategorias({
             </section>
           );
         })}
-        {legadosVisiveis.length > 0 && (
-          <details className="neia-a01-metrica est-sabores-legados" open={filtrando || undefined}>
-            <summary>Produtos fora do cadastro oficial ({legadosVisiveis.length})</summary>
-            <TabelaSabores linhas={legadosVisiveis} {...acoes} />
-          </details>
-        )}
-        {!gruposVisiveis.length && !legadosVisiveis.length && (
-          <p role="status">Nenhum sabor encontrado.</p>
-        )}
+        {!gruposVisiveis.length && <p role="status">Nenhum sabor encontrado.</p>}
       </div>
     </>
   );
