@@ -8,12 +8,10 @@ import {
   CheckCircle2,
   CircleHelp,
   ClipboardList,
-  Eye,
-  Layers,
+  History,
+  MinusCircle,
   Package,
-  Pencil,
   Plus,
-  Search,
   Snowflake,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,9 +20,6 @@ import {
   ActionButton,
   DarkTable,
   DarkTableRow,
-  ERP_COLORS,
-  MetricCard,
-  ModuleHeader,
   SectionCard,
   StatusBadge,
 } from "@/components/admin/erp-ui";
@@ -38,22 +33,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { categoriasProdutosSalgados, organizarSaboresEstoque } from "@/lib/catalogo-sabores-estoque";
+import { diasDaValidade, lerSituacaoSalgado, loteVencidoComSaldo } from "@/lib/situacao-salgados";
+import { EstoqueCategorias, FotoSabor, formatarQuantidade } from "./salgados-categorias";
+import "./salgados-admin.css";
 
 /**
- * E01 — Este é o Estoque de Salgados operacional. A estrutura visual segue a
- * referência aprovada (`tela-salgados.tsx`), mas TODO dado vem do Supabase e
- * TODA ação chama RPC/serviços reais. Nenhuma fixture, quantidade, lote,
- * validade ou movimentação fictícia é criada aqui.
+ * A lista oficial organiza o painel. Saldos, lotes e movimentações dos
+ * sabores vinculados vêm das mesmas fontes operacionais do estoque E01.
  */
-
-const CATEGORIAS_SALGADOS = [
-  "mini-fritos", "mini-assados", "mini-pasteis", "mini-pizzas", "mini-empadinhas",
-  "mini-congelados", "salgados-fritos", "salgados-assados", "salgados-congelados", "mini-salgados",
-];
-
-/** Produção própria: os salgados são fabricados internamente. Não é dado
- * fictício de quantidade — é a origem operacional único deste módulo. */
-const ORIGEM_SALGADOS = "Produção Néia";
 
 type Operacao = "entrada" | "reserva" | "liberar" | "retirada" | "perda" | "ajuste";
 type TipoMovimento =
@@ -85,7 +73,7 @@ const TIPO_RPC: Record<"entrada" | "retirada" | "perda" | "ajuste", TipoMoviment
 };
 
 const numero = new Intl.NumberFormat("pt-BR");
-const dataMovimento = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+const diaLoja = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", dateStyle: "short" });
 const estilosTabela =
   "[&_td]:whitespace-nowrap [&_td]:px-3 [&_td]:py-2.5 [&_td]:text-sm [&_th]:text-xs";
 
@@ -94,9 +82,9 @@ function formatarData(iso: string | null | undefined) {
 }
 
 /** Lote com saldo e validade em até 7 dias (data real do banco). */
-function alertaValidade(validade: string | null | undefined) {
+function alertaValidade(validade: string | null, hoje: string) {
   if (!validade) return false;
-  const dias = (new Date(`${validade.slice(0, 10)}T00:00:00`).getTime() - Date.now()) / 86_400_000;
+  const dias = diasDaValidade(validade, hoje);
   return dias >= 0 && dias <= 7;
 }
 
@@ -106,7 +94,7 @@ function alertaValidade(validade: string | null | undefined) {
  * no build operacional a consulta aninhada real permanece intacta abaixo.
  */
 async function consultarSalgadosDemo() {
-  const [{ data: produtosData, error: erroProdutos }, { data: lotes }, { data: reservas }, { data: consumos }, { data: pedidos }] =
+  const [{ data: produtosData, error: erroProdutos }, { data: lotes }, { data: reservas }, { data: consumos }, { data: pedidos }, { data: movimentos }] =
     await Promise.all([
       supabase
         .from("produtos")
@@ -116,6 +104,7 @@ async function consultarSalgadosDemo() {
       supabase.from("reservas_estoque").select("id, pedido_id, produto_id, quantidade, status"),
       supabase.from("reserva_consumos").select("id, reserva_id, quantidade"),
       supabase.from("pedidos").select("id, created_at").eq("status", "em_producao").limit(50),
+      supabase.from("estoque_movimentacoes").select("produto_id"),
     ]);
   if (erroProdutos) throw erroProdutos;
 
@@ -123,7 +112,7 @@ async function consultarSalgadosDemo() {
     (await supabase.from("categorias").select("id, nome, slug")).data?.map((c) => [c.id, c]) ?? [],
   );
   const produtos = (produtosData ?? [])
-    .filter((p) => CATEGORIAS_SALGADOS.includes(categoriasDemo.get(p.categoria_id)?.slug ?? ""))
+    .filter((p) => categoriasProdutosSalgados.includes(categoriasDemo.get(p.categoria_id)?.slug ?? ""))
     .map((p) => {
       const categoria = categoriasDemo.get(p.categoria_id);
       const lotesProduto = (lotes ?? []).filter((l) => l.produto_id === p.id);
@@ -144,6 +133,8 @@ async function consultarSalgadosDemo() {
       const reservado = reservasProduto.reduce((total, r) => total + r.pendente, 0);
       return {
         ...p,
+        ativo: p.disponivel,
+        imagem_url: null,
         categorias: { slug: categoria?.slug ?? "", nome: categoria?.nome ?? "—" },
         lotes: lotesProduto,
         lotesTodos: lotesProduto,
@@ -151,41 +142,44 @@ async function consultarSalgadosDemo() {
         reservas: reservasProduto,
         estoque: p.estoque ?? 0,
         minimo: p.estoque_minimo ?? 0,
+        temMovimento: movimentos?.some((m) => m.produto_id === p.id) ?? false,
         fisico,
         reservado,
         disponivel: fisico - reservado,
-        pedidos: new Set(reservasProduto.filter((r) => r.pendente > 0).map((r) => r.pedidoId)).size,
       };
     });
-  return { produtos, pedidos: pedidos ?? [] };
+  return { produtos, pedidos: pedidos ?? [], vinculos: null };
 }
 
 async function consultarSalgados(signal: AbortSignal) {
   if (ehModoDemo()) return consultarSalgadosDemo();
-  const { data, error } = await supabase
-    .from("produtos")
-    .select(`
-      id, nome, imagem_url, disponivel, estoque, estoque_minimo, tipo_venda, unidade_medida,
-      categorias!inner(slug, nome),
-      lotes(id, codigo, validade, restante, status),
-      reservas_estoque(id, pedido_id, quantidade, status, reserva_consumos(quantidade))
-    `)
-    .in("categorias.slug", CATEGORIAS_SALGADOS)
-    .order("nome")
-    .order("validade", { referencedTable: "lotes", ascending: true, nullsFirst: false })
-    .abortSignal(signal);
-
+  const [{ data, error }, { data: pedidos }, cadastro] = await Promise.all([
+    supabase
+      .from("produtos")
+      .select(`
+        id, nome, imagem_url, disponivel, estoque, estoque_minimo, tipo_venda, unidade_medida,
+        categorias!inner(slug, nome),
+        lotes(id, codigo, validade, restante, status),
+        movimentos:estoque_movimentacoes(id),
+        reservas_estoque(id, pedido_id, quantidade, status, reserva_consumos(quantidade))
+      `)
+      .in("categorias.slug", categoriasProdutosSalgados)
+      .order("nome")
+      .order("validade", { referencedTable: "lotes", ascending: true, nullsFirst: false })
+      .limit(1, { referencedTable: "movimentos" })
+      .abortSignal(signal),
+    supabase
+      .from("pedidos")
+      .select("id, created_at")
+      .eq("status", "em_producao")
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .abortSignal(signal),
+    supabase.from("sabores_estoque").select("chave, produto_id").abortSignal(signal),
+  ]);
   if (error) throw error;
-
-  // Pedidos em produção são a origem real para a reserva atômica (0042/0030).
-  // Sem pedidos disponíveis o formulário apenas não oferece opções.
-  const { data: pedidos } = await supabase
-    .from("pedidos")
-    .select("id, created_at")
-    .eq("status", "em_producao")
-    .order("created_at", { ascending: false })
-    .limit(50)
-    .abortSignal(signal);
+  // A versão anterior do banco ainda pode atender à tela antes do cadastro oficial.
+  if (cadastro.error && !["42P01", "PGRST205"].includes(cadastro.error.code)) throw cadastro.error;
 
   const produtos = data.map((produto) => {
     const reservas = produto.reservas_estoque
@@ -210,19 +204,20 @@ async function consultarSalgados(signal: AbortSignal) {
     const reservado = reservas.reduce((total, reserva) => total + reserva.pendente, 0);
     return {
       ...produto,
+      ativo: produto.disponivel,
       estoque: produto.estoque ?? 0,
       minimo: produto.estoque_minimo ?? 0,
+      temMovimento: produto.movimentos.length > 0,
       lotesTodos: produto.lotes,
       lotesFefo,
       reservas,
       fisico,
       reservado,
       disponivel: fisico - reservado,
-      pedidos: new Set(reservas.filter((reserva) => reserva.pendente > 0).map((reserva) => reserva.pedidoId)).size,
     };
   });
 
-  return { produtos, pedidos: pedidos ?? [] };
+  return { produtos, pedidos: pedidos ?? [], vinculos: cadastro.data };
 }
 
 function Campo({
@@ -456,11 +451,6 @@ function MovimentacoesSalgado({ produtoId }: { produtoId: string }) {
 }
 
 export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => void }) {
-  const [busca, setBusca] = useState("");
-  const [status, setStatus] = useState("todos");
-  const [categoria, setCategoria] = useState("todos");
-  const [fornecedor, setFornecedor] = useState("todos");
-  const [baixos, setBaixos] = useState(false);
   const [foco, setFoco] = useState<string | null>(null);
   const [modal, setModal] = useState<"movimento" | "historico" | "alertas" | "ajuda" | null>(null);
   const [tipo, setTipo] = useState<Operacao>("entrada");
@@ -475,31 +465,31 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
   const produtos = data?.produtos;
   const pedidos = data?.pedidos ?? [];
   const visivel = !isPending && !isError ? produtos : undefined;
-  const categorias = new Map(produtos?.map((p) => [p.categorias.slug, p.categorias.nome]));
-
-  const k = {
-    fisico: produtos?.reduce((soma, p) => soma + p.fisico, 0) ?? 0,
-    reservado: produtos?.reduce((soma, p) => soma + p.reservado, 0) ?? 0,
-    disponivel: produtos?.reduce((soma, p) => soma + p.disponivel, 0) ?? 0,
-    baixos: produtos?.filter((p) => p.disponivel < p.minimo).length ?? 0,
-    lotes: produtos?.reduce((soma, p) => soma + p.lotesFefo.length, 0) ?? 0,
-    vencendo: produtos?.reduce(
-      (soma, p) => soma + p.lotesFefo.filter((l) => alertaValidade(l.validade)).length, 0,
-    ) ?? 0,
-  };
-
-  const termo = busca.trim().toLocaleLowerCase("pt-BR");
-  const lista = produtos?.filter((p) =>
-    p.nome.toLocaleLowerCase("pt-BR").includes(termo) &&
-    (categoria === "todos" || categoria === p.categorias.slug) &&
-    (fornecedor === "todos" || fornecedor === ORIGEM_SALGADOS) &&
-    (!baixos || p.disponivel < p.minimo) &&
-    (status === "todos" || (status === "baixo" ? p.disponivel < p.minimo : p.disponivel >= p.minimo)),
-  ) ?? [];
-
-  // O detalhe acompanha o sabor em foco mesmo quando ele sai do filtro, como
-  // na referência aprovada.
-  const produto = produtos?.find((p) => p.id === foco) ?? produtos?.[0];
+  const hoje = diaLoja.format(new Date());
+  const { sabores, legados } = organizarSaboresEstoque<NonNullable<typeof produtos>[number]>(
+    produtos ?? [],
+    data?.vinculos ?? null,
+  );
+  const linhas = sabores.map((sabor) => ({ ...sabor, situacao: lerSituacaoSalgado(sabor.produto, hoje) }));
+  const linhasLegadas = legados.map((p) => ({
+    chave: p.id,
+    nome: p.nome,
+    imagem: p.imagem_url,
+    produto: p,
+    situacao: lerSituacaoSalgado(p, hoje),
+  }));
+  const estadosPorProduto = new Map(
+    [...linhas, ...linhasLegadas].flatMap((linha) =>
+      linha.produto ? [[linha.produto.id, linha.situacao] as const] : [],
+    ),
+  );
+  const estados = [...estadosPorProduto.values()];
+  const baixos = estados.filter((estado) => estado.abaixo).length;
+  const vencendo = estados.reduce((total, estado) => total + estado.vencendo, 0);
+  const vencidos = estados.filter((estado) => estado.alertas.includes("vencido")).length;
+  const reservasExcedentes = estados.filter((estado) => estado.alertas.includes("excedente")).length;
+  const primeiroVinculado = sabores.find((sabor) => sabor.produto)?.produto;
+  const produto = produtos?.find((p) => p.id === foco) ?? primeiroVinculado ?? produtos?.[0];
   const nomes = Object.fromEntries((produtos ?? []).map((p) => [p.id, p.nome]));
 
   function abrir(operacao: Operacao, id = produto?.id) {
@@ -609,83 +599,31 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
     }
   }
 
+  const situacaoProduto = produto ? estadosPorProduto.get(produto.id) : undefined;
+
   return (
-    <div data-testid="estoque-salgados" className="estoques-preview" style={{ minHeight: 0 }}>
-      <ModuleHeader
-        icone={Snowflake}
-        titulo="Estoque de Salgados"
-        subtitulo="Controle de congelados por sabor, reservas, lotes e validade (FEFO)."
-        acoes={
-          <>
-            <div className="est-search">
-              <Search size={16} />
-              <Input
-                aria-label="Buscar sabor"
-                placeholder="Buscar sabor..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
-            <button className="est-icon" aria-label="Alertas de salgados" onClick={() => setModal("alertas")}>
-              <Bell size={20} />
-            </button>
-            <button className="est-icon" aria-label="Ajuda de salgados" onClick={() => setModal("ajuda")}>
-              <CircleHelp size={20} />
-            </button>
-          </>
-        }
-      />
+    <div data-testid="estoque-salgados" className="neia-a01 est-salgados-painel">
+      <header className="neia-a01-cabecalho">
+        <div className="est-salgados-titulo">
+          <span><Snowflake size={26} aria-hidden /></span>
+          <div>
+            <h1>Estoque de Salgados</h1>
+            <p>Controle por sabor, lotes, reservas e movimentações.</p>
+          </div>
+        </div>
+        <div className="est-salgados-cabecalho-acoes">
+          <button className="neia-a01-dourado" disabled={!produto || isError} onClick={() => abrir("entrada")}>
+            <Plus size={19} /> Entrada de estoque
+          </button>
+          <button disabled={!produto || isError} onClick={() => abrir("perda")}><MinusCircle size={17} /> Registrar perda</button>
+          <button disabled={!produto || isError} onClick={() => abrir("ajuste")}><ClipboardList size={17} /> Inventário</button>
+          <button disabled={!produto || isError} onClick={() => setModal("historico")}><History size={17} /> Histórico</button>
+        </div>
+      </header>
 
-      <div className="est-tabs est-product-tabs">
-        <ActionButton variant="ghost" onClick={() => onProdutos()}>
-          <ClipboardList size={17} />
-          Cadastro de Produtos
-        </ActionButton>
-        <span className="est-active-tab">
-          <Snowflake size={17} />
-          Estoque de Salgados
-        </span>
-      </div>
-
-      <div className="est-kpis est-kpis-five">
-        <MetricCard
-          icone={Package}
-          label="Total físico"
-          valor={<span className="est-gold">{visivel ? `${numero.format(k.fisico)} un.` : "—"}</span>}
-          detalhe="Salgados no freezer"
-        />
-        <MetricCard
-          icone={Layers}
-          label="Total reservado"
-          valor={<span className="est-blue">{numero.format(k.reservado)} un.</span>}
-          cor={ERP_COLORS.blue}
-          detalhe="Pedidos confirmados"
-        />
-        <MetricCard
-          icone={CheckCircle2}
-          label="Total disponível"
-          valor={<span className="est-green">{numero.format(k.disponivel)} un.</span>}
-          cor={ERP_COLORS.green}
-          detalhe="Físico − reservado"
-        />
-        <MetricCard
-          icone={AlertTriangle}
-          label="Abaixo do mínimo"
-          valor={<span className="est-red">{visivel ? `${k.baixos} sabores` : "—"}</span>}
-          cor={ERP_COLORS.red}
-          detalhe="Sugestão de produção"
-        />
-        <MetricCard
-          icone={Package}
-          label="Lotes ativos"
-          valor={`${k.lotes} lotes`}
-          detalhe="Primeiro que vence, primeiro que sai"
-        />
-      </div>
-
-      {isPending && <p role="status" className="text-sm text-muted-foreground">Carregando estoque e reservas…</p>}
+      {isPending && <p role="status">Carregando estoque e reservas…</p>}
       {isError && (
-        <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive p-3 text-sm">
+        <div role="alert" className="neia-a01-estado flex flex-wrap items-center justify-between gap-2">
           <p>Não foi possível consultar o estoque de salgados.</p>
           <Button variant="outline" onClick={() => void refetch()}>Tentar novamente</Button>
         </div>
@@ -693,164 +631,56 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
 
       {visivel && (
         <>
-          <div className="est-filters">
-            <label>
-              Categoria
-              <select className="est-select" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-                <option value="todos">Todas</option>
-                {[...categorias].map(([slug, nome]) => <option key={slug} value={slug}>{nome}</option>)}
-              </select>
-            </label>
-            <label>
-              Status
-              <select className="est-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="todos">Todos</option>
-                <option value="ok">OK</option>
-                <option value="baixo">Abaixo do mínimo</option>
-              </select>
-            </label>
-            <label>
-              Fornecedor
-              <select className="est-select" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)}>
-                <option value="todos">Todos</option>
-                <option>{ORIGEM_SALGADOS}</option>
-              </select>
-            </label>
-            <label className="est-toggle">
-              <input type="checkbox" checked={baixos} onChange={(e) => setBaixos(e.target.checked)} />
-              Apenas abaixo do mínimo
-            </label>
-            <div className="est-filter-actions">
-              <ActionButton onClick={() => abrir("retirada")}>
-                <ArrowLeftRight size={16} />
-                Movimentação
-              </ActionButton>
-              <ActionButton onClick={() => abrir("entrada")}>
-                <Plus size={17} />
-                Registrar entrada de estoque
-              </ActionButton>
-            </div>
+          <EstoqueCategorias
+            sabores={linhas}
+            legados={linhasLegadas}
+            cadastrados={data?.vinculos?.length ?? 0}
+            acoes={{
+              onVer: (id) => {
+                setFoco(id);
+                requestAnimationFrame(() => document.getElementById("est-detalhe-salgado")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+              },
+              onHistorico: (id) => { setFoco(id); setModal("historico"); },
+              onInventario: (id) => abrir("ajuste", id),
+            }}
+          />
+          <div className="est-salgados-cabecalho-acoes est-salgados-secundarias">
+            <button onClick={() => onProdutos()}><ClipboardList size={17} /> Cadastro de Produtos</button>
+            <button disabled={!produto} onClick={() => abrir("retirada")}><ArrowLeftRight size={17} /> Movimentação</button>
+            <button onClick={() => setModal("alertas")}><Bell size={17} /> Alertas</button>
+            <button onClick={() => setModal("ajuda")}><CircleHelp size={17} /> Ajuda</button>
           </div>
 
-          <SectionCard className="est-table-panel estilos-tabela" bodyClassName="p-0">
-            <p className="est-table-hint">Deslize a tabela para ver todos os saldos e ações →</p>
-            <DarkTable
-              className={estilosTabela}
-              colunas={[
-                "Produto / sabor",
-                "Físico (un.)",
-                "Reservado",
-                "Disponível",
-                "Est. mínimo",
-                "Reservas (total único do sabor)",
-                "Lotes",
-                "Próxima validade",
-                "Ações",
-              ]}
-              vazio={!lista.length ? "Nenhum sabor neste filtro." : undefined}
-            >
-              {lista.map((p) => (
-                <DarkTableRow key={p.id}>
-                  <td data-selecionado={p.id === produto?.id}>
-                    <button
-                      className="est-product"
-                      onClick={() => setFoco(p.id)}
-                      data-testid={`produto-${p.id}`}
-                    >
-                      {p.imagem_url ? (
-                        <img src={p.imagem_url} alt="" loading="lazy" />
-                      ) : (
-                        <span className="est-icon"><Package size={16} aria-hidden /></span>
-                      )}
-                      <span>
-                        <b>{p.nome}</b>
-                        {!p.disponivel && <small>Inativo · saldo preservado</small>}
-                      </span>
-                    </button>
-                  </td>
-                  <td><b>{numero.format(p.fisico)}</b></td>
-                  <td className="est-blue">{numero.format(p.reservado)}</td>
-                  <td className="est-green"><b>{numero.format(p.disponivel)}</b></td>
-                  <td>
-                    {numero.format(p.minimo)}
-                    {p.disponivel < p.minimo && <small className="est-red">Abaixo do mínimo</small>}
-                  </td>
-                  <td>
-                    <button
-                      className="est-text-action"
-                      onClick={() => {
-                        setFoco(p.id);
-                        setModal("historico");
-                      }}
-                    >
-                      <Layers size={14} />
-                      {p.pedidos} pedido(s) · {numero.format(p.reservado)} un. reservadas
-                    </button>
-                  </td>
-                  <td>{p.lotesFefo.length} lotes</td>
-                  <td>
-                    {formatarData(p.lotesFefo[0]?.validade)}
-                    {p.lotesFefo[0] && alertaValidade(p.lotesFefo[0].validade) && (
-                      <small className="est-gold">Vence em até 7 dias</small>
-                    )}
-                  </td>
-                  <td>
-                    <div className="est-row-actions">
-                      <button
-                        className="est-icon"
-                        aria-label={`Ver lotes de ${p.nome}`}
-                        onClick={() => {
-                          setFoco(p.id);
-                          document.getElementById("est-detalhe-salgado")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                        }}
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        className="est-icon"
-                        aria-label={`Ajustar ${p.nome}`}
-                        onClick={() => abrir("ajuste", p.id)}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </DarkTableRow>
-              ))}
-            </DarkTable>
-          </SectionCard>
-
-          {produto && (
+          {produto && foco && (
             <div className="est-bottom-three" id="est-detalhe-salgado">
               <SectionCard
                 titulo={<span className="est-inline"><Snowflake size={17} /> {produto.nome}</span>}
                 acoes={<StatusBadge tom="neutro">{produto.categorias.nome}</StatusBadge>}
               >
                 <div className="est-product-detail">
-                  {produto.imagem_url ? (
-                    <img src={produto.imagem_url} alt="" loading="lazy" />
-                  ) : (
-                    <span className="est-icon"><Package size={20} aria-hidden /></span>
-                  )}
+                  <FotoSabor imagem={produto.imagem_url} />
                   <p>
                     Produto do cadastro único<small>{produto.id}</small>
                   </p>
                 </div>
                 <div className="est-mini-metrics">
                   {[
-                    ["Físico", produto.fisico],
-                    ["Reservado", produto.reservado],
-                    ["Disponível", produto.disponivel],
-                    ["Mínimo", produto.minimo],
+                    ["Físico", situacaoProduto?.fisico ?? null],
+                    ["Reservado", situacaoProduto?.reservado ?? null],
+                    ["Disponível", situacaoProduto?.disponivel ?? null],
+                    ["Mínimo", situacaoProduto?.minimo ?? null],
                   ].map(([titulo, valor]) => (
                     <div key={titulo}>
                       <small>{titulo}</small>
-                      <b>{numero.format(Number(valor))}</b>
+                      <b>{formatarQuantidade(typeof valor === "number" ? valor : null)}</b>
                     </div>
                   ))}
                 </div>
                 <div className="est-detail-actions">
-                  <ActionButton variant="ghost" onClick={() => abrir("reserva")} disabled={!produto.disponivel}>
+                  <ActionButton variant="ghost" onClick={() => onProdutos(produto.nome)}>
+                    Editar produto e foto
+                  </ActionButton>
+                  <ActionButton variant="ghost" onClick={() => abrir("reserva")} disabled={produto.disponivel <= 0}>
                     Reservar
                   </ActionButton>
                   <ActionButton variant="ghost" onClick={() => abrir("liberar")} disabled={!produto.reservas.length}>
@@ -864,16 +694,24 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
 
               <SectionCard titulo={<span className="est-inline"><Package size={17} /> Lotes (FEFO)</span>}>
                 <DarkTable colunas={["Lote", "Quantidade", "Validade", "Prioridade"]} className={estilosTabela}>
-                  {produto.lotesFefo.map((lote, indice) => (
+                  {produto.lotesFefo.filter((lote) => !lote.validade || lote.validade >= hoje).map((lote, indice) => (
                     <DarkTableRow key={lote.id}>
                       <td>{lote.codigo}</td>
                       <td>{numero.format(lote.restante)}</td>
                       <td>{formatarData(lote.validade)}</td>
                       <td>
-                        <StatusBadge tom={alertaValidade(lote.validade) ? "atencao" : "ok"}>
-                          Usar {indice + 1}º{alertaValidade(lote.validade) ? " · Próximo" : ""}
+                        <StatusBadge tom={alertaValidade(lote.validade, hoje) ? "atencao" : "ok"}>
+                          Usar {indice + 1}º{alertaValidade(lote.validade, hoje) ? " · Próximo" : ""}
                         </StatusBadge>
                       </td>
+                    </DarkTableRow>
+                  ))}
+                  {produto.lotesTodos.filter((lote) => loteVencidoComSaldo(lote, hoje)).map((lote) => (
+                    <DarkTableRow key={lote.id}>
+                      <td>{lote.codigo}</td>
+                      <td>{numero.format(lote.restante)}</td>
+                      <td>{formatarData(lote.validade)}</td>
+                      <td><StatusBadge tom="perigo">Vencido</StatusBadge></td>
                     </DarkTableRow>
                   ))}
                 </DarkTable>
@@ -905,8 +743,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
             {numero.format(produto.reservado)} · Disponível {numero.format(produto.disponivel)}
           </p>
           <form key={tipo} className="est-form" onSubmit={(evento) => void enviar(evento)}>
-            {tipo === "entrada" && (
-              <label htmlFor="est-produtoId">
+            <label htmlFor="est-produtoId">
                 Produto cadastrado
                 <select
                   id="est-produtoId"
@@ -915,18 +752,22 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
                   value={produto.id}
                   onChange={(e) => setFoco(e.target.value)}
                 >
-                  {(produtos ?? []).map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nome}{!p.disponivel ? " (inativo)" : ""}
-                    </option>
-                  ))}
+                  {primeiroVinculado && (
+                    <optgroup label="Sabores com estoque vinculado">
+                      {sabores.flatMap(({ produto: p, nome }) => p ? [
+                        <option key={p.id} value={p.id}>{nome}{!p.ativo ? " (inativo)" : ""}</option>,
+                      ] : [])}
+                    </optgroup>
+                  )}
+                  {!!legados.length && (
+                    <optgroup label="Produtos fora do cadastro oficial">
+                      {legados.map((p) => (
+                        <option key={p.id} value={p.id}>{p.nome}{!p.ativo ? " (inativo)" : ""}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
-                <small className="est-muted">
-                  Para criar um sabor, utilize Cadastro de Produtos. Aqui são registrados apenas
-                  lotes e quantidades.
-                </small>
               </label>
-            )}
             <label>
               Tipo de movimentação
               <select
@@ -1041,11 +882,11 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
           fechar={() => setModal(null)}
         >
           <p>
-            {k.baixos} sabores abaixo do mínimo. {k.vencendo} lotes com vencimento em até 7 dias.
+            {baixos} sabores abaixo do mínimo. {vencendo} lotes com vencimento em até 7 dias. {" "}{vencidos} sabores com lote vencido. {reservasExcedentes} com reserva acima do físico.
           </p>
           <ul>
             {(produtos ?? [])
-              .filter((p) => p.disponivel < p.minimo)
+              .filter((p) => estadosPorProduto.get(p.id)?.abaixo)
               .map((p) => (
                 <li key={p.id}>
                   {p.nome}: produzir pelo menos {numero.format(p.minimo - p.disponivel)} un. para

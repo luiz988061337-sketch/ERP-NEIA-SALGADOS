@@ -3752,6 +3752,38 @@ export type Database = {
         }
         Relationships: []
       }
+      sabores_estoque: {
+        Row: {
+          chave: string
+          categoria: string
+          nome: string
+          ordem: number
+          produto_id: string | null
+        }
+        Insert: {
+          chave: string
+          categoria: string
+          nome: string
+          ordem: number
+          produto_id?: string | null
+        }
+        Update: {
+          chave?: string
+          categoria?: string
+          nome?: string
+          ordem?: number
+          produto_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sabores_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: true
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservas_estoque: {
         Row: {
           created_at: string
