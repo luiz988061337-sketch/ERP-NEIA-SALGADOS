@@ -95,7 +95,7 @@ export function useRecomendacoesA02(usuarioId: string) {
         supabase
           .from("a02_recomendacoes_historico")
           .select("id,estado_id,ator_id,ator_nome,acao,detalhe,ocorreu_em")
-          .order("ocorrido_em", { ascending: false })
+          .order("ocorreu_em", { ascending: false })
           .range(i, f)
           .abortSignal(signal),
       ),

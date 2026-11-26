@@ -11,8 +11,13 @@ const carregar = (arquivo) => {
   return "data:text/javascript;base64," + Buffer.from(outputText).toString("base64");
 };
 
-const { gerarRecomendacoesNeia, rotuloCategoriaNeia, rotuloNaturezaNeia, rotuloPrioridadeNeia, rotuloSituacaoFonteNeia } =
-  await import(carregar("../src/lib/neia-inteligencia.ts"));
+const {
+  gerarRecomendacoesNeia,
+  rotuloCategoriaNeia,
+  rotuloNaturezaNeia,
+  rotuloPrioridadeNeia,
+  rotuloSituacaoFonteNeia,
+} = await import(carregar("../src/lib/neia-inteligencia.ts"));
 const { ehAbaAdministrativa } = await import(carregar("../src/lib/paineis-staff.ts"));
 
 const atualizadoEm = "2026-11-25T12:00:00.000Z";
@@ -174,6 +179,31 @@ test("navegação administrativa inclui a aba da Néia Inteligência", () => {
   assert.match(admin, /TabsContent value="neia-inteligencia"/);
   assert.match(admin, /<NeiaInteligencia/);
   assert.match(nav, /value: "neia-inteligencia"/);
+  const inicioGestao = nav.indexOf('label: "Gestão"');
+  const inicioSistema = nav.indexOf('label: "Sistema"');
+  const itemNeia = nav.indexOf('value: "neia-inteligencia"');
+  assert.ok(inicioGestao > 0 && itemNeia > inicioGestao && itemNeia < inicioSistema);
+});
+
+test("menu administrativo único usa Minhas tarefas em todas as páginas reais", () => {
+  const shell = readFileSync(
+    new URL("../src/components/admin/admin-shell.tsx", import.meta.url),
+    "utf8",
+  );
+  // Operação (sem demonstração) recebe o menu completo mesmo quando a rota não
+  // declara `menuTarefas`; a prévia mantém o catálogo demonstrativo.
+  assert.match(shell, /menuTarefas \?\? \(menuDemonstrativo \? undefined : "admin"\)/);
+  assert.match(shell, /label: "Minhas tarefas"/);
+  assert.match(shell, /grupo\.label !== "Principal"/);
+  // A prévia continua sem "Minhas tarefas".
+  assert.match(shell, /menuDemonstrativo \? undefined : "admin"/);
+});
+
+test("histórico A02 ordena pela coluna existente ocorreu_em", () => {
+  const fonte = readFileSync(new URL("../src/lib/neia-recomendacoes.ts", import.meta.url), "utf8");
+  assert.match(fonte, /\.select\("id,estado_id,ator_id,ator_nome,acao,detalhe,ocorreu_em"\)/);
+  assert.match(fonte, /\.order\("ocorreu_em", \{ ascending: false \}\)/);
+  assert.doesNotMatch(fonte, /\.order\("ocorrido_em"/);
 });
 
 test("o módulo não grava nada: sugestão de tarefa depende de confirmação na interface", () => {

@@ -21,7 +21,13 @@ import {
 } from "@/components/ui/sidebar";
 import { ADMIN_NAV, menuAdmin, type AdminNavItem } from "./admin-nav";
 
-const itemTarefas: AdminNavItem = { value: "minhas-tarefas", label: "Minhas tarefas", icon: ClipboardList, href: "/admin", hash: "minhas-tarefas" };
+const itemTarefas: AdminNavItem = {
+  value: "minhas-tarefas",
+  label: "Minhas tarefas",
+  icon: ClipboardList,
+  href: "/admin",
+  hash: "minhas-tarefas",
+};
 
 /**
  * Shell do Admin — aparência da referência preto/dourado:
@@ -56,9 +62,16 @@ export function AdminShell({
   /** Mantém o destaque dourado restrito ao grupo da suíte aberta. */
   grupoAtivo?: string | undefined;
 }) {
+  // Operação usa o mesmo menu aprovado na A01.1 em todas as páginas
+  // administrativas. A prévia/demonstração mantém o catálogo completo.
+  const menuTarefasEfetivo = menuTarefas ?? (menuDemonstrativo ? undefined : "admin");
   return (
     <SidebarProvider
-      className={menuTarefas && (aba === "dashboard" || aba === "minhas-tarefas") ? "neia-a01-shell" : undefined}
+      className={
+        menuTarefasEfetivo && (aba === "dashboard" || aba === "minhas-tarefas")
+          ? "neia-a01-shell"
+          : undefined
+      }
       style={
         {
           "--sidebar-width": "14rem",
@@ -91,8 +104,14 @@ export function AdminShell({
           </div>
         </SidebarHeader>
 
-        <MenuLateral aba={aba} onAba={onAba} grupoAtivo={grupoAtivo}
-          demonstrativo={menuDemonstrativo} pedidosAtendente={menuPedidosAtendente} tarefas={menuTarefas} />
+        <MenuLateral
+          aba={aba}
+          onAba={onAba}
+          grupoAtivo={grupoAtivo}
+          demonstrativo={menuDemonstrativo}
+          pedidosAtendente={menuPedidosAtendente}
+          tarefas={menuTarefasEfetivo}
+        />
 
         <SidebarFooter className="border-t border-[#D4A94A]/35 bg-[#141310]">
           <div className="flex items-center gap-2.5 px-1.5 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
@@ -103,7 +122,9 @@ export function AdminShell({
               <p className="truncate text-xs font-semibold text-foreground">
                 {usuario?.split("@")[0] ?? "Equipe"}
               </p>
-              <p className="truncate text-xs text-muted-foreground">{menuTarefas === "equipe" ? "Equipe" : "Administradora"}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {menuTarefasEfetivo === "equipe" ? "Equipe" : "Administradora"}
+              </p>
             </div>
             <span
               className="size-2 shrink-0 rounded-full bg-[#35C97C] group-data-[collapsible=icon]:hidden"
@@ -145,7 +166,9 @@ export function AdminShell({
               aria-label="Abrir menu administrativo"
               className="size-11 border border-[#D4A94A]/60 bg-[#141310] text-[#F2CE6B] hover:bg-[#D4A94A]/15 hover:text-[#F2CE6B]"
             />
-            <span className="self-center pl-3 text-sm font-semibold text-foreground">Menu administrativo</span>
+            <span className="self-center pl-3 text-sm font-semibold text-foreground">
+              Menu administrativo
+            </span>
           </div>
         ) : null}
         {children}
@@ -196,23 +219,26 @@ function MenuLateral({
   const { isMobile, setOpenMobile } = useSidebar();
   const { pathname, hash } = useLocation();
   const gruposAdmin = menuAdmin(demonstrativo, pedidosAtendente);
-  const grupos = tarefas === "equipe"
-    ? [{ label: "Principal", items: [itemTarefas] }]
-    : gruposAdmin.map((grupo) => {
-      if (tarefas !== "admin" || grupo.label !== "Principal") return grupo;
-      const [inicio, ...resto] = grupo.items;
-      return { ...grupo, items: inicio ? [inicio, itemTarefas, ...resto] : [itemTarefas] };
-    });
+  const grupos =
+    tarefas === "equipe"
+      ? [{ label: "Principal", items: [itemTarefas] }]
+      : gruposAdmin.map((grupo) => {
+          if (tarefas !== "admin" || grupo.label !== "Principal") return grupo;
+          const [inicio, ...resto] = grupo.items;
+          return { ...grupo, items: inicio ? [inicio, itemTarefas, ...resto] : [itemTarefas] };
+        });
   const itens = grupos.flatMap((grupo) => grupo.items);
-  const candidatos = itens.filter((item) =>
-    item.href === pathname || (item.href && pathname.startsWith(`${item.href}/`)),
+  const candidatos = itens.filter(
+    (item) => item.href === pathname || (item.href && pathname.startsWith(`${item.href}/`)),
   );
   const linkAtivo =
     candidatos.find((item) => item.hash && item.hash === hash) ??
     candidatos.find((item) => !item.hash || (pathname === "/admin" && item.value === aba)) ??
     itens.find((item) => item.value === aba);
   const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
-  useEffect(() => { setGruposAbertos(gruposIniciais()); }, []);
+  useEffect(() => {
+    setGruposAbertos(gruposIniciais());
+  }, []);
 
   function alternarGrupo(label: string) {
     setGruposAbertos((prev) => {
@@ -232,9 +258,7 @@ function MenuLateral({
   }
 
   return (
-    <SidebarContent
-      className="bg-[#0F0E0C] [scrollbar-color:rgba(212,169,74,0.55)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D4A94A]/60 [&::-webkit-scrollbar-track]:bg-transparent"
-    >
+    <SidebarContent className="bg-[#0F0E0C] [scrollbar-color:rgba(212,169,74,0.55)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#D4A94A]/60 [&::-webkit-scrollbar-track]:bg-transparent">
       {grupos.map((grupo) => {
         const aberto = gruposAbertos[grupo.label] !== false;
         const ehComercial = grupo.label === "Comercial";
@@ -264,31 +288,29 @@ function MenuLateral({
                   {grupo.items.map((item) => {
                     const ativo = grupoAtivo
                       ? grupo.label === grupoAtivo && aba === item.value
-                      : item.href ? linkAtivo === item : aba === item.value;
+                      : item.href
+                        ? linkAtivo === item
+                        : aba === item.value;
 
                     const alturaItem = ehComercial
                       ? item.linhas
                         ? "h-[58px] min-h-[58px] py-0"
                         : "h-11 min-h-11 py-0"
                       : "h-10 min-h-10";
-                    const classeTexto = ehComercial
-                      ? "min-w-0 flex-1 leading-[17px]"
-                      : "truncate";
+                    const classeTexto = ehComercial ? "min-w-0 flex-1 leading-[17px]" : "truncate";
                     const estiloTexto = ehComercial
                       ? ({ overflow: "visible", whiteSpace: "normal" } as const)
                       : undefined;
                     const classeIcone = `${
                       ehComercial ? "shrink-0" : ""
                     } ${ativo ? "text-[#14120C]" : "text-[#C9A24B]"}`;
-                    const textoItem = item.linhas ? (
-                      item.linhas.map((linha, indice) => (
-                        <span key={`${item.value}-linha-${indice}`} className="block">
-                          {linha}
-                        </span>
-                      ))
-                    ) : (
-                      item.label
-                    );
+                    const textoItem = item.linhas
+                      ? item.linhas.map((linha, indice) => (
+                          <span key={`${item.value}-linha-${indice}`} className="block">
+                            {linha}
+                          </span>
+                        ))
+                      : item.label;
                     const classes = `${
                       ativo
                         ? "erp-btn-gold rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
@@ -317,7 +339,10 @@ function MenuLateral({
                               }}
                             >
                               <item.icon className={classeIcone} />
-                              <span className={`${classeTexto}${ativo ? " text-[#14120C]" : ""}`} style={estiloTexto}>
+                              <span
+                                className={`${classeTexto}${ativo ? " text-[#14120C]" : ""}`}
+                                style={estiloTexto}
+                              >
                                 {textoItem}
                               </span>
                             </Link>
