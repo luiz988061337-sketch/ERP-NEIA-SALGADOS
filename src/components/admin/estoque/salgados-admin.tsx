@@ -495,13 +495,13 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
           <button className="neia-a01-dourado" onClick={() => abrir("entrada")}>
             <Plus size={19} /> Entrada de estoque
           </button>
-          <button onClick={() => abrir("perda")}>
+          <button className="neia-a01-dourado" onClick={() => abrir("perda")}>
             <MinusCircle size={17} /> Registrar perda
           </button>
-          <button onClick={() => abrir("ajuste")}>
+          <button className="neia-a01-dourado" onClick={() => abrir("ajuste")}>
             <ClipboardList size={17} /> Inventário
           </button>
-          <button onClick={() => abrirHistorico()}>
+          <button className="neia-a01-dourado" onClick={() => abrirHistorico()}>
             <History size={17} /> Histórico
           </button>
         </div>
