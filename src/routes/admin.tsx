@@ -60,7 +60,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { PagamentoStatusBadge, StatusBadge } from "@/components/status-steps";
 import { geocodificarEndereco, MapView } from "@/components/map-view";
-import { NotasAdmin } from "@/components/pedido-notas";
 import { CentralOperacao } from "@/components/central-operacao";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import type { Database } from "@/integrations/supabase/types";
@@ -68,16 +67,10 @@ import {
   brl,
   dataHora,
   hora,
-  mensagemStatus,
   PAGAMENTO_LABEL,
-  PAGAMENTO_STATUS_LABEL,
   STATUS_EXIBICAO,
   STATUS_LABEL,
-  statusFlow,
-  whatsappLink,
-  type OrderStatus,
 } from "@/lib/format";
-import { notificarPedido } from "@/lib/notificacoes";
 import { useClientesStats, normalizarTelefone, type CustomerStats } from "@/lib/crm";
 import { logAdmin } from "@/lib/operacao";
 import { downloadCSV } from "@/lib/export";
@@ -90,7 +83,6 @@ import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/uploa
 import { SlideAdmin } from "@/components/hero-slide-admin";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { COLUNAS_GESTAO, colunaPedido } from "@/lib/pedidos-gestao";
 import { abaAdministrativa, ehAbaAdministrativa } from "@/lib/paineis-staff";
 import { LojaPanel } from "@/components/admin/loja-panel";
 import { EntregasConfigPanel } from "@/components/admin/entregas-config-panel";
@@ -119,15 +111,14 @@ import { lerDashboard } from "@/lib/dashboard-a01-dados";
 import { PainelDashboardL2 } from "@/components/admin/dashboard-l2";
 import { CentralAtendenteL2 } from "@/components/admin/central-atendente-l2";
 import { CentralPedidos } from "@/components/central-pedidos";
+import { CAMPOS_PEDIDOS_H02, PedidosH02 } from "@/components/admin/pedidos-h02";
+import type { PedidoH02 } from "@/lib/pedidos-h02";
 import { ehModoDemo } from "@/lib/demo-preview";
 import { EmptyState, PageHeader, StatusCard } from "@/components/admin/ui-admin";
 import fritos from "@/assets/cat-fritos.jpg";
 import { DEFAULT_LOJA_CONFIG, type LojaConfig } from "@/lib/loja";
-import { impressaoDireta } from "@/lib/impressao";
 import { buscarCep, cepValido, mascararCep } from "@/lib/cep";
 import { useRoles, useSession } from "@/lib/session";
-import { decidirCancelamentoAtomico, type RpcClient } from "@/lib/reserva-integracao";
-import { BUILD_DE_CORTE } from "@/lib/corte";
 import type { Role } from "@/lib/session";
 import type { PeriodoKey } from "@/lib/operacao";
 import { noIntervalo } from "@/lib/operacao";
@@ -213,7 +204,7 @@ function Admin() {
 
   const isAdmin = roles?.includes("admin");
 
-  const { data: pedidos, isPending: pedidosPendentes, isError: pedidosComErro } = useQuery({
+  const { data: pedidos } = useQuery({
     queryKey: ["admin-pedidos"],
     enabled: !!isAdmin,
     refetchInterval: 15000,
@@ -228,6 +219,17 @@ function Admin() {
     },
   });
 
+  const pedidosRecentesH02 = useQuery({
+    queryKey: ["h02-pedidos-recentes", user?.id],
+    enabled: !!isAdmin && aba === "pedidos",
+    refetchInterval: 15_000,
+    queryFn: async ({ signal }): Promise<PedidoH02[]> => {
+      const { data, error } = await supabase.from("pedidos").select(CAMPOS_PEDIDOS_H02)
+        .order("created_at", { ascending: false }).order("id").limit(400).abortSignal(signal);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const temFiltroA01 = aba === "pedidos" && Boolean(filtroA01.a01Inicio || filtroA01.a01Pedido);
   const pedidosA01 = useQuery({
     queryKey: ["dashboard-a01", user?.id, "detalhe-pedidos", filtroA01],
@@ -237,8 +239,8 @@ function Admin() {
       const faixa = filtroA01.a01Inicio && filtroA01.a01Fim ? faixaDashboard(filtroA01.a01Inicio, filtroA01.a01Fim) : null;
       const grupo = filtroA01.a01Grupo;
       const campo = grupo === "agendados" ? "agendado_para" : "created_at";
-      const linhas = await lerDashboard<NonNullable<typeof pedidos>[number]>((inicio, fim) => {
-        let consulta = supabase.from("pedidos").select("*, pedido_itens(*)").order("created_at", { ascending: false }).order("id");
+      const linhas = await lerDashboard<PedidoH02>((inicio, fim) => {
+        let consulta = supabase.from("pedidos").select(CAMPOS_PEDIDOS_H02).order("created_at", { ascending: false }).order("id");
         if (filtroA01.a01Pedido) consulta = consulta.eq("id", filtroA01.a01Pedido);
         else if (faixa) consulta = consulta.gte(campo, faixa.ini).lt(campo, faixa.fim);
         return consulta.range(inicio, fim).abortSignal(signal);
@@ -720,6 +722,7 @@ function Admin() {
   function refreshAll() {
     for (const k of [
       "admin-pedidos",
+      "h02-pedidos-recentes",
       "central-pedidos",
       "central-pedidos-avisos",
       "admin-produtos",
@@ -820,99 +823,6 @@ function Admin() {
     );
   }
 
-  async function mudarStatusPedido(p: any, status: OrderStatus) {
-    if (status !== "cancelado" && colunaPedido(p.status) === "novos") {
-      toast.error("O aceite segue pela Central da Atendente e o preparo pela Cozinha.");
-      return;
-    }
-    // Cancelamento atômico (0093) — atrás de flag OFF. Flag OFF => caminho
-    // legado intacto. Flag ON + sucesso => RPC já cancelou e liberou. Flag ON
-    // sem attestation/erro => aborta (NUNCA cai no UPDATE direto).
-    if (status === "cancelado") {
-      const decisao = await decidirCancelamentoAtomico(
-        supabase as unknown as RpcClient,
-        p.id,
-        "admin",
-      );
-      if (decisao.modo === "erro") {
-        toast.error(decisao.mensagem);
-        return;
-      }
-      if (decisao.modo === "atomico") {
-        toast.success(`Pedido nº ${p.numero} cancelado e estoque liberado.`);
-        void logAdmin("pedido_status", `#${p.numero} → cancelado`);
-        queryClient.invalidateQueries({ queryKey: ["pedidos"] });
-        return;
-      }
-    }
-    // Cancelar devolve estoque primeiro (0030); o trigger 0042 reconcilia o resto.
-    // Sem isso, produtos.estoque ficava debitado para sempre (vazamento).
-    // No BUILD DE CORTE este caminho legado NAO e compilado: o cancelamento
-    // passa obrigatoriamente por `cancelar_pedido_atomico` (0093/0090).
-    if (!BUILD_DE_CORTE && status === "cancelado") {
-      try {
-        await supabase.rpc("liberar_reserva_atomica", { p_pedido_id: p.id });
-      } catch {
-        /* sem migration — trigger 0042 assume */
-      }
-      try {
-        const q = supabase.from("reservas_estoque").update({ status: "cancelada" });
-        await q.eq("pedido_id", p.id).eq("status", "ativa");
-      } catch {
-        /* sem migration */
-      }
-    }
-    // No BUILD DE CORTE, o cancelamento SEMPRE passou pela RPC 0093 acima
-    // (o "modo legado" é impossível com a flag ligada). Esta trava é a
-    // defense-in-depth: mesmo que um fluxo novo chamasse `mudarStatusPedido`
-    // com "cancelado", o UPDATE direto jamais marcaria o pedido como
-    // cancelado — só a RPC atômica pode.
-    if (BUILD_DE_CORTE && status === "cancelado") {
-      toast.error("Cancelamento indisponível neste fluxo. Use a ação de cancelar.");
-      return;
-    }
-    const { error } = await supabase.from("pedidos").update({ status }).eq("id", p.id);
-    if (error) toast.error(error?.message || "Não foi possível atualizar.");
-    else {
-      toast.success(`Pedido nº ${p.numero} → ${STATUS_LABEL[status]}`);
-      void logAdmin("pedido_status", `#${p.numero} → ${status}`);
-      void notificarPedido({
-        client: supabase,
-        pedidoId: p.id,
-        status,
-        telefone: p.telefone,
-        mensagem: mensagemStatus(status, p.cliente_nome, p.numero),
-      });
-    }
-    queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
-  }
-
-  /**
-   * Pagamento é separado do pedido. Só a loja confirma — o cliente nunca
-   * marca o próprio pagamento como pago.
-   */
-  async function mudarPagamento(p: any, pagamentoStatus: string) {
-    const agora = new Date().toISOString();
-    const patch =
-      pagamentoStatus === "pago"
-        ? { pagamento_status: pagamentoStatus, pagamento_em: agora }
-        : { pagamento_status: pagamentoStatus, pagamento_em: null };
-    const { error } = await supabase.from("pedidos").update(patch).eq("id", p.id);
-    if (error) {
-      toast.error(
-        /column|does not exist/i.test(error.message)
-          ? "Rode a migration 0022 no Supabase para controlar o pagamento."
-          : "Não foi possível atualizar o pagamento.",
-      );
-      return;
-    }
-    toast.success(
-      `Pagamento do pedido nº ${p.numero}: ${PAGAMENTO_STATUS_LABEL[pagamentoStatus] ?? pagamentoStatus}`,
-    );
-    void logAdmin("pagamento_status", `#${p.numero} → ${pagamentoStatus}`);
-    queryClient.invalidateQueries({ queryKey: ["admin-pedidos"] });
-  }
-
   return (
     <AdminShell
       aba={aba}
@@ -963,41 +873,30 @@ function Admin() {
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-0">
-          {modoDemo ? (
-            <CentralAtendenteL2 usuario={user?.email ?? null} />
-          ) : (
+          <PedidosH02
+            key={JSON.stringify([filtroA01, pedidoFoco])}
+            recentes={(temFiltroA01 ? pedidosA01.data : pedidosRecentesH02.data) ?? []}
+            consultando={temFiltroA01 ? pedidosA01.isPending : pedidosRecentesH02.isPending}
+            erro={temFiltroA01 ? pedidosA01.isError : pedidosRecentesH02.isError}
+            recarregar={() => void (temFiltroA01 ? pedidosA01.refetch() : pedidosRecentesH02.refetch())}
+            catalogo={produtos ?? []}
+            usuarioId={user.id}
+            papeis={roles}
+            somenteLeitura={modoDemo}
+            pedidoInicial={filtroA01.a01Pedido}
+            buscaInicial={pedidoFoco}
+            etiquetaA01={temFiltroA01 ? "Dashboard · " + (filtroA01.a01Pedido ? "Pedido selecionado" :
+              (STATUS_DASHBOARD.find(([id]) => id === filtroA01.a01Grupo)?.[1] ?? "Pedidos válidos") +
+              (filtroA01.a01Inicio ? " · " + filtroA01.a01Inicio + " a " + filtroA01.a01Fim : "")) : undefined}
+            limparA01={() => abrirPedidosDashboard()}
+          />
+        </TabsContent>
+
+        <TabsContent value="central-atendente" className="mt-0">
+          {modoDemo ? <CentralAtendenteL2 usuario={user.email ?? null} /> : (
             <div className="mx-auto max-w-[1700px] space-y-4">
-              <AdminTopbar usuario={user?.email ?? null} acesso="Administração" />
-              <div id="painel-operacional-pedidos">
-                <CentralPedidos usuarioId={user.id} papeis={roles} />
-              </div>
-              <details key={JSON.stringify(filtroA01)} open={pedidoFoco || temFiltroA01 ? true : undefined} className="mx-3 rounded-lg border border-border bg-card p-3 sm:mx-4">
-                <summary className="cursor-pointer text-sm font-semibold">Gestão avançada de pedidos</summary>
-                {(temFiltroA01 ? pedidosA01.isError : pedidosComErro) ? (
-                  <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/60 p-3">
-                    <p>Não foi possível carregar os pedidos.</p>
-                    <Button variant="outline" onClick={refreshAll}>Tentar novamente</Button>
-                  </div>
-                ) : (temFiltroA01 ? pedidosA01.isPending : pedidosPendentes) ? (
-                  <p role="status" className="p-4 text-muted-foreground">Carregando pedidos…</p>
-                ) : (
-                  <>
-                    {temFiltroA01 && <div className="my-3 flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
-                      <p>Dashboard · {filtroA01.a01Pedido ? "Pedido selecionado" :
-                        STATUS_DASHBOARD.find(([id]) => id === filtroA01.a01Grupo)?.[1] ?? "Pedidos válidos"}
-                        {filtroA01.a01Inicio ? " · " + filtroA01.a01Inicio + " a " + filtroA01.a01Fim : ""}</p>
-                      <Button variant="outline" onClick={() => abrirPedidosDashboard()}>Limpar filtro do Dashboard</Button>
-                    </div>}
-                    <PedidosAdmin
-                      pedidos={(temFiltroA01 ? pedidosA01.data : pedidos) ?? []}
-                      onStatus={mudarStatusPedido}
-                      onPagamento={mudarPagamento}
-                      foco={pedidoFoco}
-                      onLimparFoco={() => setPedidoFoco("")}
-                    />
-                  </>
-                )}
-              </details>
+              <AdminTopbar usuario={user.email ?? null} acesso="Central da Atendente" />
+              <CentralPedidos usuarioId={user.id} papeis={roles} />
             </div>
           )}
         </TabsContent>
@@ -1554,573 +1453,6 @@ function Admin() {
         </TabsContent>
       </Tabs>
     </AdminShell>
-  );
-}
-
-function PedidosAdmin({
-  pedidos,
-  onStatus,
-  onPagamento,
-  foco,
-  onLimparFoco,
-}: {
-  pedidos: any[];
-  onStatus: (p: any, s: OrderStatus) => void;
-  onPagamento?: (p: any, s: string) => void;
-  foco?: string;
-  onLimparFoco?: () => void;
-}) {
-  async function imprimirDireto(p: any) {
-    try {
-      await impressaoDireta(supabase, p);
-      toast.success(`Pedido nº ${p.numero} enviado para a Tanca.`);
-    } catch {
-      toast.error("Não entrou na fila. Confira em /impressao.");
-    }
-  }
-  const [filtro, setFiltro] = useState("todos");
-  const [fEvento, setFEvento] = useState("todos");
-  const [soAgendados, setSoAgendados] = useState(false);
-  const [buscaLocal, setBuscaLocal] = useState("");
-  const [fPeriodo, setFPeriodo] = useState("todos");
-  const [fPgto, setFPgto] = useState("todas");
-  const [modalidade, setModalidade] = useState("todas");
-  const listaBase = pedidos.filter((p) =>
-    (filtro === "todos" || p.status === filtro || colunaPedido(p.status) === filtro) &&
-    (modalidade === "todas" || p.tipo_entrega === modalidade),
-  );
-  const listaEvt =
-    fEvento === "todos"
-      ? listaBase
-      : listaBase.filter(
-          (p) => (p.tipo_evento ?? "") === (fEvento === "sem_evento" ? "" : fEvento),
-        );
-  const listaPer =
-    fPeriodo === "todos"
-      ? listaEvt
-      : listaEvt.filter((p) => +new Date(p.created_at) >= Date.now() - Number(fPeriodo) * 86400000);
-  const listaPgto =
-    fPgto === "todas" ? listaPer : listaPer.filter((p) => p.forma_pagamento === fPgto);
-  const listaAge = soAgendados
-    ? listaPgto.filter(
-        (p) => p.agendado_para && p.status !== "cancelado" && p.status !== "entregue",
-      )
-    : listaPgto;
-  const lista = foco
-    ? listaAge.filter(
-        (p) =>
-          String(p.numero).includes(foco) ||
-          (p.cliente_nome ?? "").toLowerCase().includes(foco.toLowerCase()) ||
-          (p.telefone ?? "").includes(foco),
-      )
-    : buscaLocal.trim()
-      ? listaAge.filter((p) => {
-          const t = buscaLocal.trim().toLowerCase();
-          return (
-            String(p.numero).includes(t) ||
-            (p.cliente_nome ?? "").toLowerCase().includes(t) ||
-            (p.telefone ?? "").includes(t) ||
-            (p.pedido_itens ?? []).some((item: any) => String(item.nome ?? "").toLowerCase().includes(t))
-          );
-        })
-      : listaAge;
-  const [limiteLista, setLimiteLista] = useState(60);
-  const listaTope = lista.slice(0, limiteLista);
-  // Resumo do dia (real, independente dos filtros): KPIs, recentes, status e pagamentos.
-  const resumoPed = useMemo(() => {
-    const hoje = new Date().toDateString();
-    const doDia = pedidos.filter(
-      (p: any) => new Date(p.created_at).toDateString() === hoje && p.status !== "cancelado",
-    );
-    const totalHoje = doDia.reduce((a: number, p: any) => a + (Number(p.total) || 0), 0);
-    const conta = (sts: string[]) => doDia.filter((p: any) => sts.includes(p.status)).length;
-    const recentes = [...doDia]
-      .sort((a: any, b: any) => +new Date(b.created_at) - +new Date(a.created_at))
-      .slice(0, 5);
-    const fatias = [
-      { rotulo: "Novos", qtd: conta(["recebido"]), cor: "#eab308" },
-      { rotulo: "Em produção", qtd: conta(["em_producao"]), cor: "#2563eb" },
-      { rotulo: "Prontos", qtd: conta(["pronto"]), cor: "#22c55e" },
-      { rotulo: "Em entrega", qtd: conta(["aguardando_motoboy", "em_rota"]), cor: "#a855f7" },
-      { rotulo: "Entregues", qtd: conta(["entregue"]), cor: "#16a34a" },
-    ];
-    const pgMap = new Map<string, { meio: string; qtd: number; total: number }>();
-    for (const p of doDia) {
-      const meio = String(p.forma_pagamento ?? "outro");
-      const cur = pgMap.get(meio) ?? { meio, qtd: 0, total: 0 };
-      cur.qtd += 1;
-      cur.total += Number(p.total) || 0;
-      pgMap.set(meio, cur);
-    }
-    return {
-      totalHoje,
-      totalHojeFmt: brl(totalHoje),
-      qtdHoje: doDia.length,
-      emProd: conta(["em_producao"]),
-      prontos: conta(["pronto"]),
-      entregues: conta(["entregue"]),
-      recentes,
-      fatias,
-      totalStatus: fatias.reduce((a, f) => a + f.qtd, 0),
-      pagtos: [...pgMap.values()],
-    };
-  }, [pedidos]);
-  function verTodosPedidos() {
-    setFiltro("todos");
-    setLimiteLista(60);
-    setModalidade("todas");
-    setFEvento("todos");
-    setSoAgendados(false);
-    setBuscaLocal("");
-    setFPeriodo("todos");
-    setFPgto("todas");
-    onLimparFoco?.();
-  }
-  const linhasCSV = lista.slice(0, 500).map((p: any) => ({
-    numero: p.numero,
-    data: p.created_at,
-    cliente: p.cliente_nome,
-    telefone: p.telefone,
-    endereco: p.endereco,
-    bairro: p.bairro,
-    pagamento: p.forma_pagamento,
-    subtotal: p.subtotal,
-    entrega: p.tipo_entrega === "retirada" ? "retirada" : "entrega",
-    taxa_entrega: p.taxa_entrega,
-    desconto: p.desconto,
-    total: p.total,
-    status: p.status,
-    evento: p.tipo_evento,
-    itens: (p.pedido_itens ?? []).map((i: any) => `${i.quantidade}x ${i.nome}`).join(" | "),
-  }));
-  function exportarCSV() {
-    downloadCSV(`pedidos-${new Date().toISOString().slice(0, 10)}.csv`, linhasCSV);
-  }
-  const naoColunados = listaTope.filter((p) => colunaPedido(p.status) === "historico");
-  const cartao = (p: any) => (
-    <article key={p.id} className="rounded-lg border border-border bg-card p-3 shadow-card">
-      <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-display text-base font-semibold">Nº {p.numero}</span>
-        <StatusBadge status={p.status} />
-        <span className="ml-auto font-display text-primary">{brl(p.total)}</span>
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {p.cliente_nome} · {p.telefone} · {dataHora(p.created_at)}
-      </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {p.tipo_entrega === "retirada" ? "Retirada no balcão" : `${p.endereco ?? ""} — ${p.bairro ?? ""}`}
-        {(p as any).cidade ? ` • ${(p as any).cidade}` : ""}{" "}
-        {p.complemento ? `(${p.complemento})` : ""}{" "}
-        <span className="ml-1 rounded bg-muted px-1.5 py-0.5">
-          {STATUS_EXIBICAO[p.status] ?? p.status}
-        </span>
-        {(p as any).campanha_origem ? (
-          <span className="ml-1 rounded bg-muted px-1.5 py-0.5">
-            🔗 {(p as any).campanha_origem}
-          </span>
-        ) : (
-          ""
-        )}
-      </p>
-      {p.agendado_para ? <p className="mt-2 text-sm font-semibold text-primary">Agendado para {dataHora(p.agendado_para)}</p> : null}
-      <ul className="mt-2 text-sm">
-        {(p.pedido_itens ?? []).map((i: any) => (
-          <li key={i.id}>
-            {i.quantidade}x {i.nome}
-          </li>
-        ))}
-      </ul>
-      {p.observacoes && <p className="mt-1 rounded bg-muted p-1.5 text-xs">Obs: {p.observacoes}</p>}
-      {colunaPedido(p.status) === "novos" &&
-        (p.aceito_em_atendente || p.status === "aceito" ? (
-          <Link className="mt-2 inline-flex min-h-9 items-center text-sm font-medium text-primary underline" to="/producao">
-            Ver fila da Cozinha
-          </Link>
-        ) : (
-          <button
-            type="button"
-            className="mt-2 inline-flex min-h-9 items-center text-sm font-medium text-primary underline"
-            onClick={() => document.getElementById("painel-operacional-pedidos")?.scrollIntoView()}
-          >
-            Ver no painel de pedidos
-          </button>
-        ))}
-      <details className="mt-2 border-t border-border pt-2">
-      <summary className="cursor-pointer text-sm font-semibold">Detalhes e ações</summary>
-      <NotasAdmin pedidoId={p.id} numero={p.numero} />
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {colunaPedido(p.status) === "novos" ? (
-          <Button size="sm" variant="outline" onClick={() => onStatus(p, "cancelado")}>Cancelar pedido</Button>
-        ) : (
-        <Select value={p.status} onValueChange={(s) => onStatus(p, s as OrderStatus)}>
-          <SelectTrigger className="w-40">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {[...statusFlow(p.tipo_entrega), "cancelado"].map((v) => (
-              <SelectItem key={v} value={v}>
-                {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        )}
-        {onPagamento ? (
-          <Select value={p.pagamento_status ?? "pendente"} onValueChange={(s) => onPagamento(p, s)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(PAGAMENTO_STATUS_LABEL).map(([v, l]) => (
-                <SelectItem key={v} value={v}>
-                  {l}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : null}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            window.open(
-              whatsappLink(p.telefone, mensagemStatus(p.status, p.cliente_nome, p.numero)),
-              "_blank",
-            )
-          }
-        >
-          <MessageCircle className="mr-1 size-3.5" /> WhatsApp
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => imprimirDireto(p)}>
-          <Printer className="mr-1 size-3.5" /> Imprimir direto
-        </Button>
-      </div>
-      </details>
-    </article>
-  );
-  return (
-    <>
-      <PremiumPageHeader
-        icone={ClipboardList}
-        titulo="Gestão de Pedidos"
-        subtitulo="Atendimento · Néia Salgados"
-        acoes={<Button asChild><Link to="/pdv">+ Novo Pedido</Link></Button>}
-      />
-      <section className="mt-4 rounded-xl border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <h2 className="sr-only">Filtros de gestão de pedidos</h2>
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={soAgendados}
-              onChange={(e) => setSoAgendados(e.target.checked)}
-            />{" "}
-            Só agendados
-          </label>
-          <Select value={fEvento} onValueChange={setFEvento}>
-            <SelectTrigger className="ml-auto w-44">
-              <SelectValue placeholder="Evento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os eventos</SelectItem>
-              <SelectItem value="sem_evento">Sem evento</SelectItem>
-              <SelectItem value="aniversario">Aniversário</SelectItem>
-              <SelectItem value="casamento">Casamento</SelectItem>
-              <SelectItem value="empresa">Empresa</SelectItem>
-              <SelectItem value="festa">Festa</SelectItem>
-              <SelectItem value="confraternizacao">Confraternização</SelectItem>
-              <SelectItem value="outro">Outro</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filtro} onValueChange={setFiltro}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os estágios</SelectItem>
-              {COLUNAS_GESTAO.map((coluna) => <SelectItem key={coluna.id} value={coluna.id}>{coluna.titulo}</SelectItem>)}
-              {[
-                "recebido",
-                "aceito",
-                "em_producao",
-                "pronto",
-                "aguardando_motoboy",
-                "em_rota",
-                "entregue",
-                "retirado",
-                "cancelado",
-              ].map((v) => (
-                <SelectItem key={v} value={v}>
-                  {v === "em_producao" ? "Em preparo" : STATUS_LABEL[v] ?? v}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={buscaLocal}
-            onChange={(e) => setBuscaLocal(e.target.value)}
-            aria-label="Buscar pedidos"
-            placeholder="Nº, cliente, telefone ou sabor…"
-            className="w-52"
-          />
-          <Select value={fPeriodo} onValueChange={setFPeriodo}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todo o período</SelectItem>
-              <SelectItem value="1">Hoje</SelectItem>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={fPgto} onValueChange={setFPgto}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Pagamento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as formas</SelectItem>
-              <SelectItem value="pix">Pix</SelectItem>
-              <SelectItem value="dinheiro">Dinheiro</SelectItem>
-              <SelectItem value="credito">Crédito</SelectItem>
-              <SelectItem value="debito">Débito</SelectItem>
-            </SelectContent>
-          </Select>
-          <select aria-label="Modalidade" value={modalidade} onChange={(event) => setModalidade(event.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 text-sm">
-            <option value="todas">Entrega e retirada</option>
-            <option value="entrega">Entrega</option>
-            <option value="retirada">Retirada</option>
-          </select>
-          <Button size="sm" variant="outline" className="ml-auto" onClick={exportarCSV}>
-            Exportar CSV
-          </Button>
-          <Button size="sm" variant="ghost" onClick={verTodosPedidos}>Limpar filtros</Button>
-          {foco ? (
-            <Button size="sm" variant="outline" onClick={onLimparFoco}>
-              Foco: “{foco}” ✕
-            </Button>
-          ) : null}
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {COLUNAS_GESTAO.map((c) => {
-            const itens = listaTope.filter((p) => colunaPedido(p.status) === c.id);
-            return (
-              <div
-                key={c.titulo}
-                className={`flex min-h-36 flex-col rounded-xl border border-border border-t-4 ${c.cor} bg-muted/30`}
-              >
-                <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
-                  <span className={`size-2.5 shrink-0 rounded-full ${c.ponto}`} />
-                  <h3 className="font-display text-sm font-semibold tracking-wide">{c.titulo}</h3>
-                  <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
-                    {itens.length}
-                  </span>
-                </div>
-                <p className="px-3 pt-2 text-xs text-muted-foreground">{c.descricao}</p>
-                <div className="no-scrollbar flex max-h-[70vh] flex-1 flex-col gap-2.5 overflow-y-auto p-3">
-                  {itens.map(cartao)}
-                  {itens.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted-foreground">
-                      Nenhum pedido.
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {naoColunados.length > 0 ? (
-          <details className="mt-4 rounded-xl border border-border bg-muted/30">
-            <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">
-              Histórico — {naoColunados.length} pedido(s) fora das colunas (entregues / retirados / cancelados)
-            </summary>
-            <div className="flex flex-col gap-2.5 p-3">{naoColunados.map(cartao)}</div>
-          </details>
-        ) : null}
-
-        {lista.length === 0 && (
-          <p className="mt-4 text-sm text-muted-foreground">Nenhum pedido neste filtro.</p>
-        )}
-      </section>
-      <details className="mt-4 rounded-xl border border-border bg-card p-4">
-        <summary className="cursor-pointer text-sm font-semibold">Resumo e pagamentos do dia</summary>
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatusCard
-          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
-          corIcone="#F2CE6B"
-          corValor="#F2CE6B"
-          icone={ClipboardList}
-          titulo="Total hoje"
-          valor={resumoPed.totalHojeFmt}
-          detalhe={`${resumoPed.qtdHoje} pedido(s)`}
-        />
-        <StatusCard
-          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
-          corIcone="#5B93F5"
-          corValor="#5B93F5"
-          icone={ChefHat}
-          titulo="Em Produção"
-          valor={resumoPed.emProd}
-          detalhe="hoje"
-        />
-        <StatusCard
-          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
-          corIcone="#35C97C"
-          corValor="#35C97C"
-          icone={CheckCircle2}
-          titulo="Prontos"
-          valor={resumoPed.prontos}
-          detalhe="hoje"
-        />
-        <StatusCard
-          className="border border-[#D4A94A] bg-[#1A1712] text-[#F4F1EA]"
-          corIcone="#A78BFA"
-          corValor="#A78BFA"
-          icone={Truck}
-          titulo="Entregues"
-          valor={resumoPed.entregues}
-          detalhe="hoje"
-        />
-      </div>
-
-      {lista.length > limiteLista && <Button type="button" variant="outline" className="mt-3" onClick={() => setLimiteLista((limite) => limite + 60)}>
-        Mostrar mais pedidos ({listaTope.length} de {lista.length})
-      </Button>}
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <section
-          className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)] lg:col-span-2"
-          aria-label="Pedidos recentes"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold">Pedidos Recentes</h2>
-            <button
-              type="button"
-              onClick={verTodosPedidos}
-              className="min-h-[44px] px-2 text-xs text-muted-foreground underline"
-            >
-              Ver todos
-            </button>
-          </div>
-          {resumoPed.recentes.length > 0 ? (
-            <ul className="mt-1 divide-y divide-border">
-              <li className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 px-1 py-1 text-[11px] text-muted-foreground sm:grid-cols-[64px_1fr_64px_88px_110px_56px]">
-                <span>Nº</span>
-                <span>Cliente</span>
-                <span>Itens</span>
-                <span>Total</span>
-                <span className="hidden sm:block">Status</span>
-                <span className="hidden sm:block">Horário</span>
-              </li>
-              {resumoPed.recentes.map((p: any) => (
-                <li
-                  key={p.id}
-                  className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2 rounded px-1 py-1.5 text-xs sm:grid-cols-[64px_1fr_64px_88px_110px_56px] sm:text-[13px]"
-                >
-                  <span className="font-bold">#{p.numero}</span>
-                  <span className="truncate">{p.cliente_nome}</span>
-                  <span className="text-muted-foreground">
-                    {(p.pedido_itens ?? []).reduce(
-                      (s: number, i: any) => s + (Number(i.quantidade) || 0),
-                      0,
-                    )}{" "}
-                    un.
-                  </span>
-                  <span className="font-semibold">{brl(p.total)}</span>
-                  <span className="hidden sm:block">
-                    <StatusBadge status={p.status} />
-                  </span>
-                  <span className="hidden text-muted-foreground sm:block">
-                    {hora(p.created_at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="mt-2">
-              <EmptyState titulo="Nenhum pedido hoje" />
-            </div>
-          )}
-        </section>
-
-        <div className="space-y-4">
-          <section
-            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-            aria-label="Pedidos por status"
-          >
-            <h2 className="text-sm font-bold">Por Status</h2>
-            {resumoPed.totalStatus > 0 ? (
-              <>
-                <div
-                  className="mt-2 flex h-3 overflow-hidden rounded-full"
-                  role="img"
-                  aria-label={`${resumoPed.totalStatus} pedidos por status`}
-                >
-                  {resumoPed.fatias.map((f) => (
-                    <span
-                      key={f.rotulo}
-                      style={{
-                        width: `${(f.qtd / resumoPed.totalStatus) * 100}%`,
-                        backgroundColor: f.cor,
-                      }}
-                      title={`${f.rotulo}: ${f.qtd}`}
-                    />
-                  ))}
-                </div>
-                <ul className="mt-2 space-y-1 text-xs">
-                  {resumoPed.fatias.map((f) => (
-                    <li key={f.rotulo} className="flex items-center gap-2">
-                      <span
-                        className="size-2.5 rounded-full"
-                        style={{ backgroundColor: f.cor }}
-                        aria-hidden
-                      />
-                      <span className="flex-1">{f.rotulo}</span>
-                      <b>{f.qtd}</b>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : (
-              <div className="mt-2">
-                <EmptyState titulo="Sem pedidos hoje" />
-              </div>
-            )}
-          </section>
-
-          <section
-            className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-card)]"
-            aria-label="Pagamentos do dia"
-          >
-            <h2 className="text-sm font-bold">Pagamentos do Dia</h2>
-            <ul className="mt-2 space-y-1 text-xs">
-              {resumoPed.pagtos.map((g) => (
-                <li
-                  key={g.meio}
-                  className="flex items-center justify-between gap-2 rounded bg-muted px-2 py-1.5"
-                >
-                  <span>{PAGAMENTO_LABEL[g.meio] ?? g.meio}</span>
-                  <span className="text-muted-foreground">
-                    {g.qtd} • <b className="text-foreground">{brl(g.total)}</b>
-                  </span>
-                </li>
-              ))}
-              {resumoPed.pagtos.length === 0 && (
-                <li className="text-muted-foreground">Sem movimento hoje.</li>
-              )}
-            </ul>
-            <p className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
-              <span className="font-semibold">Total do dia</span>
-              <b>{brl(resumoPed.totalHoje)}</b>
-            </p>
-          </section>
-        </div>
-      </div>
-
-      </details>
-    </>
   );
 }
 
