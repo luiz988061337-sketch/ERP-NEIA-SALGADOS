@@ -26,6 +26,19 @@ checkpoint final foi criado.
 - Teste SQL de permissões: `recomendacoes-tarefas-rls.test.sql` (executado em
   homologação, com sucesso).
 
+### Publicação A02.1.2 (26/11/2026)
+
+| Item | Resultado |
+| --- | --- |
+| Commit do código | `f211de0` (fast-forward, sem force push) |
+| Deployment | `dpl_DGQf1a47MBDkcvKvCtQ74kXrkZn1` — READY (preview) |
+| URL do deployment | `https://erp-neia-salgados-phhx9b178-luiz988061337-3147s-projects.vercel.app` |
+| Alias fixo | Apontando para `dpl_DGQf1a47MBDkcvKvCtQ74kXrkZn1` |
+| Banco do build | `lflzlcqinarrcgncafol` (`VITE_SUPABASE_URL` e `VITE_SUPABASE_PROJECT_ID`) |
+| Modo | `VITE_DEMO_PREVIEW=0`, `NEIA_AMBIENTE=homologacao`, `VITE_NEIA_AMBIENTE=homologacao` |
+| Verificação do bundle | `index-BYRoqY7S.js` contém `lflzlcqinarrcgncafol` e não contém `ruioyioynwwwiqbjznoa`; `admin-DAms4Ar9.js` contém `Marcar ciente` e `a02_recomendacoes` |
+| Resposta do alias fixo | HTTP 200 |
+
 ## Aprovação (26/11/2026)
 
 **A02.1 e A02.1.1 aprovadas visualmente pelo proprietário** no endereço fixo de
@@ -135,11 +148,13 @@ no build e em tempo de execução.
 
 ## Pendências reais
 
-1. A02.2 Previsões e cenários: aguardando autorização.
-2. A02.3 Consulta inteligente: aguardando autorização.
-3. Validações e ajustes pós-aprovação listados na seção "Pendências
+1. **A02.1.2**: homologação manual e aprovação visual do proprietário no alias
+   fixo (roteiro em `testes.md`); nenhum checkpoint final criado.
+2. A02.2 Previsões e cenários: aguardando autorização.
+3. A02.3 Consulta inteligente: aguardando autorização.
+4. Validações e ajustes pós-aprovação listados na seção "Pendências
    pós-aprovação" (não bloqueiam o uso).
-4. O Preview mantém a proteção de acesso da Vercel; sem sessão, a URL redireciona
+5. O Preview mantém a proteção de acesso da Vercel; sem sessão, a URL redireciona
    para o login da Vercel.
 
 ## Observações
