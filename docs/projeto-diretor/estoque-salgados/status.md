@@ -35,4 +35,4 @@ Checkpoint versionado: tag anotada `checkpoint-estoque-salgados-visual-01`, cria
 
 ## Regras de alteração
 
-Qualquer alteração visual neste módulo exige autorização expressa do proprietário, nova conferência manual, atualização desta documentação e novo checkpoint. O cadastro dos 26 sabores foi executado em homologação; vinculação comercial, movimentação por lote, relatórios, impressões e produção continuam dependendo de etapas e autorizações próprias. Uma demonstração ou captura local não caracteriza aprovação operacional.
+Qualquer alteração visual neste módulo exige autorização expressa do proprietário, nova conferência manual, atualização desta documentação e novo checkpoint. O cadastro dos 26 sabores foi executado em homologação e a organização da sequência foi autorizada, aplicada e registrada em [organizacao-sequencia-sabores.md](../../estoques/organizacao-sequencia-sabores.md), preservando menu, layout e checkpoints anteriores. Vinculação comercial, movimentação por lote, relatórios, impressões, cardápio público e produção continuam dependendo de etapas e autorizações próprias. Uma demonstração ou captura local não caracteriza aprovação operacional.

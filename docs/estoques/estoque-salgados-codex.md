@@ -8,6 +8,10 @@ O script `scripts/cadastrar-sabores-estoque.sql` registra 26 sabores e suas cate
 
 O módulo lê saldos, lotes, reservas e movimentações do cadastro operacional vinculado. Usa fotos do catálogo quando encontra correspondência inequívoca e mostra um marcador quando a imagem está indisponível. Sabores sem registro de lote, movimentação ou reserva exibem **Não cadastrado** com traços nos campos de saldo. Produtos legados continuam acessíveis em **Produtos fora do cadastro oficial**.
 
+## Organização da sequência
+
+Administradores podem usar **Organizar sabores** para escolher uma categoria, reordenar por arrastar/soltar ou pelos botões de subir/descer, salvar, cancelar e restaurar a sequência capturada na abertura da janela. A ordem é persistida em `public.sabores_estoque.ordem` pela RPC `reordenar_sabores_estoque`, com trava transacional e auditoria em `admin_logs`. O helper `ordenarSaboresPorOrdem` permite reutilizar a mesma sequência em relatórios, inventários e demais módulos, sem alterar o cardápio público nesta etapa. Detalhes, autorização, aplicação e reversão estão em [organizacao-sequencia-sabores.md](organizacao-sequencia-sabores.md).
+
 ## Verificação local
 
 - `npm run typecheck` e `npm run build:homolog` com `NITRO_PRESET=node-server`

@@ -60,3 +60,4 @@ depende de autorização expressa do proprietário.
 - [Menu lateral — aprovação definitiva e padrão obrigatório](menu-lateral/status.md)
 - [Estoque de Salgados — aprovação visual e cadastro de 26 sabores](estoque-salgados/status.md)
 - [Aplicação do cadastro oficial de 26 sabores em homologação](../estoques/aplicacao-cadastro-oficial-26.md)
+- [Organização da sequência dos sabores](../estoques/organizacao-sequencia-sabores.md)

@@ -4239,6 +4239,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reordenar_sabores_estoque: {
+        Args: { p_acao: string; p_chaves: string[] }
+        Returns: Json
+      }
       retirar_pedido_cliente: {
         Args: { p_exigir_conferencia?: boolean; p_pedido_id: string }
         Returns: {

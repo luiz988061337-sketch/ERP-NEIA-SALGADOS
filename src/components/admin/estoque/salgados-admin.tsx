@@ -8,6 +8,7 @@ import {
   CircleHelp,
   ClipboardList,
   History,
+  ListOrdered,
   MinusCircle,
   Package,
   Plus,
@@ -42,6 +43,7 @@ import {
 } from "@/lib/situacao-salgados";
 import { EstoqueCategorias, FotoSabor, formatarQuantidade } from "./salgados-categorias";
 import { HistoricoSalgados } from "./salgados-historico";
+import { OrganizadorSabores } from "./salgados-organizador";
 import "./salgados-admin.css";
 
 /**
@@ -138,7 +140,7 @@ async function consultarSalgadosDemo() {
         disponivel: fisico - reservado,
       };
     });
-  return { produtos, pedidos: pedidos ?? [], vinculos: null };
+  return { produtos, pedidos: pedidos ?? [], vinculos: null, ordens: [] };
 }
 
 async function consultarSalgados(signal: AbortSignal) {
@@ -167,7 +169,7 @@ async function consultarSalgados(signal: AbortSignal) {
       .order("created_at", { ascending: false })
       .limit(50)
       .abortSignal(signal),
-    supabase.from("sabores_estoque").select("chave, produto_id").abortSignal(signal),
+    supabase.from("sabores_estoque").select("chave, ordem, produto_id").abortSignal(signal),
   ]);
   if (error) throw error;
   // A versão anterior do banco ainda pode atender à tela antes do cadastro oficial.
@@ -210,7 +212,12 @@ async function consultarSalgados(signal: AbortSignal) {
     };
   });
 
-  return { produtos, pedidos: pedidos ?? [], vinculos: cadastro.data };
+  return {
+    produtos,
+    pedidos: pedidos ?? [],
+    vinculos: cadastro.data,
+    ordens: cadastro.data?.map((sabor) => ({ chave: sabor.chave, ordem: sabor.ordem })) ?? [],
+  };
 }
 
 function JanelaEstoque({
@@ -259,6 +266,7 @@ type Janela =
 
 export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => void }) {
   const [janela, setJanela] = useState<Janela>();
+  const [organizando, setOrganizando] = useState(false);
   const [chave, setChave] = useState("");
   const [loteId, setLoteId] = useState("");
   const [contado, setContado] = useState("");
@@ -281,6 +289,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
   const { sabores, legados } = organizarSaboresEstoque<NonNullable<typeof produtos>[number]>(
     produtos ?? [],
     data?.vinculos ?? null,
+    data?.ordens ?? [],
   );
   const idsConfirmados = new Map(data?.vinculos?.map((s) => [s.chave, s.produto_id]));
   const linhas = sabores.map((sabor) => ({
@@ -479,6 +488,31 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
     }, "Movimentação confirmada no estoque.");
   }
 
+  async function persistirOrdem(chaves: string[], acao: "salvar" | "restaurar") {
+    if (!user || !admin) return;
+    const resposta = await supabase.rpc("reordenar_sabores_estoque", {
+      p_chaves: chaves,
+      p_acao: acao,
+    });
+    if (resposta.error) {
+      if (resposta.error.code === "PGRST202")
+        throw new Error("A rotina de organização ainda não está instalada no banco.");
+      throw resposta.error;
+    }
+    const dado: unknown = resposta.data;
+    const status =
+      typeof dado === "object" && dado !== null && "status" in dado
+        ? String(dado.status)
+        : "";
+    if (!["ok", "sem_alteracao"].includes(status))
+      throw new Error("O banco não confirmou a nova sequência.");
+    toast.success(
+      acao === "salvar" ? "Sequência dos sabores salva." : "Sequência anterior restaurada.",
+    );
+    setOrganizando(false);
+    await refetch();
+  }
+
   return (
     <div data-testid="estoque-salgados" className="neia-a01 est-salgados-painel">
       <header className="neia-a01-cabecalho">
@@ -504,6 +538,11 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
           <button className="neia-a01-dourado" onClick={() => abrirHistorico()}>
             <History size={17} /> Histórico
           </button>
+          {admin && (
+            <button className="neia-a01-dourado" onClick={() => setOrganizando(true)}>
+              <ListOrdered size={17} /> Organizar sabores
+            </button>
+          )}
         </div>
       </header>
       {isPending && <p role="status">Carregando estoque e reservas…</p>}
@@ -948,6 +987,14 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
             </div>
           </form>
         </JanelaEstoque>
+      )}
+
+      {organizando && admin && (
+        <OrganizadorSabores
+          sabores={linhas}
+          fechar={() => setOrganizando(false)}
+          persistir={persistirOrdem}
+        />
       )}
     </div>
   );
