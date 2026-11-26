@@ -12,6 +12,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { PROJETO_HOMOLOGACAO } from "./ambiente-seguro.mjs";
 
 // Referências públicas dos projetos de produção (supabase/config.toml, docs e
 // migrations já citam estes identificadores; NÃO é segredo, é só um nome).
@@ -35,7 +36,9 @@ const NOMES_PROJETO = ["VITE_SUPABASE_PROJECT_ID", "SUPABASE_PROJECT_ID"];
  * produção. Comparação em minúsculas: caixa alta não pode esconder produção.
  */
 export function ehProjetoProducao(valor) {
-  const v = String(valor ?? "").trim().toLowerCase();
+  const v = String(valor ?? "")
+    .trim()
+    .toLowerCase();
   if (!v) return false;
   return PROJETOS_PRODUCAO.includes(v);
 }
@@ -100,7 +103,10 @@ export function avaliarAmbiente({ url, projectId, ambiente }) {
   try {
     host = new URL(url).hostname.toLowerCase();
   } catch {
-    return { ok: false, motivo: "VITE_SUPABASE_URL inválida. Confira a URL no ambiente dedicado (sem produção)." };
+    return {
+      ok: false,
+      motivo: "VITE_SUPABASE_URL inválida. Confira a URL no ambiente dedicado (sem produção).",
+    };
   }
   if (host.endsWith(".supabase.co")) {
     const sub = host.split(".")[0];
@@ -142,6 +148,14 @@ export function avaliarAmbiente({ url, projectId, ambiente }) {
       ok: false,
       motivo:
         "destino desconhecido (VITE_SUPABASE_URL fora dos domínios verificáveis). Aponte para staging conhecido ou revise a configuração.",
+    };
+  }
+  // Homologação é exclusiva do projeto oficial (P0 de 26/11/2026).
+  if (marcador === "homologacao" && String(projectId).toLowerCase() !== PROJETO_HOMOLOGACAO) {
+    return {
+      ok: false,
+      motivo:
+        "NEIA_AMBIENTE=homologacao exige o projeto de homologação. Ajuste VITE_SUPABASE_URL e VITE_SUPABASE_PROJECT_ID.",
     };
   }
   return { ok: true, motivo: "destino fora de produção." };
@@ -190,6 +204,8 @@ if (ehPrincipal) {
     process.exit(0);
   }
   console.error(`✖ dev bloqueado: ${r.motivo}`);
-  console.error("  Nada foi iniciado e nenhuma conexão foi feita. Ajuste o ambiente e tente de novo.");
+  console.error(
+    "  Nada foi iniciado e nenhuma conexão foi feita. Ajuste o ambiente e tente de novo.",
+  );
   process.exit(1);
 }

@@ -55,3 +55,6 @@ scripts-tests-summary.json
 # Espelhos/artefatos gerados pelas capturas de preview (nao versionar)
 docs/preview-captures/mirror/
 docs/preview-captures/tmp-proxy/
+
+# Estado local do Supabase CLI (vinculo por maquina)
+supabase/.temp/

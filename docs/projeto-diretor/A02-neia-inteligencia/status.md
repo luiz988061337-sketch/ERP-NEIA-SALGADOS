@@ -54,9 +54,10 @@ Correções aplicadas:
 - `supabase/.temp/linked-project.json`: vínculo do CLI corrigido para
   `lflzlcqinarrcgncafol`.
 
-**Atenção:** o `.env` versionado continua apontando para o projeto de produção
-(`ruioyioynwwwiqbjznoa`). O build de homologação foi feito com as variáveis
-explícitas da branch; a troca do `.env` depende de decisão do proprietário.
+**Atenção:** o `.env` local (não versionado) foi corrigido no P0 de 26/11/2026
+para apontar ao projeto de homologação. O incidente e a norma permanente estão em
+[segurança dos ambientes](../seguranca-ambientes/README.md) e
+[incidente de 26/11/2026](../seguranca-ambientes/incidente-2026-11-26.md).
 
 #### Validação REST autenticada (homologação)
 

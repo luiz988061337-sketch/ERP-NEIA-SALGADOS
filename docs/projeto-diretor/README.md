@@ -52,5 +52,8 @@ depende de autorização expressa do proprietário.
 
 ## Histórico do Projeto Diretor
 
+- [Segurança dos ambientes — norma permanente](seguranca-ambientes/README.md)
+- [Incidente de 26/11/2026 — operações em produção](seguranca-ambientes/incidente-2026-11-26.md)
+- [Auditoria das migrações 0125–0127](seguranca-ambientes/migracoes-0125-0127.md)
 - [A01 — Dashboard Administrativo](A01-dashboard/status.md)
 - [A02 — Néia Inteligência](A02-neia-inteligencia/status.md)

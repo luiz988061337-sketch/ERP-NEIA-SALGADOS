@@ -50,6 +50,24 @@ e referências aprovadas do módulo antes de iniciar uma tarefa.
 - Banco Supabase: `ruioyioynwwwiqbjznoa`
 - Não modificar sem autorização expressa do proprietário.
 
+### Isolamento de ambientes (P0 — 26/11/2026)
+- Toda escrita ou migração remota exige destino declarado em `--project-ref`
+  ou `NEIA_PROJETO_ALVO` e deve passar pela barreira
+  `scripts/ambiente-seguro.mjs`.
+- `supabase --linked` sem `--project-ref`, o `.env` e variáveis herdadas do
+  terminal **não** são autoridade de destino. Divergência, produção ou dúvida
+  bloqueiam a operação antes de qualquer conexão.
+- Desenvolvimento e homologação usam exclusivamente `lflzlcqinarrcgncafol`.
+  Banco local, projeto desconhecido e projeto legado também são recusados.
+- Produção (`ruioyioynwwwiqbjznoa`) é somente leitura; qualquer alteração
+  depende de autorização expressa, janela combinada e registro documental.
+- Migração aplicada por SQL direto exige reconciliação de histórico
+  documentada. Nunca reaplicar a migração para "consertar" o histórico.
+- Comandos: `npm run seguranca:destino`, `npm run teste:seguranca`,
+  `npm run sql:homolog`, `npm run build:homolog`.
+- Norma completa e registro do incidente:
+  `docs/projeto-diretor/seguranca-ambientes/`.
+
 ### Regras de publicação e versionamento
 - Utilizar sempre o mesmo endereço de homologação; não criar novos projetos ou endereços.
 - Sincronizar o GitHub antes de iniciar qualquer etapa e salvar os commits após cada implementação.
