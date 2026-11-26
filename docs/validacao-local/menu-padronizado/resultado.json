@@ -1,0 +1,41 @@
+{
+  "tipo": "captura local isolada (demo) — somente evidência visual do menu compartilhado",
+  "resultados": [
+    {
+      "rota": "dashboard",
+      "url": "http://127.0.0.1:5173/admin#dashboard",
+      "texto": "Dashboard",
+      "cor": "rgb(255, 210, 82)",
+      "imagem": "none",
+      "sidebarLargura": 224,
+      "menusIndependentes": 0,
+      "overflow": false,
+      "erros": [],
+      "redeBloqueada": []
+    },
+    {
+      "rota": "pedidos",
+      "url": "http://127.0.0.1:5173/admin#pedidos",
+      "texto": "Pedidos",
+      "cor": "rgb(255, 210, 82)",
+      "imagem": "none",
+      "sidebarLargura": 224,
+      "menusIndependentes": 0,
+      "overflow": false,
+      "erros": [],
+      "redeBloqueada": []
+    },
+    {
+      "rota": "estoque-salgados",
+      "url": "http://127.0.0.1:5173/preview/estoque-salgados",
+      "texto": "Estoque de Salgados",
+      "cor": "rgb(255, 210, 82)",
+      "imagem": "none",
+      "sidebarLargura": 224,
+      "menusIndependentes": 0,
+      "overflow": false,
+      "erros": [],
+      "redeBloqueada": []
+    }
+  ]
+}

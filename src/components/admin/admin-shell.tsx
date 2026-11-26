@@ -309,6 +309,16 @@ function MenuLateral({
                           </span>
                         ))
                       : item.label;
+                    // O SidebarMenuButton aplica `data-[active=true]:bg-sidebar-accent`
+                    // depois das classes utilitárias; o estilo inline garante o
+                    // amarelo sólido aprovado em todos os módulos.
+                    const estiloAtivo = ativo
+                      ? ({
+                          backgroundColor: "#FFD252",
+                          backgroundImage: "none",
+                          color: "#17110A",
+                        } as const)
+                      : undefined;
                     const classes = `${
                       ativo
                         ? "rounded-lg border border-[#FFD252] bg-[#FFD252] px-3 font-semibold text-[#17110A] shadow-card hover:bg-[#FFD252] hover:text-[#17110A]"
@@ -332,6 +342,7 @@ function MenuLateral({
                               resetScroll={false}
                               activeOptions={{ exact: true, includeHash: true }}
                               aria-current={ativo ? "page" : undefined}
+                              style={estiloAtivo}
                               {...(item.hash ? { hash: item.hash } : {})}
                               onClick={() => {
                                 if (isMobile) setOpenMobile(false);
@@ -353,6 +364,7 @@ function MenuLateral({
                             onClick={() => ir(item.value)}
                             aria-current={aba === item.value ? "page" : undefined}
                             className={classes}
+                            style={estiloAtivo}
                           >
                             <item.icon className={classeIcone} />
                             <span className={classeTexto} style={estiloTexto}>
