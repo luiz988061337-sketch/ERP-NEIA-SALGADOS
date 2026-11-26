@@ -4,7 +4,7 @@ O painel operacional `/admin#estoque-salgados` usa o menu compartilhado do ERP e
 
 ## Cadastro e vínculos
 
-O script `scripts/cadastrar-sabores-estoque.sql` registra 26 sabores e suas categorias de apresentação, conforme o [cadastro oficial](cadastro-oficial-salgados-26.md). Cada sabor tem chave exclusiva e pode apontar para o ID do produto unitário que já controla o seu estoque. O script preserva vínculos existentes e registra o resultado da correspondência. Embalagens e nomes ambíguos ficam fora da vinculação automática.
+O script `scripts/cadastrar-sabores-estoque.sql` registra 26 sabores e suas categorias de apresentação, conforme o [cadastro oficial](cadastro-oficial-salgados-26.md). Cada sabor tem chave exclusiva e pode apontar para o ID do produto unitário que já controla o seu estoque quando houver vínculo confirmado. Nesta aplicação o script preserva vínculos existentes, registra a correspondência por nome, mas não cria vínculo automático algum. Embalagens e nomes ambíguos permanecem fora da vinculação.
 
 O módulo lê saldos, lotes, reservas e movimentações do cadastro operacional vinculado. Usa fotos do catálogo quando encontra correspondência inequívoca e mostra um marcador quando a imagem está indisponível. Sabores sem registro de lote, movimentação ou reserva exibem **Não cadastrado** com traços nos campos de saldo. Produtos legados continuam acessíveis em **Produtos fora do cadastro oficial**.
 

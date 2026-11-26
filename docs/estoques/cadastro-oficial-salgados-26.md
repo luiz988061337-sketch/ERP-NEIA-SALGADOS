@@ -1,6 +1,6 @@
 # Estoque de Salgados — cadastro oficial de 26 sabores
 
-Preparação local concluída em 26/11/2026, após a [aprovação visual](aprovacao-visual-estoque-salgados.md). Nenhuma escrita em banco remoto foi executada nesta etapa.
+Preparação local concluída em 26/11/2026, após a [aprovação visual](aprovacao-visual-estoque-salgados.md). A aplicação autorizada em homologação e suas verificações estão registradas em [aplicacao-cadastro-oficial-26.md](aplicacao-cadastro-oficial-26.md).
 
 ## Lista oficial
 
@@ -24,8 +24,9 @@ Reaproveitamento do script do Codex:
 - `scripts/cadastrar-sabores-estoque.sql` continua sendo a fonte única do cadastro SQL.
 - Um registro em `public.sabores_estoque` por sabor, com chave e nome únicos.
 - Unidades individuais são a única base operacional de estoque; embalagens e nomes ambíguos não são sabores.
-- A vinculação usa apenas `produtos.id` já existente, quando há correspondência exata e não ambígua.
-- A gravação é idempotente: `CREATE TABLE IF NOT EXISTS`, `INSERT ... ON CONFLICT (chave)` e atualização somente quando o vínculo atual é nulo e o novo não.
+- Nesta aplicação não há vinculação automática: os 26 registros são criados com `produto_id` nulo, mesmo quando há correspondência exata de nome.
+- Vínculos anteriormente confirmados são preservados: `ON CONFLICT (chave) DO NOTHING` não altera registros existentes.
+- A gravação é idempotente: `CREATE TABLE IF NOT EXISTS` e `INSERT ... ON CONFLICT (chave) DO NOTHING`.
 - Registros existentes e vínculos confirmados não são apagados nem renomeados.
 
 ## Preservação comercial
@@ -47,7 +48,7 @@ O diagnóstico atualizado está em [diagnostico-vinculos-salgados.md](diagnostic
 
 As capturas locais geradas nesta preparação são temporárias e **não** substituem as capturas aprovadas. Nenhuma captura ou layout aprovado foi alterado.
 
-## Plano para aplicação em homologação (aguardando autorização)
+## Plano executado em homologação
 
 1. Sincronizar Git e confirmar branch `resgate-visual-h01-h07-codex`, sem trabalho alheio em edição.
 2. Declarar destino explícito e validar barreira:
@@ -61,7 +62,7 @@ As capturas locais geradas nesta preparação são temporárias e **não** subst
    O terceiro comando é somente simulação: valida o arquivo e o destino, sem abrir conexão para executar SQL.
 
 3. Conferir dependências antes da escrita: `public.produtos`, `public.categorias` e `public.has_role(auth.uid(), ...)` já existem; a tabela `public.sabores_estoque` ainda não existe em homologação (leitura de 26/11/2026). Não há outra migration em andamento no mesmo banco.
-4. Aplicar somente com autorização expressa do proprietário:
+4. Aplicação executada com autorização expressa do proprietário:
 
    ```bash
    npm run sql:homolog -- --arquivo scripts/cadastrar-sabores-estoque.sql --project-ref lflzlcqinarrcgncafol --confirmar
@@ -88,7 +89,7 @@ As capturas locais geradas nesta preparação são temporárias e **não** subst
    SELECT count(*) AS reservas FROM public.reservas_estoque;
    ```
 
-   Resultado esperado: 26 sabores, contagens por categoria `[9, 4, 8, 2, 3]`, 31 produtos, zero lotes, zero movimentações, zero reservas e zero vínculos automáticos. O script imprime a situação de cada chave; nenhuma linha deve indicar vínculo automático com `Mini Enroladinho de Salsicha 20un`.
+   Resultado esperado: 26 sabores, contagens por categoria `[9, 4, 8, 2, 3]`, 31 produtos, zero lotes, zero movimentações, zero reservas e zero vínculos automáticos. O script imprime `acao` e `situacao` de cada chave: registros novos devem aparecer como `Registro criado` e `Sem vínculo automático`. Nenhuma linha deve indicar vínculo com `Mini Enroladinho de Salsicha 20un`.
 
 6. Registrar a aplicação, o resultado das verificações e a reversão em documento próprio, com checkpoint versionado. Não promover produção.
 

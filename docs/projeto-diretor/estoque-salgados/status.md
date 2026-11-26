@@ -27,7 +27,7 @@ As capturas foram geradas nas iterações anteriores de restauração e revisão
 
 ## Relação com o cadastro de 26 sabores
 
-O catálogo local passou a 26 sabores: Fritos 9, Mini Pastéis 4, Assados 8, Empadas 2 e Mini Pizzas 3. Os dois novos sabores, `Trouxinha de calabresa` e `Enroladinho de salsicha`, foram acrescentados ao fim da ordem existente, com ordens 25 e 26. Essa preparação é posterior à aprovação visual e **não** altera as capturas aprovadas nem implica execução remota. O cadastro em homologação depende de autorização específica do proprietário.
+O catálogo local passou a 26 sabores: Fritos 9, Mini Pastéis 4, Assados 8, Empadas 2 e Mini Pizzas 3. Os dois novos sabores, `Trouxinha de calabresa` e `Enroladinho de salsicha`, foram acrescentados ao fim da ordem existente, com ordens 25 e 26. Essa preparação é posterior à aprovação visual e **não** altera as capturas aprovadas. O cadastro foi aplicado em homologação com autorização específica e verificações registradas em [aplicacao-cadastro-oficial-26.md](../../estoques/aplicacao-cadastro-oficial-26.md), sem vínculos automáticos, saldos ou movimentações.
 
 ## Checkpoint
 
@@ -35,4 +35,4 @@ Checkpoint versionado: tag anotada `checkpoint-estoque-salgados-visual-01`, cria
 
 ## Regras de alteração
 
-Qualquer alteração visual neste módulo exige autorização expressa do proprietário, nova conferência manual, atualização desta documentação e novo checkpoint. A operação real com 26 sabores continua pendente de análise do SQL, verificação do destino e autorização expressa; uma demonstração ou captura local não a caracteriza como homologada.
+Qualquer alteração visual neste módulo exige autorização expressa do proprietário, nova conferência manual, atualização desta documentação e novo checkpoint. O cadastro dos 26 sabores foi executado em homologação; vinculação comercial, movimentação por lote, relatórios, impressões e produção continuam dependendo de etapas e autorizações próprias. Uma demonstração ou captura local não caracteriza aprovação operacional.

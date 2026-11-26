@@ -1,6 +1,7 @@
 -- Aplicação manual, somente após aprovação e confirmação do ambiente.
--- Registra metadados por sabor. O vínculo opcional é com o produto que já
--- controla o estoque por unidade, preservando os IDs e as operações existentes.
+-- Registra metadados por sabor. Nesta execução não há vinculação automática:
+-- novos registros entram com produto_id nulo e vínculos preexistentes são
+-- preservados (ON CONFLICT DO NOTHING).
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.sabores_estoque (
@@ -81,25 +82,20 @@ vinculos AS (
   FROM oficial o
   LEFT JOIN candidatos c ON c.chave = o.chave
 ), gravados AS (
-  INSERT INTO public.sabores_estoque AS sabor (chave, categoria, nome, ordem, produto_id)
-  SELECT v.chave, v.categoria, v.nome, v.ordem,
-    CASE WHEN EXISTS (
-      SELECT 1 FROM public.sabores_estoque outro
-      WHERE outro.produto_id = v.produto_id AND outro.chave <> v.chave
-    ) THEN NULL ELSE v.produto_id END
+  INSERT INTO public.sabores_estoque (chave, categoria, nome, ordem, produto_id)
+  SELECT v.chave, v.categoria, v.nome, v.ordem, NULL::uuid
   FROM vinculos v
   ORDER BY v.ordem
-  ON CONFLICT (chave) DO UPDATE SET produto_id = EXCLUDED.produto_id
-  WHERE sabor.produto_id IS NULL AND EXCLUDED.produto_id IS NOT NULL
-  RETURNING chave, produto_id
+  ON CONFLICT (chave) DO NOTHING
+  RETURNING chave
 )
-SELECT v.chave, v.categoria, v.nome, coalesce(g.produto_id, s.produto_id) AS produto_id,
+SELECT v.chave, v.categoria, v.nome, s.produto_id AS produto_id,
+  CASE WHEN g.chave IS NOT NULL THEN 'Registro criado' ELSE 'Registro preexistente' END AS acao,
   CASE
-    WHEN coalesce(g.produto_id, s.produto_id) IS NOT NULL THEN 'Vinculado'
-    WHEN v.candidatos > 1 THEN 'Mais de um candidato'
-    WHEN v.candidatos = 1 THEN 'Candidato já vinculado'
-    ELSE 'Sem produto unitário correspondente'
-  END AS situacao
+    WHEN s.produto_id IS NOT NULL THEN 'Vínculo preexistente preservado'
+    ELSE 'Sem vínculo automático'
+  END AS situacao,
+  v.candidatos AS candidatos_por_nome
 FROM vinculos v
 LEFT JOIN gravados g ON g.chave = v.chave
 LEFT JOIN public.sabores_estoque s ON s.chave = v.chave

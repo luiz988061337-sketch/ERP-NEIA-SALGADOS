@@ -59,3 +59,4 @@ depende de autorização expressa do proprietário.
 - [A02 — Néia Inteligência](A02-neia-inteligencia/status.md)
 - [Menu lateral — aprovação definitiva e padrão obrigatório](menu-lateral/status.md)
 - [Estoque de Salgados — aprovação visual e cadastro de 26 sabores](estoque-salgados/status.md)
+- [Aplicação do cadastro oficial de 26 sabores em homologação](../estoques/aplicacao-cadastro-oficial-26.md)

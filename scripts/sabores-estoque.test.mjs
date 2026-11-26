@@ -30,6 +30,10 @@ test("26 sabores e apelidos únicos, na ordem aprovada e presentes no cadastro S
     false,
   );
   const sql = readFileSync(new URL("./cadastrar-sabores-estoque.sql", import.meta.url), "utf8");
+  assert.match(sql, /NULL::uuid/);
+  assert.match(sql, /ON CONFLICT \(chave\) DO NOTHING/);
+  assert.match(sql, /Vínculo preexistente preservado/);
+  assert.doesNotMatch(sql, /ON CONFLICT \(chave\) DO UPDATE SET produto_id/);
   const linhas = [
     ...sql.matchAll(/^\s*\('([^']+)', '([^']+)', '([^']+)', (\d+), ARRAY\[(.*)\]\)/gm),
   ];
