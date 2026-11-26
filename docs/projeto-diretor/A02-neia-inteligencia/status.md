@@ -14,8 +14,10 @@ implementada e publicada na homologação. A etapa ainda NÃO está encerrada:**
 falta a homologação manual e a aprovação visual do proprietário, e nenhum
 checkpoint final foi criado.
 
-- Migrations `0125` (A01), `0126` (recomendações) e `0127` (tarefas) aplicadas
-  **somente** em `lflzlcqinarrcgncafol`; Production não foi alterada.
+- Migrations `0125` (A01) e, na correção de 26/11/2026, `0126` (recomendações) e
+  `0127` (tarefas) aplicadas em `lflzlcqinarrcgncafol`. A base de produção também
+  contém os objetos A01/A02, **vazios** (0 registros); a remoção depende de
+  autorização expressa do proprietário (ver "Correção de 26/11/2026").
 - Novas capacidades: situação por recomendação (pendente, ciente, adiada, com
   tarefa, resolvida, dispensada), ciência, adiamento com limite de 24 horas
   para crítico, dispensa com motivo, reativação por recorrência, resolução
@@ -25,6 +27,75 @@ checkpoint final foi criado.
 - Relatório técnico: `a02.1.2-implementacao.md`.
 - Teste SQL de permissões: `recomendacoes-tarefas-rls.test.sql` (executado em
   homologação, com sucesso).
+
+### Correção de 26/11/2026 — cache A02 e menu único
+
+**Commit da correção:** `c31986d` (local, ainda não publicado).
+
+**Causa do `PGRST205`:** as migrations `0126` e `0127` nunca tinham sido
+aplicadas em `lflzlcqinarrcgncafol`. O CLI `supabase --linked` resolvia para o
+projeto de produção (`ruioyioynwwwiqbjznoa`), então as auditorias e a aplicação
+anterior de DDL atingiram a base errada. Não era falha de cache do PostgREST,
+de RLS nem de grants.
+
+Correções aplicadas:
+
+- `0126` e `0127` aplicadas em homologação; `NOTIFY pgrst` recarregou o schema.
+  O PostgREST passou a responder `42501` (tabela presente, sem grant para
+  `anon`) em vez de `PGRST205`.
+- `src/lib/neia-recomendacoes.ts`: histórico ordenado por `ocorreu_em`, a coluna
+  existente. Antes usava `ocorrido_em` e recebia `42703`, deixando o histórico
+  sem carregar.
+- `src/components/admin/admin-shell.tsx`: toda página administrativa real recebe
+  o menu aprovado da A01.1 com **Minhas tarefas** no grupo Principal, sem exigir
+  que cada rota declare `menuTarefas`. A prévia/demonstração continua com o
+  catálogo completo e sem "Minhas tarefas". **Néia Inteligência** permanece no
+  grupo Gestão.
+- `supabase/.temp/linked-project.json`: vínculo do CLI corrigido para
+  `lflzlcqinarrcgncafol`.
+
+**Atenção:** o `.env` versionado continua apontando para o projeto de produção
+(`ruioyioynwwwiqbjznoa`). O build de homologação foi feito com as variáveis
+explícitas da branch; a troca do `.env` depende de decisão do proprietário.
+
+#### Validação REST autenticada (homologação)
+
+Usuário temporário com papel `admin`, removido ao final junto com os registros:
+
+| Verificação | Resultado |
+| --- | --- |
+| Ler `a02_recomendacoes` | 200 |
+| Inserir recomendação | 201 |
+| Marcar como `ciente` | 200 |
+| Histórico A02 (`order=ocorreu_em`) | 200, eventos `detectada` e `ciente` |
+| Histórico A02 com `ocorrido_em` (antes da correção) | 400 `42703` |
+| Criar `a01_tarefas` | 201 |
+| "Minhas tarefas" (`responsavel_id`) | 200 com a tarefa criada |
+| Exclusão lógica com motivo | 200 e histórico `excluida` |
+| Leitura de A02 por usuário sem papel admin | 200 com lista vazia (RLS) |
+
+#### Produção
+
+- Os objetos A01/A02 existem na base de produção e estão vazios (0 registros em
+  `a01_tarefas`, `a01_tarefas_historico`, `a02_recomendacoes` e
+  `a02_recomendacoes_historico`). Nenhum dado de negócio foi alterado.
+- A sonda `public.opencode_cache_probe`, criada durante o diagnóstico na base
+  errada, foi removida de produção.
+- A remoção dos objetos A01/A02 de produção **não** foi executada; aguarda
+  autorização expressa do proprietário.
+
+#### Testes desta correção
+
+| Item | Resultado |
+| --- | --- |
+| `node --test` (Néia, recomendações, dashboard A01, sabores) | 47/47 |
+| `npm run typecheck` | Passou |
+| ESLint dos arquivos alterados | Passou |
+| `npm run build` com `VITE_DEMO_PREVIEW=0` e `NEIA_AMBIENTE=homologacao` | Passou |
+| Bundle | 10 referências a `lflzlcqinarrcgncafol`, nenhuma a `ruioyioynwwwiqbjznoa` |
+
+A conferência visual do menu nas páginas citadas continua pendente de aprovação
+manual no alias fixo, após a publicação deste commit.
 
 ### Publicação A02.1.2 (26/11/2026)
 
