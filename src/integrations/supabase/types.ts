@@ -1324,6 +1324,7 @@ export type Database = {
           motivo: string
           produto_id: string
           quantidade: number
+          sabor_chave: string | null
           tipo: string
         }
         Insert: {
@@ -1333,6 +1334,7 @@ export type Database = {
           motivo?: string
           produto_id: string
           quantidade?: number
+          sabor_chave?: string | null
           tipo?: string
         }
         Update: {
@@ -1342,6 +1344,7 @@ export type Database = {
           motivo?: string
           produto_id?: string
           quantidade?: number
+          sabor_chave?: string | null
           tipo?: string
         }
         Relationships: [
@@ -1365,6 +1368,7 @@ export type Database = {
           quantidade: number
           referencia_id: string | null
           referencia_tipo: string | null
+          sabor_chave: string | null
           saldo_anterior: number
           saldo_posterior: number
           tipo: Database["public"]["Enums"]["tipo_mov_estoque"]
@@ -1380,6 +1384,7 @@ export type Database = {
           quantidade: number
           referencia_id?: string | null
           referencia_tipo?: string | null
+          sabor_chave?: string | null
           saldo_anterior: number
           saldo_posterior: number
           tipo: Database["public"]["Enums"]["tipo_mov_estoque"]
@@ -1395,6 +1400,7 @@ export type Database = {
           quantidade?: number
           referencia_id?: string | null
           referencia_tipo?: string | null
+          sabor_chave?: string | null
           saldo_anterior?: number
           saldo_posterior?: number
           tipo?: Database["public"]["Enums"]["tipo_mov_estoque"]
@@ -2308,6 +2314,7 @@ export type Database = {
           produzido_em: string | null
           quantidade: number
           restante: number
+          sabor_chave: string | null
           status: string
           validade: string | null
         }
@@ -2319,6 +2326,7 @@ export type Database = {
           produzido_em?: string | null
           quantidade?: number
           restante?: number
+          sabor_chave?: string | null
           status?: string
           validade?: string | null
         }
@@ -2330,6 +2338,7 @@ export type Database = {
           produzido_em?: string | null
           quantidade?: number
           restante?: number
+          sabor_chave?: string | null
           status?: string
           validade?: string | null
         }
@@ -3626,6 +3635,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           reserva_id: string
+          sabor_chave: string | null
         }
         Insert: {
           created_at?: string
@@ -3637,6 +3647,7 @@ export type Database = {
           produto_id: string
           quantidade: number
           reserva_id: string
+          sabor_chave?: string | null
         }
         Update: {
           created_at?: string
@@ -3648,6 +3659,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           reserva_id?: string
+          sabor_chave?: string | null
         }
         Relationships: [
           {
@@ -3784,6 +3796,54 @@ export type Database = {
           },
         ]
       }
+      sabores_estoque_vinculos: {
+        Row: {
+          ativo: boolean
+          chave: string
+          conferido_em: string
+          conferido_por: string | null
+          fator_unidades: number
+          observacao: string | null
+          produto_id: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          chave: string
+          conferido_em?: string
+          conferido_por?: string | null
+          fator_unidades: number
+          observacao?: string | null
+          produto_id: string
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          chave?: string
+          conferido_em?: string
+          conferido_por?: string | null
+          fator_unidades?: number
+          observacao?: string | null
+          produto_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sabores_estoque_vinculos_chave_fkey"
+            columns: ["chave"]
+            isOneToOne: false
+            referencedRelation: "sabores_estoque"
+            referencedColumns: ["chave"]
+          },
+          {
+            foreignKeyName: "sabores_estoque_vinculos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservas_estoque: {
         Row: {
           created_at: string
@@ -3792,6 +3852,7 @@ export type Database = {
           pedido_id: string
           produto_id: string | null
           quantidade: number
+          sabor_chave: string | null
           status: string
         }
         Insert: {
@@ -3801,6 +3862,7 @@ export type Database = {
           pedido_id: string
           produto_id?: string | null
           quantidade?: number
+          sabor_chave?: string | null
           status?: string
         }
         Update: {
@@ -3810,6 +3872,7 @@ export type Database = {
           pedido_id?: string
           produto_id?: string | null
           quantidade?: number
+          sabor_chave?: string | null
           status?: string
         }
         Relationships: [
@@ -4072,6 +4135,45 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_saldos_sabores_estoque: {
+        Row: {
+          chave: string
+          categoria: string
+          disponivel: number
+          fisico: number
+          nome: string
+          ordem: number
+          produto_id: string | null
+          proxima_validade: string | null
+          reservado: number
+          vencidos: number
+        }
+        Insert: {
+          chave?: string
+          categoria?: string
+          disponivel?: number
+          fisico?: number
+          nome?: string
+          ordem?: number
+          produto_id?: string | null
+          proxima_validade?: string | null
+          reservado?: number
+          vencidos?: number
+        }
+        Update: {
+          chave?: string
+          categoria?: string
+          disponivel?: number
+          fisico?: number
+          nome?: string
+          ordem?: number
+          produto_id?: string | null
+          proxima_validade?: string | null
+          reservado?: number
+          vencidos?: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       aceitar_entrega_motoboy: {
@@ -4177,7 +4279,7 @@ export type Database = {
       movimentar_lote_salgado: {
         Args: {
           p_sabor: string
-          p_produto: string
+          p_produto: string | null
           p_tipo: string
           p_quantidade: number
           p_chave: string
@@ -4241,6 +4343,21 @@ export type Database = {
       }
       reordenar_sabores_estoque: {
         Args: { p_acao: string; p_chaves: string[] }
+        Returns: Json
+      }
+      vincular_sabor_estoque_produto: {
+        Args: {
+          p_chave: string
+          p_produto_id: string
+          p_fator_unidades?: number
+          p_tipo?: string
+          p_observacao?: string
+          p_substituir?: boolean
+        }
+        Returns: Json
+      }
+      desvincular_sabor_estoque_produto: {
+        Args: { p_chave: string; p_produto_id: string; p_motivo?: string }
         Returns: Json
       }
       retirar_pedido_cliente: {

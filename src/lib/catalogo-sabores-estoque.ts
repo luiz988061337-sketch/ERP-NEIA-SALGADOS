@@ -108,6 +108,37 @@ type ProdutoSabor = {
 export type VinculoSaborEstoque = { chave: string; produto_id: string | null };
 export type OrdemSaborEstoque = { chave: string; ordem: number };
 
+export type OperacaoSaborEstoque = {
+  ativo: boolean;
+  estoque: number;
+  minimo: number;
+  temMovimento: boolean;
+  lotesTodos: {
+    id: string;
+    codigo: string;
+    validade: string | null;
+    restante: number;
+    status: string;
+  }[];
+  lotesFefo: {
+    id: string;
+    codigo: string;
+    validade: string | null;
+    restante: number;
+    status: string;
+  }[];
+  reservas: {
+    id: string;
+    pedidoId: string;
+    quantidade: number;
+    consumido: number;
+    pendente: number;
+  }[];
+  fisico: number;
+  reservado: number;
+  disponivel: number;
+};
+
 /**
  * A ordem persistida é a fonte única da sequência. O catálogo oficial é usado
  * apenas como fallback para instalações antigas ou registros ainda não
@@ -144,6 +175,7 @@ export function organizarSaboresEstoque<T extends ProdutoSabor>(
   produtos: T[],
   vinculos: VinculoSaborEstoque[] | null,
   ordens?: readonly OrdemSaborEstoque[] | null,
+  operacoesPorChave?: ReadonlyMap<string, OperacaoSaborEstoque> | null,
 ) {
   const porId = new Map(produtos.map((p) => [p.id, p]));
   const vinculosPorChave = new Map(vinculos?.map((sabor) => [sabor.chave, sabor.produto_id]));
@@ -177,12 +209,21 @@ export function organizarSaboresEstoque<T extends ProdutoSabor>(
           .flatMap((p) => (p.imagem_url ? [p.imagem_url] : [])),
       );
       const ordem = ordens?.find((item) => item.chave === chave)?.ordem;
+      const operacaoProduto = produto as unknown as OperacaoSaborEstoque | undefined;
+      const operacaoProdutoValida =
+        operacaoProduto &&
+        Array.isArray(operacaoProduto.lotesTodos) &&
+        Array.isArray(operacaoProduto.reservas)
+          ? operacaoProduto
+          : undefined;
+      const operacao = operacoesPorChave?.get(chave) ?? operacaoProdutoValida;
       return {
         chave,
         categoria,
         nome,
         ordem: ordem ?? saboresEstoque.findIndex((item) => item[0] === chave) + 1,
         produto,
+        operacao,
         imagem: produto?.imagem_url ?? (fotos.size === 1 ? ([...fotos][0] ?? null) : null),
       };
     }),

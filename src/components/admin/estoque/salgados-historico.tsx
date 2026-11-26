@@ -22,49 +22,87 @@ const dataHora = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
 });
 
+type ProdutoHistorico = { id: string; nome: string; chave?: string | undefined };
+type MovimentoHistorico = {
+  id: string;
+  created_at: string;
+  usuario_id: string | null;
+  tipo: keyof typeof operacoes;
+  produto_id: string | null;
+  quantidade: number;
+  saldo_anterior: number;
+  saldo_posterior: number;
+  observacao: string | null;
+  lotes: { codigo: string } | null;
+};
+
 export function HistoricoSalgados({
   produtos,
   inicial,
+  porChave,
 }: {
-  produtos: { id: string; nome: string }[];
+  produtos: ProdutoHistorico[];
   inicial?: string | undefined;
+  porChave: boolean;
 }) {
-  const [sabor, setSabor] = useState(inicial ?? "");
+  const [sabor, setSabor] = useState(() => {
+    if (!inicial) return "";
+    const encontrado = produtos.find((p) => p.chave === inicial || p.id === inicial);
+    return encontrado ? (encontrado.chave ?? encontrado.id) : "";
+  });
   const [operacao, setOperacao] = useState("");
   const [lote, setLote] = useState("");
   const [responsavel, setResponsavel] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [pagina, setPagina] = useState(0);
-  const ids = sabor ? [sabor] : produtos.map((p) => p.id);
+  const selecionado = produtos.find((p) => (p.chave ?? p.id) === sabor);
+  const ids = (selecionado ? [selecionado.id] : produtos.map((p) => p.id)).filter(Boolean);
+  const chaves = porChave
+    ? selecionado?.chave
+      ? [selecionado.chave]
+      : produtos.flatMap((p) => (p.chave ? [p.chave] : []))
+    : [];
   const invalido = !!inicio && !!fim && inicio > fim;
   const resultado = useQuery({
-    queryKey: ["historico-salgados", ids, operacao, lote, responsavel, inicio, fim, pagina],
-    enabled: !!ids.length && !invalido,
+    queryKey: ["historico-salgados", ids, chaves, operacao, lote, responsavel, inicio, fim, pagina],
+    enabled: (!!ids.length || !!chaves.length) && !invalido,
     queryFn: async ({ signal }) => {
-      let consulta = supabase
-        .from("estoque_movimentacoes")
-        .select(
-          "id, produto_id, usuario_id, tipo, quantidade, saldo_anterior, saldo_posterior, observacao, created_at, lotes(codigo)",
-        )
-        .in("produto_id", ids);
-      if (operacao) consulta = consulta.eq("tipo", operacao as keyof typeof operacoes);
-      if (inicio) consulta = consulta.gte("created_at", inicio + "T00:00:00-03:00");
-      if (fim) consulta = consulta.lte("created_at", fim + "T23:59:59.999999-03:00");
+      const vazio = { movimentos: [], nomes: new Map<string, string>() };
+
+      let loteIds: string[] | undefined;
       if (lote.trim()) {
-        const codigos = await supabase
-          .from("lotes")
-          .select("id")
-          .in("produto_id", ids)
-          .eq("codigo", lote.trim())
-          .abortSignal(signal);
-        if (codigos.error) throw codigos.error;
-        if (!codigos.data.length) return { movimentos: [], nomes: new Map<string, string>() };
-        consulta = consulta.in(
-          "lote_id",
-          codigos.data.map((l) => l.id),
-        );
+        const consultasLotes = [
+          ...(chaves.length
+            ? [
+                supabase
+                  .from("lotes")
+                  .select("*")
+                  .in("sabor_chave", chaves)
+                  .eq("codigo", lote.trim())
+                  .abortSignal(signal),
+              ]
+            : []),
+          ...(ids.length
+            ? [
+                supabase
+                  .from("lotes")
+                  .select("*")
+                  .in("produto_id", ids)
+                  .eq("codigo", lote.trim())
+                  .abortSignal(signal),
+              ]
+            : []),
+        ];
+        const respostas = await Promise.all(consultasLotes);
+        for (const resposta of respostas) if (resposta.error) throw resposta.error;
+        loteIds = [
+          ...new Set(respostas.flatMap((resposta) => resposta.data?.map((item) => item.id) ?? [])),
+        ];
+        if (!loteIds.length) return vazio;
       }
+
+      let usuarioIds: string[] | undefined;
       if (responsavel.trim()) {
         const perfis = await supabase
           .from("profiles")
@@ -75,23 +113,42 @@ export function HistoricoSalgados({
           )
           .abortSignal(signal);
         if (perfis.error) throw perfis.error;
-        if (!perfis.data.length) return { movimentos: [], nomes: new Map<string, string>() };
-        consulta = consulta.in(
-          "usuario_id",
-          perfis.data.map((p) => p.id),
-        );
+        if (!perfis.data.length) return vazio;
+        usuarioIds = perfis.data.map((p) => p.id);
       }
-      const { data, error } = await consulta
-        .order("created_at", { ascending: false })
-        .order("id")
-        .range(pagina * 25, pagina * 25 + 25)
-        .abortSignal(signal);
-      if (error) throw error;
-      const autores = [...new Set(data.flatMap((m) => (m.usuario_id ? [m.usuario_id] : [])))];
+
+      const consulta = () => {
+        let parte = supabase.from("estoque_movimentacoes").select("*, lotes(codigo)");
+        if (operacao) parte = parte.eq("tipo", operacao as keyof typeof operacoes);
+        if (inicio) parte = parte.gte("created_at", inicio + "T00:00:00-03:00");
+        if (fim) parte = parte.lte("created_at", fim + "T23:59:59.999999-03:00");
+        if (loteIds) parte = parte.in("lote_id", loteIds);
+        if (usuarioIds) parte = parte.in("usuario_id", usuarioIds);
+        return parte
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(pagina * 25, pagina * 25 + 25)
+          .abortSignal(signal);
+      };
+      const respostas = await Promise.all([
+        ...(chaves.length ? [consulta().in("sabor_chave", chaves)] : []),
+        ...(ids.length ? [consulta().in("produto_id", ids)] : []),
+      ]);
+      for (const resposta of respostas) if (resposta.error) throw resposta.error;
+      const porId = new Map<string, MovimentoHistorico>();
+      for (const resposta of respostas) {
+        for (const movimento of (resposta.data ?? []) as MovimentoHistorico[]) {
+          porId.set(movimento.id, movimento);
+        }
+      }
+      const movimentos = [...porId.values()].sort((a, b) =>
+        a.created_at === b.created_at ? a.id.localeCompare(b.id) : b.created_at.localeCompare(a.created_at),
+      );
+      const autores = [...new Set(movimentos.flatMap((m) => (m.usuario_id ? [m.usuario_id] : [])))];
       const perfis = autores.length
         ? await supabase.from("profiles").select("id, nome").in("id", autores).abortSignal(signal)
         : null;
-      return { movimentos: data, nomes: new Map(perfis?.data?.map((p) => [p.id, p.nome]) ?? []) };
+      return { movimentos, nomes: new Map(perfis?.data?.map((p) => [p.id, p.nome]) ?? []) };
     },
   });
   const movimentos = resultado.data?.movimentos ?? [];
@@ -109,7 +166,7 @@ export function HistoricoSalgados({
           <select value={sabor} onChange={alterar(setSabor)}>
             <option value="">Todos os sabores disponíveis</option>
             {produtos.map((p) => (
-              <option key={p.id} value={p.id}>
+              <option key={p.chave ?? p.id} value={p.chave ?? p.id}>
                 {p.nome}
               </option>
             ))}
@@ -151,7 +208,7 @@ export function HistoricoSalgados({
           <button onClick={() => void resultado.refetch()}>Tentar novamente</button>
         </p>
       )}
-      {!invalido && (!ids.length || resultado.isSuccess) && (
+      {!invalido && (resultado.isSuccess || (!ids.length && !chaves.length)) && (
         <DarkTable
           className="est-dialog-tabela"
           colunas={[

@@ -7,6 +7,8 @@ const migration = readFileSync(
   "utf8",
 );
 const painel = readFileSync("src/components/admin/estoque/salgados-admin.tsx", "utf8");
+const historico = readFileSync("src/components/admin/estoque/salgados-historico.tsx", "utf8");
+const tipos = readFileSync("src/integrations/supabase/types.ts", "utf8");
 const cadastro = readFileSync("scripts/cadastrar-sabores-estoque.sql", "utf8");
 
 test("a chave unitária do cadastro oficial é a identidade do estoque", () => {
@@ -124,6 +126,20 @@ test("o painel aprovado continua usando as RPCs já integradas", () => {
   assert.match(painel, /rpc\("cancelar_pedido_atomico"/);
   assert.match(painel, /rpc\("reordenar_sabores_estoque"/);
   assert.doesNotMatch(painel, /estoque_salgados_privado/);
+});
+
+test("o painel opera pela chave canônica sem exigir produto comercial", () => {
+  assert.match(painel, /from\("sabores_estoque_vinculos"\)/);
+  assert.match(painel, /sabor_chave/);
+  assert.match(painel, /operacoesPorChave/);
+  assert.match(painel, /identidadeAtiva/);
+  assert.match(painel, /p_produto: produto\?\.id \?\? null/);
+  assert.match(painel, /p_sabor: chave/);
+  assert.match(historico, /porChave/);
+  assert.match(historico, /sabor_chave/);
+  assert.match(historico, /\.filter\(Boolean\)/);
+  assert.match(tipos, /p_produto: string \| null/);
+  assert.doesNotMatch(tipos, /p_produto\?: string \| null/);
 });
 
 console.log("Vínculos operacionais: contrato local da migration 0129 validado estaticamente.");

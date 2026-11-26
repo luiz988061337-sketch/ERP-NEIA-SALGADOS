@@ -34,6 +34,7 @@ import {
   categoriasProdutosSalgados,
   categoriasSaboresEstoque,
   organizarSaboresEstoque,
+  type OperacaoSaborEstoque,
 } from "@/lib/catalogo-sabores-estoque";
 import {
   diasDaValidade,
@@ -66,6 +67,77 @@ function alertaValidade(validade: string | null, hoje: string) {
   if (!validade) return false;
   const dias = diasDaValidade(validade, hoje);
   return dias >= 0 && dias <= 7;
+}
+
+type ProdutoPainel = {
+  id: string;
+  nome: string;
+  imagem_url: string | null;
+  ativo: boolean;
+  disponivel: boolean;
+  estoque: number | null;
+  estoque_minimo: number | null;
+  tipo_venda: string;
+  unidade_medida: string;
+  categorias: { slug: string; nome: string };
+};
+
+type PedidoPainel = { id: string; numero: string | number | null; created_at: string };
+type VinculoPainel = { chave: string; ordem: number; produto_id: string | null };
+type OrdemPainel = { chave: string; ordem: number };
+
+type DadosSalgados = {
+  produtos: ProdutoPainel[];
+  pedidos: PedidoPainel[];
+  vinculos: VinculoPainel[] | null;
+  ordens: OrdemPainel[];
+  operacoesPorChave: Map<string, OperacaoSaborEstoque>;
+  porChave: boolean;
+};
+
+/** O esquema anterior ainda pode atender ao painel antes da migration 0129. */
+function erroEsquemaAntigo(falha: { code?: string; message?: string }) {
+  const codigo = falha.code ?? "";
+  return (
+    ["42P01", "42703", "PGRST204", "PGRST205"].includes(codigo) ||
+    /sabor_chave|sabores_estoque_vinculos/i.test(falha.message ?? "")
+  );
+}
+
+function montarOperacao(args: {
+  ativo: boolean;
+  estoque: number | null;
+  minimo: number | null;
+  temMovimento: boolean;
+  lotesTodos: OperacaoSaborEstoque["lotesTodos"];
+  reservas: OperacaoSaborEstoque["reservas"];
+}): OperacaoSaborEstoque {
+  const lotesFefo = args.lotesTodos.filter((lote) => lote.status === "ativo" && lote.restante > 0);
+  const fisico = lotesFefo.reduce((total, lote) => total + lote.restante, 0);
+  const reservado = args.reservas.reduce((total, reserva) => total + reserva.pendente, 0);
+  return {
+    ativo: args.ativo,
+    estoque: args.estoque ?? 0,
+    minimo: args.minimo ?? 0,
+    temMovimento: args.temMovimento,
+    lotesTodos: args.lotesTodos,
+    lotesFefo,
+    reservas: args.reservas,
+    fisico,
+    reservado,
+    disponivel: fisico - reservado,
+  };
+}
+
+function operacaoDoSabor(sabor: {
+  operacao?: OperacaoSaborEstoque | undefined;
+  produto?: unknown;
+}): OperacaoSaborEstoque | undefined {
+  if (sabor.operacao) return sabor.operacao;
+  const produto = sabor.produto as OperacaoSaborEstoque | undefined;
+  return produto && Array.isArray(produto.lotesTodos) && Array.isArray(produto.reservas)
+    ? produto
+    : undefined;
 }
 
 /**
@@ -137,86 +209,221 @@ async function consultarSalgadosDemo() {
         temMovimento: movimentos?.some((m) => m.produto_id === p.id) ?? false,
         fisico,
         reservado,
-        disponivel: fisico - reservado,
+        saldoDisponivel: fisico - reservado,
       };
     });
-  return { produtos, pedidos: pedidos ?? [], vinculos: null, ordens: [] };
+  return {
+    produtos,
+    pedidos: pedidos ?? [],
+    vinculos: null,
+    ordens: [],
+    operacoesPorChave: new Map<string, OperacaoSaborEstoque>(),
+    porChave: false,
+  };
 }
 
-async function consultarSalgados(signal: AbortSignal) {
+async function consultarSalgados(signal: AbortSignal): Promise<DadosSalgados> {
   if (ehModoDemo()) return consultarSalgadosDemo();
-  const [{ data, error }, { data: pedidos }, cadastro] = await Promise.all([
-    supabase
+  const [{ data: produtosData, error: erroProdutos }, { data: pedidos }, cadastro] =
+    await Promise.all([
+      supabase
+        .from("produtos")
+        .select(
+          "id, nome, imagem_url, disponivel, estoque, estoque_minimo, tipo_venda, unidade_medida, categorias!inner(slug, nome)",
+        )
+        .in("categorias.slug", categoriasProdutosSalgados)
+        .order("nome")
+        .abortSignal(signal),
+      supabase
+        .from("pedidos")
+        .select("id, numero, created_at")
+        .eq("status", "em_producao")
+        .order("created_at", { ascending: false })
+        .limit(50)
+        .abortSignal(signal),
+      supabase.from("sabores_estoque").select("chave, ordem, produto_id").abortSignal(signal),
+    ]);
+  if (erroProdutos) throw erroProdutos;
+  // A versão anterior do banco ainda pode atender à tela antes do cadastro oficial.
+  if (cadastro.error && !["42P01", "PGRST205"].includes(cadastro.error.code)) throw cadastro.error;
+
+  const produtos: ProdutoPainel[] = (produtosData ?? []).map((produto) => ({
+    ...produto,
+    ativo: produto.disponivel,
+  }));
+  const saboresCadastro = cadastro.data ?? [];
+  const ordens = saboresCadastro.map((sabor) => ({ chave: sabor.chave, ordem: sabor.ordem }));
+  const porId = new Map(produtos.map((produto) => [produto.id, produto]));
+  const ordemPorChave = new Map(saboresCadastro.map((sabor) => [sabor.chave, sabor.ordem]));
+
+  const vínculosResp = await supabase
+    .from("sabores_estoque_vinculos")
+    .select("chave, produto_id, ativo")
+    .abortSignal(signal);
+  let porChave = false;
+  if (vínculosResp.error) {
+    if (!erroEsquemaAntigo(vínculosResp.error)) throw vínculosResp.error;
+  } else {
+    porChave = true;
+  }
+  const ativos = porChave
+    ? (vínculosResp.data ?? []).filter((vínculo) => vínculo.ativo)
+    : [];
+  const vinculos: VinculoPainel[] = porChave
+    ? ativos.map((vínculo) => ({
+        chave: vínculo.chave,
+        ordem: ordemPorChave.get(vínculo.chave) ?? 0,
+        produto_id: vínculo.produto_id,
+      }))
+    : saboresCadastro
+        .filter((sabor) => !!sabor.produto_id)
+        .map((sabor) => ({
+          chave: sabor.chave,
+          ordem: sabor.ordem,
+          produto_id: sabor.produto_id,
+        }));
+  const produtoPorChave = new Map(vinculos.map((vínculo) => [vínculo.chave, vínculo.produto_id]));
+  const chavePorProduto = new Map<string, string>();
+  for (const sabor of saboresCadastro) {
+    if (sabor.produto_id) chavePorProduto.set(sabor.produto_id, sabor.chave);
+  }
+  for (const vínculo of vinculos) {
+    if (vínculo.produto_id) chavePorProduto.set(vínculo.produto_id, vínculo.chave);
+  }
+
+  const operacoesPorChave = new Map<string, OperacaoSaborEstoque>();
+  if (porChave) {
+    // A identidade canônica passa a ser a chave. Lotes, reservas e movimentos
+    // escritos após a 0129 são lidos por sabor_chave; os antigos, por produto_id.
+    const [lotesResp, reservasResp, movimentosResp] = await Promise.all([
+      supabase
+        .from("lotes")
+        .select("id, codigo, validade, restante, status, produto_id, sabor_chave")
+        .abortSignal(signal),
+      supabase
+        .from("reservas_estoque")
+        .select(
+          "id, pedido_id, produto_id, quantidade, status, sabor_chave, reserva_consumos(quantidade)",
+        )
+        .abortSignal(signal),
+      supabase
+        .from("estoque_movimentacoes")
+        .select("id, produto_id, sabor_chave")
+        .abortSignal(signal),
+    ]);
+    if (lotesResp.error) throw lotesResp.error;
+    if (reservasResp.error) throw reservasResp.error;
+    if (movimentosResp.error) throw movimentosResp.error;
+
+    for (const sabor of saboresCadastro) {
+      const produtoId = produtoPorChave.get(sabor.chave);
+      const produto = produtoId ? porId.get(produtoId) : undefined;
+      const lotesTodos = (lotesResp.data ?? []).filter(
+        (lote) =>
+          lote.sabor_chave === sabor.chave ||
+          (!lote.sabor_chave &&
+            !!lote.produto_id &&
+            chavePorProduto.get(lote.produto_id) === sabor.chave),
+      );
+      const reservas = (reservasResp.data ?? [])
+        .filter(
+          (reserva) =>
+            reserva.status === "ativa" &&
+            (reserva.sabor_chave === sabor.chave ||
+              (!reserva.sabor_chave &&
+                !!reserva.produto_id &&
+                chavePorProduto.get(reserva.produto_id) === sabor.chave)),
+        )
+        .map((reserva) => {
+          const consumido = reserva.reserva_consumos.reduce(
+            (total, retirada) => total + retirada.quantidade,
+            0,
+          );
+          return {
+            id: reserva.id,
+            pedidoId: reserva.pedido_id,
+            quantidade: reserva.quantidade,
+            consumido,
+            pendente: Math.max(0, reserva.quantidade - consumido),
+          };
+        });
+      const temMovimento = (movimentosResp.data ?? []).some(
+        (movimento) =>
+          movimento.sabor_chave === sabor.chave ||
+          (!movimento.sabor_chave &&
+            !!movimento.produto_id &&
+            chavePorProduto.get(movimento.produto_id) === sabor.chave),
+      );
+      // Um único físico por sabor e disponível = físico − reservado.
+      // Reservado soma cada reserva uma vez, sem duplicar origens de combo.
+      operacoesPorChave.set(
+        sabor.chave,
+        montarOperacao({
+          ativo: produto ? produto.disponivel : true,
+          estoque: produto?.estoque ?? 0,
+          minimo: produto?.estoque_minimo ?? 0,
+          temMovimento,
+          lotesTodos,
+          reservas,
+        }),
+      );
+    }
+  } else {
+    const ids = produtos.map((produto) => produto.id);
+    const operacoesResp = await supabase
       .from("produtos")
       .select(
         `
-        id, nome, imagem_url, disponivel, estoque, estoque_minimo, tipo_venda, unidade_medida,
-        categorias!inner(slug, nome),
+        id,
         lotes(id, codigo, validade, restante, status),
         movimentos:estoque_movimentacoes(id),
         reservas_estoque(id, pedido_id, quantidade, status, reserva_consumos(quantidade))
       `,
       )
-      .in("categorias.slug", categoriasProdutosSalgados)
-      .order("nome")
-      .order("validade", { referencedTable: "lotes", ascending: true, nullsFirst: false })
-      .limit(1, { referencedTable: "movimentos" })
-      .abortSignal(signal),
-    supabase
-      .from("pedidos")
-      .select("id, numero, created_at")
-      .eq("status", "em_producao")
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .abortSignal(signal),
-    supabase.from("sabores_estoque").select("chave, ordem, produto_id").abortSignal(signal),
-  ]);
-  if (error) throw error;
-  // A versão anterior do banco ainda pode atender à tela antes do cadastro oficial.
-  if (cadastro.error && !["42P01", "PGRST205"].includes(cadastro.error.code)) throw cadastro.error;
-
-  const produtos = data.map((produto) => {
-    const reservas = produto.reservas_estoque
-      .filter((reserva) => reserva.status === "ativa")
-      .map((reserva) => {
-        const consumido = reserva.reserva_consumos.reduce(
-          (total, retirada) => total + retirada.quantidade,
-          0,
-        );
-        return {
-          id: reserva.id,
-          pedidoId: reserva.pedido_id,
-          quantidade: reserva.quantidade,
-          consumido,
-          pendente: Math.max(0, reserva.quantidade - consumido),
-        };
-      });
-    const lotesFefo = produto.lotes.filter((lote) => lote.status === "ativo" && lote.restante > 0);
-    // Regra aprovada: um único físico por sabor e disponível = físico − reservado.
-    // Reservado soma TODAS as modalidades (avulsas, combos fixos e personalizados)
-    // uma única vez, sem dupla contagem por origem.
-    const fisico = lotesFefo.reduce((total, lote) => total + lote.restante, 0);
-    const reservado = reservas.reduce((total, reserva) => total + reserva.pendente, 0);
-    return {
-      ...produto,
-      ativo: produto.disponivel,
-      estoque: produto.estoque ?? 0,
-      minimo: produto.estoque_minimo ?? 0,
-      temMovimento: produto.movimentos.length > 0,
-      lotesTodos: produto.lotes,
-      lotesFefo,
-      reservas,
-      fisico,
-      reservado,
-      disponivel: fisico - reservado,
-    };
-  });
+      .in("id", ids)
+      .abortSignal(signal);
+    if (operacoesResp.error) throw operacoesResp.error;
+    for (const sabor of saboresCadastro) {
+      const produtoId = produtoPorChave.get(sabor.chave) ?? sabor.produto_id;
+      if (!produtoId) continue;
+      const operacao = (operacoesResp.data ?? []).find((item) => item.id === produtoId);
+      if (!operacao) continue;
+      const reservas = operacao.reservas_estoque
+        .filter((reserva) => reserva.status === "ativa")
+        .map((reserva) => {
+          const consumido = reserva.reserva_consumos.reduce(
+            (total, retirada) => total + retirada.quantidade,
+            0,
+          );
+          return {
+            id: reserva.id,
+            pedidoId: reserva.pedido_id,
+            quantidade: reserva.quantidade,
+            consumido,
+            pendente: Math.max(0, reserva.quantidade - consumido),
+          };
+        });
+      operacoesPorChave.set(
+        sabor.chave,
+        montarOperacao({
+          ativo: porId.get(produtoId)?.disponivel ?? false,
+          estoque: porId.get(produtoId)?.estoque ?? 0,
+          minimo: porId.get(produtoId)?.estoque_minimo ?? 0,
+          temMovimento: operacao.movimentos.length > 0,
+          lotesTodos: operacao.lotes,
+          reservas,
+        }),
+      );
+    }
+  }
 
   return {
     produtos,
     pedidos: pedidos ?? [],
-    vinculos: cadastro.data,
-    ordens: cadastro.data?.map((sabor) => ({ chave: sabor.chave, ordem: sabor.ordem })) ?? [],
+    vinculos,
+    ordens,
+    operacoesPorChave,
+    porChave,
   };
 }
 
@@ -290,33 +497,46 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
     produtos ?? [],
     data?.vinculos ?? null,
     data?.ordens ?? [],
+    data?.operacoesPorChave ?? null,
   );
   const idsConfirmados = new Map(data?.vinculos?.map((s) => [s.chave, s.produto_id]));
   const linhas = sabores.map((sabor) => ({
     ...sabor,
-    situacao: lerSituacaoSalgado(sabor.produto, hoje),
+    situacao: lerSituacaoSalgado(operacaoDoSabor(sabor), hoje),
   }));
   const selecionado = linhas.find((s) => s.chave === chave);
   const produto = selecionado?.produto;
+  const operacao = selecionado ? operacaoDoSabor(selecionado) : undefined;
   const situacao = selecionado?.situacao;
+  // Com a 0129 a identidade é a chave; sem ela, depende do produto legado.
   const vinculado = !!produto && idsConfirmados.get(chave) === produto.id && !ehModoDemo();
-  const lotes = produto?.lotesTodos ?? [];
+  const identidadeAtiva =
+    !ehModoDemo() && (data?.porChave ? !!selecionado : vinculado);
+  const lotes = operacao?.lotesTodos ?? [];
   const lote = lotes.find((l) => l.id === loteId);
   const tipo = janela && janela in operacoesSalgados ? (janela as OperacaoSalgados) : undefined;
   const historicoProdutos = [
-    ...linhas.flatMap((s) => (s.produto ? [{ id: s.produto.id, nome: s.nome }] : [])),
-    ...(admin ? legados.map((p) => ({ id: p.id, nome: p.nome })) : []),
+    ...linhas.map((s) => ({
+      id: s.produto?.id ?? "",
+      nome: s.nome,
+      chave: s.chave,
+    })),
+    ...(admin
+      ? legados
+          .filter((p) => !linhas.some((s) => s.produto?.id === p.id))
+          .map((p) => ({ id: p.id, nome: p.nome, chave: undefined as string | undefined }))
+      : []),
   ];
   const pedidos = data?.pedidos ?? [];
   const numerosPedidos = new Map(pedidos.map((p) => [p.id, p.numero]));
   const pedidoLabel = (id: string) =>
     numerosPedidos.has(id) ? "#" + numerosPedidos.get(id) : "Pedido vinculado";
-  const reservas = produto?.reservas.filter((r) => r.pendente > 0) ?? [];
+  const reservas = operacao?.reservas.filter((r) => r.pendente > 0) ?? [];
   const saldoUtil =
-    produto?.lotesFefo
+    operacao?.lotesFefo
       .filter((l) => !l.validade || l.validade >= hoje)
       .reduce((n, l) => n + l.restante, 0) ?? 0;
-  const disponivelUtil = saldoUtil - (produto?.reservado ?? 0);
+  const disponivelUtil = saldoUtil - (operacao?.reservado ?? 0);
   const responsavel = perfil?.nome || user?.email || "Sessão indisponível";
 
   function abrir(nova: Janela, sabor = chave) {
@@ -383,11 +603,11 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
     event.preventDefault();
     if (
       !tipo ||
-      !produto ||
-      !vinculado ||
+      !identidadeAtiva ||
       !user ||
       !podeMovimentar ||
-      (tipo === "ajuste" && !admin)
+      (tipo === "ajuste" && !admin) ||
+      (tipo === "reserva" && !produto)
     )
       return;
     const dados = new FormData(event.currentTarget);
@@ -426,7 +646,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
       JSON.stringify([
         chave,
         tipo,
-        produto.id,
+        produto?.id ?? null,
         quantidade,
         codigo,
         fabricacao,
@@ -439,6 +659,8 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
     );
     await gravar(async () => {
       if (tipo === "reserva") {
+        if (!produto)
+          throw new Error("A reserva exige um produto comercial vinculado ao pedido.");
         if (!pedidos.some((p) => p.id === pedido))
           throw new Error("Selecione um pedido em produção.");
         const r = await supabase.rpc("reservar_estoque_atomica", {
@@ -469,7 +691,7 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
       }
       const r = await supabase.rpc("movimentar_lote_salgado", {
         p_sabor: chave,
-        p_produto: produto.id,
+        p_produto: produto?.id ?? null,
         p_tipo: tipo,
         p_quantidade: Number(quantidade),
         p_chave: id,
@@ -562,7 +784,8 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
             }
             acoes={{
               onVer: (sabor) => abrir("detalhes", sabor),
-              onHistorico: abrirHistorico,
+              onHistorico: (id) =>
+                abrirHistorico(linhas.find((s) => s.produto?.id === id)?.chave ?? id),
               onInventario: (id) =>
                 abrir("ajuste", linhas.find((s) => s.produto?.id === id)?.chave),
             }}
@@ -751,14 +974,14 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
               Observações
               <textarea name="observacoes" maxLength={300} rows={2} />
             </label>
-            {!vinculado && (
+            {!identidadeAtiva && (
               <p role="status">
                 {selecionado
                   ? "A confirmação fica disponível quando o cadastro oficial do sabor estiver vinculado."
                   : "Selecione um sabor oficial para conferir o vínculo de estoque."}
               </p>
             )}
-            {vinculado && (!podeMovimentar || (tipo === "ajuste" && !admin)) && (
+            {identidadeAtiva && (!podeMovimentar || (tipo === "ajuste" && !admin)) && (
               <p role="status">Seu perfil não tem autorização para confirmar esta operação.</p>
             )}
             {erro && <p role="alert">{erro}</p>}
@@ -769,7 +992,10 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
               <button
                 className="neia-a01-dourado"
                 disabled={
-                  salvando || !vinculado || !podeMovimentar || (tipo === "ajuste" && !admin)
+                  salvando ||
+                  !identidadeAtiva ||
+                  !podeMovimentar ||
+                  (tipo === "ajuste" && !admin)
                 }
               >
                 {salvando ? "Confirmando…" : "Confirmar operação"}
@@ -834,7 +1060,9 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
             </details>
           )}
           <div className="est-dialog-acoes">
-            <button onClick={() => abrirHistorico(produto?.id)}>Histórico e movimentações</button>
+            <button onClick={() => abrirHistorico(chave || produto?.id)}>
+              Histórico e movimentações
+            </button>
             {podeMovimentar && (
               <button onClick={() => abrir("movimentos")}>Operações de estoque</button>
             )}
@@ -848,7 +1076,11 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
           descricao="Consulte o registro de movimentações por sabor e lote."
           fechar={fechar}
         >
-          <HistoricoSalgados produtos={historicoProdutos} inicial={historicoId} />
+          <HistoricoSalgados
+            produtos={historicoProdutos}
+            inicial={historicoId}
+            porChave={data?.porChave ?? false}
+          />
         </JanelaEstoque>
       )}
       {janela === "movimentos" && (
@@ -863,7 +1095,9 @@ export function SalgadosAdmin({ onProdutos }: { onProdutos: (nome?: string) => v
                 {nome}
               </button>
             ))}
-            <button onClick={() => abrirHistorico(produto?.id)}>Consultar histórico</button>
+            <button onClick={() => abrirHistorico(chave || produto?.id)}>
+              Consultar histórico
+            </button>
           </div>
         </JanelaEstoque>
       )}
