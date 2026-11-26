@@ -43,6 +43,8 @@ import { Input } from "@/components/ui/input";
 import { brl } from "@/lib/format";
 import { TarefasA01 } from "@/components/admin/tarefas-a01";
 import { gerarRecomendacoesNeia, rotuloNaturezaNeia } from "@/lib/neia-inteligencia";
+import { estadoMaisRecente, useRecomendacoesA02 } from "@/lib/neia-recomendacoes";
+import { rotuloSituacaoRecomendacao, situacaoEfetiva } from "@/lib/neia-recomendacoes-estado";
 import { tarefasAtrasadas, useTarefasA01, type SugestaoTarefaA01 } from "@/lib/tarefas-a01";
 import { hojeSP } from "@/lib/competencia";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
@@ -233,6 +235,7 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
     useDadosDashboard(usuarioId, faixa);
   const crm = useClientesDashboard(usuarioId);
   const consultaTarefas = useTarefasA01(usuarioId);
+  const persistidas = useRecomendacoesA02(usuarioId);
   const [sugestaoTarefa, setSugestaoTarefa] = useState<SugestaoTarefaA01 | null>(null);
   const minhasAtrasadas = tarefasAtrasadas(
     consultaTarefas.isError ? undefined : consultaTarefas.data,
@@ -389,6 +392,14 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
     { escopo: "a01" },
   );
   const recomendacoes = inteligencia.recomendacoes;
+  // O resumo respeita a situação registrada: alertas resolvidos ou dispensados
+  // não voltam para a lista do Dashboard, e os demais mostram a situação atual.
+  const resumoInteligencia = recomendacoes
+    .map((item) => {
+      const estado = estadoMaisRecente(persistidas.estados, item.id);
+      return { item, estado, situacao: situacaoEfetiva(estado, Date.now()) };
+    })
+    .filter(({ situacao }) => situacao !== "resolvida" && situacao !== "dispensada");
 
   const [busca, setBusca] = useState("");
   const [termo, setTermo] = useState("");
@@ -973,15 +984,20 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
 
         <aside className="neia-a01-lateral">
           <Cartao titulo="Néia Inteligência" icone={Sparkles} classe="neia-a01-inteligencia">
-            {recomendacoes.length ? (
+            {resumoInteligencia.length ? (
               <ul>
-                {recomendacoes.map((item) => (
+                {resumoInteligencia.map(({ item, estado, situacao }) => (
                   <li key={item.id}>
                     <span className={"neia-a01-" + item.tom}>
                       {rotuloNaturezaNeia(item.natureza)}
                     </span>
                     <strong>{item.titulo}</strong>
                     <p>{item.motivo}</p>
+                    {estado ? (
+                      <p className="neia-a01-nota">
+                        Situação: {rotuloSituacaoRecomendacao(situacao)}
+                      </p>
+                    ) : null}
                     <Link
                       to={item.destino.to}
                       {...(item.destino.hash ? { hash: item.destino.hash } : {})}
@@ -993,7 +1009,15 @@ export function DashboardOperacional({ usuarioId, email, abrirPedidos, abrirCada
                       variant="ghost"
                       size="sm"
                       disabled={consultaTarefas.isError}
-                      onClick={() => setSugestaoTarefa(item.tarefa)}
+                      onClick={() =>
+                        setSugestaoTarefa({
+                          ...item.tarefa,
+                          recomendacao_id: item.id,
+                          rec_chave: estado?.chave ?? item.id,
+                          rec_ocorrencia: estado?.ocorrencia ?? 1,
+                          origemRotulo: item.titulo,
+                        })
+                      }
                     >
                       Sugerir tarefa
                     </Button>

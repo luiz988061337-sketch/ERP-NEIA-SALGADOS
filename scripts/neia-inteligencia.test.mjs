@@ -183,11 +183,49 @@ test("o módulo não grava nada: sugestão de tarefa depende de confirmação na
     new URL("../src/components/admin/neia-inteligencia.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(tela, /setSugestao\(item\.tarefa\)/);
+  assert.match(tela, /setSugestao\(\{/);
+  assert.match(tela, /recomendacao_id: item\.id/);
   assert.match(tela, /sugestao=\{sugestao\}/);
   assert.match(tela, /Abrir recomendação/);
   assert.match(tela, /aria-expanded=\{expandida\}/);
   assert.match(tela, /item\.destino\.to/);
+});
+
+test("A02.1.2: a tela registra situação, adia, dispensa e consulta o histórico", () => {
+  const tela = readFileSync(
+    new URL("../src/components/admin/neia-inteligencia.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(tela, /useRecomendacoesA02/);
+  assert.match(tela, /marcarCienteRecomendacao/);
+  assert.match(tela, /adiarRecomendacao/);
+  assert.match(tela, /dispensarRecomendacao/);
+  assert.match(tela, /resolverRecomendacao/);
+  assert.match(tela, /sincronizarOcorrencias/);
+  assert.match(tela, /candidatosResolucao/);
+  assert.match(tela, /vincularTarefaRecomendacao/);
+  // As decisões administrativas ficam no servidor, não no navegador.
+  assert.doesNotMatch(tela, /localStorage|sessionStorage/);
+});
+
+test("A02.1.2: dashboard e tarefas respeitam as situações e a lixeira", () => {
+  const painel = readFileSync(
+    new URL("../src/components/admin/dashboard-a01.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(painel, /useRecomendacoesA02/);
+  assert.match(painel, /situacaoEfetiva/);
+  assert.match(painel, /situacao !== "resolvida" && situacao !== "dispensada"/);
+
+  const tarefas = readFileSync(
+    new URL("../src/components/admin/tarefas-a01.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(tarefas, /excluirTarefaA01/);
+  assert.match(tarefas, /restaurarTarefaA01/);
+  assert.match(tarefas, /reabrirTarefaA01/);
+  assert.match(tarefas, /Lixeira/);
+  assert.match(tarefas, /Motivo da exclusão/);
 });
 
 test("estoque separa ausência de cadastro, estoque zerado, mínimo e reserva excedida", () => {

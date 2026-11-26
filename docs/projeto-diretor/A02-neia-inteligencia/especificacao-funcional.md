@@ -132,6 +132,69 @@ Toda recomendação gerada contém:
    regra (0% neutro, faixas de reativação) sem receber os novos alertas da
    A02.1.1.
 
+## A02.1.2 — Gerenciamento de recomendações preventivas e tarefas (26/11/2026)
+
+### Objetivo
+
+Dar ciclo de vida às recomendações (pendente, ciente, adiada, com tarefa,
+resolvida, dispensada) e completar o gerenciamento das tarefas com exclusão
+lógica, lixeira, restauração e reabertura. A decisão administrativa passa a
+ficar registrada no servidor, com responsável, data, hora e motivo.
+
+### Situações da recomendação
+
+| Situação | Efeito |
+| --- | --- |
+| Pendente | Alerta aberto, aguardando decisão |
+| Ciente | Administrador registrou ciência; continua visível |
+| Adiada | some até o prazo; ao vencer, volta a ser pendente |
+| Com tarefa | Existe tarefa ativa vinculada à ocorrência |
+| Resolvida | A leitura atual deixou de confirmar o alerta |
+| Dispensada | Decisão administrativa com motivo; vale por 7 dias |
+
+Ações disponíveis no detalhe: **Marcar ciente**, **Adiar** (1h, 3h, amanhã,
+7 dias ou data/hora), **Dispensar** (motivo obrigatório) e **Histórico**.
+
+### Filtros
+
+- Setor/categoria e período (1/7/30 dias) continuam independentes.
+- Filtro de situação: pendentes, cientes, adiadas, com tarefa, resolvidas e
+  dispensadas.
+
+### Recorrência e resolução automática
+
+- Problema que volta depois de resolvido gera **nova ocorrência**.
+- Dispensa vencida (7 dias) ou prioridade mais grave **reativam** o alerta.
+- A resolução automática só ocorre quando o alerta deixa de aparecer em duas
+  leituras seguidas do mesmo período **e** a fonte está com dados suficientes.
+  Sem registros, dados parciais ou falha de consulta nunca resolvem.
+- Concluir ou excluir uma tarefa **não** resolve nem dispensa a recomendação.
+
+### Gestão de tarefas
+
+- **Excluir** (administrador): exige motivo e confirmação; registro vai para a
+  **Lixeira** com data, responsável e motivo; histórico preservado.
+- **Restaurar** (administrador): devolve a tarefa às listas ativas com os dados
+  originais.
+- **Reabrir**: tarefa concluída volta ao estado pendente; a conclusão anterior
+  fica no histórico.
+- Vínculo com a recomendação (recomendação, chave e ocorrência) impede duas
+  tarefas ativas da mesma ocorrência, inclusive em solicitações simultâneas.
+
+### Dashboard A01
+
+- Layout e escopo `a01` preservados.
+- O resumo passa a respeitar as situações: alertas resolvidos ou dispensados
+  não aparecem; os demais exibem a situação atual.
+
+### Auditoria e permissões
+
+- `a02_recomendacoes_historico` é somente leitura para o aplicativo; a gravação
+  ocorre apenas pela trigger do banco, com responsável, data/hora e detalhe.
+- Leitura e gestão das recomendações: apenas `admin`.
+- Exclusão e restauração de tarefas: apenas `admin`; demais ações seguem a A01.
+- Nenhuma decisão é guardada em `localStorage`/`sessionStorage`.
+
 ## Tarefas
 
 - **Sugerir tarefa** abre o formulário da A01 já preenchido com título e
@@ -154,5 +217,11 @@ Toda recomendação gerada contém:
 
 - A02.2 Previsões e cenários.
 - A02.3 Consulta inteligente em linguagem natural.
-- Novas migrations, novas tabelas, APIs pagas ou modelos externos.
+- APIs pagas ou modelos externos.
 - Alteração de Production, da branch `main` ou do banco de produção.
+- Compras, pagamentos, campanhas ou movimentações automáticas.
+
+> Nota: a A02.1.2 introduce as migrations `0126` (recomendações) e `0127`
+> (tarefas), aplicadas somente em homologação conforme autorização do
+> proprietário. A linha "Novas migrations, novas tabelas" da versão anterior
+> desta especificação foi superada por essa etapa autorizada.

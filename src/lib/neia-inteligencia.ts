@@ -67,8 +67,34 @@ export type RecomendacaoNeia = {
   atualizadoEm: string;
   acao: string;
   destino: { to: string; hash?: string; rotulo: string };
-  tarefa: { titulo: string; descricao: string };
+  tarefa: { titulo: string; descricao: string; prioridade?: PrioridadeNeia };
 };
+
+/** Categoria responsável por cada recomendação (usada na resolução automática). */
+const CATEGORIA_POR_RECOMENDACAO: Record<string, CategoriaNeia> = {
+  "comercial-vendas": "comercial",
+  "estoque-revisar": "estoque",
+  "estoque-sem-cadastro": "estoque",
+  "estoque-zerado": "estoque",
+  "estoque-reserva": "estoque",
+  "estoque-sem-minimo": "estoque",
+  "producao-risco": "producao",
+  "producao-atrasos": "producao",
+  "entregas-sem-motoboy": "entregas",
+  "entregas-tempo": "entregas",
+  "entregas-atrasadas": "entregas",
+  "financeiro-vencido": "financeiro",
+  "financeiro-vencendo": "financeiro",
+  "financeiro-recebimentos": "financeiro",
+  "financeiro-resultado": "financeiro",
+  "financeiro-custos": "financeiro",
+  "comercial-reativacao": "comercial",
+  "comercial-campanhas": "comercial",
+};
+
+export function categoriaDaRecomendacao(id: string): CategoriaNeia | undefined {
+  return CATEGORIA_POR_RECOMENDACAO[id];
+}
 
 export type EntradaNeia = {
   atualizadoEm: string;
@@ -183,13 +209,17 @@ const valido = (valor: number | null | undefined): valor is number =>
 function criar(
   entrada: EntradaNeia,
   base: Omit<RecomendacaoNeia, "atualizadoEm" | "tarefa"> & {
-    tarefa?: { titulo: string; descricao: string };
+    tarefa?: { titulo: string; descricao: string; prioridade?: PrioridadeNeia };
   },
 ): RecomendacaoNeia {
   return {
     ...base,
     atualizadoEm: entrada.atualizadoEm,
-    tarefa: base.tarefa ?? { titulo: base.titulo, descricao: base.motivo + " " + base.acao },
+    tarefa: base.tarefa ?? {
+      titulo: base.titulo,
+      descricao: base.motivo + " " + base.acao,
+      prioridade: base.prioridade,
+    },
   };
 }
 

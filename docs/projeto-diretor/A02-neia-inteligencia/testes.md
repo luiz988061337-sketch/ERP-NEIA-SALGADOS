@@ -1,10 +1,22 @@
 # A02.1 — Registro de testes
 
-Data: 25/11/2026
+Data: 26/11/2026 (atualização A02.1.2)
 Ambiente local: Windows, Node do projeto, Supabase de homologação
 `lflzlcqinarrcgncafol`, `VITE_DEMO_PREVIEW=0`, `NEIA_AMBIENTE=homologacao`.
 
-## Regras e integração
+## A02.1.2 — Permissões e comportamento no banco (26/11/2026)
+
+| Verificação | Resultado |
+| --- | --- |
+| `supabase db query --linked -f docs/projeto-diretor/A02-neia-inteligencia/recomendacoes-tarefas-rls.test.sql` | Passou. Cobriu: `anon` sem leitura, equipe sem `admin` sem leitura/escrita, cliente sem acesso, registro com histórico, ciência, adiamento, limite de 24 horas para crítico, dispensa com motivo, resolução, reabertura, histórico somente leitura, anti-duplicidade de tarefa, conclusão que não resolve a recomendação, exclusão com motivo, lixeira, restauração, tarefa concluída excluída/restaurada e bloqueio de exclusão por quem não é administrador. Todos os dados do teste foram revertidos. |
+| `supabase db query --linked -f docs/projeto-diretor/A01-dashboard/tarefas-rls.test.sql` | Passou (regressão A01 preservada após a migration 0127). |
+| `node --test scripts/neia-recomendacoes-estado.test.mjs` | Passou. 14 testes: adiamento vencido, ciência/dispensa/resolução, decisão de ocorrência, expiração da dispensa em 7 dias, resolução automática exigindo fonte suficiente, filtro por situação, limite de 24 horas do crítico e motivo obrigatório. |
+| `node --test scripts/neia-inteligencia.test.mjs scripts/dashboard-a01.test.mjs` | Passou. 26 testes (A02.1, A02.1.1, A02.1.2 e regressão A01). |
+| `npm run typecheck` | Passou sem erros. |
+| `npx eslint` nos arquivos da etapa | Sem erros (resta 1 aviso preexistente em `dashboard-a01.tsx`). |
+| `npm run build` (variáveis de homologação) | Passou; bundle sem qualquer referência a `ruioyioynwwwiqbjznoa`. |
+
+## Regras e integração (A02.1/A02.1.1)
 
 | Verificação | Resultado |
 | --- | --- |
@@ -36,18 +48,28 @@ Ambiente local: Windows, Node do projeto, Supabase de homologação
 - Não havia sessão autenticada disponível para conferência visual no endereço
   fixo. A validação autenticada (login, permissões reais e criação de tarefa)
   permanece pendente e deve ser feita pelo proprietário.
-- Nenhuma migration foi criada ou aplicada.
-- Nenhum dado real foi gravado, alterado ou removido durante os testes.
+- Na A02.1/A02.1.1 nenhuma migration foi criada ou aplicada; na A02.1.2 as
+  migrations 0125, 0126 e 0127 foram aplicadas **somente** em homologação.
+- Nenhum dado real de operação foi gravado, alterado ou removido durante os
+  testes: o teste SQL cria e reverte os próprios registros de teste.
 - Nenhum teste tocou Production, `main` ou o banco de produção.
 
-## Conferência sugerida no endereço fixo
+## Conferência sugerida no endereço fixo (A02.1.2)
 
-1. Entrar com a conta administrativa de homologação e abrir o Dashboard.
-2. Acionar **Consultar Néia Inteligência** e confirmar a abertura da aba.
-3. Alternar Hoje, 7 e 30 dias e filtrar por categoria.
-4. Conferir em cada cartão: natureza, prioridade, motivo, dados utilizados,
-   atualização, ação e link do módulo.
-5. Acionar **Sugerir tarefa**, revisar o formulário e confirmar a criação.
-   Verificar a origem “inteligência” e o registro no histórico.
-6. Abrir as seções A02.2 e A02.3 e confirmar o aviso de etapa não autorizada.
-7. Conferir responsividade em computador, tablet e celular.
+1. Entrar com a conta administrativa de homologação e abrir a aba
+   **Néia Inteligência**.
+2. Conferir que cada recomendação mostra a situação e o filtro de situação
+   (pendentes, cientes, adiadas, com tarefa, resolvidas, dispensadas).
+3. **Marcar ciente** uma recomendação e conferir o registro no histórico.
+4. **Adiar** com 1 hora e com "Amanhã"; em um alerta crítico, confirmar que os
+   prazos acima de 24 horas ficam bloqueados e sinalizados.
+5. **Dispensar** com motivo e conferir o motivo exibido no cartão.
+6. **Sugerir tarefa**, confirmar a criação e conferir que o cartão passa a
+   indicar "Tarefa vinculada"; tentar de novo e conferir a recusa de duplicidade.
+7. Em **Minhas tarefas**: **Excluir** com motivo, conferir a aba **Lixeira**,
+   **Restaurar** e **Reabrir** uma tarefa concluída; conferir o histórico.
+8. Alterar o período (1/7/30 dias) e conferir que os filtros de setor e
+   situação continuam combinados.
+9. Abrir o Dashboard e conferir que o resumo da Néia Inteligência respeita as
+   situações (recomendações resolvidas/dispensadas não aparecem).
+10. Recarregar a página (F5) e conferir que as decisões permanecem.

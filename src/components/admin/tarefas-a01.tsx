@@ -1,6 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Check, ClipboardList, History, Pencil, Plus } from "lucide-react";
+import {
+  Check,
+  ClipboardList,
+  History,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,9 +26,14 @@ import {
   atualizarTarefaA01,
   chaveTarefas,
   criarTarefaA01,
+  excluirTarefaA01,
   nomeTarefa,
+  reabrirTarefaA01,
+  restaurarTarefaA01,
   salvarNomeTarefasA01,
   tarefasAtrasadas,
+  tarefasAtivas,
+  tarefasLixeira,
   PRIORIDADES_A01,
   useHistoricoTarefaA01,
   useNomesTarefasA01,
@@ -35,6 +49,9 @@ const acaoHistorico = {
   editada: "Editou a tarefa",
   concluida: "Concluiu a tarefa",
   sugestao_aprovada: "Aprovou a sugestão",
+  reaberta: "Reabriu a tarefa",
+  excluida: "Excluiu a tarefa",
+  restaurada: "Restaurou a tarefa",
 };
 
 const horario = new Intl.DateTimeFormat("pt-BR", {
@@ -61,6 +78,8 @@ function mudancasTarefa(
       anterior.compartilhada ? "Compartilhada" : "Individual",
       atual.compartilhada ? "Compartilhada" : "Individual",
     ],
+    ["Lixeira", anterior.excluida ? "Excluída" : "Ativa", atual.excluida ? "Excluída" : "Ativa"],
+    ["Motivo da exclusão", anterior.excluida_motivo ?? "", atual.excluida_motivo ?? ""],
   ];
   const alterados = campos.filter(([, antes, depois]) => antes !== depois);
   if (anterior.responsavel_id !== atual.responsavel_id) {
@@ -100,13 +119,16 @@ export function TarefasA01({
   const [filtroPrazo, setFiltroPrazo] = useState("");
   const [editando, setEditando] = useState<TarefaA01 | "nova" | null>(null);
   const [concluir, setConcluir] = useState<TarefaA01 | null>(null);
+  const [excluir, setExcluir] = useState<TarefaA01 | null>(null);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
   const [historico, setHistorico] = useState<TarefaA01 | null>(null);
+  const [aba, setAba] = useState<"ativas" | "lixeira">("ativas");
   const [msg, setMsg] = useState("");
   const [erro, setErro] = useState("");
 
   const editorAberto = !!editando || !!sugestao;
   const existente = editando && editando !== "nova" ? editando : null;
-  const responsaveis = useResponsaveisA01(usuarioId, admin && editorAberto && !sugestao);
+  const responsaveis = useResponsaveisA01(usuarioId, admin && editorAberto);
   const eventos = useHistoricoTarefaA01(usuarioId, historico?.id);
   const identidades = (consulta.data ?? []).flatMap((tarefa) => [
     tarefa.criado_por,
@@ -160,6 +182,33 @@ export function TarefasA01({
     },
     onError,
   });
+  const excluirMutacao = useMutation({
+    mutationFn: ({ tarefa, motivo }: { tarefa: TarefaA01; motivo: string }) =>
+      excluirTarefaA01(tarefa, motivo),
+    onSuccess: async () => {
+      setExcluir(null);
+      setMotivoExclusao("");
+      setMsg("Tarefa excluída e enviada para a lixeira. O histórico foi preservado.");
+      await client.invalidateQueries({ queryKey: chaveTarefas(usuarioId) });
+    },
+    onError,
+  });
+  const restaurarMutacao = useMutation({
+    mutationFn: (tarefa: TarefaA01) => restaurarTarefaA01(tarefa),
+    onSuccess: async () => {
+      setMsg("Tarefa restaurada com os dados originais.");
+      await client.invalidateQueries({ queryKey: chaveTarefas(usuarioId) });
+    },
+    onError,
+  });
+  const reabrirMutacao = useMutation({
+    mutationFn: (tarefa: TarefaA01) => reabrirTarefaA01(tarefa),
+    onSuccess: async () => {
+      setMsg("Tarefa reaberta e devolvida para pendente.");
+      await client.invalidateQueries({ queryKey: chaveTarefas(usuarioId) });
+    },
+    onError,
+  });
 
   function setEditarFechado() {
     setEditando(null);
@@ -173,11 +222,16 @@ export function TarefasA01({
     setErro("");
     const form = new FormData(e.currentTarget);
     const titulo = String(form.get("titulo") ?? "").trim();
-    const prioridade = String(form.get("prioridade") ?? "normal") as PrioridadeA01;
+    const prioridade = String(
+      form.get("prioridade") ?? sugestao?.prioridade ?? "normal",
+    ) as PrioridadeA01;
     if (!titulo || !PRIORIDADES_A01.some(([valor]) => prioridade === valor)) {
       setErro("Informe um título e uma prioridade válida.");
       return;
     }
+    const responsavel = sugestao
+      ? String(form.get("responsavel") ?? usuarioId)
+      : String(form.get("responsavel") ?? existente?.responsavel_id ?? usuarioId);
     const patch = {
       titulo,
       descricao: String(form.get("descricao") ?? "").trim(),
@@ -186,26 +240,42 @@ export function TarefasA01({
       compartilhada: alteraVisibilidade
         ? form.has("compartilhada")
         : (existente?.compartilhada ?? false),
-      responsavel_id: sugestao
-        ? usuarioId
-        : String(form.get("responsavel") ?? existente?.responsavel_id ?? usuarioId),
+      responsavel_id: responsavel,
+      ...(sugestao?.recomendacao_id
+        ? {
+            recomendacao_id: sugestao.recomendacao_id,
+            rec_chave: sugestao.rec_chave ?? null,
+            rec_ocorrencia: sugestao.rec_ocorrencia ?? null,
+          }
+        : {}),
     };
     if (existente) atualizar.mutate({ tarefa: existente, patch });
-    else criar.mutate({ tarefa: patch, origem: sugestao ? "inteligencia" : "manual" });
+    else
+      criar.mutate({
+        tarefa: patch,
+        // A regra da A01 exige confirmação do responsável quando a tarefa nasce
+        // de sugestão; atribuída a outro funcionário, o registro é criado como
+        // tarefa administrativa já vinculada à recomendação.
+        origem: sugestao && responsavel === usuarioId ? "inteligencia" : "manual",
+      });
   }
 
   const todas = consulta.isError ? undefined : consulta.data;
-  const pendentes = todas?.filter((tarefa) => !tarefa.concluida);
-  const concluidas = todas
-    ?.filter((tarefa) => tarefa.concluida)
+  const ativas = tarefasAtivas(todas);
+  const pendentes = ativas.filter((tarefa) => !tarefa.concluida);
+  const concluidas = [...ativas]
+    .filter((tarefa) => tarefa.concluida)
     .sort((a, b) => Date.parse(b.concluida_em ?? "") - Date.parse(a.concluida_em ?? ""));
+  const lixeira = tarefasLixeira(todas);
   const opcoesResponsaveis = new Map(
     todas?.map((tarefa) => [
       tarefa.responsavel_id,
       mostrarNome(tarefa.responsavel_id, tarefa.responsavel_nome),
     ]),
   );
-  const selecionadas = (verConcluidas ? concluidas : pendentes)?.filter((tarefa) => {
+  const selecionadas = (
+    aba === "lixeira" ? lixeira : verConcluidas ? concluidas : pendentes
+  ).filter((tarefa) => {
     if (filtroResponsavel && tarefa.responsavel_id !== filtroResponsavel) return false;
     if (filtroPrioridade && tarefa.prioridade !== filtroPrioridade) return false;
     if (filtroPrazo === "sem-prazo") return tarefa.prazo === null;
@@ -234,8 +304,9 @@ export function TarefasA01({
         <div aria-label="Visibilidade por estado">
           <button
             type="button"
-            aria-pressed={!verConcluidas}
+            aria-pressed={aba === "ativas" && !verConcluidas}
             onClick={() => {
+              setAba("ativas");
               setVerConcluidas(false);
               setLimite(5);
             }}
@@ -244,14 +315,27 @@ export function TarefasA01({
           </button>
           <button
             type="button"
-            aria-pressed={verConcluidas}
+            aria-pressed={aba === "ativas" && verConcluidas}
             onClick={() => {
+              setAba("ativas");
               setVerConcluidas(true);
               setLimite(5);
             }}
           >
             Concluídas
           </button>
+          {admin ? (
+            <button
+              type="button"
+              aria-pressed={aba === "lixeira"}
+              onClick={() => {
+                setAba("lixeira");
+                setLimite(5);
+              }}
+            >
+              Lixeira{lixeira ? " (" + lixeira.length + ")" : ""}
+            </button>
+          ) : null}
         </div>
       </div>
       {painelCompleto && (
@@ -349,15 +433,27 @@ export function TarefasA01({
                       <br />
                       Responsável {mostrarNome(tarefa.responsavel_id, tarefa.responsavel_nome)}
                     </p>
+                    {tarefa.excluida && (
+                      <p className="neia-a01-vermelho">
+                        Excluída em {horario.format(new Date(tarefa.excluida_em ?? ""))} ·{" "}
+                        {tarefa.excluida_motivo}
+                      </p>
+                    )}
                     {tarefa.descricao && (
                       <details>
                         <summary>Descrição</summary>
                         <p>{tarefa.descricao}</p>
                       </details>
                     )}
+                    {tarefa.recomendacao_id && (
+                      <p className="neia-a01-nota">
+                        Vinculada à recomendação {tarefa.recomendacao_id} (ocorrência{" "}
+                        {tarefa.rec_ocorrencia ?? 1}).
+                      </p>
+                    )}
                     {podeEditar(tarefa) && (
                       <div className="neia-a01-tarefas-botoes">
-                        {!tarefa.concluida && (
+                        {!tarefa.concluida && !tarefa.excluida && (
                           <>
                             <Button
                               type="button"
@@ -386,6 +482,53 @@ export function TarefasA01({
                               Concluir
                             </Button>
                           </>
+                        )}
+                        {tarefa.concluida && !tarefa.excluida && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={reabrirMutacao.isPending}
+                            onClick={() => {
+                              setErro("");
+                              setMsg("");
+                              reabrirMutacao.mutate(tarefa);
+                            }}
+                          >
+                            <Undo2 size={15} />
+                            Reabrir
+                          </Button>
+                        )}
+                        {admin && !tarefa.excluida && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setErro("");
+                              setMsg("");
+                              setExcluir(tarefa);
+                            }}
+                          >
+                            <Trash2 size={15} />
+                            Excluir
+                          </Button>
+                        )}
+                        {admin && tarefa.excluida && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={restaurarMutacao.isPending}
+                            onClick={() => {
+                              setErro("");
+                              setMsg("");
+                              restaurarMutacao.mutate(tarefa);
+                            }}
+                          >
+                            <RotateCcw size={15} />
+                            Restaurar
+                          </Button>
                         )}
                         <Button
                           type="button"
@@ -416,9 +559,11 @@ export function TarefasA01({
           <p className="neia-a01-nota">
             {filtroResponsavel || filtroPrioridade || filtroPrazo
               ? "Nenhuma tarefa corresponde aos filtros."
-              : verConcluidas
-                ? "Nenhuma tarefa concluída."
-                : "Nenhuma tarefa pendente."}
+              : aba === "lixeira"
+                ? "A lixeira está vazia."
+                : verConcluidas
+                  ? "Nenhuma tarefa concluída."
+                  : "Nenhuma tarefa pendente."}
           </p>
         ))}
 
@@ -464,7 +609,10 @@ export function TarefasA01({
               </label>
               <label>
                 Prioridade{" "}
-                <select name="prioridade" defaultValue={existente?.prioridade ?? "normal"}>
+                <select
+                  name="prioridade"
+                  defaultValue={existente?.prioridade ?? sugestao?.prioridade ?? "normal"}
+                >
                   {PRIORIDADES_A01.map(([id, rotulo]) => (
                     <option key={id} value={id}>
                       {rotulo}
@@ -475,7 +623,7 @@ export function TarefasA01({
               <label>
                 Prazo <Input type="date" name="prazo" defaultValue={existente?.prazo ?? ""} />
               </label>
-              {admin && !sugestao ? (
+              {admin ? (
                 <label>
                   Responsável{" "}
                   <select name="responsavel" defaultValue={existente?.responsavel_id ?? usuarioId}>
@@ -579,6 +727,58 @@ export function TarefasA01({
           >
             Confirmar conclusão
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!excluir}
+        onOpenChange={(aberto) => {
+          if (!aberto && !excluirMutacao.isPending) {
+            setExcluir(null);
+            setMotivoExclusao("");
+            setErro("");
+          }
+        }}
+      >
+        <DialogContent className="neia-a01-dialogo">
+          <DialogHeader>
+            <DialogTitle>Excluir tarefa</DialogTitle>
+            <DialogDescription>
+              {excluir?.titulo} — a tarefa sai das listas ativas e vai para a lixeira. O histórico é
+              preservado e a restauração devolve o registro com os dados originais.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="neia-a01-form"
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              const motivo = motivoExclusao.trim();
+              if (!motivo) {
+                setErro("Informe o motivo da exclusão.");
+                return;
+              }
+              if (excluir) excluirMutacao.mutate({ tarefa: excluir, motivo });
+            }}
+          >
+            <label>
+              Motivo da exclusão
+              <Textarea
+                name="motivo"
+                maxLength={500}
+                required
+                value={motivoExclusao}
+                onChange={(evento) => setMotivoExclusao(evento.target.value)}
+              />
+            </label>
+            {erro && (
+              <p role="alert" className="neia-a01-vermelho">
+                {erro}
+              </p>
+            )}
+            <Button type="submit" className="neia-a01-dourado" disabled={excluirMutacao.isPending}>
+              {excluirMutacao.isPending ? "Excluindo…" : "Confirmar exclusão"}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
 

@@ -22,6 +22,7 @@
     "teste:producao": "node scripts/producao-liberacao.test.mjs",
     "teste:producao-remessas": "node --experimental-transform-types scripts/producao-remessas-local.test.mjs",
     "teste:central": "node scripts/central-pedidos.test.mjs",
+    "teste:neia": "node --test scripts/neia-inteligencia.test.mjs scripts/neia-recomendacoes-estado.test.mjs",
     "teste:fases": "node scripts/fases.test.mjs",
     "teste:rls": "node scripts/auditoria-rls.mjs",
     "teste:pix": "node scripts/pix-reader.test.mjs",

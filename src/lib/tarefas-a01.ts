@@ -44,19 +44,49 @@ export type TarefaA01 = {
   concluida_em: string | null;
   concluida_por: string | null;
   versao: number;
+  /** Exclusão lógica: a tarefa sai das listas ativas e vai para a lixeira. */
+  excluida: boolean;
+  excluida_em: string | null;
+  excluida_por: string | null;
+  excluida_motivo: string | null;
+  /** Vínculo com a recomendação que originou a tarefa. */
+  recomendacao_id: string | null;
+  rec_chave: string | null;
+  rec_ocorrencia: number | null;
 };
 
-export type SugestaoTarefaA01 = { titulo: string; descricao: string };
+/** Sugestão vinda da Néia Inteligência, com o vínculo da recomendação de origem. */
+export type SugestaoTarefaA01 = {
+  titulo: string;
+  descricao: string;
+  prioridade?: PrioridadeA01;
+  recomendacao_id?: string;
+  rec_chave?: string;
+  rec_ocorrencia?: number;
+  /** Rótulo exibido no formulário para o administrador identificar a origem. */
+  origemRotulo?: string;
+};
 type EdicaoTarefa = Pick<
   TarefaA01,
   "titulo" | "descricao" | "prioridade" | "prazo" | "compartilhada" | "responsavel_id"
->;
+> & {
+  recomendacao_id?: string | null;
+  rec_chave?: string | null;
+  rec_ocorrencia?: number | null;
+};
 type EventoTarefa = {
   id: number;
   tarefa_id: string;
   ator_id: string;
   ator_nome: string;
-  acao: "criada" | "editada" | "concluida" | "sugestao_aprovada";
+  acao:
+    | "criada"
+    | "editada"
+    | "concluida"
+    | "sugestao_aprovada"
+    | "reaberta"
+    | "excluida"
+    | "restaurada";
   ocorrido_em: string;
   anterior: TarefaA01 | null;
   atual: TarefaA01;
@@ -199,10 +229,21 @@ export function tarefasAtrasadas(
       (tarefa) =>
         tarefa.responsavel_id === usuarioId &&
         !tarefa.concluida &&
+        !tarefa.excluida &&
         tarefa.prazo !== null &&
         tarefa.prazo < hoje,
     ) ?? []
   );
+}
+
+/** Tarefas que continuam visíveis nas listas ativas. */
+export function tarefasAtivas(tarefas: TarefaA01[] | undefined) {
+  return (tarefas ?? []).filter((tarefa) => !tarefa.excluida);
+}
+
+/** Tarefas excluídas logicamente, disponíveis na lixeira. */
+export function tarefasLixeira(tarefas: TarefaA01[] | undefined) {
+  return (tarefas ?? []).filter((tarefa) => tarefa.excluida);
 }
 
 export async function criarTarefaA01(tarefa: EdicaoTarefa, origem: TarefaA01["origem"]) {
@@ -211,8 +252,31 @@ export async function criarTarefaA01(tarefa: EdicaoTarefa, origem: TarefaA01["or
     .insert({ ...tarefa, origem })
     .select("id")
     .single();
-  if (error || !data)
+  if (error || !data) {
+    if (error?.code === "23505")
+      throw new Error("Já existe uma tarefa ativa para esta ocorrência da recomendação.");
     throw new Error("A tarefa não pôde ser criada. Verifique o responsável e tente novamente.");
+  }
+  return String(data.id);
+}
+
+/** Localiza a tarefa ativa vinculada a uma ocorrência da recomendação. */
+export async function tarefaDaRecomendacao(
+  recomendacaoId: string,
+  chave: string,
+  ocorrencia: number,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("a01_tarefas")
+    .select("id")
+    .eq("recomendacao_id", recomendacaoId)
+    .eq("rec_chave", chave)
+    .eq("rec_ocorrencia", ocorrencia)
+    .not("concluida", "is", true)
+    .not("excluida", "is", true)
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return data?.[0]?.id ?? null;
 }
 
 export async function atualizarTarefaA01(
@@ -231,5 +295,55 @@ export async function atualizarTarefaA01(
   if (!data)
     throw new Error(
       "A tarefa foi atualizada por outra pessoa ou ficou indisponível. Atualize a lista e revise a alteração.",
+    );
+}
+
+/** Exclusão lógica: exige motivo e mantém a tarefa e o histórico. */
+export async function excluirTarefaA01(tarefa: TarefaA01, motivo: string) {
+  const texto = motivo.trim();
+  if (!texto) throw new Error("Informe o motivo da exclusão.");
+  const { data, error } = await supabase
+    .from("a01_tarefas")
+    .update({ excluida: true, excluida_motivo: texto })
+    .eq("id", tarefa.id)
+    .eq("versao", tarefa.versao)
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(error.message || "A exclusão não pôde ser registrada.");
+  if (!data)
+    throw new Error(
+      "A tarefa foi alterada por outra pessoa ou você não tem permissão para excluí-la.",
+    );
+}
+
+/** Restauração pela lixeira: devolve a tarefa às listas ativas. */
+export async function restaurarTarefaA01(tarefa: TarefaA01) {
+  const { data, error } = await supabase
+    .from("a01_tarefas")
+    .update({ excluida: false })
+    .eq("id", tarefa.id)
+    .eq("versao", tarefa.versao)
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(error.message || "A restauração não pôde ser registrada.");
+  if (!data)
+    throw new Error(
+      "A tarefa foi alterada por outra pessoa ou você não tem permissão para restaurá-la.",
+    );
+}
+
+/** Reabertura: a tarefa volta ao estado pendente e a conclusão anterior fica no histórico. */
+export async function reabrirTarefaA01(tarefa: TarefaA01) {
+  const { data, error } = await supabase
+    .from("a01_tarefas")
+    .update({ concluida: false })
+    .eq("id", tarefa.id)
+    .eq("versao", tarefa.versao)
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(error.message || "A tarefa não pôde ser reaberta.");
+  if (!data)
+    throw new Error(
+      "A tarefa foi alterada por outra pessoa ou você não tem permissão para reabrí-la.",
     );
 }

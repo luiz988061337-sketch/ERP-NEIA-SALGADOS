@@ -1,11 +1,30 @@
 # A02.1 — Status da entrega
 
-Data: 26/11/2026 (atualização A02.1.1)
+Data: 26/11/2026 (atualização A02.1.2)
 Branch: `resgate-visual-h01-h07-codex`
 Base integrada: A01/A01.1 (`0c11da6`) + E01 (merge `caee4a8`)
 Commit da funcionalidade: `d1e9f96`
 Commit remoto validado: `d93d8a3`
 Commit A02.1.1 (ajustes finais): `bc437ab`
+
+## A02.1.2 — Em homologação, aguardando aprovação manual (26/11/2026)
+
+**A02.1.2 (gerenciamento de recomendações preventivas e tarefas) está
+implementada e publicada na homologação. A etapa ainda NÃO está encerrada:**
+falta a homologação manual e a aprovação visual do proprietário, e nenhum
+checkpoint final foi criado.
+
+- Migrations `0125` (A01), `0126` (recomendações) e `0127` (tarefas) aplicadas
+  **somente** em `lflzlcqinarrcgncafol`; Production não foi alterada.
+- Novas capacidades: situação por recomendação (pendente, ciente, adiada, com
+  tarefa, resolvida, dispensada), ciência, adiamento com limite de 24 horas
+  para crítico, dispensa com motivo, reativação por recorrência, resolução
+  automática por reavaliação dos dados, exclusão lógica com motivo, lixeira,
+  restauração, reabertura e vínculo anti-duplicidade entre recomendação e
+  tarefa.
+- Relatório técnico: `a02.1.2-implementacao.md`.
+- Teste SQL de permissões: `recomendacoes-tarefas-rls.test.sql` (executado em
+  homologação, com sucesso).
 
 ## Aprovação (26/11/2026)
 
