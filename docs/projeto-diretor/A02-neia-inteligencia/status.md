@@ -30,7 +30,7 @@ checkpoint final foi criado.
 
 ### Correção de 26/11/2026 — cache A02 e menu único
 
-**Commit da correção:** `c31986d` (local, ainda não publicado).
+**Commit da correção:** `c31986d` (fast-forward, sem force push).
 
 **Causa do `PGRST205`:** as migrations `0126` e `0127` nunca tinham sido
 aplicadas em `lflzlcqinarrcgncafol`. O CLI `supabase --linked` resolvia para o
@@ -94,8 +94,19 @@ Usuário temporário com papel `admin`, removido ao final junto com os registros
 | `npm run build` com `VITE_DEMO_PREVIEW=0` e `NEIA_AMBIENTE=homologacao` | Passou |
 | Bundle | 10 referências a `lflzlcqinarrcgncafol`, nenhuma a `ruioyioynwwwiqbjznoa` |
 
+#### Publicação desta correção (26/11/2026)
+
+| Item | Resultado |
+| --- | --- |
+| Deployment | `dpl_8hiRSWJRK1pq61WcPdwJS7DPi2BL` — Ready (preview) |
+| URL do deployment | `https://erp-neia-salgados-4zaq12j18-luiz988061337-3147s-projects.vercel.app` |
+| Alias fixo | Apontando para o deployment acima (confirmado por `vercel inspect`) |
+| Build | `--prebuilt` com `VITE_SUPABASE_URL=https://lflzlcqinarrcgncafol.supabase.co`, `VITE_DEMO_PREVIEW=0` e `NEIA_AMBIENTE=homologacao` |
+| Bundle enviado | 10 referências a `lflzlcqinarrcgncafol`, nenhuma a `ruioyioynwwwiqbjznoa`; `ocorreu_em`, `Minhas tarefas` e `a02_recomendacoes` presentes |
+| Resposta do alias | HTTP 302 para o login da Vercel (proteção do Preview mantida) |
+
 A conferência visual do menu nas páginas citadas continua pendente de aprovação
-manual no alias fixo, após a publicação deste commit.
+manual do proprietário no alias fixo. Nenhum checkpoint final foi criado.
 
 ### Publicação A02.1.2 (26/11/2026)
 
