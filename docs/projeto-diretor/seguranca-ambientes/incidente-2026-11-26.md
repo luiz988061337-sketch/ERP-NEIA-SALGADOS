@@ -112,3 +112,13 @@ Não executar sem autorização expressa do proprietário.
   homologação com verificação de bundle.
 - Documentação da norma em [README.md](README.md) e auditoria das migrações em
   [migracoes-0125-0127.md](migracoes-0125-0127.md).
+
+### Consolidação autorizada (26/11/2026)
+
+- O commit de segurança `32a989a` foi preservado e publicado na branch oficial;
+  o commit do Codex `b7870b7` foi integrado por merge, sem force push.
+- A reconciliação do histórico `0126`/`0127` foi executada **somente em
+  homologação**, sem reaplicar DDL (ver documento de migrações).
+- Nenhuma alteração, DROP, TRUNCATE ou RESET foi executada em produção.
+- A remoção dos objetos A01/A02 de produção permanece sem autorização e
+  documentada acima para avaliação posterior.
