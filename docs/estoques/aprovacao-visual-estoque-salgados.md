@@ -54,7 +54,7 @@ A aprovação visual não cobre:
 - alteração em produção;
 - publicação de novo deployment.
 
-O cadastro de 26 sabores e o plano de aplicação em homologação estão descritos em [cadastro-oficial-salgados-26.md](cadastro-oficial-salgados-26.md). A execução remota depende de autorização específica e do cumprimento da barreira P0 de ambientes.
+O cadastro de 26 sabores e o plano de aplicação em homologação estão descritos em [cadastro-oficial-salgados-26.md](cadastro-oficial-salgados-26.md). A execução remota foi autorizada separadamente, passou pela barreira P0 e está registrada em [aplicacao-cadastro-oficial-26.md](aplicacao-cadastro-oficial-26.md).
 
 ## Checkpoint
 

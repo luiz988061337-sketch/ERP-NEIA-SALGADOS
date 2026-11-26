@@ -92,4 +92,18 @@ A remoção da tabela, policy e grants depende de autorização específica e co
 
 ## Publicação
 
-A publicação usa somente o alias oficial e a branch `resgate-visual-h01-h07-codex`. Detalhes do deployment serão registrados após a conferência do alias.
+| Item | Resultado |
+| --- | --- |
+| Branch publicada | `resgate-visual-h01-h07-codex`, commit `9f18b364a2246b5b9d988e1c43c0172d2ea398c7` |
+| Comando | `vercel deploy --yes --target preview`, sem `--prod`, com variáveis de homologação passadas explicitamente |
+| Deployment | `dpl_24HZPn5hnmoorUJgjNuvzgmT4xkw` — `READY`, `target: preview` |
+| URL própria | `https://erp-neia-salgados-2qr5mpwh3-luiz988061337-3147s-projects.vercel.app` |
+| Alias oficial | <https://erp-neia-salgados-git-resga-dcaca5-luiz988061337-3147s-projects.vercel.app/admin#estoque-salgados>, reposicionado para o deployment acima e confirmado por `vercel inspect` |
+| Proteção | `vercel_authentication` preservada |
+| Build local | `npm run build:homolog` com `NITRO_PRESET=node-server`: 448 arquivos, 10 referências a homologação, zero a produção |
+| Bundle publicado | Chunk `admin-cpGzjL-i.js` com `trouxinha-calabresa`, `enroladinho-salsicha` e `sabores_estoque`; SHA-256 `e46ff92d78c302c2a84cfecdecf59b8e770da7645bd6de7ea582511d9bd9703f`, idêntico no deployment e no alias |
+| Ambiente publicado | `index-CtqhvWJx.js` contém `lflzlcqinarrcgncafol` e não contém `ruioyioynwwwiqbjznoa`; HTML servido sem “MODO DEMONSTRAÇÃO” |
+
+O alias fixo permanece o mesmo endereço oficial; nenhum projeto, domínio ou endereço novo foi criado. A inspeção somente leitura de `https://erp-neia-salgados.vercel.app` confirmou que Production continuava no deployment `dpl_DK144zp5kG9FSsL4J5HdniQ34Ukk`, de 12/11/2026, sem promoção nesta etapa. Menu lateral, layout aprovado e checkpoints anteriores foram preservados.
+
+Checkpoint desta etapa: tag anotada `checkpoint-cadastro-estoque-salgados-26-01`, sobre o commit `9f18b36`. A conferência manual do proprietário no alias oficial permanece a etapa final de homologação; nenhuma aprovação operacional adicional foi presumida.

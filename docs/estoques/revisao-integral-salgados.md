@@ -48,4 +48,4 @@ SQL. O código SQL foi preparado e testado fora do banco remoto.
 
 A Central de Relatórios de Estoque está [registrada como etapa
 futura](estoque-salgados-codex.md). O [cadastro oficial de 26 sabores](cadastro-oficial-salgados-26.md)
-foi preparado após a aprovação visual e aguarda autorização para aplicação em homologação.
+foi preparado após a aprovação visual, aplicado em homologação e verificado conforme [registro de aplicação](aplicacao-cadastro-oficial-26.md).
