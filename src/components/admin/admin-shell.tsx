@@ -32,7 +32,7 @@ const itemTarefas: AdminNavItem = {
 /**
  * Shell do Admin — aparência da referência preto/dourado:
  * sidebar compacta com moldura dourada, marca (coroa + NÉIA SALGADOS),
- * item ativo em pílula dourada, ícones claros e usuário no rodapé.
+ * item ativo em amarelo sólido dos painéis, ícones claros e usuário no rodapé.
  *
  * O menu usa os grupos de ADMIN_NAV e os destinos operacionais do ambiente.
  */
@@ -65,13 +65,11 @@ export function AdminShell({
   // Operação usa o mesmo menu aprovado na A01.1 em todas as páginas
   // administrativas. A prévia/demonstração mantém o catálogo completo.
   const menuTarefasEfetivo = menuTarefas ?? (menuDemonstrativo ? undefined : "admin");
+  const comTemaA01 =
+    menuTarefasEfetivo &&
+    (aba === "dashboard" || aba === "minhas-tarefas" || aba === "neia-inteligencia");
   return (
-    <SidebarProvider
-      className={
-        menuTarefasEfetivo && (aba === "dashboard" || aba === "minhas-tarefas")
-          ? "neia-a01-shell"
-          : undefined
-      }
+    <SidebarProvider className={comTemaA01 ? "neia-a01-shell" : undefined}
       style={
         {
           "--sidebar-width": "14rem",
@@ -303,7 +301,7 @@ function MenuLateral({
                       : undefined;
                     const classeIcone = `${
                       ehComercial ? "shrink-0" : ""
-                    } ${ativo ? "text-[#14120C]" : "text-[#C9A24B]"}`;
+                    } ${ativo ? "text-[#17110A]" : "text-[#C9A24B]"}`;
                     const textoItem = item.linhas
                       ? item.linhas.map((linha, indice) => (
                           <span key={`${item.value}-linha-${indice}`} className="block">
@@ -313,7 +311,7 @@ function MenuLateral({
                       : item.label;
                     const classes = `${
                       ativo
-                        ? "erp-btn-gold rounded-lg border border-[#D4A94A] bg-gradient-to-b from-[#F2CE6B] to-[#D4A94A] px-3 font-semibold text-[#14120C] shadow-card hover:bg-gradient-to-b hover:from-[#F2CE6B] hover:to-[#D4A94A] hover:text-[#14120C]"
+                        ? "rounded-lg border border-[#FFD252] bg-[#FFD252] px-3 font-semibold text-[#17110A] shadow-card hover:bg-[#FFD252] hover:text-[#17110A]"
                         : "rounded-lg border border-transparent px-3 text-sidebar-foreground hover:border-[#D4A94A]/50 hover:bg-[#D4A94A]/12 hover:text-[#F2CE6B]"
                     } ${alturaItem}`;
 
@@ -331,6 +329,7 @@ function MenuLateral({
                               to={item.href}
                               preload="intent"
                               hashScrollIntoView={false}
+                              resetScroll={false}
                               activeOptions={{ exact: true, includeHash: true }}
                               aria-current={ativo ? "page" : undefined}
                               {...(item.hash ? { hash: item.hash } : {})}
@@ -340,7 +339,7 @@ function MenuLateral({
                             >
                               <item.icon className={classeIcone} />
                               <span
-                                className={`${classeTexto}${ativo ? " text-[#14120C]" : ""}`}
+                                className={`${classeTexto}${ativo ? " text-[#17110A]" : ""}`}
                                 style={estiloTexto}
                               >
                                 {textoItem}

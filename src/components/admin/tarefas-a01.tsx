@@ -143,6 +143,10 @@ export function TarefasA01({
     nomes.data?.get(id) ?? nomeTarefa(id, registrado);
   const nomeNoHistorico = (id: string, registrado: string) =>
     nomeTarefa(id, registrado, nomes.data);
+  const nomeUsuario =
+    nomes.data?.get(usuarioId) ??
+    responsaveis.data?.find((pessoa) => pessoa.id === usuarioId)?.nome ??
+    "Nome não cadastrado";
   const alteraVisibilidade = admin || !existente || existente.criado_por === usuarioId;
   const podeEditar = (tarefa: TarefaA01) =>
     admin || tarefa.criado_por === usuarioId || tarefa.responsavel_id === usuarioId;
@@ -290,7 +294,7 @@ export function TarefasA01({
       <div className="neia-a01-tarefas-controles">
         <Button
           type="button"
-          variant="outline"
+          className="neia-a01-dourado"
           disabled={consulta.isError}
           onClick={() => {
             setErro("");
@@ -457,7 +461,7 @@ export function TarefasA01({
                           <>
                             <Button
                               type="button"
-                              size="sm"
+                              size="default"
                               variant="ghost"
                               onClick={() => {
                                 setErro("");
@@ -470,7 +474,7 @@ export function TarefasA01({
                             </Button>
                             <Button
                               type="button"
-                              size="sm"
+                              size="default"
                               variant="ghost"
                               onClick={() => {
                                 setErro("");
@@ -486,7 +490,7 @@ export function TarefasA01({
                         {tarefa.concluida && !tarefa.excluida && (
                           <Button
                             type="button"
-                            size="sm"
+                            size="default"
                             variant="ghost"
                             disabled={reabrirMutacao.isPending}
                             onClick={() => {
@@ -502,7 +506,7 @@ export function TarefasA01({
                         {admin && !tarefa.excluida && (
                           <Button
                             type="button"
-                            size="sm"
+                            size="default"
                             variant="ghost"
                             onClick={() => {
                               setErro("");
@@ -517,7 +521,7 @@ export function TarefasA01({
                         {admin && tarefa.excluida && (
                           <Button
                             type="button"
-                            size="sm"
+                            size="default"
                             variant="ghost"
                             disabled={restaurarMutacao.isPending}
                             onClick={() => {
@@ -532,7 +536,7 @@ export function TarefasA01({
                         )}
                         <Button
                           type="button"
-                          size="sm"
+                          size="default"
                           variant="ghost"
                           onClick={() => setHistorico(tarefa)}
                         >
@@ -627,7 +631,7 @@ export function TarefasA01({
                 <label>
                   Responsável{" "}
                   <select name="responsavel" defaultValue={existente?.responsavel_id ?? usuarioId}>
-                    <option value={usuarioId}>Eu</option>
+                    <option value={usuarioId}>{nomeUsuario}</option>
                     {existente?.responsavel_id &&
                       existente.responsavel_id !== usuarioId &&
                       !responsaveis.data?.some((p) => p.id === existente.responsavel_id) && (
@@ -639,7 +643,7 @@ export function TarefasA01({
                       ?.filter((p) => p.id !== usuarioId)
                       .map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.nome ?? "Nome não cadastrado" + (p.funcao ? " · " + p.funcao : "")}
+                          {(p.nome ?? "Nome não cadastrado") + (p.funcao ? " · " + p.funcao : "")}
                         </option>
                       ))}
                   </select>
@@ -649,7 +653,7 @@ export function TarefasA01({
                   Responsável:{" "}
                   {existente
                     ? mostrarNome(existente.responsavel_id, existente.responsavel_nome)
-                    : "Você"}
+                    : nomeUsuario}
                 </p>
               )}
               {admin &&
@@ -686,7 +690,8 @@ export function TarefasA01({
               )}
               <Button
                 type="submit"
-                className="neia-a01-dourado"
+                variant={existente && !sugestao ? "outline" : "default"}
+                className={existente && !sugestao ? undefined : "neia-a01-dourado"}
                 disabled={criar.isPending || atualizar.isPending}
               >
                 {sugestao ? "Aprovar e criar tarefa" : existente ? "Salvar tarefa" : "Criar tarefa"}
@@ -716,7 +721,7 @@ export function TarefasA01({
             </p>
           )}
           <Button
-            className="neia-a01-dourado"
+            variant="outline"
             disabled={atualizar.isPending}
             onClick={() => {
               if (concluir) {
@@ -775,7 +780,7 @@ export function TarefasA01({
                 {erro}
               </p>
             )}
-            <Button type="submit" className="neia-a01-dourado" disabled={excluirMutacao.isPending}>
+            <Button type="submit" variant="outline" disabled={excluirMutacao.isPending}>
               {excluirMutacao.isPending ? "Excluindo…" : "Confirmar exclusão"}
             </Button>
           </form>
@@ -911,7 +916,7 @@ export function PainelEquipeTarefasA01({
               {salvarNome.error.message}
             </p>
           )}
-          <Button type="submit" className="neia-a01-dourado" disabled={salvarNome.isPending}>
+          <Button type="submit" variant="outline" disabled={salvarNome.isPending}>
             Salvar nome
           </Button>
         </form>

@@ -489,19 +489,8 @@ export function NeiaInteligencia({ usuarioId }: { usuarioId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assinatura, estados.length, agora]);
 
-  const porCategoria =
-    filtro === "todas" ? todosItens : todosItens.filter((item) => item.categoria === filtro);
-  const recomendacoes = porCategoria.filter((item) =>
-    correspondeFiltroSituacao(item.situacao, filtroSituacao, !!item.estado?.tarefa_id),
-  );
-  const indisponiveis = resultado.fontes.filter((fonte) => !fonte.disponivel);
-  const ativas = todosItens.filter(
-    (item) =>
-      item.ativo &&
-      (item.situacao === "pendente" || item.situacao === "ciente" || item.situacao === "adiada"),
-  );
-  const tarefasDe = (item: ItemMonitoramento) =>
-    tarefas?.find(
+  function tarefasDe(item: ItemMonitoramento) {
+    return tarefas?.find(
       (tarefa) =>
         tarefa.recomendacao_id === item.id &&
         tarefa.rec_chave === (item.estado?.chave ?? item.id) &&
@@ -509,7 +498,21 @@ export function NeiaInteligencia({ usuarioId }: { usuarioId: string }) {
         !tarefa.concluida &&
         !tarefa.excluida,
     );
+  }
+  const temTarefaAtiva = (item: ItemMonitoramento) =>
+    tarefas ? !!tarefasDe(item) : !!item.estado?.tarefa_id;
 
+  const porCategoria =
+    filtro === "todas" ? todosItens : todosItens.filter((item) => item.categoria === filtro);
+  const recomendacoes = porCategoria.filter((item) =>
+    correspondeFiltroSituacao(item.situacao, filtroSituacao, temTarefaAtiva(item)),
+  );
+  const indisponiveis = resultado.fontes.filter((fonte) => !fonte.disponivel);
+  const ativas = todosItens.filter(
+    (item) =>
+      item.ativo &&
+      (item.situacao === "pendente" || item.situacao === "ciente" || item.situacao === "adiada"),
+  );
   async function recarregar() {
     await persistidas.refetch();
     await consultaTarefas.refetch();
@@ -729,7 +732,11 @@ export function NeiaInteligencia({ usuarioId }: { usuarioId: string }) {
                     <li key={item.id + (item.estado?.ocorrencia ?? 0)}>
                       <div className="neia-a02-etiquetas">
                         <span className={"neia-a01-" + (item.ativo ? "ouro" : "azul")}>
-                          <strong>{rotuloSituacaoRecomendacao(item.situacao)}</strong>
+                          <strong>
+                            {rotuloSituacaoRecomendacao(
+                              temTarefaAtiva(item) ? "com-tarefa" : item.situacao,
+                            )}
+                          </strong>
                         </span>
                         <span>
                           {item.categoria ? rotuloCategoriaNeia(item.categoria) : "Geral"}
@@ -741,7 +748,6 @@ export function NeiaInteligencia({ usuarioId }: { usuarioId: string }) {
                           )}
                         </span>
                         {item.estado ? <span>Ocorrência {item.estado.ocorrencia}</span> : null}
-                        {tarefaVinculada ? <span>Tarefa vinculada</span> : null}
                       </div>
                       <strong>{item.titulo}</strong>
                       <p>{item.motivo}</p>
@@ -996,7 +1002,7 @@ export function NeiaInteligencia({ usuarioId }: { usuarioId: string }) {
             </p>
           ) : null}
           <Button
-            className="neia-a01-dourado"
+            variant="outline"
             disabled={processando || !adiarAte || !!erroAdiamento}
             onClick={() => {
               if (!adiarItem || !adiarAte) return;
@@ -1041,7 +1047,7 @@ export function NeiaInteligencia({ usuarioId }: { usuarioId: string }) {
             <p className="neia-a01-nota">{validarMotivo(dispensarMotivo)}</p>
           ) : null}
           <Button
-            className="neia-a01-dourado"
+            variant="outline"
             disabled={processando || !!validarMotivo(dispensarMotivo)}
             onClick={() => {
               if (!dispensarItem) return;

@@ -70,7 +70,7 @@
 }
 
 .neia-a02-filtros button {
-  min-height: 38px;
+  min-height: 44px;
   padding: 5px 12px;
   border: 1px solid var(--a01-linha);
   border-radius: 999px;
@@ -128,9 +128,17 @@
 }
 
 .neia-a02-acoes a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--a01-texto);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.neia-a02-acoes button {
+  min-height: 44px;
+  font-size: 14px;
 }
 
 .neia-a02-pendente {

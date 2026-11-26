@@ -9,6 +9,7 @@
   padding: 0 16px 20px;
   color: var(--a01-texto);
   background: #0a1015;
+  min-height: 100%;
   font-size: 15px;
 }
 .neia-a01 h1,
@@ -570,9 +571,13 @@
   border: 1px solid var(--a01-linha);
   border-radius: 7px;
 }
+.neia-a01-tarefas-controles > button.neia-a01-dourado {
+  min-height: 44px;
+}
 .neia-a01-tarefas-controles > div button[aria-pressed="true"] {
-  color: #17110a;
-  background: var(--a01-ouro);
+  color: var(--a01-texto);
+  background: #26313a;
+  border-color: var(--a01-ouro);
   font-weight: 750;
 }
 .neia-a01-tarefas-lista {
@@ -598,7 +603,8 @@
   flex-wrap: wrap;
 }
 .neia-a01-tarefas-botoes button {
-  min-height: 40px;
+  min-height: 44px;
+  font-size: 14px;
 }
 .neia-a01-tarefas-equipe {
   width: 100%;
@@ -635,6 +641,7 @@
   border-radius: 7px;
   padding-inline: 8px;
 }
+.neia-a01-shell > main,
 .neia-a01-shell [data-sidebar="sidebar"],
 .neia-a01-shell [data-sidebar="content"] {
   background: #0a1015;
@@ -662,6 +669,9 @@
 .neia-a01-compartilhar input {
   accent-color: #ffd252;
   width: 17px;
+}
+.neia-a01-dialogo button {
+  min-height: 44px;
 }
 .neia-a01-dialogo .neia-a01-notificacoes {
   overflow-wrap: anywhere;
