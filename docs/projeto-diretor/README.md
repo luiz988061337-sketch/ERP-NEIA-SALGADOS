@@ -61,3 +61,4 @@ depende de autorização expressa do proprietário.
 - [Estoque de Salgados — aprovação visual e cadastro de 26 sabores](estoque-salgados/status.md)
 - [Aplicação do cadastro oficial de 26 sabores em homologação](../estoques/aplicacao-cadastro-oficial-26.md)
 - [Organização da sequência dos sabores](../estoques/organizacao-sequencia-sabores.md)
+- [H02 — Central de Pedidos, aprovação visual](H02-central-pedidos/status.md)
