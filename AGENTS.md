@@ -13,6 +13,30 @@
 
 # Regras de trabalho Codex e OpenCode
 
+## Protocolo permanente do ERP
+
+Codex, OpenCode e qualquer outro agente de desenvolvimento devem consultar o
+[protocolo do Projeto Diretor](docs/projeto-diretor/README.md) e as especificações
+e referências aprovadas do módulo antes de iniciar uma tarefa.
+
+1. Existe um único ERP Néia Salgados oficial. Continuar o desenvolvimento no
+   ERP existente e preservar todos os layouts e funcionalidades aprovados.
+   É proibido reiniciar o ERP, criar versões paralelas para aprovação ou
+   substituir funcionalidades aprovadas.
+2. O único endereço oficial de homologação é o definido abaixo. Usar a branch
+   `resgate-visual-h01-h07-codex`, o Supabase `lflzlcqinarrcgncafol` e
+   `VITE_DEMO_PREVIEW=0`. O modo demonstração é proibido na homologação.
+3. Trabalhos paralelos usam branches e worktrees isoladas. Coordenar as
+   integrações, migrations e publicações. São proibidas migrations simultâneas
+   no mesmo banco e publicações conflitantes. Integrar na branch oficial
+   somente depois de conferir a base atual, as mudanças em andamento e os conflitos.
+4. Antes de publicar, executar os testes de regressão pertinentes e validar o
+   ambiente. Conferir a versão publicada no endereço oficial e aguardar a
+   aprovação manual do proprietário. Registrar cada etapa aprovada com
+   documentação, commit e checkpoint versionado.
+5. A produção usa o Supabase `ruioyioynwwwiqbjznoa` e permanece protegida.
+   Toda alteração em produção depende de autorização expressa do proprietário.
+
 ## Configuração permanente de ambientes
 
 ### Homologação — desenvolvimento e testes
@@ -42,7 +66,7 @@
 
 ## Ambientes e segurança
 - Production é protegida. Não fazer deploy, migration ou alteração no Supabase real sem autorização expressa.
-- Usar dados demonstrativos nos Previews e manter os scripts de proteção ativos.
+- Usar dados demonstrativos nas prévias locais e isoladas de desenvolvimento, quando aplicável, e manter os scripts de proteção ativos. Na homologação oficial, usar somente o Supabase de homologação, com `VITE_DEMO_PREVIEW=0`.
 - Não imprimir credenciais nem incluir segredos em arquivos versionados.
 
 ## Controle de versão
