@@ -62,3 +62,4 @@ depende de autorização expressa do proprietário.
 - [Aplicação do cadastro oficial de 26 sabores em homologação](../estoques/aplicacao-cadastro-oficial-26.md)
 - [Organização da sequência dos sabores](../estoques/organizacao-sequencia-sabores.md)
 - [H02 — Central de Pedidos, aprovação visual](H02-central-pedidos/status.md)
+- [Central da Atendente — incidente P0 no prazo de assados](central-atendente/incidente-p0-prazo-assados.md)
