@@ -52,7 +52,8 @@ compromisso no front-end.**
 DEFINER`, `search_path=public`, RLS, `has_role` e `auth.uid()` são confirmados.
 `PUBLIC`, `anon` e `service_role` continuam sem acesso. Ordem coordenada de
 aplicação: `0129` revisada → `0130`/`0131`/`0132` da Central da Atendente →
-`0133`. A branch do Codex não foi alterada.
+`0133` → `0134`/`0135`/`0136` (publicadas e aplicadas) → corretiva B7, cuja
+numeração será coordenada a partir de `0137`. A branch do Codex não foi alterada.
 
 ## 3. Contrato de leitura
 
@@ -115,9 +116,10 @@ Datas futuras são compromissos (`registrar_compromisso_salgado`), não reserva
 física: a entrada real cobre a obrigação sem criar lote fictício e a
 disponibilidade é revalidada na confirmação. `reservar_sabor_estoque` com data
 futura responde `analise_necessaria` **sem criar, alterar ou cancelar reserva
-alguma**; isso não impede o agendamento legítimo — a interface deve registrar o
-compromisso e manter o pedido para atendimento assistido. Reservas já aprovadas
-para a data corrente permanecem intactas.
+alguma**. Conforme decisão posterior do proprietário, agendamento **sem cobertura
+confirmada não cria pedido nem cobrança**: vira solicitação de análise e, após
+aprovação, compromisso futuro (detalhes na seção 10). Reservas já aprovadas para
+a data corrente permanecem intactas.
 
 ### 5.2 Solicitação, resposta e notificação
 - `solicitar_salgado` registra tipo, sabor, quantidade, justificativa,
@@ -197,3 +199,52 @@ carrinho nem duplicar pedido.
   descartável antes de qualquer homologação (resultado registrado no relatório).
 - Nenhum resultado visual de homologação; publicação exige autorização expressa,
   especialmente enquanto existir risco conhecido de bloqueio comercial indevido.
+
+## 10. Correção B7 — contrato para o Codex
+
+Rascunho local em `scripts/estoque-operacional/correcao-b7-agendamentos-rascunho.sql`,
+detalhado em `docs/estoques/correcao-b7-agendamentos.md`. **Não aplicado** e com
+flag desligada por padrão.
+
+| Situação | Retorno da RPC `criar_pedido_com_reserva` | Efeito no banco |
+| --- | --- | --- |
+| Imediato | Base inalterada (`criado`/`ja_criado`) | Uma reserva; nenhum agendamento registrado. |
+| Agendado com cobertura | Base inalterada + `agendamento: { situacao: 'reserva_fisica_protegida', data, reserva_protegida: true }` | Pedido com `agendado_para` no INSERT, uma reserva, registro operacional. Nenhum UPDATE em pedido. |
+| Agendado sem cobertura | `analise_necessaria` com `situacao: 'analise_pendente'`, `solicitacoes` e mensagem | Nenhum pedido, reserva ou cobrança; solicitação por sabor. |
+| Reenvio com payload divergente | `idempotencia_divergente` | Nenhuma alteração. |
+| Aprovação pelo responsável | `registrar_compromisso_aprovado_b7` → `ok` / `ja_registrado` | Compromisso futuro com `pedido_id = NULL`; nenhum lote ou saldo. |
+| Recusa | `registrar_compromisso_aprovado_b7` → `recusado` | Nenhum compromisso criado. |
+| Pedido definitivo | `vincular_pedido_compromisso_b7` → `ok` / `ja_vinculado` | Compromissos ligados ao pedido; sem UPDATE de valor/status. |
+| Cobertura por lote real | `converter_compromisso_reserva_b7` → `ok` / `ja_registrado` | Uma reserva FEFO; `compromissos_futuros = 0`, sem dupla dedução. |
+| Cancelamento | `cancelar_compromisso_b7` → `ok` / `ja_cancelado` | Compromisso cancelado, reserva convertida liberada, histórico preservado. |
+
+Nenhuma cobrança é efetuada antes da confirmação autorizada.
+
+O Codex precisa, sem editar nesta frente:
+
+1. aceitar `analise_necessaria` em `interpretarCriacao`
+   (`src/lib/criacao-atomica.ts`) e devolver estado sem `pedidoId`, sem pagamento
+   e sem classificação de “estoque esgotado”;
+2. tratar esse estado em checkout, PDV e atendente como “aguardando aprovação”,
+   sem redirect para pedido inexistente;
+3. incluir `salgados_resposta` no filtro da Central e, se desejado, ler
+   `salgados_agendamentos_b7.data_solicitada` para exibir a data;
+4. regenerar `types.ts` depois da migration autorizada, expondo apenas
+   `configurar_b7_salgados(boolean)`,
+   `registrar_compromisso_aprovado_b7(uuid,uuid)`,
+   `vincular_pedido_compromisso_b7(uuid,uuid,uuid)`,
+   `converter_compromisso_reserva_b7(uuid,uuid,uuid)` e
+   `cancelar_compromisso_b7(uuid,text,uuid)` como RPCs de cliente. O auxiliar
+   `registrar_compromisso_futuro_b7` é interno.
+
+A corretiva não altera a assinatura pública da RPC principal, não modifica a
+`0095`, `0103`, `0089`, `0129` ou `0133`, e sua reversão é não destrutiva.
+
+## 11. Edição de pedidos
+
+Contrato separado em `docs/estoques/contrato-edicao-pedidos-estoque.md`, aprovado
+pelo proprietário para Central da Atendente e H02. A frente local apenas
+especificou as invariantes de estoque (acréscimo, redução, substituição,
+reagendamento, cancelamento, consumo preservado, reservas sem duplicidade e
+revalidação FEFO); **nenhuma interface, RPC ou migration de edição foi criada**.
+Índice para retomada: `docs/estoques/continuidade-retomada-opencode.md`.
