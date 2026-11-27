@@ -15,17 +15,27 @@ CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS
   $$ SELECT coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb) $$;
 GRANT USAGE ON SCHEMA auth TO authenticated;
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
+INSERT INTO auth.users (id) VALUES
+  ('00000000-0000-4000-8000-000000000001'),
+  ('00000000-0000-4000-8000-000000000002'),
+  ('00000000-0000-4000-8000-000000000003'),
+  ('00000000-0000-4000-8000-000000000004'),
+  ('00000000-0000-4000-8000-000000000005');
 
 -- Perfis simulados pelo sufixo do UUID:
 --   01 = Admin com capacidade; 02 = atendente sem capacidade;
 --   03 = produção; 04 = atendente com capacidade; 05 = Admin sem capacidade.
 CREATE FUNCTION public.has_role(usuario uuid, papel text) RETURNS boolean LANGUAGE sql STABLE AS $$
-  SELECT right(usuario::text,2) = CASE papel
-    WHEN 'admin' THEN '01'
-    WHEN 'atendente' THEN '02'
-    WHEN 'producao' THEN '03' END
-  OR (papel = 'admin' AND right(usuario::text,2) = '05')
-  OR (papel = 'atendente' AND right(usuario::text,2) = '04');
+  -- Papéis não mapeados DEVEM retornar false (nunca NULL): a RPC financeira
+  -- usa NOT(...) na guarda e NULL viraria autorização acidental.
+  SELECT coalesce(
+    right(usuario::text,2) = CASE papel
+      WHEN 'admin' THEN '01'
+      WHEN 'atendente' THEN '02'
+      WHEN 'producao' THEN '03' END
+    OR (papel = 'admin' AND right(usuario::text,2) = '05')
+    OR (papel = 'atendente' AND right(usuario::text,2) = '04'),
+    false);
 $$;
 CREATE FUNCTION neia_operacao.tem_capacidade(usuario uuid, capacidade text) RETURNS boolean LANGUAGE sql STABLE AS $$
   SELECT right(usuario::text,2) IN ('01','04') AND capacidade = 'receber_pagamento';
@@ -48,6 +58,9 @@ CREATE TABLE public.pedido_pagamento_eventos (
 \ir ../../drizzle/migrations/0139_recebimento_balcao_atendente.sql
 \ir ../../drizzle/migrations/0140_edicao_observacoes_auditada.sql
 \ir ../../drizzle/migrations/0141_guard_recebimento_com_capacidade.sql
+-- Permissões mínimas para os testes de UPDATE direto; as RPCs são SECURITY DEFINER.
+GRANT SELECT, UPDATE ON public.pedidos TO authenticated;
+GRANT SELECT ON public.pedido_pagamento_eventos TO authenticated;
 CREATE TRIGGER trigger_congelar_colunas BEFORE UPDATE ON public.pedidos
   FOR EACH ROW EXECUTE FUNCTION public.congelar_colunas_protegidas();
 
@@ -55,6 +68,8 @@ INSERT INTO public.pedidos VALUES
   ('00000000-0000-4000-8000-000000000010','retirada','pronto',now(),NULL,'dinheiro','pendente',100,'',NULL),
   ('00000000-0000-4000-8000-000000000011','retirada','em_producao',NULL,NULL,'dinheiro','pendente',80,'',NULL),
   ('00000000-0000-4000-8000-000000000012','retirada','recebido',NULL,NULL,'pix','pendente',60,'',NULL),
+  ('00000000-0000-4000-8000-000000000013','retirada','em_producao',NULL,NULL,'pix','pendente',50,'',NULL),
+  ('00000000-0000-4000-8000-000000000014','retirada','pronto',now(),NULL,'dinheiro','pendente',100,'',NULL),
   ('00000000-0000-4000-8000-000000000020','retirada','pronto',now(),NULL,'pix','pago',80,'',now()),
   ('00000000-0000-4000-8000-000000000030','entrega','pronto',now(),NULL,'dinheiro','pendente',75,'',NULL),
   ('00000000-0000-4000-8000-000000000040','retirada','pronto',now(),NULL,'pix','pago',90,'',now());
@@ -112,9 +127,12 @@ SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 3000, 'sem-capacidade')::jsonb->>'status' = 'nao_autorizado',
   'atendente sem capacidade não registra pagamento');
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',false) IS NOT NULL;
+-- A capacidade financeira controla o botão na Central (pode_receber=false,
+-- verificado acima). A RPC preserva a autorização independente de Admin/0106:
+-- isto não é regressão nem aumento de escopo da 0139.
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 3000, 'admin-sem-capacidade')::jsonb->>'status' = 'nao_autorizado',
-  'Admin sem capacidade não registra pagamento');
+  '00000000-0000-4000-8000-000000000013', 5000, 'admin-sem-capacidade')::jsonb->>'status' = 'registrado',
+  'Admin sem capacidade mantém autorização financeira da 0106 na RPC');
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',false) IS NOT NULL;
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11')::jsonb->>'status' = 'registrado',
@@ -123,11 +141,22 @@ SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11')::jsonb->>'status' = 'repetido',
   'mesma chave não duplica recebimento');
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 3000, 'chave-reutilizada')::jsonb->>'status' = 'chave_idempotencia_conflitante',
+  '00000000-0000-4000-8000-000000000011', 3000, 'admin-sem-capacidade')::jsonb->>'status' = 'chave_idempotencia_conflitante',
   'chave reutilizada com outro pedido é recusada');
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 99999, 'acima-saldo')::jsonb->>'status' = 'valor_superior_ao_saldo',
   'valor acima do saldo é recusado');
+-- Troco é cálculo da interface (valor entregue - devido); o banco registra
+-- somente o devido, sem transformar troco em receita nem em evento financeiro.
+SELECT pg_temp.ok(public.registrar_pagamento_pedido(
+  '00000000-0000-4000-8000-000000000014', 10000, 'troco:14')::jsonb->>'status' = 'registrado',
+  'recebimento em dinheiro registra o valor devido');
+SELECT pg_temp.ok((SELECT count(*)=1 AND sum(valor_centavos)=10000
+  FROM public.pedido_pagamento_eventos WHERE pedido_id='00000000-0000-4000-8000-000000000014'),
+  'ledger não registra o troco como pagamento');
+SELECT pg_temp.ok((public.consultar_recebimento_retirada(
+  '00000000-0000-4000-8000-000000000014')->>'status') = 'quitado',
+  'pedido é quitado pelo devido, com troco apurado somente na interface');
 SELECT pg_temp.ok((public.consultar_recebimento_retirada('00000000-0000-4000-8000-000000000011')->>'saldo_centavos')::int = 5000,
   'saldo correto após recebimento parcial');
 SELECT pg_temp.ok((SELECT count(*)=1 FROM public.pedido_pagamento_eventos WHERE pedido_id='00000000-0000-4000-8000-000000000011'),
