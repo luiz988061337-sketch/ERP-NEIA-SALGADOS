@@ -1,3 +1,4 @@
+import { horaPrometida, janelaPrometida } from "@/lib/prazo-pedido";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,7 +43,6 @@ import { BUILD_DE_CORTE } from "@/lib/corte";
 import {
   DEFAULT_LOJA_CONFIG,
   enderecoLojaOficial,
-  prazosAtendimento,
   useLojaConfig,
 } from "@/lib/loja";
 import { useConfigEntrega, type ConfigEntrega } from "@/lib/config-entrega";
@@ -62,17 +62,6 @@ const ICONE_ETAPA: Record<string, typeof Check> = {
   em_rota: Bike,
   entregue: Home,
 };
-
-function janelaPrevista(iso: string | null | undefined, min: number, max: number) {
-  if (!iso) return null;
-  const base = new Date(iso);
-  if (Number.isNaN(base.getTime())) return null;
-  const hora = (d: Date) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  return {
-    de: hora(new Date(base.getTime() + min * 60_000)),
-    ate: hora(new Date(base.getTime() + max * 60_000)),
-  };
-}
 
 type EnderecoRetirada = {
   configurado: boolean;
@@ -497,14 +486,12 @@ function Acompanhar() {
   const fluxo = statusFlow(pedido.tipo_entrega);
   const atual = fluxo.indexOf(pedido.status);
   const progresso = atual >= 0 ? Math.round(((atual + 1) / fluxo.length) * 100) : 0;
-  const prazos = prazosAtendimento(loja);
-  // Estimativa só faz sentido durante a espera; pedido encerrado não tem ETA válida.
-  const pedidoEncerrado = ["entregue", "retirado", "cancelado"].includes(pedido.status);
-  const previsao = pedidoEncerrado
-    ? null
-    : isRetirada
-      ? janelaPrevista(pedido.created_at, prazos.retiradaMin, prazos.retiradaMax)
-      : janelaPrevista(pedido.created_at, prazos.entregaMin, prazos.entregaMax);
+  const pedidoEncerrado = !!pedido.retirado_em || ["entregue", "retirado", "cancelado"].includes(pedido.status);
+  const previsao = pedidoEncerrado ? null : janelaPrometida(pedido);
+  const textoPrazo = previsao && (pedido.agendado_para
+    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" })
+        .format(new Date(previsao.limite))
+    : horaPrometida(previsao.inicio) + " – " + horaPrometida(previsao.limite));
   // Fidelidade só aparece com o módulo realmente configurado; pontos, meta e
   // recompensa vêm da configuração do CRM — nunca de valores ilustrativos.
   const cfgFidelidade = {
@@ -631,9 +618,9 @@ function Acompanhar() {
               </span>
             ) : previsao ? (
               <span className="flex items-center gap-1.5 text-[#60524C]">
-                <Clock className="size-4 text-[#B9000B]" aria-hidden /> Previsão estimada de {isRetirada ? "retirada" : "entrega"}: entre{" "}
+                <Clock className="size-4 text-[#B9000B]" aria-hidden /> {pedido.agendado_para ? "Agendado para" : "Horário prometido"}{" "}
                 <strong className="text-[#500B08]">
-                  {previsao.de} e {previsao.ate}
+                  {textoPrazo}
                 </strong>
               </span>
             ) : null}
@@ -800,9 +787,7 @@ function Acompanhar() {
             {previsao ? (
               <p className="flex items-center gap-2 text-[#60524C]" data-testid="previsao-retirada">
                 <Clock className="size-4 shrink-0 text-[#B9000B]" aria-hidden />
-                {isRetirada
-                  ? `Previsão de retirada: entre ${previsao.de} e ${previsao.ate}`
-                  : `Previsão de entrega: entre ${previsao.de} e ${previsao.ate}`}
+                {isRetirada ? "Retirada" : "Entrega"}: {textoPrazo}
               </p>
             ) : null}
             {isRetirada && loja.instrucoes_retirada ? (
@@ -845,7 +830,7 @@ function Acompanhar() {
               </div>
               <div>
                 <p className="text-[#60524C]">Previsão estimada</p>
-                <p className="mt-0.5 font-bold text-[#500B08]">{ehModoDemo() ? "Indisponível" : previsao ? `${previsao.de} – ${previsao.ate}` : "—"}</p>
+                <p className="mt-0.5 font-bold text-[#500B08]">{ehModoDemo() ? "Indisponível" : textoPrazo ?? "—"}</p>
               </div>
               <div>
                 <p className="text-[#60524C]">Última atualização</p>

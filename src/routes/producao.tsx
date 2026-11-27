@@ -1,3 +1,4 @@
+import { horaPrometida, limitePrometido } from "@/lib/prazo-pedido";
 import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -72,7 +73,6 @@ import {
   estadoPrazoProducao,
   entradaJanelaProducao,
   inicioRecomendadoProducao,
-  limiteImediatoProducao,
   ordenarFilaProducao,
   type EntradaFilaProducao,
   formatarMinutosProducao,
@@ -447,6 +447,7 @@ export function Producao({
         status: p.status,
         recebidoEm: p.agendado_para ? null : (p.created_at ?? null),
         solicitadoPara: p.agendado_para ?? null,
+        limiteComercialEm: p.prazo_prometido_em ?? null,
       },
       calc?.tecnicoMin ?? null,
       agora,
@@ -469,6 +470,7 @@ export function Producao({
       status: String(p.status),
       created_at: (p.created_at ?? null) as string | null,
       agendado_para: (p.agendado_para ?? null) as string | null,
+      prazo_prometido_em: (p.prazo_prometido_em ?? null) as string | null,
       tecnicoMin: (calcDe(p)?.tecnicoMin ?? null) as number | null,
       pedido: p,
     }));
@@ -717,11 +719,7 @@ export function Producao({
     const carregandoRemessa = pedidosOcupados.has(p.id);
     const proxima = progresso?.proxima;
     // Canto superior direito: "até HH:MM" na fila, "Finalizado HH:MM" quando pronto.
-    const prazo = p.agendado_para
-      ? hora(p.agendado_para)
-      : p.created_at
-        ? hora(limiteImediatoProducao(p.created_at).toISOString())
-        : "--:--";
+    const prazo = limitePrometido(p);
     return (
       <article
         key={p.id}
@@ -770,7 +768,7 @@ export function Producao({
             ) : (
               <>
                 <Clock className="size-4 text-[#F2CE6B]" aria-hidden />
-                até {prazo}
+                {prazo ? "até " + horaPrometida(prazo) : "Prazo não registrado"}
               </>
             )}
           </span>

@@ -1,3 +1,4 @@
+import { horaPrometida, limitePrometido } from "@/lib/prazo-pedido";
 import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -171,7 +172,7 @@ export function PDV({
       const { data, error } = await supabase
         .from("pedidos")
         .select(
-          "id, numero, total, forma_pagamento, pagamento_status, status, created_at, cliente_nome",
+          "id, numero, total, forma_pagamento, pagamento_status, status, created_at, cliente_nome, agendado_para, prazo_prometido_em",
         )
         .gte("created_at", `${hojeISO}T00:00:00`)
         .neq("status", "cancelado")
@@ -654,17 +655,23 @@ export function PDV({
             <div className="rounded-2xl border border-[#D4A94A] bg-[#121110] p-4 shadow-card">
               <h2 className="font-display text-xl text-[#F2CE6B]">Pedidos de hoje</h2>
               <ul className="mt-2 space-y-1 text-sm">
-                {(vendasHoje ?? []).map((v: any) => (
-                  <li
-                    key={v.id}
-                    className="flex justify-between gap-2 rounded-xl border border-[#2A2721] bg-[#17150F] px-3 py-2"
-                  >
-                    <span className="text-[#C9C2B8]">
-                      #{v.numero} • {v.cliente_nome} • {v.forma_pagamento} • {v.pagamento_status}
-                    </span>
-                    <b className="text-[#F2CE6B]">{brl(v.total)}</b>
-                  </li>
-                ))}
+                {(vendasHoje ?? []).map((v: any) => {
+                  const prazo = limitePrometido(v);
+                  return (
+                    <li
+                      key={v.id}
+                      className="flex justify-between gap-2 rounded-xl border border-[#2A2721] bg-[#17150F] px-3 py-2"
+                    >
+                      <span className="text-[#C9C2B8]">
+                        #{v.numero} • {v.cliente_nome} • {v.forma_pagamento} • {v.pagamento_status}
+                        {prazo && (
+                          <span className="block text-xs">Prazo prometido: {horaPrometida(prazo)}</span>
+                        )}
+                      </span>
+                      <b className="text-[#F2CE6B]">{brl(v.total)}</b>
+                    </li>
+                  );
+                })}
                 {(vendasHoje ?? []).length === 0 && (
                   <li className="text-[#A09A8E]">Sem vendas hoje.</li>
                 )}

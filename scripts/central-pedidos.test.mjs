@@ -10,6 +10,8 @@ const {
   CHAVE_RECONHECIDOS,
   avisoDoPedido,
   avisosDaCozinha,
+  atrasoCentral,
+  estaEmPreparo,
   colunasCentral,
   filtrarPedidos,
   formatarMinutos,
@@ -62,11 +64,15 @@ const pedido = (over = {}) => ({
     pedido({ id: "e", status: "pronto", tipo_entrega: "retirada" }),
     pedido({ id: "f", status: "em_rota" }),
     pedido({ id: "g", status: "entregue" }),
+    pedido({ id: "h", status: "aguardando_motoboy", motoboy_id: null }),
+    pedido({ id: "i", status: "aguardando_motoboy", motoboy_id: "atribuido" }),
+    pedido({ id: "j", status: "pronto", tipo_entrega: "retirada", retirado_em: "2026-11-12T18:55:00Z" }),
   ];
   const c = colunasCentral(lista);
   ok(c.analise.length === 1 && c.analise[0].id === "a", "Em analise: so pedidos recebidos sem aceite");
   ok(c.producao.length === 2, "Em producao: aceitos + em preparo", String(c.producao.length));
-  ok(c.pronto.length === 2, "Pronto para entrega: prontos (entrega e retirada)", String(c.pronto.length));
+  ok(c.pronto.map((p) => p.id).join() === "d,e,h", "Prontos: retirada e entrega antes da atribuição");
+  ok(!estaEmPreparo(lista[1]) && estaEmPreparo({ ...lista[2], preparo_em: "2026-11-12T18:57:00Z" }), "aguardando preparo e em preparo são distintos");
   ok(
     !c.analise.some((p) => p.id === "b") && !c.producao.some((p) => p.id === "f"),
     "estados fora do fluxo (em_rota/entregue) nao entram nas colunas",
@@ -95,11 +101,12 @@ const pedido = (over = {}) => ({
 {
   const lista = [
     pedido({ id: "a", numero: 4598, cliente_nome: "Ana Costa", tipo_entrega: "entrega" }),
-    pedido({ id: "b", numero: 4599, cliente_nome: "Carlos Santos", tipo_entrega: "retirada" }),
+    pedido({ id: "b", numero: 4599, cliente_nome: "Cárlos Santos", telefone: "(11) 99999-1234", tipo_entrega: "retirada" }),
     pedido({ id: "c", numero: 4600, cliente_nome: "Mariana Lima", tipo_entrega: "entrega", agendado_para: "2026-11-12T20:00:00.000Z" }),
   ];
   ok(filtrarPedidos(lista, { busca: "4599" }).length === 1, "busca por numero do pedido");
   ok(filtrarPedidos(lista, { busca: "carlos" }).length === 1, "busca por cliente");
+  ok(filtrarPedidos(lista, { busca: "11999991234" }).length === 1, "busca telefônica ignora formatação");
   ok(filtrarPedidos(lista, { modalidade: "retirada" }).length === 1, "filtro de modalidade");
   ok(filtrarPedidos(lista, { agendados: true }).length === 1, "filtro de agendados");
   ok(filtrarPedidos(lista, { busca: "zzz" }).length === 0, "busca sem resultado");
@@ -109,19 +116,27 @@ const pedido = (over = {}) => ({
 // 3) Prioridade e contadores
 // ---------------------------------------------------------------------
 {
-  const atrasado = pedido({ id: "a", created_at: "2026-11-12T17:00:00.000Z" });
+  const atrasado = pedido({ id: "a", atrasado: true });
   const agendado = pedido({ id: "b", created_at: "2026-11-12T18:50:00.000Z", agendado_para: "2026-11-12T20:00:00.000Z" });
   const novo = pedido({ id: "c", created_at: "2026-11-12T18:58:00.000Z" });
   const ordem = ordenarPorPrioridade([novo, agendado, atrasado], AGORA).map((p) => p.id);
   ok(ordem[0] === "a", "atrasado vem primeiro", ordem.join(">"));
   ok(ordem[1] === "b", "agendado em seguida", ordem.join(">"));
+  const imediato = pedido({ created_at: "2026-11-12T17:00:00.000Z" });
+  ok(atrasoCentral(imediato, AGORA) === null, "idade do pedido não inventa atraso");
+  const retiro = pedido({
+    status: "pronto", tipo_entrega: "retirada", agendado_para: "2026-11-12T18:50:00Z",
+    pronto_em: "2026-11-12T18:45:00Z",
+  });
+  ok(atrasoCentral(retiro, AGORA) === false, "retirada pronta no prazo não fica atrasada esperando cliente");
+  ok(atrasoCentral({ ...retiro, pronto_em: "2026-11-12T18:51:00Z" }, AGORA) === true, "cozinha atrasada na retirada");
   const m = metricasCentral([
-    pedido({ id: "a", status: "recebido", total: 100 }),
+    pedido({ id: "a", status: "recebido", total: 100, atrasado: true }),
     pedido({ id: "b", status: "em_producao", total: 200 }),
     pedido({ id: "c", status: "pronto", total: 300 }),
-  ]);
+  ], AGORA);
   ok(m.novos === 1 && m.emProducao === 1 && m.prontos === 1, "contadores por coluna");
-  ok(m.ticketMedio === 200, "ticket medio real", String(m.ticketMedio));
+  ok(m.atrasados === 1 && m.prazosSemDados === 2, "métrica de atrasos diferencia prazo não registrado");
   ok(minutosDesde("2026-11-12T18:30:00.000Z", AGORA) === 30, "minutos aguardando");
   ok(formatarMinutos(65) === "1h 05", "formatacao de tempo");
 }

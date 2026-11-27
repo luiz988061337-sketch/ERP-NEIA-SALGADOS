@@ -2880,6 +2880,9 @@ export type Database = {
           preparo_em: string | null
           problema: string | null
           producao_status: Database["public"]["Enums"]["prod_status"]
+          prazo_comercial_assados: boolean | null
+          prazo_prometido_em: string | null
+          prazo_prometido_inicio_em: string | null
           pronto_em: string | null
           referencia: string
           reserva_motoboy_em: string | null
@@ -2956,6 +2959,9 @@ export type Database = {
           preparo_em?: string | null
           problema?: string | null
           producao_status?: Database["public"]["Enums"]["prod_status"]
+          prazo_comercial_assados?: boolean | null
+          prazo_prometido_em?: string | null
+          prazo_prometido_inicio_em?: string | null
           pronto_em?: string | null
           referencia?: string
           reserva_motoboy_em?: string | null
@@ -3032,6 +3038,9 @@ export type Database = {
           preparo_em?: string | null
           problema?: string | null
           producao_status?: Database["public"]["Enums"]["prod_status"]
+          prazo_comercial_assados?: boolean | null
+          prazo_prometido_em?: string | null
+          prazo_prometido_inicio_em?: string | null
           pronto_em?: string | null
           referencia?: string
           reserva_motoboy_em?: string | null

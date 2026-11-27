@@ -1,3 +1,4 @@
+import { horaPrometida, limitePrometido, passouDoPrazo } from "@/lib/prazo-pedido";
 import { ErroAcessoPainel } from "@/components/admin/acesso-painel";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -144,6 +145,12 @@ function CentralEntregas() {
   }, [loading, user, navigate]);
 
   const autorizado = roles?.includes("admin") || roles?.includes("producao");
+  const [agoraPrazo, setAgoraPrazo] = useState(Date.now);
+  useEffect(() => {
+    if (!autorizado) return;
+    const timer = window.setInterval(() => setAgoraPrazo(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [autorizado]);
 
   // ---------- QUERIES ----------
   const { data: pedidos, isError: erroPedidos, isPending: carregandoPedidos } = useQuery({
@@ -971,16 +978,19 @@ function CentralEntregas() {
               </div>
               {paradas.length > 0 && (
                 <ol aria-label="Paradas da rota selecionada" className="mt-3 grid gap-3 sm:grid-cols-3">
-                  {paradas.map((pedido: any, indice: number) => (
-                    <li key={pedido.id} className={linhaEntregas + " min-w-0 p-3"}>
-                      <strong className="flex items-center gap-2 text-sm">
-                        <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[#D4A94A]/40 bg-[#D4A94A]/15 text-[#F2CE6B]">{String.fromCharCode(65 + indice)}</span>
-                        #{pedido.numero}
-                      </strong>
-                      <p className="mt-1 break-words text-xs text-muted-foreground">{pedido.cliente_nome}</p>
-                      {pedido.agendado_para && <p className="mt-2 text-xs font-bold text-[#F2CE6B]">Cliente até {hora(pedido.agendado_para)}</p>}
-                    </li>
-                  ))}
+                  {paradas.map((pedido: any, indice: number) => {
+                    const prazo = limitePrometido(pedido);
+                    return (
+                      <li key={pedido.id} className={linhaEntregas + " min-w-0 p-3"}>
+                        <strong className="flex items-center gap-2 text-sm">
+                          <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[#D4A94A]/40 bg-[#D4A94A]/15 text-[#F2CE6B]">{String.fromCharCode(65 + indice)}</span>
+                          #{pedido.numero}
+                        </strong>
+                        <p className="mt-1 break-words text-xs text-muted-foreground">{pedido.cliente_nome}</p>
+                        {prazo && <p className="mt-2 text-xs font-bold text-[#F2CE6B]">Cliente até {horaPrometida(prazo)}</p>}
+                      </li>
+                    );
+                  })}
                 </ol>
               )}
             </section>
@@ -1074,6 +1084,7 @@ function CentralEntregas() {
             {pedidosParaRota.length ? (
               <ul className="space-y-2">
                 {pedidosParaRota.map((pedido: any) => {
+                  const prazo = limitePrometido(pedido);
                   const elegivel = aguardandoAtribuicaoCentral(pedido) && pedido.status === "pronto";
                   const marcado = pedidosRota.includes(pedido.id);
                   return (
@@ -1093,8 +1104,8 @@ function CentralEntregas() {
                           <strong className="block text-sm">#{pedido.numero} · {pedido.cliente_nome}</strong>
                           <span className="block text-xs text-muted-foreground">{[pedido.bairro, PAGAMENTO_LABEL[pedido.forma_pagamento] ?? pedido.forma_pagamento].filter(Boolean).join(" · ")}</span>
                           <span className="mt-2 flex flex-wrap gap-2">
-                            {pedido.agendado_para && <span className="text-xs font-bold text-[#F2CE6B]">Cliente até {hora(pedido.agendado_para)}</span>}
-                            {pedido.atrasado && <span className="rounded-full bg-red-950/60 px-2 text-xs font-bold text-red-300">Atrasado</span>}
+                            {prazo && <span className="text-xs font-bold text-[#F2CE6B]">Cliente até {horaPrometida(prazo)}</span>}
+                            {(pedido.atrasado || passouDoPrazo(pedido, agoraPrazo)) && <span className="rounded-full bg-red-950/60 px-2 text-xs font-bold text-red-300">Atrasado</span>}
                             {!elegivel && atribuidoCentral(pedido) && <span className="rounded-full bg-amber-950/50 px-2 text-xs text-amber-300">Reservado</span>}
                           </span>
                         </span>

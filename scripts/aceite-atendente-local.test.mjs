@@ -195,11 +195,11 @@ const pdv = fonte("src/routes/pdv.tsx");
 ok(rota.includes("<CentralPedidos usuarioId={user?.id} papeis={roles} />"), "rota envia usuário e papéis à Central");
 ok(rota.includes("if (!user || !permitido) return;"), "atendente não finaliza sem papel");
 ok(central.includes("executarAceiteAtendente({"), "Central chama a ação de aceite");
-ok(central.includes("aceitandoRef.current") && central.includes("disabled={!aceite.elegivel || aceitando}"), "cliques repetidos são travados");
+ok(central.includes("aceitandoRef.current") && central.includes("bloqueado={!podeOperar || aceitandoId !== null}") && central.includes("disabled={bloqueado || !aceite.elegivel}"), "cliques repetidos são travados");
 ok(preview.includes("aceitarPedidoEmMemoria(") && !preview.includes('status: "em_producao"'), "prévia usa o adaptador único, sem transição paralela");
 ok(producao.includes("pedidosComAceiteMemoria("), "Produção simulada consome aceites confirmados");
 ok(pdv.includes('enabled: !preview && !!permitido && (painel === "vendas" || painel === "pedidos")'), "PDV em prévia não consulta pedidos reais");
-ok(central.includes("if (!preview) gravarReconhecidos(") && central.includes("if (!preview && novos.length > 0) gravarConhecidos(") && central.includes("onAvisoLido?.()"), "prévia da Central não grava alertas compartilhados e propaga reconhecimento");
+ok(central.includes("if (!preview) gravarReconhecidos(") && central.includes("if (!preview && novos.length > 0) gravarConhecidos(") && central.includes("onAvisoReconhecido?.(aviso.id)"), "prévia da Central não grava alertas compartilhados e propaga reconhecimento pelo ID do aviso");
 
 if (falhas > 0) {
   console.error(`ACEITE LOCAL: ${falhas} caso(s) falhando.`);

@@ -1,3 +1,4 @@
+import { categoriaTemAssadoComercial } from "@/lib/prazo-pedido";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -1315,9 +1316,18 @@ function Checkout() {
       // No BUILD DE CORTE o caminho legado NAO e compilado: o bloco e removido
       // do bundle (constant-folding de !BUILD_DE_CORTE). Nao ha fallback.
       if (!BUILD_DE_CORTE && !atomico) {
+        // O caminho legado não persiste os componentes do combo separadamente.
+        const comboAssado = !agendadoPara && itensValidados.some((item) =>
+          !item.produtoId && item.componentes?.some((componente) => {
+            const produto = mapaProdutos.get(componente.produtoId);
+            return categoriaTemAssadoComercial(
+              mapaSlugCategoria.get(produto?.categoria_id ?? ""), produto?.tipo_venda,
+            );
+          }),
+        );
         const res = await supabase
           .from("pedidos")
-          .insert(insertBody)
+          .insert(comboAssado ? { ...insertBody, prazo_comercial_assados: true } : insertBody)
           .select("id, numero, cliente_nome, telefone")
           .single();
         if (res.error && (res.error as any).code === "23505") {

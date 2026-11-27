@@ -81,7 +81,6 @@ import type { TipoMov } from "@/lib/estoque";
 import { agruparPorBairro } from "@/lib/inteligencia";
 import { extensaoValida, redimensionarImagem, tamanhoLegivel } from "@/lib/upload-imagem";
 import { SlideAdmin } from "@/components/hero-slide-admin";
-import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { abaAdministrativa, ehAbaAdministrativa } from "@/lib/paineis-staff";
 import { LojaPanel } from "@/components/admin/loja-panel";
@@ -806,11 +805,16 @@ function Admin() {
     void navigate({ to: "/auth", replace: true });
   }
 
-  if (!isAdmin && podeAcessarTarefas && aba === "minhas-tarefas") {
+  const podeAcessarCentral = !modoDemo && roles?.includes("atendente") && aba === "central-atendente";
+  if (!isAdmin && ((podeAcessarTarefas && aba === "minhas-tarefas") || podeAcessarCentral)) {
     return (
       <AdminShell aba={aba} menuTarefas="equipe" usuario={user.email ?? null}
         onAba={navegarAba} onRefresh={refreshAll} onSair={sairDoAdmin}>
-        <PainelEquipeTarefasA01 key={user.id} usuarioId={user.id} admin={false} />
+        {podeAcessarCentral ? (
+          <CentralPedidos key={user.id} usuarioId={user.id} papeis={roles} />
+        ) : (
+          <PainelEquipeTarefasA01 key={user.id} usuarioId={user.id} admin={false} />
+        )}
       </AdminShell>
     );
   }
@@ -894,10 +898,7 @@ function Admin() {
 
         <TabsContent value="central-atendente" className="mt-0">
           {modoDemo ? <CentralAtendenteL2 usuario={user.email ?? null} /> : (
-            <div className="mx-auto max-w-[1700px] space-y-4">
-              <AdminTopbar usuario={user.email ?? null} acesso="Central da Atendente" />
-              <CentralPedidos usuarioId={user.id} papeis={roles} />
-            </div>
+            <CentralPedidos key={user.id} usuarioId={user.id} papeis={roles} />
           )}
         </TabsContent>
 

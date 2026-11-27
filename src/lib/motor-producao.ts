@@ -241,11 +241,20 @@ export type EstadoPrazoProducao = {
 };
 
 export function estadoPrazoProducao(
-  pedido: { status: string; recebidoEm: string | null; solicitadoPara: string | null },
+  pedido: { status: string; recebidoEm: string | null; solicitadoPara: string | null; limiteComercialEm?: string | null | undefined },
   tecnicoMin: number | null,
   agora: Date,
   cfg: MotorProducaoConfig = MOTOR_PRODUCAO_CONFIG,
 ): EstadoPrazoProducao {
+  const limiteImediato = pedido.limiteComercialEm === undefined && pedido.recebidoEm
+    ? limiteImediatoProducao(pedido.recebidoEm, cfg).getTime()
+    : Date.parse(pedido.limiteComercialEm ?? "");
+  if (pedido.status !== "pronto" && tecnicoMin === null && pedido.limiteComercialEm !== undefined) {
+    const limite = pedido.solicitadoPara ? Date.parse(pedido.solicitadoPara) : limiteImediato;
+    if (Number.isFinite(limite) && limite < agora.getTime()) {
+      return { nivel: "atrasado", restanteMin: (limite - agora.getTime()) / 60000, paraInicioMin: 0 };
+    }
+  }
   if (pedido.status === "pronto" || tecnicoMin === null) {
     return { nivel: "normal", restanteMin: 0, paraInicioMin: 0 };
   }
@@ -262,9 +271,8 @@ export function estadoPrazoProducao(
     else if (paraInicioMin <= 0) nivel = "hora-preparar";
     return { nivel, restanteMin, paraInicioMin };
   }
-  if (pedido.recebidoEm) {
-    const restanteMin =
-      (limiteImediatoProducao(pedido.recebidoEm, cfg).getTime() - agora.getTime()) / 60000;
+  if (Number.isFinite(limiteImediato)) {
+    const restanteMin = (limiteImediato - agora.getTime()) / 60000;
     let nivel: NivelAlertaProducao = "normal";
     if (restanteMin < 0) nivel = "atrasado";
     else if (restanteMin < tecnicoMin) nivel = "risco";
@@ -294,6 +302,7 @@ export type EntradaFilaProducao = {
   status: string;
   created_at?: string | null;
   agendado_para?: string | null;
+  prazo_prometido_em?: string | null;
   tecnicoMin?: number | null;
 };
 
@@ -316,6 +325,10 @@ export function instantePreparoFila(
       return inicioRecomendadoProducao(p.agendado_para, p.tecnicoMin, cfg).getTime();
     }
     return solicitado;
+  }
+  if (p.prazo_prometido_em !== undefined) {
+    const limite = Date.parse(p.prazo_prometido_em ?? "");
+    return Number.isFinite(limite) ? limite : null;
   }
   if (!p.created_at) return null;
   const base = new Date(p.created_at).getTime();
@@ -349,6 +362,7 @@ export function ordenarFilaProducao<T extends EntradaFilaProducao>(
         status: p.status,
         recebidoEm: p.agendado_para ? null : (p.created_at ?? null),
         solicitadoPara: p.agendado_para ?? null,
+        limiteComercialEm: p.prazo_prometido_em,
       },
       p.tecnicoMin ?? null,
       agora,

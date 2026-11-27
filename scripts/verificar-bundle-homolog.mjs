@@ -32,12 +32,14 @@ function listar(dir) {
   return saida;
 }
 
-const alvo = resolve(RAIZ_PROJETO, process.argv[2] ?? ".output");
+const ambienteVercel = process.env.VERCEL === "1" || process.env.VERCEL_ENV === "preview";
+const diretorio = process.argv[2] ?? (ambienteVercel ? ".vercel/output" : ".output");
+const alvo = resolve(RAIZ_PROJETO, diretorio);
 let arquivos = [];
 try {
   arquivos = listar(alvo);
 } catch {
-  console.error(`✖ diretório de build não encontrado: ${process.argv[2] ?? ".output"}`);
+  console.error(`✖ diretório de build não encontrado: ${diretorio}`);
   process.exit(1);
 }
 
