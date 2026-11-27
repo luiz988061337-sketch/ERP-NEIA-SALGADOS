@@ -98,24 +98,41 @@ Conferência do deployment/alias:
   `editar_observacoes_pedido` e `receber_pagamento`;
 - `vercel inspect` confirma o alias no deployment novo e a produção inalterada.
 
-## Configuração manual pendente
+## Capacidade financeira configurada
 
-O inventário em homologação encontrou apenas o usuário administrador
-`luiz988061337@gmail.com`, sem capacidade `receber_pagamento`, e nenhum perfil
-com papel `atendente`. Não foi criado usuário, papel Admin nem capacidade: a
-concessão financeira depende de identificação do atendente de teste pelo
-proprietário e deve usar o mecanismo oficial da tabela
-`neia_operacao.financeiro_capacidades` (`usuario`, `capacidade`,
-`concedido_por`, `motivo`), sem elevar a atendente a Admin.
+Em 27/11/2026, por autorização expressa do proprietário, foi concedida
+**exclusivamente** a capacidade `receber_pagamento` à conta administrativa
+existente em homologação:
 
-Antes de declarar operacional, o proprietário deve:
+| Campo | Valor registrado |
+| --- | --- |
+| `usuario` | `8a788a93-0ecf-483e-a402-cc09f84fcd9c` (`luiz988061337@gmail.com`) |
+| `capacidade` | `receber_pagamento` |
+| `concedido_por` | `8a788a93-0ecf-483e-a402-cc09f84fcd9c` (conta do proprietário, sem outro responsável disponível) |
+| `motivo` | Autorização expressa do proprietário em 27/11/2026 para testes manuais da Central da Atendente; exclusivamente `receber_pagamento`. |
+| `concedido_em` | `now()` no momento da inserção |
 
-1. informar/criar a atendente de teste em homologação e conceder somente
-   `receber_pagamento`, com motivo e concedente registrados;
-2. conferir no alias oficial os cenários de recebimento em produção, dinheiro,
-   Pix, cartão, troco e parciais, bloqueio de retirada sem quitação, alertas por
-   voz e edição auditável de observações;
-3. confirmar que Admin sem `receber_pagamento` continua sem receber na RPC.
+A concessão usou o mecanismo oficial da tabela privada
+`neia_operacao.financeiro_capacidades`, com RLS e sem CRUD para papéis da
+aplicação. A escrita passou pela barreira de destino
+(`npm run seguranca:destino` + `npm run sql:homolog -- --project-ref
+lflzlcqinarrcgncafol --confirmar`). Antes da inserção foi confirmado que a tabela
+estava vazia e que a conta alvo possui o papel `admin`. Depois foi confirmado que
+existe **uma única linha**, que `neia_operacao.tem_capacidade` retorna `true`
+para essa conta/capacidade e que não há capacidade adicional.
+
+Não foi criado usuário, papel ou permissão adicional. Não houve alteração em
+pedidos, código, migrations, layout, deployment, aliases ou produção. Não existe
+atendente com papel `atendente` em homologação; portanto o cenário "atendente sem
+Admin" continua sem perfil de teste e depende de decisão separada do proprietário.
+
+Antes de declarar operacional, o proprietário deve conferir no alias oficial:
+
+1. recebimento em produção com a conta administradora agora autorizada,
+   incluindo dinheiro, Pix, cartão, troco e parciais;
+2. bloqueio de retirada sem quitação, alertas por voz e edição auditável de
+   observações;
+3. o bloqueio permanece para qualquer outra conta sem `receber_pagamento`.
 
 ## Reversão
 
@@ -136,7 +153,8 @@ Antes de declarar operacional, o proprietário deve:
 ## Pendências reais
 
 - Testes manuais do proprietário no alias oficial e aprovação visual/funcional.
-- Provisão controlada de `receber_pagamento` para atendente de teste.
+- Perfil de atendente sem Admin para o cenário específico, se o proprietário
+  desejar validá-lo; a conta administrativa já está autorizada.
 - Integração com a frente de estoque (`ffd6265`) e edição comercial completa,
   ainda aguardando autorização/coordenação.
 - Produção permanece protegida; qualquer alteração depende de autorização

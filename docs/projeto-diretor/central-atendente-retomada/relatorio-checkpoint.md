@@ -184,11 +184,13 @@ restritos a `authenticated`, versões reservadas livres e guarda da `0084` ínte
 
 ## Pendências reais
 
-1. Provisão manual de `receber_pagamento` em homologação: o inventário encontrou
-   apenas o usuário administrador sem essa capacidade e nenhum papel
-   `atendente`. Nenhum perfil, Admin ou capacidade foi criado pelo agente.
-2. Conferência manual no alias oficial, com atendente sem Admin e com Admin sem
-   capacidade, antes de qualquer aprovação definitiva.
+1. Capacidade configurada: por autorização expressa do proprietário, a conta
+   administrativa existente recebeu somente `receber_pagamento` em
+   `neia_operacao.financeiro_capacidades`, com `concedido_por` e `motivo`
+   registrados e verificação de linha única. Nenhum papel ou permissão adicional
+   foi criado.
+2. Conferência manual no alias oficial, agora com a conta administrativa
+   autorizada; o cenário com atendente sem Admin depende de perfil separado.
 3. Integração com a frente de estoque e edição comercial completa permanecem
    aguardando autorização; não foram implementadas nesta rodada.
 
