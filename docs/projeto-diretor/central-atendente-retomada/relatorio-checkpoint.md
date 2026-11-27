@@ -170,37 +170,43 @@ restritos a `authenticated`, versões reservadas livres e guarda da `0084` ínte
 
 ## Segurança de ambientes
 
-- Nenhuma migração remota, deploy, merge ou acesso à produção foi feito; o único
-  push foi o backup explicitamente autorizado acima, em refs isolados.
-- Nenhuma credencial ou segredo foi impresso ou versionado.
-- Todas as validações usaram destino explícito `lflzlcqinarrcgncafol`;
+- As únicas escritas remotas autorizadas foram em `lflzlcqinarrcgncafol`:
+  `0139`/`0140`/`0141`, reconciliação de histórico e publicação no alias de
+  homologação. Produção não foi acessada para escrita nem promovida.
+- Nenhum push com force, `git reset --hard`, `git clean` ou `git stash` foi usado.
+- Nenhuma credencial ou segredo foi impresso ou versionado; variáveis sensíveis
+  foram lidas de arquivos locais ignorados e injetadas somente no processo.
+- Todas as operações usaram destino explícito `lflzlcqinarrcgncafol`,
   `VITE_DEMO_PREVIEW=0` e `NEIA_AMBIENTE=homologacao`.
-- `.env.homolog.local` é local/ignorado e contém apenas configuração pública.
+- Um deployment intermediário com banner de demonstração foi descartado antes
+  de receber o alias; o build publicado foi refeito com as variáveis da branch.
 - `npm run teste:seguranca` passou com 31/31 testes.
 
 ## Pendências reais
 
-1. Provisão manual de `receber_pagamento` em homologação: o pré-voo anterior
-   não encontrou perfil com essa capacidade nem motoboy vinculado.
-2. Conferência visual no endereço oficial de homologação após publicação
-   autorizada, com atendente sem Admin e com Admin sem capacidade.
-3. Aplicação coordenada de `0139`/`0140`/`0141` em homologação, sem reaplicar
-   `0134`–`0136`, com reconciliação de histórico se usada via SQL direto.
-4. Integração com a frente de estoque e edição comercial completa permanecem
+1. Provisão manual de `receber_pagamento` em homologação: o inventário encontrou
+   apenas o usuário administrador sem essa capacidade e nenhum papel
+   `atendente`. Nenhum perfil, Admin ou capacidade foi criado pelo agente.
+2. Conferência manual no alias oficial, com atendente sem Admin e com Admin sem
+   capacidade, antes de qualquer aprovação definitiva.
+3. Integração com a frente de estoque e edição comercial completa permanecem
    aguardando autorização; não foram implementadas nesta rodada.
 
-## Roteiro de publicação (somente após autorização)
+## Publicação executada
 
-1. Sincronizar com `origin`, conferir a base da branch oficial e os refs isolados.
-2. Aplicar `0139` → `0140` → `0141` em homologação com destino declarado e
-   barreira de segurança, registrando o histórico; **não reaplicar** `0134`–`0136`.
-3. Rodar os testes de regressão pertinentes e provisionar um perfil de teste com
-   `receber_pagamento`.
-4. Publicar na branch oficial `resgate-visual-h01-h07-codex` no endereço fixo de
-   homologação, com `VITE_DEMO_PREVIEW=0`; validar visualmente e aguardar
-   aprovação manual do proprietário.
-5. Produção permanece protegida: só após autorização expressa, janela combinada
-   e registro documental.
+O roteiro anterior foi concluído com autorização e registrado em
+[relatório de publicação](relatorio-publicacao.md):
+
+1. Sincronização com `origin` e base da oficial confirmada em `4c703e4`.
+2. `0139` → `0140` → `0141` aplicadas em homologação, sem reaplicar
+   `0134`–`0136`, com reconciliação documentada do histórico.
+3. Testes de regressão e barreiras de ambiente executados; não foi criado perfil
+   de teste com `receber_pagamento`.
+4. Integração por fast-forward e push na branch oficial
+   `resgate-visual-h01-h07-codex` @ `438518f`; publicação no alias fixo de
+   homologação com `VITE_DEMO_PREVIEW=0` e `NEIA_AMBIENTE=homologacao`.
+5. Produção permanece protegida; a conferência manual do proprietário ainda é
+   a etapa final de homologação.
 
 ## Arquivos alterados
 
