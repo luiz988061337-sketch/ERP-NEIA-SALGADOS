@@ -2,8 +2,8 @@
  * Fonte financeira única para apresentação dos recebimentos de um pedido.
  *
  * Esta camada apenas LÊ `public.pedido_pagamento_eventos` (o ledger gravado
- * pelas migrations 0106/0139). Não insere, atualiza nem estorna lançamentos:
- * a correção aquí é exclusivamente de apresentação. A soma canônica replicada
+ * pelas migrations 0106/0139/0142). Não insere, atualiza nem estorna lançamentos:
+ * a correção aqui é exclusivamente de apresentação. A soma canônica replicada
  * aqui (+ pagamento / - estorno) é a mesma usada pelas RPCs do banco, para que
  * painel, histórico, relatórios e exportações não discordem nem dupliquem
  * lançamentos.
@@ -11,6 +11,10 @@
  * RLS do ledger continua intacta: admin/financeiro leem diretamente. Perfis sem
  * acesso recebem `disponivel = false` e uma mensagem explícita — nunca a
  * afirmação incorreta de que "não há valor recebido".
+ *
+ * A 0142 acrescenta colunas de forma efetiva/entregue/troco. Elas são lidas com
+ * `select('*')` e tratadas como ausentes quando a migration ainda não foi
+ * aplicada: nenhum registro anterior é reescrito e nenhum dado é inventado.
  */
 import { brl, dataHora, PAGAMENTO_LABEL } from "@/lib/format";
 
@@ -20,6 +24,9 @@ export type EventoLedgerPedido = {
   tipo: "pagamento" | "estorno" | string;
   valor_centavos: number;
   forma_pagamento: string | null;
+  forma_pagamento_efetiva?: string | null;
+  valor_entregue_centavos?: number | null;
+  troco_centavos?: number | null;
   chave_idempotencia: string | null;
   motivo: string | null;
   actor: string | null;
@@ -36,12 +43,10 @@ export type ResumoRecebimentosPedido = {
   saldoCentavos: number;
   quitado: boolean;
   eventos: EventoLedgerPedido[];
+  trocoRegistradoCentavos: number;
   /** false quando o perfil não consegue ler o ledger (RLS) ou a consulta falha. */
   disponivel: boolean;
 };
-
-const CAMPOS_LEDGER =
-  "id, pedido_id, tipo, valor_centavos, forma_pagamento, chave_idempotencia, motivo, actor, created_at";
 
 /** Cliente mínimo compatível com o PostgREST usado pelo front. */
 type ClienteLedger = {
@@ -57,6 +62,7 @@ export function resumirRecebimentosPedido(
 ): ResumoRecebimentosPedido {
   let pagoCentavos = 0;
   let estornadoCentavos = 0;
+  let trocoRegistradoCentavos = 0;
   for (const evento of eventos) {
     const valor = Number(evento.valor_centavos) || 0;
     if (evento.tipo === "pagamento") {
@@ -65,6 +71,7 @@ export function resumirRecebimentosPedido(
       if (evento.tipo === "estorno") estornadoCentavos += valor;
       pagoCentavos -= valor;
     }
+    trocoRegistradoCentavos += Number(evento.troco_centavos) || 0;
   }
   const total = Number(totalCentavos) || 0;
   return {
@@ -75,6 +82,7 @@ export function resumirRecebimentosPedido(
     saldoCentavos: Math.max(0, total - pagoCentavos),
     quitado: total > 0 && pagoCentavos >= total,
     eventos: [...eventos],
+    trocoRegistradoCentavos,
     disponivel,
   };
 }
@@ -96,7 +104,7 @@ async function anexarNomes(
   }));
 }
 
-/** Um pedido. Usado na aba Pagamento e nos diálogos da Central. */
+/** Um pedido. Usado na aba Pagamento, na Central e nos diálogos do H02. */
 export async function carregarRecebimentosPedido(
   cliente: ClienteLedger,
   pedidoId: string,
@@ -104,7 +112,7 @@ export async function carregarRecebimentosPedido(
 ): Promise<ResumoRecebimentosPedido> {
   const { data, error } = await cliente
     .from("pedido_pagamento_eventos")
-    .select(CAMPOS_LEDGER)
+    .select("*")
     .eq("pedido_id", pedidoId)
     .order("created_at", { ascending: true })
     .order("id", { ascending: true });
@@ -129,7 +137,7 @@ export async function carregarEventosLedgerPorPedido(
   for (let i = 0; i < ids.length; i += 200) {
     const { data, error } = await cliente
       .from("pedido_pagamento_eventos")
-      .select(CAMPOS_LEDGER)
+      .select("*")
       .in("pedido_id", ids.slice(i, i + 200))
       .order("created_at", { ascending: true })
       .order("id", { ascending: true });
@@ -152,18 +160,39 @@ export function rotuloTipoLedger(tipo: string): string {
   return tipo === "estorno" ? "Estorno" : "Pagamento";
 }
 
+/** A preferência da criação continua visível, sem ser confundida com a forma usada. */
+export function rotuloFormaOriginal(forma: string | null | undefined): string {
+  return `${rotuloFormaLedger(forma)} (preferência original)`;
+}
+
+/** Só afirma a forma efetiva quando ela foi gravada no lançamento (0142). */
+export function rotuloFormaEfetiva(evento: EventoLedgerPedido): string {
+  return evento.forma_pagamento_efetiva
+    ? rotuloFormaLedger(evento.forma_pagamento_efetiva)
+    : "Não registrada neste lançamento";
+}
+
+/** Troco: somente quando registrado; nunca deduzido da preferência original. */
+export function rotuloTrocoLedger(evento: EventoLedgerPedido): string {
+  return evento.troco_centavos == null ? TROCO_NAO_REGISTRADO : brl(Number(evento.troco_centavos) / 100);
+}
+
 /** Linha padronizada para CSV/relatórios. Um evento = uma linha. */
 export function linhasRecebimentosParaCSV(
   resumo: ResumoRecebimentosPedido,
   numero?: number | null,
+  formaOriginal?: string | null,
 ): Array<Record<string, string | number>> {
   return resumo.eventos.map((evento) => ({
     pedido_id: resumo.pedidoId,
     numero: numero ?? "",
     tipo: rotuloTipoLedger(evento.tipo),
-    forma_pagamento: rotuloFormaLedger(evento.forma_pagamento),
+    forma_original: formaOriginal ? rotuloFormaLedger(formaOriginal) : "",
+    forma_efetiva: rotuloFormaEfetiva(evento),
     valor_centavos: evento.valor_centavos,
     valor_reais: brl(Number(evento.valor_centavos || 0) / 100),
+    valor_entregue_centavos: evento.valor_entregue_centavos ?? "",
+    troco_centavos: evento.troco_centavos ?? "",
     data_hora: dataHora(evento.created_at),
     responsavel: evento.autorNome || "Identificação indisponível",
     motivo: evento.motivo || "",
@@ -172,7 +201,7 @@ export function linhasRecebimentosParaCSV(
 }
 
 /**
- * O troco calculado no balcão não é coluna do ledger; apresentá-lo como se fosse
- * registro financeiro seria inventar dado. Texto único para todos os painéis.
+ * Lançamentos anteriores à 0142 não gravaram troco. Mostrar um valor deduzido
+ * seria inventar dado financeiro; o texto abaixo é usado em todos os painéis.
  */
-export const TROCO_NAO_REGISTRADO = "Não registrado no lançamento (o ledger não grava troco)";
+export const TROCO_NAO_REGISTRADO = "Não registrado no lançamento";

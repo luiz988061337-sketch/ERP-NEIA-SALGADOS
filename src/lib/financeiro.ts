@@ -129,7 +129,12 @@ export type EventoPagamentoPedidoCaixa = {
   pedido_id: string;
   tipo: "pagamento" | "estorno";
   valor_centavos: number;
+  /** Preferência registrada na criação do pedido (legado). */
   forma_pagamento?: string | null;
+  /** Forma realmente usada, gravada pela 0142. Tem precedência sobre a original. */
+  forma_pagamento_efetiva?: string | null;
+  valor_entregue_centavos?: number | null;
+  troco_centavos?: number | null;
   created_at: string;
 };
 
@@ -275,7 +280,10 @@ export function montarFluxoCaixaMensal(args: {
     const valor = evento.valor_centavos;
     const competencia = competenciaSaoPaulo(evento.created_at);
     if (!Number.isSafeInteger(valor) || valor <= 0) continue;
-    if (args.meiosIncluidos?.length && !args.meiosIncluidos.includes(evento.forma_pagamento ?? "outro")) continue;
+    // A 0142 grava a forma efetiva. Eventos antigos, sem essa coluna, continuam
+    // usando a preferência original como fallback — sem inventar dados.
+    const meio = String(evento.forma_pagamento_efetiva ?? evento.forma_pagamento ?? "outro");
+    if (args.meiosIncluidos?.length && !args.meiosIncluidos.includes(meio)) continue;
     if (args.aPartirDe && Date.parse(evento.created_at) < Date.parse(args.aPartirDe)) continue;
     if (args.antesDe && Date.parse(evento.created_at) >= Date.parse(args.antesDe)) continue;
     if (!competencia) {
@@ -287,7 +295,6 @@ export function montarFluxoCaixaMensal(args: {
     const sinal = evento.tipo === "pagamento" ? 1 : -1;
     periodo.entradasCentavos += sinal * valor;
     periodo.entradasOperacionaisCentavos += sinal * valor;
-    const meio = String(evento.forma_pagamento ?? "outro");
     periodo.porMeioCentavos[meio] = (periodo.porMeioCentavos[meio] ?? 0) + sinal * valor;
     if (evento.tipo === "pagamento") periodo.pagamentos += 1;
     else periodo.estornos += 1;

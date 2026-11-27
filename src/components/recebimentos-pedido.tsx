@@ -3,8 +3,11 @@ import { DarkTable, DarkTableRow } from "@/components/admin/erp-ui";
 import { brl, dataHora } from "@/lib/format";
 import {
   carregarRecebimentosPedido,
+  rotuloFormaEfetiva,
   rotuloFormaLedger,
+  rotuloFormaOriginal,
   rotuloTipoLedger,
+  rotuloTrocoLedger,
   TROCO_NAO_REGISTRADO,
 } from "@/lib/pedido-pagamento-ledger";
 import { supabaseLoose } from "@/lib/supabase-loose";
@@ -53,7 +56,7 @@ export function RecebimentosPedido({
             {formaOriginal && (
               <div>
                 <dt>Forma escolhida pelo cliente</dt>
-                <dd>{rotuloFormaLedger(formaOriginal)} (preferência original, preservada)</dd>
+                <dd>{rotuloFormaOriginal(formaOriginal)}</dd>
               </div>
             )}
             <div>
@@ -68,6 +71,12 @@ export function RecebimentosPedido({
               <div>
                 <dt>Estornos</dt>
                 <dd>{brl(resumo.estornadoCentavos / 100)}</dd>
+              </div>
+            )}
+            {resumo.trocoRegistradoCentavos > 0 && (
+              <div>
+                <dt>Troco registrado</dt>
+                <dd>{brl(resumo.trocoRegistradoCentavos / 100)}</dd>
               </div>
             )}
             <div>
@@ -86,23 +95,42 @@ export function RecebimentosPedido({
               <DarkTable
                 className="h02-tabela"
                 colunas={compacto
-                  ? ["Data e hora", "Lançamento", "Forma", "Valor", "Responsável"]
-                  : ["Data e hora", "Lançamento", "Forma", "Valor", "Troco", "Responsável", "Observação"]}
+                  ? ["Data e hora", "Lançamento", "Forma efetiva", "Valor", "Troco", "Responsável"]
+                  : [
+                      "Data e hora",
+                      "Lançamento",
+                      "Preferência original",
+                      "Forma efetiva",
+                      "Valor",
+                      "Entregue",
+                      "Troco",
+                      "Responsável",
+                      "Observação",
+                    ]}
               >
                 {resumo.eventos.map((evento) => (
                   <DarkTableRow key={evento.id}>
                     <td>{dataHora(evento.created_at)}</td>
                     <td>{rotuloTipoLedger(evento.tipo)}</td>
-                    <td>{rotuloFormaLedger(evento.forma_pagamento)}</td>
+                    {!compacto && <td>{rotuloFormaLedger(formaOriginal)}</td>}
+                    <td>{rotuloFormaEfetiva(evento)}</td>
                     <td>{brl(Number(evento.valor_centavos || 0) / 100)}</td>
-                    {!compacto && <td>{TROCO_NAO_REGISTRADO}</td>}
+                    {!compacto && (
+                      <td>
+                        {evento.valor_entregue_centavos == null
+                          ? TROCO_NAO_REGISTRADO
+                          : brl(Number(evento.valor_entregue_centavos) / 100)}
+                      </td>
+                    )}
+                    <td>{rotuloTrocoLedger(evento)}</td>
                     <td>{evento.autorNome || "Identificação indisponível"}</td>
                     {!compacto && <td>{evento.motivo || "—"}</td>}
                   </DarkTableRow>
                 ))}
               </DarkTable>
               <p className="h02-nota">
-                Cada linha é um lançamento efetivo do ledger. {TROCO_NAO_REGISTRADO}.
+                Cada linha é um lançamento efetivo do ledger, sem duplicidade. Troco e valor entregue
+                só aparecem quando foram gravados no lançamento.
               </p>
             </>
           )}

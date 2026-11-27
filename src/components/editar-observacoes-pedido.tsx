@@ -5,20 +5,26 @@ import { supabaseLoose as supabase } from "@/lib/supabase-loose";
 import { podeEditarPedido } from "@/lib/pedido-status";
 
 /**
- * Edição de observações com motivo obrigatório e auditoria no banco (migration
- * 0140). Nesta etapa nenhum outro campo do pedido é editável: a integração
- * comercial/estoque continua apenas especificada no contrato do módulo.
+ * Edição de observações com motivo obrigatório e auditoria no banco (migrations
+ * 0140/0142). A guarda de estágio é replicada no backend: ocultar o botão nunca
+ * é a única proteção. Nesta etapa nenhum outro campo do pedido é editável.
  */
 export function EditarObservacoesPedido({
   pedidoId,
   numero,
   observacoes,
+  status,
+  retiradoEm,
+  papeis = [],
   onSalvo,
   className = "",
 }: {
   pedidoId: string;
   numero: number;
   observacoes?: string | null | undefined;
+  status?: string | null | undefined;
+  retiradoEm?: string | null | undefined;
+  papeis?: readonly string[] | undefined;
   onSalvo?: (() => void | Promise<void>) | undefined;
   className?: string;
 }) {
@@ -30,6 +36,10 @@ export function EditarObservacoesPedido({
   useEffect(() => {
     if (!aberto) setTexto(observacoes ?? "");
   }, [observacoes, aberto]);
+
+  // Fail closed: sem estágio reconhecido ou sem papel autorizado, o botão não
+  // é oferecido — e a RPC 0142 continua bloqueando chamadas diretas.
+  if (!podeEditarPedido(status, retiradoEm, papeis)) return null;
 
   async function salvar() {
     const m = motivo.trim();
@@ -54,7 +64,9 @@ export function EditarObservacoesPedido({
       if (data?.status !== "editado") {
         toast.error(data?.status === "nao_autorizado"
           ? "Você não tem permissão para editar observações."
-          : "A edição não foi registrada. Confira o pedido e tente novamente.");
+          : data?.status === "pedido_nao_editavel"
+            ? "Este estágio do pedido não permite edição."
+            : "A edição não foi registrada. Confira o pedido e tente novamente.");
         return;
       }
       toast.success(`Observações do pedido #${numero} atualizadas e auditadas.`);
@@ -62,7 +74,7 @@ export function EditarObservacoesPedido({
       setMotivo("");
       await onSalvo?.();
     } catch {
-      toast.error("Não foi possível salvar. A edição exige a migration 0140.");
+      toast.error("Não foi possível salvar. A edição exige as migrations 0140 e 0142.");
     } finally {
       setSalvando(false);
     }

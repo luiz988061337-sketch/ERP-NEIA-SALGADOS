@@ -218,7 +218,9 @@ function Financeiro() {
     queryFn: async () => {
       const resultado = await lerPaginado<any>((inicio, fim) => supabase
         .from("pedido_pagamento_eventos")
-        .select("pedido_id, tipo, valor_centavos, forma_pagamento, created_at")
+        .select(
+          "pedido_id, tipo, valor_centavos, forma_pagamento, forma_pagamento_efetiva, valor_entregue_centavos, troco_centavos, created_at",
+        )
         .gte("created_at", faixaFluxo.ini)
         .lt("created_at", faixaFluxo.fim)
         .order("created_at", { ascending: true })
@@ -1154,6 +1156,11 @@ function Financeiro() {
               </p>
             ))}
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Os meios acima usam a forma efetiva gravada no ledger. Lançamentos anteriores à 0142,
+            sem forma efetiva, mantêm a preferência original apenas como fallback; nenhum troco é
+            contabilizado como receita.
+          </p>
         </section>
 
         <section className="rounded-xl border border-border bg-card p-4">

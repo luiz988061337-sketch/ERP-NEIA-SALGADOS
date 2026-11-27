@@ -71,10 +71,12 @@ export function DetalhesPedidoH02({
   pedido: p,
   produtos,
   somenteLeitura,
+  papeis = [],
 }: {
   pedido: PedidoH02;
   produtos: Map<string, ProdutoH02>;
   somenteLeitura: boolean;
+  papeis?: readonly string[] | undefined;
 }) {
   const queryClient = useQueryClient();
   const totalCentavos = Math.round(Number(p.total || 0) * 100);
@@ -183,6 +185,7 @@ export function DetalhesPedidoH02({
             observacoes={p.observacoes}
             status={p.status}
             retiradoEm={p.retirado_em}
+            papeis={papeis}
             onSalvo={() => aoSalvarObservacoes()}
             className="h02-botao"
           />

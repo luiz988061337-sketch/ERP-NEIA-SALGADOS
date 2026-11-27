@@ -43,17 +43,35 @@ export const STATUS_MAP_DB: Record<string, string> = {
 const ORDEM = [...FLUXO_COMPLETO, "cancelado"];
 
 /**
- * Pedidos encerrados não aceitam mais edição operacional. `retirado` é estado
- * virtual (o banco grava `entregue` + `retirado_em`), por isso os dois são
- * verificados. Usado para ocultar o botão e, no banco, pela RPC auditada.
+ * Guarda de edição por estágio, replicada na RPC auditada (migration 0142).
+ * `retirado` é rótulo virtual: o banco grava `entregue` + `retirado_em`.
+ * Estados terminais e em rota nunca são editáveis; prontos/aguardando motoboy
+ * exigem autorização administrativa específica; recebido/em_producao aceitam
+ * atendente ou admin. Qualquer outro valor é recusado (fail closed).
  */
 export function podeEditarPedido(
   status: string | null | undefined,
   retiradoEm?: string | null,
+  papeis: readonly string[] = [],
 ): boolean {
-  if (!status) return false;
-  if (status === "cancelado" || status === "entregue" || status === "retirado") return false;
-  return !retiradoEm;
+  if (!status || retiradoEm) return false;
+  const admin = papeis.includes("admin");
+  const atendente = papeis.includes("atendente");
+  switch (status) {
+    case "cancelado":
+    case "entregue":
+    case "retirado":
+    case "em_rota":
+      return false;
+    case "pronto":
+    case "aguardando_motoboy":
+      return admin;
+    case "recebido":
+    case "em_producao":
+      return admin || atendente;
+    default:
+      return false;
+  }
 }
 
 /** Bloqueia transições impossíveis (ex: entregue → em_preparacao). */

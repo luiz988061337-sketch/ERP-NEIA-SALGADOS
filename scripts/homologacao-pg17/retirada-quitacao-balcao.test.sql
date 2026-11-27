@@ -58,6 +58,7 @@ CREATE TABLE public.pedido_pagamento_eventos (
 \ir ../../drizzle/migrations/0139_recebimento_balcao_atendente.sql
 \ir ../../drizzle/migrations/0140_edicao_observacoes_auditada.sql
 \ir ../../drizzle/migrations/0141_guard_recebimento_com_capacidade.sql
+\ir ../../drizzle/migrations/0142_forma_efetiva_pagamentos.sql
 -- Permissões mínimas para os testes de UPDATE direto; as RPCs são SECURITY DEFINER.
 GRANT SELECT, UPDATE ON public.pedidos TO authenticated;
 GRANT SELECT ON public.pedido_pagamento_eventos TO authenticated;
@@ -123,36 +124,36 @@ RESET ROLE;
 -- ---------------------------------------------------------------------------
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000002',false) IS NOT NULL;
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 3000, 'sem-capacidade')::jsonb->>'status' = 'nao_autorizado',
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000011', 3000, 'sem-capacidade', 'dinheiro', 3000, true)::jsonb->>'status' = 'nao_autorizado',
   'atendente sem capacidade não registra pagamento');
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',false) IS NOT NULL;
 -- A 0106 de homologação exige `receber_pagamento` de todos os papéis. A 0139
 -- preserva essa guarda: Admin sem capacidade continua bloqueado também na RPC.
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000013', 5000, 'admin-sem-capacidade')::jsonb->>'status' = 'nao_autorizado',
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000013', 5000, 'admin-sem-capacidade', 'dinheiro', 5000, true)::jsonb->>'status' = 'nao_autorizado',
   'Admin sem capacidade permanece bloqueado na RPC da 0106');
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',false) IS NOT NULL;
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11')::jsonb->>'status' = 'registrado',
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11', 'dinheiro', 3000, true)::jsonb->>'status' = 'registrado',
   'atendente com capacidade registra recebimento parcial em produção');
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11')::jsonb->>'status' = 'repetido',
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11', 'dinheiro', 3000, true)::jsonb->>'status' = 'repetido',
   'mesma chave não duplica recebimento');
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000014', 3000, 'parcial:11')::jsonb->>'status' = 'chave_idempotencia_conflitante',
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000014', 3000, 'parcial:11', 'dinheiro', 3000, true)::jsonb->>'status' = 'chave_idempotencia_conflitante',
   'chave reutilizada com outro pedido é recusada');
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 99999, 'acima-saldo')::jsonb->>'status' = 'valor_superior_ao_saldo',
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000011', 99999, 'acima-saldo', 'dinheiro', 99999, true)::jsonb->>'status' = 'valor_superior_ao_saldo',
   'valor acima do saldo é recusado');
--- Troco é cálculo da interface (valor entregue - devido); o banco registra
--- somente o devido, sem transformar troco em receita nem em evento financeiro.
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000014', 10000, 'troco:14')::jsonb->>'status' = 'registrado',
+-- O banco registra somente o devido; o excedente entregue fica como troco.
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000014', 10000, 'troco:14', 'dinheiro', 10500, true)::jsonb->>'status' = 'registrado',
   'recebimento em dinheiro registra o valor devido');
 SELECT pg_temp.ok((SELECT count(*)=1 AND sum(valor_centavos)=10000
+    AND max(troco_centavos)=500 AND max(valor_entregue_centavos)=10500
   FROM public.pedido_pagamento_eventos WHERE pedido_id='00000000-0000-4000-8000-000000000014'),
-  'ledger não registra o troco como pagamento');
+  'ledger não registra o troco como receita, mas o conserva como dado do lançamento');
 SELECT pg_temp.ok((public.consultar_recebimento_retirada(
   '00000000-0000-4000-8000-000000000014')->>'status') = 'quitado',
   'pedido é quitado pelo devido, com troco apurado somente na interface');
@@ -220,8 +221,8 @@ END;
 $$;
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',false) IS NOT NULL;
-SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 5000, 'quitar:11')::jsonb->>'status' = 'registrado',
+SELECT pg_temp.ok(public.registrar_pagamento_pedido_efetivo(
+  '00000000-0000-4000-8000-000000000011', 5000, 'quitar:11', 'dinheiro', 5000, true)::jsonb->>'status' = 'registrado',
   'atendente quita o saldo restante antes da retirada');
 RESET ROLE;
 UPDATE public.pedidos SET status='entregue',retirado_em=now() WHERE id='00000000-0000-4000-8000-000000000011';

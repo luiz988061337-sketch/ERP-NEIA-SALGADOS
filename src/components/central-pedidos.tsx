@@ -61,7 +61,15 @@ import {
   type ResultadoAceite,
 } from "@/lib/atendente-aceite";
 import { elegivelRetirada, retirarPedidoCliente } from "@/lib/motoboy-finalizacao";
-import { centavosInformados, confirmarValorRecebido, type RecebimentoRetirada } from "@/lib/recebimento-retirada";
+import {
+  centavosInformados,
+  ehFormaEfetiva,
+  FORMAS_EFETIVAS,
+  validarRecebimentoBalcao,
+  type FormaEfetiva,
+  type RecebimentoRetirada,
+} from "@/lib/recebimento-retirada";
+import { useLojaConfig } from "@/lib/loja";
 import { entradaJanelaProducao } from "@/lib/motor-producao";
 import { rotuloQuantidadePedido, unidadesSalgadosH02 } from "@/lib/pedidos-h02";
 import { MINIMO_COMBO } from "@/lib/totals";
@@ -95,6 +103,22 @@ const COLUNAS = [
     icone: Package,
   },
 ] as const;
+
+const ROTULO_FORMA_EFETIVA: Record<FormaEfetiva, string> = {
+  dinheiro: "Dinheiro",
+  pix: "Pix",
+  credito: "Cartão de crédito",
+  debito: "Cartão de débito",
+};
+
+type TentativaRecebimento = {
+  pedido: string;
+  valor: number;
+  chave: string;
+  forma: FormaEfetiva;
+  entregue: number | null;
+  confirmado: boolean;
+};
 
 function mensagemFalhaAceite(r: ResultadoAceite): string {
   switch (r.codigo) {
@@ -252,7 +276,12 @@ export function CentralPedidos({
   const detalhe = pedidos.find((p) => p.id === detalheId);
   const [valorParcial, setValorParcial] = useState("");
   const [valorEntregue, setValorEntregue] = useState("");
-  const tentativaRecebimento = useRef<{ pedido: string; valor: number; chave: string } | null>(null);
+  const [formaEfetiva, setFormaEfetiva] = useState<FormaEfetiva | "">("");
+  const [confirmadoEfetivo, setConfirmadoEfetivo] = useState(false);
+  const [pagamentoInconcluso, setPagamentoInconcluso] = useState<TentativaRecebimento | null>(null);
+  const [verificandoChave, setVerificandoChave] = useState(false);
+  const tentativaRecebimento = useRef<TentativaRecebimento | null>(null);
+  const { data: loja } = useLojaConfig();
   // A mesma consulta atende o recebimento durante a produção e a quitação antes
   // da retirada. Um pedido por vez mantém a idempotência e o troco consistentes.
   const alvoRecebimentoId = retiradaId ?? recebimentoId;
@@ -269,25 +298,37 @@ export function CentralPedidos({
   });
   const financeiro = pagamentoRetirada.data;
   const pendente = financeiro?.status === "pendente" ? financeiro : null;
-  const dinheiro = pendente?.forma === "dinheiro";
-  const recebeNoBalcao = Boolean(
-    pendente?.pode_receber && ["dinheiro", "credito", "debito", "pix"].includes(pendente.forma),
-  );
-  const valoresRecebidos = pendente && confirmarValorRecebido(
-    valorParcial ? centavosInformados(valorParcial) : pendente.saldo_centavos,
-    centavosInformados(valorEntregue), pendente.saldo_centavos, dinheiro,
-  );
+  const dinheiro = formaEfetiva === "dinheiro";
+  const chavePixLoja = (loja?.pix_chave ?? "").trim();
+  const pixSemChave = formaEfetiva === "pix" && !chavePixLoja;
+  // A preferência original nunca limita a forma efetiva: o cliente pode pagar
+  // em dinheiro, Pix, crédito ou débito no balcão.
+  const recebeNoBalcao = Boolean(pendente?.pode_receber);
+  const valoresRecebidos = pendente
+    ? validarRecebimentoBalcao({
+        valor: valorParcial ? centavosInformados(valorParcial) : pendente.saldo_centavos,
+        entregue: centavosInformados(valorEntregue),
+        saldo: pendente.saldo_centavos,
+        forma: formaEfetiva,
+        confirmado: confirmadoEfetivo,
+      })
+    : null;
   function limparValoresRecebimento() {
     setValorParcial("");
     setValorEntregue("");
+    setConfirmadoEfetivo(false);
   }
   function abrirRetirada(pedidoId: string) {
     limparValoresRecebimento();
+    const sugerida = pedidos.find((p) => p.id === pedidoId)?.forma_pagamento;
+    setFormaEfetiva(ehFormaEfetiva(sugerida) ? sugerida : "");
     setRecebimentoId(null);
     setRetiradaId(pedidoId);
   }
   function abrirRecebimento(pedidoId: string) {
     limparValoresRecebimento();
+    const sugerida = pedidos.find((p) => p.id === pedidoId)?.forma_pagamento;
+    setFormaEfetiva(ehFormaEfetiva(sugerida) ? sugerida : "");
     setRetiradaId(null);
     setRecebimentoId(pedidoId);
   }
@@ -304,36 +345,155 @@ export function CentralPedidos({
       true,
     ).elegivel;
 
+  /** Campos compartilhados pelos diálogos de retirada e de recebimento. */
+  function campoFormaEfetiva(desabilitado: boolean) {
+    return (
+      <div className="space-y-2">
+        <p className="ca-nota">
+          Preferência original: {PAGAMENTO_LABEL[pendente?.forma ?? ""] ?? pendente?.forma ?? "não informada"}.
+          Escolha a forma efetivamente usada neste recebimento.
+        </p>
+        <label className="block">
+          Forma efetiva do recebimento
+          <select
+            className="ml-2 rounded border border-border bg-background px-2 py-1"
+            value={formaEfetiva}
+            disabled={desabilitado || !!pagamentoInconcluso}
+            onChange={(e) => {
+              setFormaEfetiva(e.target.value as FormaEfetiva | "");
+              setConfirmadoEfetivo(false);
+            }}
+          >
+            <option value="">Selecione…</option>
+            {FORMAS_EFETIVAS.map((forma) => (
+              <option key={forma} value={forma}>
+                {ROTULO_FORMA_EFETIVA[forma]}
+              </option>
+            ))}
+          </select>
+        </label>
+        {dinheiro ? (
+          <>
+            <label className="block">Valor entregue pelo cliente em R$
+              <input
+                className="ml-2 rounded border border-border bg-background px-2 py-1"
+                inputMode="decimal"
+                value={valorEntregue}
+                disabled={desabilitado || !!pagamentoInconcluso}
+                onChange={(e) => setValorEntregue(e.target.value)}
+              />
+            </label>
+            {valoresRecebidos && <p>Troco: <strong>{brl(valoresRecebidos.troco / 100)}</strong></p>}
+          </>
+        ) : (
+          formaEfetiva && (
+            <label className="block">
+              <input
+                type="checkbox"
+                className="mr-2"
+                checked={confirmadoEfetivo}
+                disabled={desabilitado || !!pagamentoInconcluso}
+                onChange={(e) => setConfirmadoEfetivo(e.target.checked)}
+              />
+              Confirmo que o valor de {ROTULO_FORMA_EFETIVA[formaEfetiva]} foi efetivamente recebido.
+            </label>
+          )
+        )}
+        {formaEfetiva === "pix" && (
+          <p role={pixSemChave ? "alert" : undefined} className="ca-nota">
+            {pixSemChave
+              ? "Chave Pix da Néia Salgados não configurada. Regularize antes de registrar o recebimento."
+              : `Pix destinado à conta da Néia Salgados: ${chavePixLoja}`}
+          </p>
+        )}
+        {pagamentoInconcluso && (
+          <div role="alert" className="space-y-2 rounded border border-border p-2">
+            <p>
+              O registro ficou sem confirmação. A chave da tentativa foi preservada; nenhuma nova
+              cobrança será criada automaticamente e a retirada permanece bloqueada.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={verificandoChave}
+                onClick={() => void verificarTentativa()}
+              >
+                {verificandoChave ? "Consultando…" : "Consultar a mesma chave"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={verificandoChave}
+                onClick={() => {
+                  // A chave é mantida: fechar o aviso nunca autoriza nova cobrança.
+                  setPagamentoInconcluso(null);
+                  toast.info("Aviso fechado. A chave da tentativa continua reservada para a mesma operação.");
+                }}
+              >
+                Fechar aviso (manter chave)
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   /** Registra no ledger; só retorna true quando o saldo foi integralmente quitado. */
   async function registrarRecebimento(pedidoId: string): Promise<boolean> {
-    if (!pendente || !recebeNoBalcao || !valoresRecebidos) return false;
-    const tentativa = tentativaRecebimento.current;
-    if (tentativa?.pedido === pedidoId && tentativa.valor !== valoresRecebidos.valor) {
-      toast.error("Há um recebimento sem confirmação. Repita o mesmo valor antes de registrar outro.");
+    if (!pendente || !recebeNoBalcao || !valoresRecebidos || pagamentoInconcluso || pixSemChave) return false;
+    const anterior = tentativaRecebimento.current;
+    const tentativa: TentativaRecebimento = {
+      pedido: pedidoId,
+      valor: valoresRecebidos.valor,
+      chave: anterior?.pedido === pedidoId
+        ? anterior.chave
+        : "balcao:" + pedidoId + ":" + crypto.randomUUID(),
+      forma: valoresRecebidos.forma,
+      entregue: valoresRecebidos.valorEntregue,
+      confirmado: valoresRecebidos.confirmado,
+    };
+    if (anterior?.pedido === pedidoId && (
+      anterior.valor !== tentativa.valor ||
+      anterior.forma !== tentativa.forma ||
+      anterior.entregue !== tentativa.entregue
+    )) {
+      setPagamentoInconcluso(anterior);
+      toast.error("Há um recebimento sem confirmação. Repita os mesmos dados ou consulte a chave.");
       return false;
     }
-    const chave = tentativa?.pedido === pedidoId && tentativa.valor === valoresRecebidos.valor
-      ? tentativa.chave : "balcao:" + pedidoId + ":" + crypto.randomUUID();
-    tentativaRecebimento.current = { pedido: pedidoId, valor: valoresRecebidos.valor, chave };
-    const { data, error } = await supabase.rpc("registrar_pagamento_pedido", {
+    tentativaRecebimento.current = tentativa;
+    const { data, error } = await supabase.rpc("registrar_pagamento_pedido_efetivo", {
       p_pedido_id: pedidoId,
-      p_valor_centavos: valoresRecebidos.valor,
-      p_chave_idempotencia: chave,
+      p_valor_centavos: tentativa.valor,
+      p_chave_idempotencia: tentativa.chave,
+      p_forma_efetiva: tentativa.forma,
+      p_valor_entregue_centavos: tentativa.entregue,
+      p_confirmado: tentativa.confirmado,
     });
     if (error) {
-      toast.error("Não foi possível confirmar o registro. Confira o saldo antes de tentar novamente.");
+      setPagamentoInconcluso(tentativa);
+      toast.error("Não foi possível confirmar o registro. A mesma chave foi preservada; consulte-a antes de repetir.");
       return false;
     }
-    const consulta = await pagamentoRetirada.refetch();
     if (!["registrado", "repetido", "sem_saldo"].includes(data?.status)) {
       tentativaRecebimento.current = null;
       toast.error(data?.status === "nao_autorizado"
         ? "O recebimento exige um operador autorizado com a capacidade de receber pagamentos."
-        : "O recebimento não foi confirmado. Confira o saldo.");
+        : data?.status === "confirmacao_efetiva_requerida"
+          ? "Confirme efetivamente o recebimento antes de registrar."
+          : "O recebimento não foi confirmado. Confira o saldo.");
+      return false;
+    }
+    const consulta = await pagamentoRetirada.refetch();
+    if (consulta.isError) {
+      setPagamentoInconcluso(tentativa);
+      toast.error("O registro pode ter sido gravado. Consulte a mesma chave antes de repetir.");
       return false;
     }
     tentativaRecebimento.current = null;
-    if (consulta.data?.status !== "quitado" || consulta.isError) {
+    if (consulta.data?.status !== "quitado") {
       limparValoresRecebimento();
       toast.info(consulta.data?.status === "pendente"
         ? "Recebimento registrado. Ainda há saldo a receber."
@@ -343,8 +503,51 @@ export function CentralPedidos({
     return true;
   }
 
+  /** Após falha de conexão: consulta a chave, nunca cria nova cobrança. */
+  async function verificarTentativa() {
+    const tentativa = pagamentoInconcluso;
+    if (!tentativa || verificandoChave) return;
+    setVerificandoChave(true);
+    try {
+      const { data, error } = await supabase.rpc("verificar_recebimento_por_chave", {
+        p_chave_idempotencia: tentativa.chave,
+      });
+      if (error) {
+        toast.error("Não foi possível consultar a chave. Nenhuma nova cobrança foi criada.");
+        return;
+      }
+      if (data?.status === "nao_autorizado") {
+        toast.error("A consulta exige a capacidade financeira receber_pagamento.");
+        return;
+      }
+      if (data?.status === "registrado") {
+        const consulta = await pagamentoRetirada.refetch();
+        if (consulta.isError) {
+          toast.error("O lançamento existe, mas o saldo não pôde ser atualizado. Tente consultar novamente.");
+          return;
+        }
+        setPagamentoInconcluso(null);
+        tentativaRecebimento.current = null;
+        limparValoresRecebimento();
+        toast.success(consulta.data?.status === "quitado"
+          ? "Recebimento confirmado no ledger. A retirada pode continuar."
+          : "Recebimento confirmado no ledger. Ainda há saldo a receber.");
+        return;
+      }
+      toast.error(
+        "Nenhum recebimento foi confirmado para esta chave. A retirada permanece bloqueada e nenhuma nova cobrança foi criada.",
+      );
+    } finally {
+      setVerificandoChave(false);
+    }
+  }
+
   async function confirmarRetirada() {
     if (!retirada || !podeConfirmarRetirada(retirada) || retirandoRef.current) return;
+    if (pagamentoInconcluso) {
+      toast.error("Há um recebimento sem confirmação. Consulte a mesma chave antes de continuar.");
+      return;
+    }
     retirandoRef.current = true;
     setRetirando(true);
     try {
@@ -374,6 +577,10 @@ export function CentralPedidos({
   /** Recebimento direto na Central, sem exigir que o pedido esteja pronto. */
   async function confirmarRecebimento() {
     if (!recebimento || !filaDisponivel || recebendoRef.current) return;
+    if (pagamentoInconcluso) {
+      toast.error("Há um recebimento sem confirmação. Consulte a mesma chave antes de continuar.");
+      return;
+    }
     if (pagamentoRetirada.isFetching || pagamentoRetirada.isError) return;
     if (financeiro?.status === "quitado") {
       toast.info("O pagamento deste pedido já está confirmado.");
@@ -672,6 +879,9 @@ export function CentralPedidos({
                 pedidoId={detalhe.id}
                 numero={detalhe.numero}
                 observacoes={detalhe.observacoes}
+                status={detalhe.status}
+                retiradoEm={detalhe.retirado_em}
+                papeis={papeis}
                 onSalvo={async () => { await atualizarFilas(); }}
               />
             )}
@@ -721,14 +931,11 @@ export function CentralPedidos({
               <p>Saldo restante: <strong>{brl(pendente.saldo_centavos / 100)}</strong></p>
               {pendente.pago_centavos > 0 && <p>Já recebido: {brl(pendente.pago_centavos / 100)}</p>}
               {recebeNoBalcao ? <>
-                <p>Confirme somente o valor efetivamente recebido em {PAGAMENTO_LABEL[pendente.forma]}.</p>
+                <p>Confirme somente o valor efetivamente recebido.</p>
                 <label className="block">Valor a registrar em R$
-                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorParcial} disabled={retirando} placeholder={(pendente.saldo_centavos / 100).toFixed(2).replace(".", ",")} onChange={e => setValorParcial(e.target.value)} />
+                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorParcial} disabled={retirando || !!pagamentoInconcluso} placeholder={(pendente.saldo_centavos / 100).toFixed(2).replace(".", ",")} onChange={e => setValorParcial(e.target.value)} />
                 </label>
-                {dinheiro && <label className="block">Valor entregue pelo cliente em R$
-                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorEntregue} disabled={retirando} onChange={e => setValorEntregue(e.target.value)} />
-                </label>}
-                {dinheiro && valoresRecebidos && <p>Troco: <strong>{brl(valoresRecebidos.troco / 100)}</strong></p>}
+                {campoFormaEfetiva(retirando)}
               </> : <p>Solicite o recebimento a um operador autorizado com capacidade financeira.</p>}
             </div>}
             <div className="ca-acoes">
@@ -745,7 +952,7 @@ export function CentralPedidos({
                 type="button"
                 className="ca-primario"
                 disabled={retirando || !filaDisponivel || pagamentoRetirada.isFetching || pagamentoRetirada.isError ||
-                  (financeiro?.status !== "quitado" && !(recebeNoBalcao && valoresRecebidos))}
+                  (financeiro?.status !== "quitado" && !(recebeNoBalcao && valoresRecebidos && !pixSemChave && !pagamentoInconcluso))}
                 aria-busy={retirando}
                 onClick={() => void confirmarRetirada()}
               >
@@ -781,14 +988,11 @@ export function CentralPedidos({
               <p>Saldo restante: <strong>{brl(pendente.saldo_centavos / 100)}</strong></p>
               {pendente.pago_centavos > 0 && <p>Já recebido: {brl(pendente.pago_centavos / 100)}</p>}
               {recebeNoBalcao ? <>
-                <p>Confirme somente o valor recebido em {PAGAMENTO_LABEL[pendente.forma]}.</p>
+                <p>Confirme somente o valor efetivamente recebido.</p>
                 <label className="block">Valor a registrar em R$
-                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorParcial} disabled={recebendo} placeholder={(pendente.saldo_centavos / 100).toFixed(2).replace(".", ",")} onChange={e => setValorParcial(e.target.value)} />
+                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorParcial} disabled={recebendo || !!pagamentoInconcluso} placeholder={(pendente.saldo_centavos / 100).toFixed(2).replace(".", ",")} onChange={e => setValorParcial(e.target.value)} />
                 </label>
-                {dinheiro && <label className="block">Valor entregue pelo cliente em R$
-                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorEntregue} disabled={recebendo} onChange={e => setValorEntregue(e.target.value)} />
-                </label>}
-                {dinheiro && valoresRecebidos && <p>Troco: <strong>{brl(valoresRecebidos.troco / 100)}</strong></p>}
+                {campoFormaEfetiva(recebendo)}
               </> : <p>Você precisa da capacidade financeira <strong>receber_pagamento</strong> para registrar este recebimento.</p>}
             </div>}
             <div className="ca-acoes">
@@ -805,7 +1009,7 @@ export function CentralPedidos({
                 type="button"
                 className="ca-primario"
                 disabled={recebendo || !filaDisponivel || pagamentoRetirada.isFetching || pagamentoRetirada.isError ||
-                  (financeiro?.status !== "quitado" && !(recebeNoBalcao && valoresRecebidos))}
+                  (financeiro?.status !== "quitado" && !(recebeNoBalcao && valoresRecebidos && !pixSemChave && !pagamentoInconcluso))}
                 aria-busy={recebendo}
                 onClick={() => void confirmarRecebimento()}
               >

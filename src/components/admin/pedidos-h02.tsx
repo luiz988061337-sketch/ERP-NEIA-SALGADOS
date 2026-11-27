@@ -42,6 +42,11 @@ import { lerDashboard } from "@/lib/dashboard-a01-dados";
 import { downloadCSV } from "@/lib/export";
 import { PAGAMENTO_LABEL, PAGAMENTO_STATUS_LABEL } from "@/lib/format";
 import { impressaoDireta } from "@/lib/impressao";
+import {
+  carregarEventosLedgerPorPedido,
+  linhasRecebimentosParaCSV,
+  resumirRecebimentosPedido,
+} from "@/lib/pedido-pagamento-ledger";
 import { entradaJanelaProducao } from "@/lib/motor-producao";
 import {
   COLUNAS_H02,
@@ -313,6 +318,34 @@ export function PedidosH02({
     setErroPeriodo("");
     setLimiteLista(30);
     if (etiquetaA01 || buscaInicial) limparA01();
+  }
+  async function exportarRecebimentos() {
+    const recorte = historico.length ? historico : filtrados;
+    if (!recorte.length) {
+      setFalha("Nenhum pedido no recorte para exportar recebimentos.");
+      return;
+    }
+    const { porPedido, disponivel } = await carregarEventosLedgerPorPedido(
+      supabase,
+      recorte.map((pedido) => pedido.id),
+    );
+    if (!disponivel) {
+      setFalha("Ledger financeiro indisponível para este perfil. Nenhum dado foi exportado.");
+      return;
+    }
+    const linhas = recorte.flatMap((pedido) => {
+      const resumo = resumirRecebimentosPedido(
+        pedido.id,
+        porPedido[pedido.id] ?? [],
+        Math.round(Number(pedido.total || 0) * 100),
+      );
+      return linhasRecebimentosParaCSV(resumo, pedido.numero, pedido.forma_pagamento);
+    });
+    if (!linhas.length) {
+      setMensagem("Nenhum lançamento de recebimento no ledger para este recorte.");
+      return;
+    }
+    downloadCSV("recebimentos-ledger.csv", linhas);
   }
   async function executar(acao: "aceitar" | "cancelar" | "imprimir") {
     if (
@@ -635,7 +668,7 @@ export function PedidosH02({
                         telefone: pedido.telefone,
                         endereco: pedido.endereco,
                         bairro: pedido.bairro,
-                        pagamento: pedido.forma_pagamento,
+                        preferencia_pagamento: pedido.forma_pagamento,
                         subtotal: pedido.subtotal,
                         entrega: pedido.tipo_entrega,
                         taxa_entrega: pedido.taxa_entrega,
@@ -651,6 +684,14 @@ export function PedidosH02({
                   }
                 >
                   Exportar CSV
+                </button>
+              )}
+              {!!filtrados.length && (
+                <button
+                  className="h02-botao"
+                  onClick={() => void exportarRecebimentos()}
+                >
+                  Exportar recebimentos do ledger
                 </button>
               )}
             </div>
@@ -713,7 +754,12 @@ export function PedidosH02({
             </DialogHeader>
             {janela.acao === "detalhes" ? (
               <>
-                <DetalhesPedidoH02 pedido={p} produtos={produtos} somenteLeitura={somenteLeitura} />
+                <DetalhesPedidoH02
+                  pedido={p}
+                  produtos={produtos}
+                  somenteLeitura={somenteLeitura}
+                  papeis={papeis}
+                />
                 <div className="h02-acoes">
                   {podeAceitar(p) && (
                     <button

@@ -14,6 +14,11 @@ aprovada foi substituída; `ffd6265`, a tag
 `checkpoint-estoque-operacional-vinculos-local-02` e a branch oficial foram
 preservados.
 
+> **Atualização 27/11/2026:** a [Fase 1 — forma efetiva de pagamento](fase1-forma-efetiva.md)
+> foi preparada e validada localmente na branch isolada, mas **não** foi aplicada
+> em homologação nem publicada. As [Fases 2–5](fases2-5-pendentes.md) permanecem
+> registradas e aguardam autorização específica.
+
 ## O que foi corrigido
 
 ### 1. Recebimento direto na Central — migrations 0139 e 0141

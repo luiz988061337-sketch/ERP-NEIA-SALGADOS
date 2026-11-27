@@ -110,10 +110,16 @@ try {
     Run-Sql (Join-Path $repo "drizzle\migrations\$nome") 'postgres'
   }
   Run-Sql (Join-Path $PSScriptRoot 'compat.verificar.sql') 'postgres' $false
+  # 0142 é aplicada depois da verificação da cadeia anterior: ela substitui
+  # assinaturas e acrescenta colunas anuláveis ao ledger.
+  Run-Sql (Join-Path $repo 'drizzle\migrations\0142_forma_efetiva_pagamentos.sql') 'postgres'
+  Run-Sql (Join-Path $PSScriptRoot 'fase1-forma-efetiva.verificar.sql') 'postgres' $false
 
   # Fase B — comportamento, concorrência e reversão em banco sintético isolado.
   Run-Sql (Join-Path $PSScriptRoot 'criar-banco.sql') 'postgres' $false
   Run-Sql (Join-Path $repo 'scripts\homologacao-pg17\retirada-quitacao-balcao.test.sql') `
+    'central_retirada_teste' $false
+  Run-Sql (Join-Path $PSScriptRoot 'fase1-forma-efetiva.test.sql') `
     'central_retirada_teste' $false
   Run-Sql (Join-Path $PSScriptRoot 'concorrencia-setup.sql') 'central_retirada_teste' $false
 
@@ -141,9 +147,11 @@ try {
   Assert-Output (Join-Path $work 'concorrencia-d.out') 'registrado' 'Parcial concorrente B não registrado.'
   Run-Sql (Join-Path $PSScriptRoot 'concorrencia-verificar.sql') 'central_retirada_teste' $false
 
+  # Reversão da 0142 antes da reversão da cadeia 0139-0141.
+  Run-Sql (Join-Path $PSScriptRoot 'reverter-0142.sql') 'central_retirada_teste' $false
   Run-Sql (Join-Path $PSScriptRoot 'reversao.test.sql') 'central_retirada_teste' $false
 
-  Write-Host 'PG17 OK: compatibilidade, comportamento, concorrência e reversão.'
+  Write-Host 'PG17 OK: compatibilidade, comportamento, concorrência, forma efetiva e reversão.'
   Write-Host "Evidências: $work"
 } finally {
   if (Test-Path -LiteralPath $pwfile) { Remove-Item -LiteralPath $pwfile }
