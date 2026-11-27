@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { podeEditarPedido } from "@/lib/pedido-status";
 
 /**
  * Edição de observações com motivo obrigatório e auditoria no banco (migration

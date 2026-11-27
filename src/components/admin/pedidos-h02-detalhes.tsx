@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { DarkTable, DarkTableRow } from "@/components/admin/erp-ui";
 import { EditarObservacoesPedido } from "@/components/editar-observacoes-pedido";
 import { NotasAdmin } from "@/components/pedido-notas";
+import { RecebimentosPedido, useRecebimentosPedido } from "@/components/recebimentos-pedido";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -76,6 +77,18 @@ export function DetalhesPedidoH02({
   somenteLeitura: boolean;
 }) {
   const queryClient = useQueryClient();
+  const totalCentavos = Math.round(Number(p.total || 0) * 100);
+  const recebimentos = useRecebimentosPedido(p.id, totalCentavos);
+  const ledgerIndisponivel =
+    recebimentos.isError || recebimentos.data?.disponivel === false;
+  const valorRecebido = ledgerIndisponivel
+    ? "Ledger indisponível para este perfil"
+    : recebimentos.data?.eventos.length
+      ? brl(recebimentos.data.pagoCentavos / 100)
+      : "Nenhum recebimento registrado no ledger";
+  const saldoRecebido = ledgerIndisponivel || !recebimentos.data
+    ? "Sem apuração do ledger"
+    : brl(recebimentos.data.saldoCentavos / 100);
   async function aoSalvarObservacoes() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["h02-pedidos-recentes"] }),
@@ -168,6 +181,8 @@ export function DetalhesPedidoH02({
             pedidoId={p.id}
             numero={p.numero}
             observacoes={p.observacoes}
+            status={p.status}
+            retiradoEm={p.retirado_em}
             onSalvo={() => aoSalvarObservacoes()}
             className="h02-botao"
           />
@@ -258,14 +273,19 @@ export function DetalhesPedidoH02({
                   ? "Online"
                   : p.pagamento_modalidade,
             ],
-            ["Confirmação do pagamento", dataH02(p.pagamento_em ?? p.pago_em)],
-            ["Valor recebido", "Sem valor recebido no registro do pedido"],
+            ["Confirmação registrada no pedido", dataH02(p.pagamento_em ?? p.pago_em)],
+            ["Valor recebido", valorRecebido],
+            ["Saldo pendente", saldoRecebido],
             [
-              "Saldo pendente",
-              p.pagamento_status === "pago" ? brl(0) : "Sem saldo apurado no registro do pedido",
+              "Troco informado na observação (não é registro financeiro)",
+              trocoSolicitadoH02(p.observacoes),
             ],
-            ["Troco solicitado para", trocoSolicitadoH02(p.observacoes)],
           ]}
+        />
+        <RecebimentosPedido
+          pedidoId={p.id}
+          totalCentavos={totalCentavos}
+          formaOriginal={p.forma_pagamento}
         />
       </TabsContent>
       <TabsContent value="operacao">
@@ -316,6 +336,12 @@ export function DetalhesPedidoH02({
             </li>
           ))}
         </ol>
+        <RecebimentosPedido
+          pedidoId={p.id}
+          totalCentavos={totalCentavos}
+          formaOriginal={p.forma_pagamento}
+          compacto
+        />
         {!somenteLeitura && <NotasAdmin pedidoId={p.id} numero={p.numero} />}
       </TabsContent>
       </Tabs>

@@ -42,6 +42,20 @@ export const STATUS_MAP_DB: Record<string, string> = {
 
 const ORDEM = [...FLUXO_COMPLETO, "cancelado"];
 
+/**
+ * Pedidos encerrados não aceitam mais edição operacional. `retirado` é estado
+ * virtual (o banco grava `entregue` + `retirado_em`), por isso os dois são
+ * verificados. Usado para ocultar o botão e, no banco, pela RPC auditada.
+ */
+export function podeEditarPedido(
+  status: string | null | undefined,
+  retiradoEm?: string | null,
+): boolean {
+  if (!status) return false;
+  if (status === "cancelado" || status === "entregue" || status === "retirado") return false;
+  return !retiradoEm;
+}
+
 /** Bloqueia transições impossíveis (ex: entregue → em_preparacao). */
 export function podeTransitar(de: string, para: string): boolean {
   if (de === para) return false;
