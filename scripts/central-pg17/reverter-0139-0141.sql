@@ -1,6 +1,6 @@
 -- Compensação local das migrations 0139/0140/0141.
--- Restaura exatamente os corpos anteriores (0136, 0106 e 0084) e desativa a RPC
--- de edição. A tabela de auditoria e todos os eventos do ledger são preservados:
+-- Restaura exatamente os corpos anteriores (0136, 0106 da homologação e 0084) e
+-- desativa a RPC de edição. A tabela de auditoria e todos os eventos do ledger são preservados:
 -- reversão não apaga histórico. Não altera supabase_migrations nem reaplica
 -- 0134/0135/0136. Somente execução em cluster descartável ou janela autorizada.
 BEGIN;
@@ -58,6 +58,7 @@ DECLARE
   v_valor bigint;
   v_evento public.pedido_pagamento_eventos%ROWTYPE;
 BEGIN
+  IF NOT neia_operacao.tem_capacidade(auth.uid(),'receber_pagamento') THEN RETURN jsonb_build_object('status','nao_autorizado'); END IF;
   IF NOT (public.has_role(auth.uid(), 'admin') OR public.has_role(auth.uid(), 'financeiro')) THEN
     RETURN jsonb_build_object('status', 'nao_autorizado');
   END IF;

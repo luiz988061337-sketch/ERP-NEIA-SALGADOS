@@ -30,6 +30,11 @@ SELECT pg_temp.ok(
   public.registrar_pagamento_pedido(
     '00000000-0000-4000-8000-000000000052', 2500, 'reversao:bloqueio')::jsonb->>'status' = 'nao_autorizado',
   'após a reversão, a RPC volta a exigir Admin/Financeiro');
+SELECT pg_temp.ok(
+  (SELECT md5(p.prosrc) = 'c641a752f7b488f36606f902b8fee3c9'
+     FROM pg_proc p
+    WHERE p.oid = to_regprocedure('public.registrar_pagamento_pedido(uuid,bigint,text)')),
+  'reversão restaura byte a byte a 0106 de homologação');
 DO $$
 BEGIN
   BEGIN

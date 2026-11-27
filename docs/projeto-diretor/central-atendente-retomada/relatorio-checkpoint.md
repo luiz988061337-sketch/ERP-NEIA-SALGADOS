@@ -3,7 +3,8 @@
 Data: 27/11/2026  
 Branch isolada: `central-atendente-retomada-opencode`  
 Base: `resgate-visual-h01-h07-codex` @ `4c703e4`  
-Publicação: **não realizada nesta etapa** (aguardando aprovação do proprietário).
+Publicação: ver
+[relatório de publicação](relatorio-publicacao.md) (conferência visual pendente).
 
 ## Objetivo
 
@@ -29,8 +30,11 @@ preservados.
   - `registrar_pagamento_pedido` mantém integralmente o ledger
     `pedido_pagamento_eventos`, a chave de idempotência, o travamento
     `pg_advisory_xact_lock`, os limites de valor, a autoria (`actor`) e a
-    atualização de `pagamento_status`/`pagamento_em`. A única diferença em
-    relação à 0106 é a guarda de autorização.
+    atualização de `pagamento_status`/`pagamento_em`. Diante da divergência
+    encontrada em homologação, a guarda de `receber_pagamento` da 0106 foi
+    preservada para **todos** os papéis; a única diferença é a inclusão da
+    atendente na lista de papéis. Admin/Financeiro sem capacidade continuam
+    bloqueados também na RPC.
 - `0141_guard_recebimento_com_capacidade.sql`
   - A 0084 congelava `pagamento_status`/`pagamento_em` para não-admin e
     bloquearia a atendente mesmo após o ledger ser gravado.
@@ -75,23 +79,23 @@ preservados.
 | `npm run typecheck` | passou |
 | `npm run teste:central` | 41 asserções passaram |
 | `npm run teste:aceite-local` | 7 cenários e verificações estáticas passaram |
-| `npm run teste:recebimento-balcao` (novo) | 7 testes passaram |
+| `npm run teste:recebimento-balcao` (novo) | 8 testes passaram |
 | `npm run teste:seguranca` | 31 testes passaram |
 | `npm run build:homolog` | passou; bundle com 0 referências de produção |
 | `npm run seguranca:destino -- --project-ref lflzlcqinarrcgncafol` | destino autorizado (executado antes do build) |
-| Ensaio PostgreSQL 17 descartável (`scripts/central-pg17/executar.ps1`) | 54 asserções `OK`; compatibilidade, comportamento, concorrência e reversão |
+| Ensaio PostgreSQL 17 descartável (`scripts/central-pg17/executar.ps1`) | 55 asserções `OK`; compatibilidade, comportamento, concorrência e reversão |
 
 O ensaio PostgreSQL 17 foi executado em cluster **nativo descartável**
 (`scripts/central-pg17/executar.ps1`), pois o daemon Docker não está disponível.
 O runner aplicou a cadeia limpa até `0123`, depois `0136` + `0139`/`0140`/`0141`,
 e rodou a suíte `retirada-quitacao-balcao.test.sql`, concorrência e reversão em
 banco separado `central_retirada_teste`, sempre em `127.0.0.1`, com desligamento
-ao final. **54 asserções `OK`** passaram. Evidência:
-`C:\Users\User\AppData\Local\Temp\opencode\neia-central-atendente-pg17-852265c5842e4387971632c1588ec3fd\sql.log`.
+ao final. **55 asserções `OK`** passaram. Evidência:
+`C:\Users\User\AppData\Local\Temp\opencode\neia-central-atendente-pg17-962d06b90a6e4325808d6d8065663b6d\sql.log`.
 
 Cobertura confirmada: atendente com `receber_pagamento` sem Admin; atendente e
-Admin sem capacidade sem acesso ao botão `pode_receber`; Admin continua
-autorizado na RPC financeira da 0106 (regra preservada, não aumento de escopo);
+Admin sem capacidade sem acesso ao botão `pode_receber`; Admin sem capacidade
+também bloqueado na RPC, igual à 0106 de homologação (sem aumento de escopo);
 recebimento em produção sem conferência; Pix já quitado; pagamento divergente em
 revisão; parciais, saldo, idempotência, chave conflitante, valor acima do saldo e
 troco (o ledger registra só o devido); colunas congeladas e ledger íntegro;
@@ -109,13 +113,14 @@ push **sem force** de apenas quatro refs:
 
 | Ref | Alvo |
 | --- | --- |
-| `central-atendente-retomada-opencode` | `91dd909d473ac0725af148c2eaad0e260283826b` |
+| `central-atendente-retomada-opencode` | `d9e4102` (validação PG17), depois ajuste da `0139` |
 | `checkpoint-central-atendente-retomada-local-01` | tag anotada `609b739` → `91dd909` |
 | `estoque-operacional-vinculos` | `ffd626574201da6f2a5f457a4d244d92842a48a1` |
 | `checkpoint-estoque-operacional-vinculos-local-02` | tag anotada `540e29c` → `ffd6265` |
 
-`git ls-remote` confirmou os quatro refs no remoto. As frentes Central e estoque
-continuam separadas; nenhum merge foi feito.
+`git ls-remote` confirmou os refs no remoto. `d9e4102` foi preservado antes das
+verificações finais; o ajuste da `0139` foi publicado na mesma branch isolada.
+As frentes Central e estoque continuam separadas.
 
 ## Homologação — somente leitura
 
@@ -136,6 +141,32 @@ Portanto `0134`/`0135`/`0136` **não devem ser reaplicadas**. `0137`/`0138` não
 foram localizadas e não devem ser presumidas. A numeração `0139`–`0141` ficou
 reservada à Central; a frente de estoque (`ffd6265`) permanece com sua própria
 numeração e integração coordenada.
+
+## Divergência de autorização financeira (resolvida antes da aplicação)
+
+A verificação final em homologação (`scripts/central-pg17/verificacao-final-homolog.sql`)
+revelou que a `0106` instalada contém uma guarda que não existia na cópia local:
+
+```sql
+IF NOT neia_operacao.tem_capacidade(auth.uid(),'receber_pagamento') THEN
+  RETURN jsonb_build_object('status','nao_autorizado');
+END IF;
+IF NOT (public.has_role(auth.uid(), 'admin')
+     OR public.has_role(auth.uid(), 'financeiro')) THEN ...
+```
+
+A `0139` original removia a primeira guarda para Admin/Financeiro, o que
+ampliaria a autorização além da regra aprovada. A divergência foi apresentada ao
+proprietário **antes de qualquer escrita remota** e a decisão foi ajustar a
+`0139`: a guarda de capacidade permanece obrigatória para todos os papéis e a
+atendente passa a constar apenas na lista de papéis. Corpo da `0106` remota:
+3135 bytes, md5 `c641a752f7b488f36606f902b8fee3c9`; a reversão local restaura
+exatamente esse corpo, verificado por asserção no ensaio PG17.
+
+Demais verificações finais: assinaturas de `has_role`/`tem_capacidade` compatíveis,
+objetos da `0140` livres, `pedidos.observacoes` `text NOT NULL DEFAULT ''`, ledger
+com RLS e sem `INSERT/UPDATE/DELETE` para `authenticated`, grants das RPCs
+restritos a `authenticated`, versões reservadas livres e guarda da `0084` íntegra.
 
 ## Segurança de ambientes
 

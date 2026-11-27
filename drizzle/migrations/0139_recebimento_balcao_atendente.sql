@@ -1,9 +1,14 @@
 -- 0139 — recebimento no balcão pela atendente autorizada.
 --
+-- A 0106 instalada em homologação (lflzlcqinarrcgncafol) exige a capacidade
+-- `receber_pagamento` de TODOS os papéis. Esta migration preserva essa guarda e
+-- amplia somente a lista de papéis aceitos, incluindo a atendente. Nenhum Admin
+-- ou Financeiro sem a capacidade passa a ser autorizado.
+--
 -- Substitui apenas as duas regras da 0136/0106 que impediam o fluxo aprovado:
 --   * a consulta exigia status 'pronto' + conferido_em e exigia Admin para
 --     'pode_receber';
---   * a RPC de pagamento só aceitava Admin/Financeiro, mesmo quando a atendente
+--   * a RPC de pagamento aceitava só Admin/Financeiro, mesmo quando a atendente
 --     tinha a capacidade financeira `receber_pagamento`.
 --
 -- Preserva: ledger `pedido_pagamento_eventos`, idempotência por chave, travamento
@@ -12,8 +17,8 @@
 --
 -- Reversão segura (somente com autorização e janela coordenada): executar o
 -- corpo anterior de `consultar_recebimento_retirada` da 0136 e o corpo anterior
--- de `registrar_pagamento_pedido` da 0106. Não apagar o registro de migration
--- nem reaplicar 0135/0136.
+-- de `registrar_pagamento_pedido` da 0106 exatamente como registrado em
+-- homologação. Não apagar o registro de migration nem reaplicar 0135/0136.
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 
@@ -64,8 +69,9 @@ $$;
 REVOKE ALL ON FUNCTION public.consultar_recebimento_retirada(uuid) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.consultar_recebimento_retirada(uuid) TO authenticated;
 
--- Mesma RPC financeira da 0106, com uma única diferença: a atendente portadora
--- da capacidade `receber_pagamento` passa na guarda. Todo o resto permanece.
+-- Mesma RPC financeira da 0106 de homologação, com uma única diferença: a
+-- atendente entra na lista de papéis. A guarda de `receber_pagamento` continua
+-- obrigatória para Admin, Financeiro e atendente. Todo o resto permanece.
 CREATE OR REPLACE FUNCTION public.registrar_pagamento_pedido(
   p_pedido_id uuid, p_valor_centavos bigint, p_chave_idempotencia text
 )
@@ -79,10 +85,11 @@ DECLARE
   v_valor bigint;
   v_evento public.pedido_pagamento_eventos%ROWTYPE;
 BEGIN
+  IF NOT neia_operacao.tem_capacidade(auth.uid(),'receber_pagamento') THEN RETURN jsonb_build_object('status','nao_autorizado'); END IF;
   IF NOT (
     public.has_role(auth.uid(), 'admin')
     OR public.has_role(auth.uid(), 'financeiro')
-    OR (public.has_role(auth.uid(), 'atendente') AND neia_operacao.tem_capacidade(auth.uid(), 'receber_pagamento'))
+    OR public.has_role(auth.uid(), 'atendente')
   ) THEN
     RETURN jsonb_build_object('status', 'nao_autorizado');
   END IF;

@@ -127,12 +127,11 @@ SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 3000, 'sem-capacidade')::jsonb->>'status' = 'nao_autorizado',
   'atendente sem capacidade não registra pagamento');
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000005',false) IS NOT NULL;
--- A capacidade financeira controla o botão na Central (pode_receber=false,
--- verificado acima). A RPC preserva a autorização independente de Admin/0106:
--- isto não é regressão nem aumento de escopo da 0139.
+-- A 0106 de homologação exige `receber_pagamento` de todos os papéis. A 0139
+-- preserva essa guarda: Admin sem capacidade continua bloqueado também na RPC.
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000013', 5000, 'admin-sem-capacidade')::jsonb->>'status' = 'registrado',
-  'Admin sem capacidade mantém autorização financeira da 0106 na RPC');
+  '00000000-0000-4000-8000-000000000013', 5000, 'admin-sem-capacidade')::jsonb->>'status' = 'nao_autorizado',
+  'Admin sem capacidade permanece bloqueado na RPC da 0106');
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000004',false) IS NOT NULL;
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11')::jsonb->>'status' = 'registrado',
@@ -141,7 +140,7 @@ SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 3000, 'parcial:11')::jsonb->>'status' = 'repetido',
   'mesma chave não duplica recebimento');
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
-  '00000000-0000-4000-8000-000000000011', 3000, 'admin-sem-capacidade')::jsonb->>'status' = 'chave_idempotencia_conflitante',
+  '00000000-0000-4000-8000-000000000014', 3000, 'parcial:11')::jsonb->>'status' = 'chave_idempotencia_conflitante',
   'chave reutilizada com outro pedido é recusada');
 SELECT pg_temp.ok(public.registrar_pagamento_pedido(
   '00000000-0000-4000-8000-000000000011', 99999, 'acima-saldo')::jsonb->>'status' = 'valor_superior_ao_saldo',

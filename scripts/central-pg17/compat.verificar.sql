@@ -31,11 +31,15 @@ SELECT pg_temp.ok(
   '0139 trocou a guarda Admin pela capacidade financeira na consulta');
 
 SELECT pg_temp.ok(
-  position('public.has_role(auth.uid(), ''atendente'') AND neia_operacao.tem_capacidade' in
+  position('IF NOT neia_operacao.tem_capacidade(auth.uid(),''receber_pagamento'') THEN' in
     (SELECT prosrc FROM pg_proc WHERE oid = 'public.registrar_pagamento_pedido(uuid,bigint,text)'::regprocedure)) > 0
+  AND position('public.has_role(auth.uid(), ''atendente'')' in
+    (SELECT prosrc FROM pg_proc WHERE oid = 'public.registrar_pagamento_pedido(uuid,bigint,text)'::regprocedure)) > 0
+  AND position('public.has_role(auth.uid(), ''atendente'') AND neia_operacao.tem_capacidade' in
+    (SELECT prosrc FROM pg_proc WHERE oid = 'public.registrar_pagamento_pedido(uuid,bigint,text)'::regprocedure)) = 0
   AND position('INSERT INTO public.pedido_pagamento_eventos' in
     (SELECT prosrc FROM pg_proc WHERE oid = 'public.registrar_pagamento_pedido(uuid,bigint,text)'::regprocedure)) > 0,
-  '0139 preservou a gravação no ledger e ampliou apenas a autorização');
+  '0139 preservou a guarda de capacidade da 0106, ampliou só os papéis e manteve o ledger');
 
 SELECT pg_temp.ok(
   position('pagamento_sem_ledger_integro' in

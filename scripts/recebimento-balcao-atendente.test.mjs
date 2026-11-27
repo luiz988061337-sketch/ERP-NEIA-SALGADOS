@@ -35,7 +35,9 @@ test("consulta aceita produção e retirada sem conferência e usa capacidade co
 });
 
 test("registro preserva ledger, idempotência, travamento e autorização por capacidade", () => {
-  assert.match(sql0139, /public\.has_role\(auth\.uid\(\), 'atendente'\) AND neia_operacao\.tem_capacidade\(auth\.uid\(\), 'receber_pagamento'\)/);
+  assert.match(sql0139, /IF NOT neia_operacao\.tem_capacidade\(auth\.uid\(\),'receber_pagamento'\) THEN/);
+  assert.match(sql0139, /public\.has_role\(auth\.uid\(\), 'atendente'\)/);
+  assert.doesNotMatch(sql0139, /has_role\(auth\.uid\(\), 'atendente'\) AND neia_operacao\.tem_capacidade/);
   assert.match(sql0139, /pg_advisory_xact_lock/);
   assert.match(sql0139, /chave_idempotencia/);
   assert.match(sql0139, /pedido_pagamento_eventos/);
@@ -51,6 +53,19 @@ test("edição permitida é somente observações, com motivo e auditoria", () =
   assert.match(sql0140, /UPDATE public\.pedidos SET observacoes = v_novo WHERE id = p_pedido_id/);
   assert.match(sql0140, /INSERT INTO public\.pedido_edicoes_auditoria/);
   assert.doesNotMatch(sql0140, /UPDATE public\.pedidos SET[\s\S]{0,120}(?:total|status|user_id|forma_pagamento)\s*=/);
+});
+
+test("reversão restaura exatamente a 0106 de homologação, sem ampliar papéis", () => {
+  const reversao = ler("../scripts/central-pg17/reverter-0139-0141.sql");
+  assert.match(
+    reversao,
+    /IF NOT neia_operacao\.tem_capacidade\(auth\.uid\(\),'receber_pagamento'\) THEN RETURN jsonb_build_object\('status','nao_autorizado'\); END IF;/,
+  );
+  assert.match(
+    reversao,
+    /public\.has_role\(auth\.uid\(\), 'admin'\) OR public\.has_role\(auth\.uid\(\), 'financeiro'\)/,
+  );
+  assert.doesNotMatch(reversao, /has_role\(auth\.uid\(\), 'atendente'\)/);
 });
 
 test("guard financeiro libera só o fechamento com ledger íntegro", () => {
