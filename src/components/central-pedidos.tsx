@@ -15,10 +15,12 @@ import {
   Store,
   Truck,
   UserRound,
+  Wallet,
   TriangleAlert,
 } from "lucide-react";
 
 import { AtalhosEntrega } from "@/components/entregas/atalhos-entrega";
+import { EditarObservacoesPedido } from "@/components/editar-observacoes-pedido";
 import { podeOperarEntregas } from "@/lib/central-atribuicao";
 import { Button } from "@/components/ui/button";
 import {
@@ -243,17 +245,24 @@ export function CentralPedidos({
   }
 
   const retirada = pedidos.find((p) => p.id === retiradaId);
+  const [recebimentoId, setRecebimentoId] = useState<string | null>(null);
+  const recebimento = pedidos.find((p) => p.id === recebimentoId);
+  const [recebendo, setRecebendo] = useState(false);
+  const recebendoRef = useRef(false);
   const detalhe = pedidos.find((p) => p.id === detalheId);
   const [valorParcial, setValorParcial] = useState("");
   const [valorEntregue, setValorEntregue] = useState("");
   const tentativaRecebimento = useRef<{ pedido: string; valor: number; chave: string } | null>(null);
+  // A mesma consulta atende o recebimento durante a produção e a quitação antes
+  // da retirada. Um pedido por vez mantém a idempotência e o troco consistentes.
+  const alvoRecebimentoId = retiradaId ?? recebimentoId;
   const pagamentoRetirada = useQuery({
-    queryKey: ["retirada-recebimento", usuarioId, retiradaId],
-    enabled: Boolean(!preview && autorizado && retirada),
+    queryKey: ["retirada-recebimento", usuarioId, alvoRecebimentoId],
+    enabled: Boolean(!preview && autorizado && alvoRecebimentoId),
     staleTime: 0,
     refetchInterval: 15_000,
     queryFn: async (): Promise<RecebimentoRetirada> => {
-      const { data, error } = await supabase.rpc("consultar_recebimento_retirada", { p_pedido_id: retiradaId });
+      const { data, error } = await supabase.rpc("consultar_recebimento_retirada", { p_pedido_id: alvoRecebimentoId });
       if (error || !data) throw error ?? new Error("Saldo indisponível");
       return data as RecebimentoRetirada;
     },
@@ -261,15 +270,26 @@ export function CentralPedidos({
   const financeiro = pagamentoRetirada.data;
   const pendente = financeiro?.status === "pendente" ? financeiro : null;
   const dinheiro = pendente?.forma === "dinheiro";
-  const recebeNoBalcao = Boolean(pendente?.pode_receber && ["dinheiro", "credito", "debito"].includes(pendente.forma));
+  const recebeNoBalcao = Boolean(
+    pendente?.pode_receber && ["dinheiro", "credito", "debito", "pix"].includes(pendente.forma),
+  );
   const valoresRecebidos = pendente && confirmarValorRecebido(
     valorParcial ? centavosInformados(valorParcial) : pendente.saldo_centavos,
     centavosInformados(valorEntregue), pendente.saldo_centavos, dinheiro,
   );
-  function abrirRetirada(pedidoId: string) {
+  function limparValoresRecebimento() {
     setValorParcial("");
     setValorEntregue("");
+  }
+  function abrirRetirada(pedidoId: string) {
+    limparValoresRecebimento();
+    setRecebimentoId(null);
     setRetiradaId(pedidoId);
+  }
+  function abrirRecebimento(pedidoId: string) {
+    limparValoresRecebimento();
+    setRetiradaId(null);
+    setRecebimentoId(pedidoId);
   }
   const podeConfirmarRetirada = (p: PedidoCentral) =>
     !preview &&
@@ -284,45 +304,52 @@ export function CentralPedidos({
       true,
     ).elegivel;
 
+  /** Registra no ledger; só retorna true quando o saldo foi integralmente quitado. */
+  async function registrarRecebimento(pedidoId: string): Promise<boolean> {
+    if (!pendente || !recebeNoBalcao || !valoresRecebidos) return false;
+    const tentativa = tentativaRecebimento.current;
+    if (tentativa?.pedido === pedidoId && tentativa.valor !== valoresRecebidos.valor) {
+      toast.error("Há um recebimento sem confirmação. Repita o mesmo valor antes de registrar outro.");
+      return false;
+    }
+    const chave = tentativa?.pedido === pedidoId && tentativa.valor === valoresRecebidos.valor
+      ? tentativa.chave : "balcao:" + pedidoId + ":" + crypto.randomUUID();
+    tentativaRecebimento.current = { pedido: pedidoId, valor: valoresRecebidos.valor, chave };
+    const { data, error } = await supabase.rpc("registrar_pagamento_pedido", {
+      p_pedido_id: pedidoId,
+      p_valor_centavos: valoresRecebidos.valor,
+      p_chave_idempotencia: chave,
+    });
+    if (error) {
+      toast.error("Não foi possível confirmar o registro. Confira o saldo antes de tentar novamente.");
+      return false;
+    }
+    const consulta = await pagamentoRetirada.refetch();
+    if (!["registrado", "repetido", "sem_saldo"].includes(data?.status)) {
+      tentativaRecebimento.current = null;
+      toast.error(data?.status === "nao_autorizado"
+        ? "O recebimento exige um operador autorizado com a capacidade de receber pagamentos."
+        : "O recebimento não foi confirmado. Confira o saldo.");
+      return false;
+    }
+    tentativaRecebimento.current = null;
+    if (consulta.data?.status !== "quitado" || consulta.isError) {
+      limparValoresRecebimento();
+      toast.info(consulta.data?.status === "pendente"
+        ? "Recebimento registrado. Ainda há saldo a receber."
+        : "Confira a situação do pagamento antes de continuar.");
+      return false;
+    }
+    return true;
+  }
+
   async function confirmarRetirada() {
     if (!retirada || !podeConfirmarRetirada(retirada) || retirandoRef.current) return;
     retirandoRef.current = true;
     setRetirando(true);
     try {
       if (pagamentoRetirada.isFetching || pagamentoRetirada.isError) return;
-      if (financeiro?.status !== "quitado") {
-        if (!pendente || !recebeNoBalcao || !valoresRecebidos) return;
-        const tentativa = tentativaRecebimento.current;
-        if (tentativa?.pedido === retirada.id && tentativa.valor !== valoresRecebidos.valor) {
-          toast.error("Há um recebimento sem confirmação. Repita o mesmo valor antes de registrar outro.");
-          return;
-        }
-        const chave = tentativa?.pedido === retirada.id && tentativa.valor === valoresRecebidos.valor
-          ? tentativa.chave : "retirada:" + retirada.id + ":" + crypto.randomUUID();
-        tentativaRecebimento.current = { pedido: retirada.id, valor: valoresRecebidos.valor, chave };
-        const { data, error } = await supabase.rpc("registrar_pagamento_pedido", {
-          p_pedido_id: retirada.id,
-          p_valor_centavos: valoresRecebidos.valor,
-          p_chave_idempotencia: chave,
-        });
-        if (error) {
-          toast.error("Não foi possível confirmar o registro. Confira o saldo antes de tentar novamente.");
-          return;
-        }
-        const consulta = await pagamentoRetirada.refetch();
-        if (!["registrado", "repetido", "sem_saldo"].includes(data?.status)) {
-          tentativaRecebimento.current = null;
-          toast.error(data?.status === "nao_autorizado" ? "O recebimento exige um operador de Caixa autorizado." : "O recebimento não foi confirmado. Confira o saldo.");
-          return;
-        }
-        tentativaRecebimento.current = null;
-        if (consulta.data?.status !== "quitado" || consulta.isError) {
-          setValorEntregue("");
-          setValorParcial("");
-          toast.info(consulta.data?.status === "pendente" ? "Recebimento registrado. Ainda há saldo a receber." : "Confira a situação do pagamento antes da retirada.");
-          return;
-        }
-      }
+      if (financeiro?.status !== "quitado" && !(await registrarRecebimento(retirada.id))) return;
       const resultado = await retirarPedidoCliente(supabase, retirada.id, true);
       if (!resultado.ok) {
         toast.error(
@@ -341,6 +368,27 @@ export function CentralPedidos({
     } finally {
       retirandoRef.current = false;
       setRetirando(false);
+    }
+  }
+
+  /** Recebimento direto na Central, sem exigir que o pedido esteja pronto. */
+  async function confirmarRecebimento() {
+    if (!recebimento || !filaDisponivel || recebendoRef.current) return;
+    if (pagamentoRetirada.isFetching || pagamentoRetirada.isError) return;
+    if (financeiro?.status === "quitado") {
+      toast.info("O pagamento deste pedido já está confirmado.");
+      setRecebimentoId(null);
+      return;
+    }
+    recebendoRef.current = true;
+    setRecebendo(true);
+    try {
+      await registrarRecebimento(recebimento.id);
+    } catch {
+      toast.error("Não foi possível registrar o recebimento. Confira o saldo antes de repetir.");
+    } finally {
+      recebendoRef.current = false;
+      setRecebendo(false);
     }
   }
 
@@ -549,6 +597,11 @@ export function CentralPedidos({
                           onRetirada={
                             podeConfirmarRetirada(p) ? () => abrirRetirada(p.id) : undefined
                           }
+                          onRecebimento={
+                            !preview && autorizado && p.tipo_entrega === "retirada" &&
+                            !p.retirado_em && p.pagamento_status !== "pago"
+                              ? () => abrirRecebimento(p.id) : undefined
+                          }
                         />
                       );
                     })
@@ -614,6 +667,14 @@ export function CentralPedidos({
                 />
               )}
             </dl>
+            {!preview && autorizado && (
+              <EditarObservacoesPedido
+                pedidoId={detalhe.id}
+                numero={detalhe.numero}
+                observacoes={detalhe.observacoes}
+                onSalvo={async () => { await atualizarFilas(); }}
+              />
+            )}
             <h3>Produtos do pedido</h3>
             {detalhe.pedido_itens?.length ? (
               <ul className="ca-produtos">
@@ -668,7 +729,7 @@ export function CentralPedidos({
                   <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorEntregue} disabled={retirando} onChange={e => setValorEntregue(e.target.value)} />
                 </label>}
                 {dinheiro && valoresRecebidos && <p>Troco: <strong>{brl(valoresRecebidos.troco / 100)}</strong></p>}
-              </> : <p>{pendente.forma === "pix" ? "Aguardando a confirmação do Pix." : "Solicite o recebimento a um operador de Caixa autorizado."}</p>}
+              </> : <p>Solicite o recebimento a um operador autorizado com capacidade financeira.</p>}
             </div>}
             <div className="ca-acoes">
               <Button
@@ -691,6 +752,66 @@ export function CentralPedidos({
                 {retirando ? "Confirmando…" : recebeNoBalcao && pendente
                   ? valoresRecebidos?.valor === pendente.saldo_centavos ? "Confirmar recebimento e retirada" : "Registrar recebimento"
                   : "Confirmar retirada"}
+              </Button>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+      <Dialog
+        open={!!recebimento}
+        onOpenChange={(aberto) => {
+          if (!aberto && !recebendoRef.current) setRecebimentoId(null);
+        }}
+      >
+        {recebimento && (
+          <DialogContent className="ca-dialogo">
+            <DialogHeader>
+              <DialogTitle>Recebimento do pedido #{recebimento.numero}</DialogTitle>
+              <DialogDescription>
+                Registre na Central o valor efetivamente recebido. A retirada continua
+                exigindo conferência e quitação integral.
+              </DialogDescription>
+            </DialogHeader>
+            {pagamentoRetirada.isFetching && <p role="status">Consultando saldo…</p>}
+            {pagamentoRetirada.isError && <Button variant="outline" onClick={() => void pagamentoRetirada.refetch()}>Tentar consultar saldo novamente</Button>}
+            {!pagamentoRetirada.isFetching && financeiro?.status === "quitado" && <p>Pagamento confirmado.</p>}
+            {!pagamentoRetirada.isFetching && financeiro && !pendente && financeiro.status !== "quitado" &&
+              <p role="alert">O Financeiro precisa verificar o pagamento antes de continuar.</p>}
+            {pendente && <div className="space-y-2">
+              <p>Saldo restante: <strong>{brl(pendente.saldo_centavos / 100)}</strong></p>
+              {pendente.pago_centavos > 0 && <p>Já recebido: {brl(pendente.pago_centavos / 100)}</p>}
+              {recebeNoBalcao ? <>
+                <p>Confirme somente o valor recebido em {PAGAMENTO_LABEL[pendente.forma]}.</p>
+                <label className="block">Valor a registrar em R$
+                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorParcial} disabled={recebendo} placeholder={(pendente.saldo_centavos / 100).toFixed(2).replace(".", ",")} onChange={e => setValorParcial(e.target.value)} />
+                </label>
+                {dinheiro && <label className="block">Valor entregue pelo cliente em R$
+                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorEntregue} disabled={recebendo} onChange={e => setValorEntregue(e.target.value)} />
+                </label>}
+                {dinheiro && valoresRecebidos && <p>Troco: <strong>{brl(valoresRecebidos.troco / 100)}</strong></p>}
+              </> : <p>Você precisa da capacidade financeira <strong>receber_pagamento</strong> para registrar este recebimento.</p>}
+            </div>}
+            <div className="ca-acoes">
+              <Button
+                type="button"
+                variant="outline"
+                className="ca-secundario"
+                disabled={recebendo}
+                onClick={() => setRecebimentoId(null)}
+              >
+                Voltar
+              </Button>
+              <Button
+                type="button"
+                className="ca-primario"
+                disabled={recebendo || !filaDisponivel || pagamentoRetirada.isFetching || pagamentoRetirada.isError ||
+                  (financeiro?.status !== "quitado" && !(recebeNoBalcao && valoresRecebidos))}
+                aria-busy={recebendo}
+                onClick={() => void confirmarRecebimento()}
+              >
+                {recebendo ? "Registrando…" : financeiro?.status === "quitado"
+                  ? "Pagamento confirmado"
+                  : "Registrar recebimento"}
               </Button>
             </div>
           </DialogContent>
@@ -803,6 +924,7 @@ function CardPedido({
   onAceitar,
   onReconhecer,
   onRetirada,
+  onRecebimento,
 }: {
   pedido: PedidoCentral;
   coluna: keyof ColunasCentral;
@@ -818,6 +940,7 @@ function CardPedido({
   onAceitar: () => void;
   onReconhecer: () => void;
   onRetirada: (() => void) | undefined;
+  onRecebimento?: (() => void) | undefined;
 }) {
   const retirada = pedido.tipo_entrega === "retirada";
   const entrega = pedido.tipo_entrega === "entrega";
@@ -936,7 +1059,7 @@ function CardPedido({
         </div>
       )}
       <div className="ca-acoes">
-        {podeDespachar && <AtalhosEntrega pedido={pedido} className="ca-secundario inline-flex items-center gap-2 rounded-md border px-3 py-2" />}
+        {podeDespachar && <AtalhosEntrega pedido={pedido} className="ca-primario inline-flex items-center gap-2 rounded-md px-3 py-2" />}
         {coluna === "analise" && (
           <Button
             type="button"
@@ -949,9 +1072,14 @@ function CardPedido({
             {aceitando ? "Aceitando…" : "Aceitar pedido"}
           </Button>
         )}
-        <Button type="button" variant="outline" className="ca-secundario" onClick={onDetalhes}>
+        <Button type="button" variant="outline" className="ca-secundario ca-contorno-dourado" onClick={onDetalhes}>
           <Eye size={17} aria-hidden /> Ver detalhes
         </Button>
+        {onRecebimento && (
+          <Button type="button" variant="outline" className="ca-secundario ca-contorno-dourado" onClick={onRecebimento}>
+            <Wallet size={17} aria-hidden /> Receber
+          </Button>
+        )}
         {coluna === "analise" && pendente && (
           <Button type="button" variant="outline" className="ca-secundario" onClick={onReconhecer}>
             <BellRing size={17} aria-hidden /> Reconhecer alerta

@@ -1,7 +1,8 @@
 import { limitePrometido } from "@/lib/prazo-pedido";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { DarkTable, DarkTableRow } from "@/components/admin/erp-ui";
+import { EditarObservacoesPedido } from "@/components/editar-observacoes-pedido";
 import { NotasAdmin } from "@/components/pedido-notas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +75,14 @@ export function DetalhesPedidoH02({
   produtos: Map<string, ProdutoH02>;
   somenteLeitura: boolean;
 }) {
+  const queryClient = useQueryClient();
+  async function aoSalvarObservacoes() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["h02-pedidos-recentes"] }),
+      queryClient.invalidateQueries({ queryKey: ["h02-pedidos-periodo"] }),
+      queryClient.invalidateQueries({ queryKey: ["central-pedidos"] }),
+    ]);
+  }
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["h02-historico", p.id],
     queryFn: async ({ signal }) => {
@@ -152,8 +161,20 @@ export function DetalhesPedidoH02({
   const componentes = (id: string) =>
     produtos.get(id)?.nome ?? "Sabor sem identificação no catálogo";
   return (
-    <Tabs defaultValue="cliente">
-      <TabsList className="h02-abas" aria-label="Seções do pedido">
+    <>
+      {!somenteLeitura && (
+        <div className="h02-acoes mb-2">
+          <EditarObservacoesPedido
+            pedidoId={p.id}
+            numero={p.numero}
+            observacoes={p.observacoes}
+            onSalvo={() => aoSalvarObservacoes()}
+            className="h02-botao"
+          />
+        </div>
+      )}
+      <Tabs defaultValue="cliente">
+        <TabsList className="h02-abas" aria-label="Seções do pedido">
         {["Cliente", "Produtos", "Pagamento", "Operação", "Histórico"].map((nome, i) => (
           <TabsTrigger
             key={nome}
@@ -297,6 +318,7 @@ export function DetalhesPedidoH02({
         </ol>
         {!somenteLeitura && <NotasAdmin pedidoId={p.id} numero={p.numero} />}
       </TabsContent>
-    </Tabs>
+      </Tabs>
+    </>
   );
 }

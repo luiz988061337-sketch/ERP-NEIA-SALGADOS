@@ -166,8 +166,8 @@ function Cartao({
         </p>
       )}
       <div className="h02-acoes">
-        {podeDespachar && <AtalhosEntrega pedido={p} className="h02-botao" />}
-        <button className="h02-botao" onClick={onDetalhes}>
+        {podeDespachar && <AtalhosEntrega pedido={p} className="h02-botao neia-a01-dourado" />}
+        <button className="h02-botao h02-contorno-dourado" onClick={onDetalhes}>
           <Eye size={17} aria-hidden /> Ver detalhes
         </button>
         {podeAceitar && (
@@ -675,7 +675,7 @@ export function PedidosH02({
                   </td>
                   <td>{moedaH02(pedido.total)}</td>
                   <td>
-                    <button className="h02-botao" onClick={() => abrir(pedido.id)}>
+                    <button className="h02-botao h02-contorno-dourado" onClick={() => abrir(pedido.id)}>
                       Ver detalhes
                     </button>
                   </td>

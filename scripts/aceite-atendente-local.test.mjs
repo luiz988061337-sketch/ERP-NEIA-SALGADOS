@@ -199,7 +199,14 @@ ok(central.includes("aceitandoRef.current") && central.includes("bloqueado={!pod
 ok(preview.includes("aceitarPedidoEmMemoria(") && !preview.includes('status: "em_producao"'), "prévia usa o adaptador único, sem transição paralela");
 ok(producao.includes("pedidosComAceiteMemoria("), "Produção simulada consome aceites confirmados");
 ok(pdv.includes('enabled: !preview && !!permitido && (painel === "vendas" || painel === "pedidos")'), "PDV em prévia não consulta pedidos reais");
-ok(central.includes("if (!preview) gravarReconhecidos(") && central.includes("if (!preview && novos.length > 0) gravarConhecidos(") && central.includes("onAvisoReconhecido?.(aviso.id)"), "prévia da Central não grava alertas compartilhados e propaga reconhecimento pelo ID do aviso");
+const alertasFonte = fonte("src/components/alertas-operacionais.tsx");
+ok(
+  central.includes("else alertas?.reconhecer(chave)") &&
+  central.includes("if (preview) setReconhecidosPreview(") &&
+  central.includes("onAvisoReconhecido?.(aviso.id)") &&
+  alertasFonte.includes("gravarReconhecidos("),
+  "prévia da Central usa estado local e o hook compartilhado propaga reconhecimento pelo ID do aviso",
+);
 
 if (falhas > 0) {
   console.error(`ACEITE LOCAL: ${falhas} caso(s) falhando.`);

@@ -184,6 +184,7 @@ function MenuAdministrativoGlobal({ children }: { children: ReactNode }) {
     <AdminShell
       aba={abaPorRota(pathname)}
       menuPedidosAtendente={papeis?.includes("atendente") === true && !papeis.includes("admin")}
+      menuCentralAtendente={papeis?.includes("atendente") === true}
       onAba={() => {}}
       onRefresh={() => void queryClient.invalidateQueries()}
       usuario={user?.email ?? null}

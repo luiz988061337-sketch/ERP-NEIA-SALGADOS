@@ -179,6 +179,12 @@ main:has(.central-atendente) {
   background: var(--ca-superficie);
   color: var(--ca-texto);
 }
+/* Fundo escuro e contorno amarelo aprovado para ações de leitura/recebimento. */
+.ca-contorno-dourado {
+  border-color: var(--ca-amarelo);
+  background: var(--ca-superficie);
+  color: var(--ca-amarelo);
+}
 
 .ca-coluna {
   overflow: hidden;

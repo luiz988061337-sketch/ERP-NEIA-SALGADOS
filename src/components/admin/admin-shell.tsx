@@ -19,7 +19,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ADMIN_NAV, menuAdmin, type AdminNavItem } from "./admin-nav";
+import { ADMIN_NAV, CENTRAL_ATENDENTE_NAV_ITEM, menuAdmin, type AdminNavItem } from "./admin-nav";
 
 const itemTarefas: AdminNavItem = {
   value: "minhas-tarefas",
@@ -77,6 +77,7 @@ export function AdminShell({
   grupoAtivo,
   menuDemonstrativo = modoPreview,
   menuPedidosAtendente = false,
+  menuCentralAtendente = false,
   menuTarefas,
 }: {
   aba: string;
@@ -88,6 +89,7 @@ export function AdminShell({
   modoPreview?: boolean;
   menuDemonstrativo?: boolean;
   menuPedidosAtendente?: boolean;
+  menuCentralAtendente?: boolean;
   menuTarefas?: "admin" | "equipe" | undefined;
   /** Mantém o destaque dourado restrito ao grupo da suíte aberta. */
   grupoAtivo?: string | undefined;
@@ -139,6 +141,7 @@ export function AdminShell({
           grupoAtivo={grupoAtivo}
           demonstrativo={menuDemonstrativo}
           pedidosAtendente={menuPedidosAtendente}
+          centralAtendente={menuCentralAtendente}
           tarefas={menuTarefasEfetivo}
         />
 
@@ -236,6 +239,7 @@ function MenuLateral({
   grupoAtivo,
   demonstrativo,
   pedidosAtendente,
+  centralAtendente,
   tarefas,
 }: {
   aba: string;
@@ -243,14 +247,18 @@ function MenuLateral({
   grupoAtivo?: string | undefined;
   demonstrativo: boolean;
   pedidosAtendente: boolean;
+  centralAtendente: boolean;
   tarefas?: "admin" | "equipe" | undefined;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
   const { pathname, hash } = useLocation();
-  const gruposAdmin = menuAdmin(demonstrativo, pedidosAtendente);
+  const gruposAdmin = menuAdmin(demonstrativo, pedidosAtendente, centralAtendente);
   const grupos =
     tarefas === "equipe"
-      ? [{ label: "Principal", items: [itemTarefas] }]
+      ? [{
+          label: "Principal",
+          items: centralAtendente ? [itemTarefas, CENTRAL_ATENDENTE_NAV_ITEM] : [itemTarefas],
+        }]
       : gruposAdmin.map((grupo) => {
           if (tarefas !== "admin" || grupo.label !== "Principal") return grupo;
           const [inicio, ...resto] = grupo.items;

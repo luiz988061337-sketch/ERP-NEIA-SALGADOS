@@ -114,6 +114,11 @@ main:has(.h02-pedidos) {
   background: var(--a01-ouro, #ffd252);
   color: #17110a;
 }
+.h02-botao.h02-contorno-dourado {
+  border-color: var(--a01-ouro, #ffd252);
+  background: #151c22;
+  color: var(--a01-ouro, #ffd252);
+}
 .h02-botao:hover {
   filter: brightness(1.16);
 }

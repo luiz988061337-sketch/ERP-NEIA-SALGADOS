@@ -55,6 +55,18 @@ export type AdminNavGroup = {
 };
 
 /**
+ * Atalho da Central da Atendente, exibido somente para perfis autorizados.
+ * Fica ao lado de PDV/Balcão, preservando a sequência aprovada do menu.
+ */
+export const CENTRAL_ATENDENTE_NAV_ITEM: AdminNavItem = {
+  value: "central-atendente",
+  label: "Central da Atendente",
+  icon: ClipboardList,
+  href: "/admin",
+  hash: "central-atendente",
+};
+
+/**
  * FONTE ÚNICA da navegação administrativa.
  *
  * Grupos, rótulos e ícones compartilhados pelo ERP e pelas referências visuais.
@@ -229,7 +241,11 @@ const DESTINOS_OPERACIONAIS: Record<string, Pick<AdminNavItem, "href" | "hash">>
   comercial: { href: "/admin", hash: "comercial" },
 };
 
-export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): AdminNavGroup[] {
+export function menuAdmin(
+  demonstrativo: boolean,
+  pedidosAtendente = false,
+  centralAtendente = false,
+): AdminNavGroup[] {
   if (demonstrativo) return ADMIN_NAV;
   return ADMIN_NAV.map((grupo) => ({
     ...grupo,
@@ -241,9 +257,15 @@ export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): Adm
         const { hash: _hash, ...itemAtendente } = item;
         return [{ ...itemAtendente, href: "/atendente" }];
       }
-      if (destino) return [{ ...item, ...destino }];
-      if (item.href?.startsWith("/preview/")) return [];
-      return [item];
+      const ajustado = destino
+        ? { ...item, ...destino }
+        : item.href?.startsWith("/preview/")
+          ? null
+          : item;
+      if (!ajustado) return [];
+      return item.value === "pdv" && centralAtendente
+        ? [ajustado, CENTRAL_ATENDENTE_NAV_ITEM]
+        : [ajustado];
     }),
   })).filter((grupo) => grupo.items.length > 0);
 }
@@ -252,6 +274,7 @@ export function menuAdmin(demonstrativo: boolean, pedidosAtendente = false): Adm
 export const ADMIN_ABA_TITULO: Record<string, string> = {
   dashboard: "Dashboard",
   pedidos: "Pedidos",
+  "central-atendente": "Central da Atendente",
   producao: "Produção",
   central: "Central de Entregas",
   pdv: "PDV / Balcão",
@@ -297,6 +320,7 @@ export const ADMIN_ABA_TITULO: Record<string, string> = {
 export const ADMIN_ABA_DESCRICAO: Record<string, string> = {
   dashboard: "Resumo da operação em tempo real.",
   pedidos: "Central da Atendente com três colunas aprovada.",
+  "central-atendente": "Recebimento, produção e liberação dos pedidos.",
   producao: "Fila de produção e prioridades da cozinha.",
   central: "Rotas, entregas e acompanhamento em tempo real.",
   pdv: "Balcão com seleção de produtos, combos e pagamento.",

@@ -806,10 +806,11 @@ function Admin() {
   }
 
   const podeAcessarCentral = !modoDemo && roles?.includes("atendente") && aba === "central-atendente";
+  const podeVerMenuCentral = !modoDemo && (isAdmin || roles?.includes("atendente") === true);
   if (!isAdmin && ((podeAcessarTarefas && aba === "minhas-tarefas") || podeAcessarCentral)) {
     return (
-      <AdminShell aba={aba} menuTarefas="equipe" usuario={user.email ?? null}
-        onAba={navegarAba} onRefresh={refreshAll} onSair={sairDoAdmin}>
+      <AdminShell aba={aba} menuTarefas="equipe" menuCentralAtendente={podeVerMenuCentral}
+        usuario={user.email ?? null} onAba={navegarAba} onRefresh={refreshAll} onSair={sairDoAdmin}>
         {podeAcessarCentral ? (
           <CentralPedidos key={user.id} usuarioId={user.id} papeis={roles} />
         ) : (
@@ -831,6 +832,7 @@ function Admin() {
     <AdminShell
       aba={aba}
       menuDemonstrativo={modoDemo}
+      menuCentralAtendente={podeVerMenuCentral}
       onAba={navegarAba}
       onRefresh={refreshAll}
       usuario={user?.email ?? null}
