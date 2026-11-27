@@ -1,4 +1,6 @@
 import type { Database } from "@/integrations/supabase/types";
+import { limitePrometido } from "@/lib/prazo-pedido";
+import { categoriasProdutosSalgados } from "@/lib/catalogo-sabores-estoque";
 
 type Tabelas = Database["public"]["Tables"];
 export type ItemH02 = Tabelas["pedido_itens"]["Row"] & {
@@ -61,7 +63,7 @@ export function atrasoH02(p: PedidoH02, agora: number): boolean | null {
   const grupo = grupoH02(p);
   if (grupo === "finalizados" || grupo === "cancelados") return false;
   if (p.atrasado) return true;
-  const prazo = p.agendado_para ? Date.parse(p.agendado_para) : NaN;
+  const prazo = Date.parse(limitePrometido(p) ?? "");
   return Number.isFinite(prazo) ? prazo < agora : null;
 }
 
@@ -164,8 +166,10 @@ export function unidadesSalgadosH02(itens: ItemH02[], produtos: Map<string, Prod
     const slug = produto?.categorias?.slug ?? "";
     if (/^(bebidas|doces)(-|$)/.test(slug)) continue;
     if (
-      produto?.tipo_venda === "combo_50" &&
+      produto &&
       /^(un|unidade)$/.test(produto.unidade_medida) &&
+      (produto.tipo_venda === "combo_50" ||
+        (produto.tipo_venda === "unidade" && categoriasProdutosSalgados.includes(slug))) &&
       !/\d+\s*un\b/i.test(item.nome)
     ) {
       total += item.quantidade;
@@ -178,4 +182,12 @@ export function unidadesSalgadosH02(itens: ItemH02[], produtos: Map<string, Prod
 
 export function trocoSolicitadoH02(obs: string | null | undefined) {
   return obs?.match(/\[Troco para ([^\]]+)\]/i)?.[1] ?? null;
+}
+
+export function rotuloQuantidadePedido(itens: ReadonlyArray<{ quantidade: number }>, unidades: number | null) {
+  if (unidades !== null) return unidades + " salgados";
+  if (!itens.length || itens.some(i => !Number.isSafeInteger(i.quantidade) || i.quantidade <= 0)) return "Quantidade não informada";
+  return itens.length === 1
+    ? itens[0]!.quantidade + " na quantidade registrada · unidade a conferir"
+    : "Quantidades por item · unidade a conferir";
 }

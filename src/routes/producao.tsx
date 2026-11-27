@@ -380,19 +380,6 @@ export function Producao({
     return mapa;
   }, [reservasProducao, consumosProducao]);
 
-  useEffect(() => {
-    if (!autorizado) return;
-    const canal = supabase
-      .channel("producao-fila")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["fila-producao"] });
-      })
-      .subscribe();
-    return () => {
-      supabase.removeChannel(canal);
-    };
-  }, [autorizado, queryClient]);
-
   const produzindo = (pedidos ?? []).filter(
     (p: any) => visivelNaProducao(p) && p.status === "em_producao",
   ).length;
@@ -486,6 +473,7 @@ export function Producao({
       (p: any) =>
         visivelNaProducao(p) &&
         (incluirProntos ? true : p.status !== "pronto") &&
+        (modoSimuladoLocal || p.status !== "recebido" || !!p.aceito_em_atendente) &&
         p.status !== "cancelado",
     );
     // Agendados aparecem no dia agendado; sem agendamento entram como "para agora".
@@ -493,7 +481,7 @@ export function Producao({
       if (!p.agendado_para) return true;
       return String(p.agendado_para).slice(0, 10) === diaFiltro;
     });
-  }, [pedidos, incluirProntos, diaFiltro]);
+  }, [pedidos, incluirProntos, diaFiltro, modoSimuladoLocal]);
 
   const consolidado = useMemo(() => {
     type Linha = {
@@ -1348,22 +1336,29 @@ export function Producao({
   }
 
   function bip(freq = 880) {
-    try {
-      const Ctx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new Ctx();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.frequency.value = freq;
-      o.start();
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      o.stop(ctx.currentTime + 0.4);
-    } catch {
-      /* sem áudio — mantém alerta visual */
-    }
+    const tocar = () => new Promise<void>((resolve) => {
+      try {
+        const Ctx = window.AudioContext ??
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) { resolve(); return; }
+        const ctx = new Ctx();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.frequency.value = freq;
+        o.start();
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        o.stop(ctx.currentTime + 0.4);
+        window.setTimeout(() => {
+          void ctx.close().catch(() => {});
+          resolve();
+        }, 450);
+      } catch { resolve(); }
+    });
+    if (navigator.locks) {
+      void navigator.locks.request("neia:erp-alertas-audio", { ifAvailable: true }, lock => lock ? tocar() : undefined);
+    } else if (document.hasFocus()) void tocar();
   }
 
   // Alertas sonoros (sem repetir): novo + hora de preparar + risco + atraso + pronto.
@@ -1377,7 +1372,8 @@ export function Producao({
     const transicoesPronto = new Map<string, string>();
     for (const p of (pedidos ?? []) as any[]) {
       const antes = vistos.get(p.id);
-      if (!primeiraLeitura && antes !== undefined && antes !== "pronto" && p.status === "pronto") {
+      if (!primeiraLeitura && antes !== undefined && antes !== "pronto" && p.status === "pronto" &&
+          (modoSimuladoLocal || (p.tipo_entrega === "retirada" && !roles?.includes("admin")))) {
         transicoesPronto.set(p.id, p.created_at);
       }
       vistos.set(p.id, p.status);
@@ -1385,16 +1381,17 @@ export function Producao({
     if (!sonsAtivos || !pedidos) return;
     const eventos: AlertaSonoro[] = [];
     for (const p of (pedidos ?? []) as any[]) {
-      if (p.status === "recebido") {
+      if (p.status === "recebido" && (modoSimuladoLocal || !!p.aceito_em_atendente)) {
         eventos.push({ id: `novo:${p.id}`, tipo: "novo_pedido", em: p.created_at });
       }
-      if (p.status === "recebido" || p.status === "em_producao") {
+      if ((p.status === "recebido" && (modoSimuladoLocal || !!p.aceito_em_atendente)) || p.status === "em_producao") {
         const nivel = estadoDe(p).nivel;
         if (nivel === "hora-preparar") {
           eventos.push({ id: `hora:${p.id}`, tipo: "inicio_preparacao", em: p.created_at });
         } else if (nivel === "risco") {
           eventos.push({ id: `risco:${p.id}`, tipo: "pedido_urgente", em: p.created_at });
-        } else if (nivel === "atrasado") {
+        } else if (nivel === "atrasado" &&
+          (modoSimuladoLocal || (p.tipo_entrega === "retirada" && !roles?.includes("admin")))) {
           eventos.push({ id: `atraso:${p.id}`, tipo: "pedido_atrasado", em: p.created_at });
         }
       }
@@ -1431,7 +1428,7 @@ export function Producao({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    JSON.stringify((pedidos ?? []).map((p: any) => p.id + p.status)),
+    JSON.stringify((pedidos ?? []).map((p: any) => [p.id, p.status, p.aceito_em_atendente])),
     sonsAtivos,
     Math.floor(agora.getTime() / 30000),
   ]);

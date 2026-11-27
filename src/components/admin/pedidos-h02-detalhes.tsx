@@ -1,3 +1,4 @@
+import { limitePrometido } from "@/lib/prazo-pedido";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { DarkTable, DarkTableRow } from "@/components/admin/erp-ui";
@@ -15,6 +16,7 @@ import { entradaJanelaProducao } from "@/lib/motor-producao";
 import {
   grupoH02,
   trocoSolicitadoH02,
+  rotuloQuantidadePedido,
   unidadesSalgadosH02,
   type PedidoH02,
   type ProdutoH02,
@@ -145,6 +147,7 @@ export function DetalhesPedidoH02({
       motivo: e.motivo,
     });
   eventos.sort((a, b) => a.data.localeCompare(b.data));
+  const prazo = limitePrometido(p);
   const unidades = unidadesSalgadosH02(p.pedido_itens, produtos);
   const componentes = (id: string) =>
     produtos.get(id)?.nome ?? "Sabor sem identificação no catálogo";
@@ -189,7 +192,7 @@ export function DetalhesPedidoH02({
       <TabsContent value="produtos">
         <p className="h02-nota">
           Total de salgados{" "}
-          {unidades === null ? "indisponível para os itens registrados" : unidades + " un."}
+          {rotuloQuantidadePedido(p.pedido_itens, unidades)}
         </p>
         <DarkTable
           className="h02-tabela"
@@ -250,7 +253,7 @@ export function DetalhesPedidoH02({
             ["Situação atual", situacaoH02(p)],
             [
               "Prazo registrado",
-              p.agendado_para ? dataH02(p.agendado_para) : "Prazo não registrado",
+              prazo ? dataH02(prazo) : "Prazo não registrado",
             ],
             ["Agendamento", p.agendado_para ? dataH02(p.agendado_para) : "Assim que possível"],
             [

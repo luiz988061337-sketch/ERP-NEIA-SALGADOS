@@ -26,6 +26,7 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/status-steps";
@@ -47,6 +48,8 @@ import {
   atribuirPedidoMotoboy,
   atribuirPedidosEmLote,
   cabeNaRota,
+  aguardandoAtribuicaoCentral,
+  podeOperarEntregas,
 } from "@/lib/central-atribuicao";
 
 // E9.1: travas de clique repetido por pedido (fora do estado React para
@@ -73,6 +76,11 @@ function abrirSecaoEntregas(id: string) {
 }
 
 export const Route = createFileRoute("/central-entregas")({
+  validateSearch: (search: Record<string, unknown>): { pedido?: string; acao?: "atribuir" | "rota" } => ({
+    ...(typeof search["pedido"] === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(search["pedido"])
+      ? { pedido: search["pedido"] } : {}),
+    ...(search["acao"] === "atribuir" || search["acao"] === "rota" ? { acao: search["acao"] } : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Central de Entregas — NÉIA SALGADOS" },
@@ -107,6 +115,7 @@ const HIST_EVENTO_META: Record<string, { titulo: string; Icon: any }> = {
 
 function CentralEntregas() {
   const navigate = useNavigate();
+  const { pedido: pedidoAtalho, acao: acaoAtalho } = Route.useSearch();
   const { user, loading } = useSession();
   const { data: roles, isError: erroAcesso, refetch: refetchAcesso, isFetching: verificandoAcesso } = useRoles(user?.id);
   const queryClient = useQueryClient();
@@ -118,6 +127,7 @@ function CentralEntregas() {
   const [motoboySelecionado, setMotoboySelecionado] = useState("");
   const [pedidosSelecionados, setPedidosSelecionados] = useState<string[]>([]);
   const [atribuindoSelecao, setAtribuindoSelecao] = useState(false);
+  const [atribuicaoAtalho, setAtribuicaoAtalho] = useState<string | null>(null);
   const [motoboyRota, setMotoboyRota] = useState("");
   const [pedidosRota, setPedidosRota] = useState<string[]>([]);
   const [criandoRota, setCriandoRota] = useState(false);
@@ -144,7 +154,7 @@ function CentralEntregas() {
       navigate({ to: "/auth", search: { redirect: "/central-entregas" }, replace: true });
   }, [loading, user, navigate]);
 
-  const autorizado = roles?.includes("admin") || roles?.includes("producao");
+  const autorizado = podeOperarEntregas(roles);
   const [agoraPrazo, setAgoraPrazo] = useState(Date.now);
   useEffect(() => {
     if (!autorizado) return;
@@ -468,26 +478,7 @@ function CentralEntregas() {
     if (!autorizado) return;
 
     const channel = supabase
-      .channel("central-entregas-pedidos")
-      .on(
-        "postgres_changes",
-        {
-          event: "*", // INSERT, UPDATE, DELETE
-          schema: "public",
-          table: "pedidos",
-        },
-        () => {
-          // Invalidar queries quando houver alteração relevante.
-          // J3-A (preservada): Kanban. J3-G: operacionais (prefixo casa com os params das keys).
-          queryClient.invalidateQueries({ queryKey: ["central-j2-pedidos", filtro] });
-          queryClient.invalidateQueries({ queryKey: ["central-j3d-ocorrencias"] });
-          queryClient.invalidateQueries({ queryKey: ["central-j3c-atrasos"] });
-          queryClient.invalidateQueries({ queryKey: ["central-j3c-historico"] });
-          queryClient.invalidateQueries({ queryKey: ["central-j3f-rotas"] });
-          queryClient.invalidateQueries({ queryKey: ["central-j3h-rotas"] });
-        },
-      )
-      // J3-H H3: mesmo canal, segundo binding (motoboys). Sem canal novo, sem polling.
+      .channel("central-entregas-motoboys")
       .on(
         "postgres_changes",
         {
@@ -505,16 +496,8 @@ function CentralEntregas() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [autorizado, filtro, queryClient]);
+  }, [autorizado, queryClient]);
 
-  function aguardandoAtribuicaoCentral(p: any): boolean {
-    return (
-      p.tipo_entrega === "entrega" &&
-      !p.motoboy_id &&
-      !p.rota_id &&
-      (p.status === "pronto" || p.status === "aguardando_motoboy")
-    );
-  }
 
   function atribuidoCentral(p: any): boolean {
     return Boolean(
@@ -565,6 +548,33 @@ function CentralEntregas() {
     if (!motoboys) return [];
     return motoboys.filter((m: any) => m.status === "disponivel_base");
   }, [motoboys]);
+
+  const atalhoAplicado = useRef("");
+  useEffect(() => {
+    if (!pedidoAtalho || !acaoAtalho) {
+      atalhoAplicado.current = "";
+      return;
+    }
+    const chave = acaoAtalho + ":" + pedidoAtalho;
+    if (!autorizado || !pedidos || filtro !== "todos" || atalhoAplicado.current === chave) return;
+    atalhoAplicado.current = chave;
+    const pedido = pedidos.find((p: { id: string }) => p.id === pedidoAtalho);
+    if (!pedido || !aguardandoAtribuicaoCentral(pedido) || (acaoAtalho === "rota" && pedido.status !== "pronto")) {
+      toast.info("O pedido já saiu da fila de atribuição.");
+      return;
+    }
+    if (acaoAtalho === "atribuir") {
+      setMotoboySelecionado("");
+      setAtribuicaoAtalho(pedidoAtalho);
+      return;
+    }
+    setPedidosRota(ids => [...new Set([...ids, pedidoAtalho])]);
+    abrirSecaoEntregas("secao-criar-rota");
+  }, [pedidoAtalho, acaoAtalho, autorizado, pedidos, filtro]);
+
+  useEffect(() => {
+    if (pedidoAtalho && acaoAtalho) setFiltro("todos");
+  }, [pedidoAtalho, acaoAtalho]);
 
   // Resumo do dia (real, sobre os dados carregados): KPIs, em andamento e motoboys.
   const resumoCentral = useMemo(() => {
@@ -641,6 +651,26 @@ function CentralEntregas() {
       return false;
     } finally {
       atribuindoEmVoo.delete(pedidoId);
+    }
+  }
+
+  function fecharAtribuicaoAtalho() {
+    setAtribuicaoAtalho(null);
+    void navigate({ to: "/central-entregas", search: {}, replace: true });
+  }
+
+  async function confirmarAtribuicaoAtalho() {
+    if (!atribuicaoAtalho || !motoboySelecionado || atribuindoSelecao || atribuindoEmVoo.has(atribuicaoAtalho)) return;
+    setAtribuindoSelecao(true);
+    try {
+      if (await atribuirMotoboy(atribuicaoAtalho, motoboySelecionado)) {
+        toast.success("Motoboy atribuído. O pedido aguarda o despacho.");
+        fecharAtribuicaoAtalho();
+      } else {
+        toast.error("Não foi possível atribuir o pedido. Confira a disponibilidade e tente novamente.");
+      }
+    } finally {
+      setAtribuindoSelecao(false);
     }
   }
 
@@ -1554,6 +1584,39 @@ function CentralEntregas() {
         <details className={quadroEntregas}>
           <summary className={tituloQuadro + " cursor-pointer"}>Ações e acompanhamento</summary>
         {/* ========== ATRIBUIÇÃO DE MOTOBOY ========== */}
+        <Dialog open={!!atribuicaoAtalho} onOpenChange={aberto => {
+          if (!aberto && !atribuindoSelecao) fecharAtribuicaoAtalho();
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Atribuir motoboy</DialogTitle>
+              <DialogDescription>
+                Pedido #{pedidos?.find((p: { id: string; numero: number }) => p.id === atribuicaoAtalho)?.numero}. A atribuição mantém o pedido aguardando despacho.
+              </DialogDescription>
+            </DialogHeader>
+            {erroMotoboys && <p role="alert">Não foi possível consultar os motoboys.</p>}
+            {!erroMotoboys && !motoboys?.length && <p>Sem motoboys disponíveis na consulta.</p>}
+            <label className="space-y-2">
+              <span>Motoboy</span>
+              <select value={motoboySelecionado} onChange={e => setMotoboySelecionado(e.target.value)}
+                disabled={atribuindoSelecao || erroMotoboys}
+                className="block w-full rounded-md border border-input bg-background px-3 py-2">
+                <option value="">Selecione um motoboy</option>
+                {(motoboys ?? []).map((m: any) => {
+                  const disponivel = m.status === "disponivel_base" && !!m.user_id;
+                  const reservados = (pedidos ?? []).filter((p: { motoboy_id?: string | null; status: string }) => p.motoboy_id === m.user_id && atribuidoCentral(p)).length;
+                  return <option key={m.id} value={m.id} disabled={!disponivel}>
+                    {m.nome} · {disponivel ? "Disponível" : m.status === "em_rota" ? "Em rota" : "Indisponível"} · {reservados} reservado(s)
+                  </option>;
+                })}
+              </select>
+            </label>
+            <Button disabled={atribuindoSelecao || !motoboySelecionado || erroPedidos || erroMotoboys}
+              onClick={() => void confirmarAtribuicaoAtalho()}>
+              {atribuindoSelecao ? "Atribuindo…" : "Confirmar atribuição"}
+            </Button>
+          </DialogContent>
+        </Dialog>
         {(pedidosFiltrados ?? []).filter(aguardandoAtribuicaoCentral).length >
           0 && (
           <div className="mt-4 rounded-xl border border-border bg-card p-6">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
+import { AtalhosEntrega } from "@/components/entregas/atalhos-entrega";
+import { podeOperarEntregas } from "@/lib/central-atribuicao";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,34 +29,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabaseLoose as supabase } from "@/lib/supabase-loose";
+import { ControlesAlertas, useAlertasOperacionais } from "@/components/alertas-operacionais";
 import { brl, PAGAMENTO_LABEL, PAGAMENTO_STATUS_LABEL } from "@/lib/format";
 import {
-  CHAVE_CONFIG_ALERTA,
-  CHAVE_RECONHECIDOS,
   CONFIG_ALERTA_PADRAO,
   ESTADOS_CENTRAL,
-  EVENTO_AVISO_COZINHA,
-  TOPICO_AVISOS_COZINHA,
   atrasoCentral,
   colunasCentral,
   avisoDoPedido,
   estaEmPreparo,
   filtrarPedidos,
   formatarMinutos,
-  gravarArmazenamento,
-  gravarConhecidos,
-  gravarReconhecidos,
-  lerArmazenamento,
-  lerConhecidos,
-  lerReconhecidos,
   metricasCentral,
   minutosDesde,
-  lerConfig,
-  normalizarConfig,
   ordenarPorPrioridade,
   pedidosNaoReconhecidos,
   prazoRegistrado,
-  TIPO_AVISO_CAIXA,
   TIPO_AVISO_RETIRADA,
   type AvisoCozinha,
   type ColunasCentral,
@@ -69,8 +59,9 @@ import {
   type ResultadoAceite,
 } from "@/lib/atendente-aceite";
 import { elegivelRetirada, retirarPedidoCliente } from "@/lib/motoboy-finalizacao";
+import { centavosInformados, confirmarValorRecebido, type RecebimentoRetirada } from "@/lib/recebimento-retirada";
 import { entradaJanelaProducao } from "@/lib/motor-producao";
-import { unidadesSalgadosH02 } from "@/lib/pedidos-h02";
+import { rotuloQuantidadePedido, unidadesSalgadosH02 } from "@/lib/pedidos-h02";
 import { MINIMO_COMBO } from "@/lib/totals";
 import { lerDashboard } from "@/lib/dashboard-a01-dados";
 import "./central-pedidos.css";
@@ -172,7 +163,7 @@ export function CentralPedidos({
         supabase
           .from("pedidos")
           .select(
-            "id,numero,cliente_nome,telefone,status,tipo_entrega,total,created_at,agendado_para,prazo_prometido_em,observacoes,aceito_em_atendente,aceito_em,aceito_por,liberado_em,conferido_em,pronto_em,preparo_em,retirado_em,motoboy_id,atrasado,atraso_descricao,pagamento_status,forma_pagamento,endereco,bairro,producao_status,producao_remessas(indice,concluida_em),itens_catalogados:pedido_itens(id,nome,quantidade,produto_id,produtos(id,nome,tipo_venda,unidade_medida,categorias(slug)),pedido_item_componentes(produto_id,quantidade,produtos(nome)))",
+            "id,numero,cliente_nome,telefone,status,tipo_entrega,total,created_at,agendado_para,prazo_prometido_em,observacoes,aceito_em_atendente,aceito_em,aceito_por,liberado_em,conferido_em,pronto_em,preparo_em,retirado_em,motoboy_id,rota_id,atrasado,atraso_descricao,pagamento_status,forma_pagamento,endereco,bairro,producao_status,producao_remessas(indice,concluida_em),itens_catalogados:pedido_itens(id,nome,quantidade,produto_id,produtos(id,nome,tipo_venda,unidade_medida,categorias(slug)),pedido_item_componentes(produto_id,quantidade,produtos(nome)))",
           )
           .in("status", [...ESTADOS_CENTRAL])
           .is("retirado_em", null)
@@ -184,82 +175,30 @@ export function CentralPedidos({
     },
   });
 
-  const {
-    data: avisosHook,
-    isError: avisosErro,
-    refetch: refazerAvisos,
-  } = useQuery({
-    queryKey: ["central-pedidos-avisos", usuarioId],
-    enabled: !preview && autorizado,
-    refetchInterval: 15000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("notificacoes")
-        .select("id, tipo, titulo, detalhe, link, lida, created_at")
-        .in("tipo", [TIPO_AVISO_CAIXA, TIPO_AVISO_RETIRADA])
-        .order("created_at", { ascending: false })
-        .order("id")
-        .limit(50);
-      if (error) throw error;
-      return (data ?? []) as AvisoCozinha[];
-    },
-  });
-
-  useEffect(() => {
-    if (preview || !autorizado) return;
-    const canal = supabase
-      .channel(CANAIS.atendente.nome)
-      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => {
-        void queryClient.invalidateQueries({ queryKey: ["central-pedidos", usuarioId] });
-      })
-      .subscribe();
-    const atualizarAvisos = () => {
-      void queryClient.invalidateQueries({ queryKey: ["central-pedidos-avisos", usuarioId] });
-    };
-    const canalAvisos = supabase
-      .channel(TOPICO_AVISOS_COZINHA, { config: { private: true } })
-      .on("broadcast", { event: EVENTO_AVISO_COZINHA }, atualizarAvisos)
-      .subscribe((status: string) => {
-        if (status === "SUBSCRIBED") atualizarAvisos();
-      });
-    return () => {
-      void supabase.removeChannel(canal);
-      void supabase.removeChannel(canalAvisos);
-    };
-  }, [preview, autorizado, usuarioId, queryClient]);
-
+  const alertas = useAlertasOperacionais();
+  const avisosErro = alertas?.avisosErro ?? false;
+  const refazerAvisos = alertas?.refazerAvisos;
   const pedidos = useMemo(
     () => (preview ? (pedidosInjetados ?? []) : (pedidosHook ?? [])),
     [preview, pedidosInjetados, pedidosHook],
   );
-  const avisos = useMemo(
-    () => (preview ? (avisosInjetados ?? []) : (avisosHook ?? [])),
-    [preview, avisosInjetados, avisosHook],
-  );
-
-  const chaveAvisos = "neia:central-pedidos:avisos-reconhecidos:" + usuarioId;
-  const [avisosReconhecidos, setAvisosReconhecidos] = useState<Set<string>>(() => new Set());
-  useEffect(() => {
-    if (preview) return;
-    setAvisosReconhecidos(lerReconhecidos(chaveAvisos));
-    const sincronizar = (evento: StorageEvent) => {
-      if (evento.key === chaveAvisos) setAvisosReconhecidos(lerReconhecidos(chaveAvisos));
-    };
-    window.addEventListener("storage", sincronizar);
-    return () => window.removeEventListener("storage", sincronizar);
-  }, [chaveAvisos, preview]);
-
+  const avisos = preview ? (avisosInjetados ?? []) : (alertas?.avisos ?? []);
+  const [reconhecidosPreview, setReconhecidosPreview] = useState(() => new Set<string>());
+  const reconhecidos = preview ? reconhecidosPreview : (alertas?.reconhecidos ?? new Set<string>());
+  const avisosReconhecidos = reconhecidos;
+  function reconhecer(chave: string) {
+    if (preview) setReconhecidosPreview(ids => new Set([...ids, chave]));
+    else alertas?.reconhecer(chave);
+  }
   function reconhecerAviso(aviso: AvisoCozinha, pedidoId: string) {
-    const ids = new Set([...avisosReconhecidos, ...(preview ? [] : lerReconhecidos(chaveAvisos))]);
-    ids.add(aviso.tipo + ":" + pedidoId);
-    if (!preview) gravarReconhecidos(ids, chaveAvisos);
-    setAvisosReconhecidos(ids);
+    reconhecer(aviso.tipo + ":" + pedidoId);
     onAvisoReconhecido?.(aviso.id);
   }
 
   const atualizarFilas = () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["central-pedidos"] }),
+      queryClient.invalidateQueries({ queryKey: ["alertas-operacionais-pedidos"] }),
       queryClient.invalidateQueries({ queryKey: ["central-pedidos-avisos"] }),
       queryClient.invalidateQueries({ queryKey: ["h02-pedidos-recentes"] }),
       queryClient.invalidateQueries({ queryKey: ["h02-pedidos-periodo"] }),
@@ -305,6 +244,33 @@ export function CentralPedidos({
 
   const retirada = pedidos.find((p) => p.id === retiradaId);
   const detalhe = pedidos.find((p) => p.id === detalheId);
+  const [valorParcial, setValorParcial] = useState("");
+  const [valorEntregue, setValorEntregue] = useState("");
+  const tentativaRecebimento = useRef<{ pedido: string; valor: number; chave: string } | null>(null);
+  const pagamentoRetirada = useQuery({
+    queryKey: ["retirada-recebimento", usuarioId, retiradaId],
+    enabled: Boolean(!preview && autorizado && retirada),
+    staleTime: 0,
+    refetchInterval: 15_000,
+    queryFn: async (): Promise<RecebimentoRetirada> => {
+      const { data, error } = await supabase.rpc("consultar_recebimento_retirada", { p_pedido_id: retiradaId });
+      if (error || !data) throw error ?? new Error("Saldo indisponível");
+      return data as RecebimentoRetirada;
+    },
+  });
+  const financeiro = pagamentoRetirada.data;
+  const pendente = financeiro?.status === "pendente" ? financeiro : null;
+  const dinheiro = pendente?.forma === "dinheiro";
+  const recebeNoBalcao = Boolean(pendente?.pode_receber && ["dinheiro", "credito", "debito"].includes(pendente.forma));
+  const valoresRecebidos = pendente && confirmarValorRecebido(
+    valorParcial ? centavosInformados(valorParcial) : pendente.saldo_centavos,
+    centavosInformados(valorEntregue), pendente.saldo_centavos, dinheiro,
+  );
+  function abrirRetirada(pedidoId: string) {
+    setValorParcial("");
+    setValorEntregue("");
+    setRetiradaId(pedidoId);
+  }
   const podeConfirmarRetirada = (p: PedidoCentral) =>
     !preview &&
     autorizado &&
@@ -323,6 +289,40 @@ export function CentralPedidos({
     retirandoRef.current = true;
     setRetirando(true);
     try {
+      if (pagamentoRetirada.isFetching || pagamentoRetirada.isError) return;
+      if (financeiro?.status !== "quitado") {
+        if (!pendente || !recebeNoBalcao || !valoresRecebidos) return;
+        const tentativa = tentativaRecebimento.current;
+        if (tentativa?.pedido === retirada.id && tentativa.valor !== valoresRecebidos.valor) {
+          toast.error("Há um recebimento sem confirmação. Repita o mesmo valor antes de registrar outro.");
+          return;
+        }
+        const chave = tentativa?.pedido === retirada.id && tentativa.valor === valoresRecebidos.valor
+          ? tentativa.chave : "retirada:" + retirada.id + ":" + crypto.randomUUID();
+        tentativaRecebimento.current = { pedido: retirada.id, valor: valoresRecebidos.valor, chave };
+        const { data, error } = await supabase.rpc("registrar_pagamento_pedido", {
+          p_pedido_id: retirada.id,
+          p_valor_centavos: valoresRecebidos.valor,
+          p_chave_idempotencia: chave,
+        });
+        if (error) {
+          toast.error("Não foi possível confirmar o registro. Confira o saldo antes de tentar novamente.");
+          return;
+        }
+        const consulta = await pagamentoRetirada.refetch();
+        if (!["registrado", "repetido", "sem_saldo"].includes(data?.status)) {
+          tentativaRecebimento.current = null;
+          toast.error(data?.status === "nao_autorizado" ? "O recebimento exige um operador de Caixa autorizado." : "O recebimento não foi confirmado. Confira o saldo.");
+          return;
+        }
+        tentativaRecebimento.current = null;
+        if (consulta.data?.status !== "quitado" || consulta.isError) {
+          setValorEntregue("");
+          setValorParcial("");
+          toast.info(consulta.data?.status === "pendente" ? "Recebimento registrado. Ainda há saldo a receber." : "Confira a situação do pagamento antes da retirada.");
+          return;
+        }
+      }
       const resultado = await retirarPedidoCliente(supabase, retirada.id, true);
       if (!resultado.ok) {
         toast.error(
@@ -336,6 +336,8 @@ export function CentralPedidos({
       toast.success(`Retirada do pedido #${retirada.numero} confirmada.`);
       setRetiradaId(null);
       await atualizarFilas();
+    } catch {
+      toast.error("Não foi possível confirmar a retirada. Consulte o pagamento antes de repetir.");
     } finally {
       retirandoRef.current = false;
       setRetirando(false);
@@ -345,195 +347,15 @@ export function CentralPedidos({
   /* ---------------------------------------------------------------- */
   /* Alerta sonoro (aprovado: ativo, 75%, 30s, reconhecimento individual) */
   /* ---------------------------------------------------------------- */
-  const [config, setConfig] = useState<ConfigAlerta>(CONFIG_ALERTA_PADRAO);
-  const [reconhecidosVersao, setReconhecidosVersao] = useState(0);
-  const [audioBloqueado, setAudioBloqueado] = useState(false);
-  const reconhecidosRef = useRef<Set<string>>(new Set());
-  const conhecidosRef = useRef<Set<string>>(new Set());
-  const audioRef = useRef<AudioContext | null>(null);
-  const pendentesRef = useRef(false);
-  const ultimoBipRef = useRef(-Infinity);
-  const filaAnalise = useMemo(() => colunasCentral(pedidos).analise, [pedidos]);
-
-  // Config e reconhecimento persistidos (recarregar a página não duplica alerta).
+  const [configPreview, setConfigPreview] = useState(configInicial ?? CONFIG_ALERTA_PADRAO);
+  const config = preview ? configPreview : (alertas?.config ?? CONFIG_ALERTA_PADRAO);
+  const salvarConfig = preview ? setConfigPreview : alertas?.salvarConfig ?? (() => {});
+  const audioBloqueado = alertas?.audioBloqueado ?? false;
   useEffect(() => {
-    if (preview) {
-      setConfig(configInicial ? normalizarConfig(configInicial) : CONFIG_ALERTA_PADRAO);
-      reconhecidosRef.current = new Set();
-      conhecidosRef.current = new Set();
-      setReconhecidosVersao((v) => v + 1);
-      return;
-    }
-    if (configInicial) {
-      const aprovada = normalizarConfig(configInicial);
-      setConfig(aprovada);
-      gravarArmazenamento(CHAVE_CONFIG_ALERTA, JSON.stringify(aprovada));
-    } else {
-      setConfig(lerConfig(lerArmazenamento(CHAVE_CONFIG_ALERTA)));
-    }
-    reconhecidosRef.current = lerReconhecidos();
-    conhecidosRef.current = lerConhecidos();
-    setReconhecidosVersao((v) => v + 1);
-    const sincronizar = (evento: StorageEvent) => {
-      if (evento.key === CHAVE_RECONHECIDOS) {
-        reconhecidosRef.current = lerReconhecidos();
-        setReconhecidosVersao((v) => v + 1);
-      }
-      if (evento.key === CHAVE_CONFIG_ALERTA) setConfig(lerConfig(evento.newValue));
-    };
-    window.addEventListener("storage", sincronizar);
-    return () => window.removeEventListener("storage", sincronizar);
-  }, [configInicial, preview]);
-
-  const bip = useCallback(
-    async (volume: number, testar = false, intervalo = 1000) => {
-      if (volume === 0) return;
-      try {
-        const Ctx =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (!Ctx) {
-          setAudioBloqueado(true);
-          return;
-        }
-        if (!audioRef.current) audioRef.current = new Ctx();
-        const ctx = audioRef.current;
-        if (ctx.state !== "running" && testar) await ctx.resume();
-        if (audioRef.current !== ctx) return;
-        if (ctx.state !== "running") {
-          setAudioBloqueado(true);
-          return;
-        }
-        const tocar = () => {
-          const agora = Date.now();
-          const ultimoDaCentral = Number(lerArmazenamento("neia:central-pedidos:ultimo-bip"));
-          if (agora - ultimoBipRef.current < 450) return;
-          if (!testar && !preview && agora - ultimoDaCentral < intervalo) return;
-          const o = ctx.createOscillator();
-          const g = ctx.createGain();
-          o.connect(g);
-          g.connect(ctx.destination);
-          o.frequency.value = 880;
-          g.gain.setValueAtTime(Math.max(0.0001, volume), ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-          o.onended = () => {
-            o.disconnect();
-            g.disconnect();
-          };
-          o.start();
-          o.stop(ctx.currentTime + 0.4);
-          ultimoBipRef.current = agora;
-          if (!testar && !preview)
-            gravarArmazenamento("neia:central-pedidos:ultimo-bip", String(agora));
-          setAudioBloqueado(false);
-        };
-        if (!testar && !preview && navigator.locks) {
-          await navigator.locks.request(
-            "neia:central-pedidos:audio",
-            { ifAvailable: true },
-            (lock) => {
-              if (lock && audioRef.current === ctx) tocar();
-            },
-          );
-        } else tocar();
-      } catch {
-        setAudioBloqueado(true);
-      }
-    },
-    [preview],
-  );
-
-  useEffect(
-    () => () => {
-      const ctx = audioRef.current;
-      audioRef.current = null;
-      if (ctx && ctx.state !== "closed") void ctx.close().catch(() => {});
-    },
-    [],
-  );
-
-  const salvarConfig = useCallback(
-    (nova: ConfigAlerta) => {
-      const normalizada = normalizarConfig(nova);
-      setConfig(normalizada);
-      if (preview) return;
-      try {
-        localStorage.setItem(CHAVE_CONFIG_ALERTA, JSON.stringify(normalizada));
-      } catch {
-        /* segue */
-      }
-    },
-    [preview],
-  );
-
-  // Um único timer: reavalia os pedidos e repete o som enquanto houver
-  // pedido não reconhecido. Sem loops aninhados nem sons simultâneos.
-  useEffect(() => {
-    if (!config.ativo || (!preview && !autorizado)) return;
-    const timer = window.setInterval(() => {
-      setAgora(Date.now());
-      if (pendentesRef.current)
-        void bip(config.volume, false, config.intervaloSegundos * 1000 - 250);
-    }, config.intervaloSegundos * 1000);
+    const timer = window.setInterval(() => setAgora(Date.now()), 15000);
     return () => window.clearInterval(timer);
-  }, [config.ativo, config.intervaloSegundos, config.volume, bip, preview, autorizado]);
-
-  useEffect(() => {
-    if (config.ativo) return;
-    const timer = window.setInterval(() => setAgora(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
-  }, [config.ativo]);
-
-  // Reconhecimento individual: o som deixa de ser pedido por aquele pedido.
-  const reconhecer = useCallback(
-    (id: string) => {
-      reconhecidosRef.current = new Set([
-        ...reconhecidosRef.current,
-        ...(preview ? [] : lerReconhecidos()),
-        id,
-      ]);
-      if (!preview) gravarReconhecidos(reconhecidosRef.current);
-      setReconhecidosVersao((v) => v + 1);
-      toast.success("Alerta reconhecido.");
-    },
-    [preview],
-  );
-
-  // Pedido realmente novo (ID real). Na primeira leitura (reconexão/reload)
-  // os pedidos existentes são registrados SEM tocar o som — só IDs que
-  // aparecerem depois disparam o alerta. Reconhecimento é individual.
-  const primeiraLeituraRef = useRef(true);
-  useEffect(() => {
-    if (!preview && (!autorizado || pedidosHook === undefined || pedidosErro)) return;
-    const novos = filaAnalise.filter((p) => !conhecidosRef.current.has(p.id));
-    const primeira = primeiraLeituraRef.current;
-    for (const p of novos) conhecidosRef.current.add(p.id);
-    if (!preview && novos.length > 0) gravarConhecidos(conhecidosRef.current);
-    if (primeira) {
-      primeiraLeituraRef.current = false;
-      return;
-    }
-    if (novos.some((p) => !reconhecidosRef.current.has(p.id)) && config.ativo)
-      void bip(config.volume);
-  }, [
-    filaAnalise,
-    pedidosHook,
-    pedidosErro,
-    autorizado,
-    config.ativo,
-    config.volume,
-    bip,
-    preview,
-  ]);
-
-  // Reconexão/reload: pedidos já reconhecidos não voltam a tocar.
-  const naoReconhecidos = useMemo(
-    () => pedidosNaoReconhecidos(filaAnalise, reconhecidosRef.current),
-    [filaAnalise, reconhecidosVersao],
-  );
-  useEffect(() => {
-    pendentesRef.current = naoReconhecidos.length > 0 && (preview || !pedidosErro);
-  }, [naoReconhecidos, pedidosErro, preview]);
+  }, []);
+  const naoReconhecidos = pedidosNaoReconhecidos(colunasCentral(pedidos).analise, reconhecidos);
 
   /* ---------------------------------------------------------------- */
   /* Colunas, filtros e métricas                                       */
@@ -551,9 +373,6 @@ export function CentralPedidos({
     !filaDisponivel || (metricas.atrasados === 0 && metricas.prazosSemDados > 0)
       ? "—"
       : metricas.atrasados;
-  const intervalos = [...new Set([15, 30, 45, 60, 120, config.intervaloSegundos])].sort(
-    (a, b) => a - b,
-  );
   const podeOperar = (preview || autorizado) && filaDisponivel;
 
   if (!preview && !autorizado) {
@@ -655,51 +474,7 @@ export function CentralPedidos({
         />
       </section>
 
-      <section className="ca-audio" aria-label="Controles do alerta sonoro">
-        <strong>
-          <Bell size={19} aria-hidden /> Alerta sonoro de novos pedidos
-        </strong>
-        <label>
-          <input
-            type="checkbox"
-            role="switch"
-            aria-label="Alerta sonoro"
-            checked={config.ativo}
-            onChange={(e) => salvarConfig({ ...config, ativo: e.target.checked })}
-          />
-          {config.ativo ? "Ativo" : "Desativado"}
-        </label>
-        <label>
-          Volume
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={5}
-            value={Math.round(config.volume * 100)}
-            onChange={(e) => salvarConfig({ ...config, volume: Number(e.target.value) / 100 })}
-            aria-label="Volume do alerta"
-          />
-          <span>{Math.round(config.volume * 100)}%</span>
-        </label>
-        <label>
-          Repetir
-          <select
-            value={config.intervaloSegundos}
-            aria-label="Intervalo de repetição"
-            onChange={(e) => salvarConfig({ ...config, intervaloSegundos: Number(e.target.value) })}
-          >
-            {intervalos.map((s) => (
-              <option key={s} value={s}>
-                {s} s
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button type="button" className="ca-primario" onClick={() => void bip(config.volume, true)}>
-          <BellRing size={17} aria-hidden /> Testar som
-        </Button>
-      </section>
+      <ControlesAlertas config={config} salvar={salvarConfig} testar={preview ? undefined : alertas?.testar} />
 
       {audioBloqueado && (
         <p role="status" className="ca-alerta">
@@ -722,7 +497,7 @@ export function CentralPedidos({
       {!preview && avisosErro && (
         <div role="alert" className="ca-alerta">
           Não foi possível carregar os avisos da cozinha.
-          <Button variant="outline" className="ca-secundario" onClick={() => void refazerAvisos()}>
+          <Button variant="outline" className="ca-secundario" onClick={() => refazerAvisos?.()}>
             Recarregar avisos
           </Button>
         </div>
@@ -768,10 +543,11 @@ export function CentralPedidos({
                           bloqueado={!podeOperar || aceitandoId !== null}
                           aceitando={aceitandoId === p.id}
                           onDetalhes={() => setDetalheId(p.id)}
+                          podeDespachar={!preview && podeOperarEntregas(papeis)}
                           onAceitar={() => void tratarAceite(p)}
                           onReconhecer={() => reconhecer(p.id)}
                           onRetirada={
-                            podeConfirmarRetirada(p) ? () => setRetiradaId(p.id) : undefined
+                            podeConfirmarRetirada(p) ? () => abrirRetirada(p.id) : undefined
                           }
                         />
                       );
@@ -875,6 +651,25 @@ export function CentralPedidos({
                 Confirme depois que o pedido for entregue ao cliente no balcão.
               </DialogDescription>
             </DialogHeader>
+            {pagamentoRetirada.isFetching && <p role="status">Consultando pagamento…</p>}
+            {pagamentoRetirada.isError && <Button variant="outline" onClick={() => void pagamentoRetirada.refetch()}>Tentar consultar pagamento novamente</Button>}
+            {!pagamentoRetirada.isFetching && financeiro?.status === "quitado" && <p>Pagamento confirmado.</p>}
+            {!pagamentoRetirada.isFetching && financeiro && !pendente && financeiro.status !== "quitado" &&
+              <p role="alert">O Financeiro precisa verificar o pagamento antes da retirada.</p>}
+            {pendente && <div className="space-y-2">
+              <p>Saldo restante: <strong>{brl(pendente.saldo_centavos / 100)}</strong></p>
+              {pendente.pago_centavos > 0 && <p>Já recebido: {brl(pendente.pago_centavos / 100)}</p>}
+              {recebeNoBalcao ? <>
+                <p>Confirme somente o valor efetivamente recebido em {PAGAMENTO_LABEL[pendente.forma]}.</p>
+                <label className="block">Valor a registrar em R$
+                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorParcial} disabled={retirando} placeholder={(pendente.saldo_centavos / 100).toFixed(2).replace(".", ",")} onChange={e => setValorParcial(e.target.value)} />
+                </label>
+                {dinheiro && <label className="block">Valor entregue pelo cliente em R$
+                  <input className="ml-2 rounded border border-border bg-background px-2 py-1" inputMode="decimal" value={valorEntregue} disabled={retirando} onChange={e => setValorEntregue(e.target.value)} />
+                </label>}
+                {dinheiro && valoresRecebidos && <p>Troco: <strong>{brl(valoresRecebidos.troco / 100)}</strong></p>}
+              </> : <p>{pendente.forma === "pix" ? "Aguardando a confirmação do Pix." : "Solicite o recebimento a um operador de Caixa autorizado."}</p>}
+            </div>}
             <div className="ca-acoes">
               <Button
                 type="button"
@@ -888,11 +683,14 @@ export function CentralPedidos({
               <Button
                 type="button"
                 className="ca-primario"
-                disabled={retirando || !filaDisponivel}
+                disabled={retirando || !filaDisponivel || pagamentoRetirada.isFetching || pagamentoRetirada.isError ||
+                  (financeiro?.status !== "quitado" && !(recebeNoBalcao && valoresRecebidos))}
                 aria-busy={retirando}
                 onClick={() => void confirmarRetirada()}
               >
-                {retirando ? "Confirmando retirada…" : "Confirmar retirada"}
+                {retirando ? "Confirmando…" : recebeNoBalcao && pendente
+                  ? valoresRecebidos?.valor === pendente.saldo_centavos ? "Confirmar recebimento e retirada" : "Registrar recebimento"
+                  : "Confirmar retirada"}
               </Button>
             </div>
           </DialogContent>
@@ -1001,6 +799,7 @@ function CardPedido({
   bloqueado,
   aceitando,
   onDetalhes,
+  podeDespachar,
   onAceitar,
   onReconhecer,
   onRetirada,
@@ -1015,6 +814,7 @@ function CardPedido({
   bloqueado: boolean;
   aceitando: boolean;
   onDetalhes: () => void;
+  podeDespachar: boolean;
   onAceitar: () => void;
   onReconhecer: () => void;
   onRetirada: (() => void) | undefined;
@@ -1089,7 +889,7 @@ function CardPedido({
       </div>
       <p className="ca-meta">
         <Package size={16} aria-hidden />
-        {unidades === null ? "Unidades não informadas" : unidades + " unidades"}
+        {rotuloQuantidadePedido(pedido.pedido_itens ?? [], unidades)}
         <span>
           · {combos ? combos + (combos === 1 ? " combo" : " combos") : "Combos não informados"}
         </span>
@@ -1136,6 +936,7 @@ function CardPedido({
         </div>
       )}
       <div className="ca-acoes">
+        {podeDespachar && <AtalhosEntrega pedido={pedido} className="ca-secundario inline-flex items-center gap-2 rounded-md border px-3 py-2" />}
         {coluna === "analise" && (
           <Button
             type="button"

@@ -17,6 +17,20 @@ function flag(nome: string): boolean {
 
 export const E4_ATRIBUICAO_ATIVA = flag("VITE_FF_ATRIBUICAO_TX");
 
+export function podeOperarEntregas(papeis: readonly string[] = []) {
+  return papeis.includes("admin") || papeis.includes("producao");
+}
+
+export function aguardandoAtribuicaoCentral(pedido: {
+  tipo_entrega: string;
+  status: string;
+  motoboy_id?: string | null;
+  rota_id?: string | null;
+}) {
+  return pedido.tipo_entrega === "entrega" && !pedido.motoboy_id && !pedido.rota_id &&
+    (pedido.status === "pronto" || pedido.status === "aguardando_motoboy");
+}
+
 export type CodigoAtribuicao =
   | "ok"
   | "negado"

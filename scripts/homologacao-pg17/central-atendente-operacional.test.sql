@@ -244,3 +244,13 @@ SELECT pg_temp.verificar((SELECT count(*) = 0 FROM realtime.messages), 'sessão 
 RESET ROLE;
 
 SELECT 'Migrations 0130–0132 verificadas no banco local' AS resultado;
+
+\ir ../../drizzle/migrations/0135_alertas_entregas_realtime.sql
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','20000000-0000-4000-8000-000000000012',false);
+SELECT pg_temp.verificar((SELECT count(*) = 1 AND bool_and(payload = '{}') FROM realtime.messages),
+  'produção autorizada em Entregas recebe o sinal privado sem dados do pedido');
+SELECT set_config('request.jwt.claim.sub','20000000-0000-4000-8000-000000000014',false);
+SELECT pg_temp.verificar((SELECT count(*) = 0 FROM realtime.messages),
+  'cliente segue sem receber o sinal privado');
+RESET ROLE;

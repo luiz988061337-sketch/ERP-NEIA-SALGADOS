@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
+import { register } from "node:module";
+register("./alias-loader.mjs", import.meta.url);
+const {
   atrasoH02,
   correspondeH02,
   FILTROS_H02,
@@ -8,7 +10,7 @@ import {
   resumoH02,
   trocoSolicitadoH02,
   unidadesSalgadosH02,
-} from "../src/lib/pedidos-h02.ts";
+} = await import("../src/lib/pedidos-h02.ts");
 import { abaAdministrativa, ehAbaAdministrativa } from "../src/lib/paineis-staff.ts";
 
 const agora = Date.parse("2026-11-26T13:00:00-03:00");

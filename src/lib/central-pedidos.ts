@@ -45,6 +45,7 @@ export type PedidoCentral = PrazoPedido & {
   pronto_em?: string | null;
   preparo_em?: string | null;
   motoboy_id?: string | null;
+  rota_id?: string | null;
   atrasado?: boolean | null;
   atraso_descricao?: string | null;
   retirado_em?: string | null;
@@ -216,6 +217,7 @@ export type ConfigAlerta = {
   volume: number;
   /** Intervalo de repetição, em segundos — padrão 30s. */
   intervaloSegundos: number;
+  modo?: "toque" | "voz" | "toque-voz";
 };
 
 export const CONFIG_ALERTA_PADRAO: ConfigAlerta = {
@@ -241,6 +243,7 @@ export function normalizarConfig(valor: unknown): ConfigAlerta {
       Number.isFinite(intervalo) && intervalo >= 5 && intervalo <= 600
         ? Math.round(intervalo)
         : CONFIG_ALERTA_PADRAO.intervaloSegundos,
+    ...(c.modo === "toque" || c.modo === "voz" || c.modo === "toque-voz" ? { modo: c.modo } : {}),
   };
 }
 

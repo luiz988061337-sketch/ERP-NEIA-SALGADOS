@@ -1,3 +1,6 @@
+import { AtalhosEntrega } from "@/components/entregas/atalhos-entrega";
+import { podeOperarEntregas } from "@/lib/central-atribuicao";
+import { limitePrometido } from "@/lib/prazo-pedido";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -47,6 +50,7 @@ import {
   correspondeH02,
   grupoH02,
   resumoH02,
+  rotuloQuantidadePedido,
   unidadesSalgadosH02,
   type FiltrosH02,
   type PedidoH02,
@@ -98,6 +102,7 @@ function Cartao({
   produtos,
   agora,
   podeAceitar,
+  podeDespachar,
   onDetalhes,
   onAceite,
 }: {
@@ -105,10 +110,12 @@ function Cartao({
   produtos: Map<string, ProdutoH02>;
   agora: number;
   podeAceitar: boolean;
+  podeDespachar: boolean;
   onDetalhes: () => void;
   onAceite: () => void;
 }) {
   const atr = atrasoH02(p, agora);
+  const prazo = limitePrometido(p);
   const unidades = unidadesSalgadosH02(p.pedido_itens, produtos);
   return (
     <article className="h02-cartao" data-atrasado={atr === true}>
@@ -129,12 +136,12 @@ function Cartao({
       <div className="h02-prazo">
         <CalendarClock size={17} aria-hidden />
         <span>
-          {p.agendado_para ? "Prazo " + dataH02(p.agendado_para) : "Prazo não registrado"}
+          {prazo ? "Prazo " + dataH02(prazo) : "Prazo não registrado"}
         </span>
         {atr && <strong className="neia-a01-vermelho">Em atraso</strong>}
       </div>
       <div className="h02-linha">
-        <span>{unidades === null ? "Salgados —" : unidades + " salgados"}</span>
+        <span>{rotuloQuantidadePedido(p.pedido_itens, unidades)}</span>
         <strong>{moedaH02(p.total)}</strong>
       </div>
       <p className="h02-nota">
@@ -159,6 +166,7 @@ function Cartao({
         </p>
       )}
       <div className="h02-acoes">
+        {podeDespachar && <AtalhosEntrega pedido={p} className="h02-botao" />}
         <button className="h02-botao" onClick={onDetalhes}>
           <Eye size={17} aria-hidden /> Ver detalhes
         </button>
@@ -598,6 +606,7 @@ export function PedidosH02({
                           produtos={produtos}
                           agora={agora}
                           podeAceitar={podeAceitar(pedido)}
+                          podeDespachar={!somenteLeitura && podeOperarEntregas(papeis)}
                           onDetalhes={() => abrir(pedido.id)}
                           onAceite={() => abrir(pedido.id, "aceitar")}
                         />

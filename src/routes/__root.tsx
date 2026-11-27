@@ -1,3 +1,4 @@
+import { AlertasOperacionais } from "@/components/alertas-operacionais";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import {
@@ -284,6 +285,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <GuardaVersao>
         <CartProvider>
+          <AlertasOperacionais ativo={!modoDemo && !rotaDemonstrativaSemBanco && pathname !== "/auth"}>
           <div className="flex min-h-screen flex-col">
             {bannerDemoVisivel ? (
               <div className="pointer-events-none fixed inset-x-0 top-0 z-[9999] flex justify-center px-2">
@@ -324,6 +326,7 @@ function RootComponent() {
             {esconderCartDock ? null : <CartDock />}
             <Toaster position="top-center" richColors />
           </div>
+          </AlertasOperacionais>
         </CartProvider>
       </GuardaVersao>
     </QueryClientProvider>
