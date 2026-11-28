@@ -96,15 +96,17 @@ terminal herdava `VITE_SUPABASE_URL` de produção. O build foi refeito com as
 variáveis explícitas de homologação lidas de `.env.homolog.local` (sem imprimir
 segredos) e passou com `arquivos com referência de produção: 0`.
 
-## Pendências para homologação
+## Situação em homologação (28/11/2026)
 
-1. Obter autorização expressa para aplicar `0142` em
-   `lflzlcqinarrcgncafol`, com destino declarado em `--project-ref` e
-   reconciliação documentada do histórico (sem reaplicação).
-2. Somente após a migration: integrar na branch oficial, publicar no alias fixo
-   com `NEIA_AMBIENTE=homologacao` e `VITE_DEMO_PREVIEW=0`, e fazer conferência
-   manual do proprietário.
-3. Validar com perfil `atendente` real: homologação não possui esse perfil e a
-   RLS do ledger não foi ampliada. Nenhum teste manual foi executado nesta etapa;
-   os resultados acima são automatizados/locais.
-4. Não promover produção. `ruioyioynwwwiqbjznoa` permanece protegida.
+1. Concluído: `0142` aplicada em `lflzlcqinarrcgncafol` com destino declarado em
+   `--project-ref`, histórico reconciliado na versão `20261128071000` sem
+   reaplicação de DDL.
+2. Concluído: checkpoint `412fc03` integrado por fast-forward na branch oficial
+   `resgate-visual-h01-h07-codex`, sincronizado com `origin`, e publicado no
+   alias fixo com `NEIA_AMBIENTE=homologacao` e `VITE_DEMO_PREVIEW=0`.
+3. Pendente: validação manual do proprietário e testes com perfil `atendente`
+   real. Homologação não possui esse perfil e a RLS do ledger não foi ampliada;
+   nenhum teste manual foi executado nesta etapa.
+4. Produção não foi promovida. `ruioyioynwwwiqbjznoa` permanece protegida.
+
+O relatório completo da homologação está em `homologacao-fase1.md`.
